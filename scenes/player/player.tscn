@@ -1,0 +1,30 @@
+[gd_scene format=3 uid="uid://doun1m2ix5any"]
+
+[ext_resource type="Texture2D" uid="uid://cajd6msam6o02" path="res://assets/player.svg" id="1_4flbx"]
+[ext_resource type="Script" uid="uid://b7k42ms07y2wq" path="res://scenes/player/player.gd" id="1_onrkg"]
+[ext_resource type="Script" uid="uid://8hfnbsqidpdh" path="res://scenes/player/leg_renderer.gd" id="3_i3pqv"]
+
+[node name="Player" type="RigidBody2D" unique_id=874337750]
+can_sleep = false
+linear_damp = 0.5
+angular_damp = 3.0
+script = ExtResource("1_onrkg")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1037254364]
+scale = Vector2(0.25, 0.25)
+texture = ExtResource("1_4flbx")
+
+[node name="LegRenderer" type="Node2D" parent="." unique_id=62032639]
+script = ExtResource("3_i3pqv")
+
+[node name="RayL" type="RayCast2D" parent="." unique_id=1267503647]
+position = Vector2(-16, 19)
+target_position = Vector2(0, 80)
+
+[node name="RayR" type="RayCast2D" parent="." unique_id=110282609]
+position = Vector2(17, 18)
+target_position = Vector2(0, 80)
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="." unique_id=1291126979]
+scale = Vector2(0.25, 0.25)
+polygon = PackedVector2Array(29, -100, -27.300003, -100, -36.3, -97, -39.6, -97, -61.6, -83, -63.9, -83, -85.9, -58, -87.3, -58, -97.3, -36, -98.5, -36, -100, -31, -100, 28.899994, -91, 49.300003, -91, 51.699997, -82, 62.600006, -82, 64.899994, -58, 85.8, -58, 87.3, -29, 100, 28.600006, 100, 54.399994, 88, 56.800003, 88, 79.8, 66, 81.2, 66, 95.100006, 41, 96.5, 41, 100, 27.800003, 100, -29, 91, -49.4, 91, -51.7, 82, -62.7, 82, -64.9, 58, -85.9, 58, -87.3, 36, -97.3, 36, -98.6)
