@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://bww728qimvqnl"]
+
+[ext_resource type="Script" uid="uid://d2bx1tgttywxb" path="res://Main.gd" id="1_glv2v"]
+
+[node name="Main" type="Node2D" unique_id=396516426]
+script = ExtResource("1_glv2v")
+
+[node name="SceneRoot" type="Node" parent="." unique_id=1927336674]
+unique_name_in_owner = true
