@@ -1,16 +1,45 @@
-[gd_scene format=4 uid="uid://4sydrtfynkep"]
+[gd_scene format=3 uid="uid://4sydrtfynkep"]
 
-[ext_resource type="Texture2D" uid="uid://bcgi4rr45lfwn" path="res://assets/Gray_64x64.png" id="1_i81v0"]
+[ext_resource type="Texture2D" uid="uid://qltq33agk253" path="res://assets/background.png" id="1_i81v0"]
+[ext_resource type="Texture2D" uid="uid://5fnn0nk68jdo" path="res://assets/Yellow_64x64.png" id="2_og561"]
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_i81v0"]
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_i81v0"]
+polygon = PackedVector2Array(608, 474, 608, 507, 629, 527, 651, 527, 671, 508, 671, 474)
+
+[sub_resource type="Gradient" id="Gradient_og561"]
+offsets = PackedFloat32Array(0.16346154, 0.71794873)
+colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_kddmf"]
+gradient = SubResource("Gradient_og561")
+fill = 1
+fill_from = Vector2(0.525641, 0.508547)
+
+[node name="Map1" type="Node" unique_id=831889074]
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1280095217]
+position = Vector2(-2, 3.9999995)
+scale = Vector2(2.3164558, 1.8818896)
 texture = ExtResource("1_i81v0")
-texture_region_size = Vector2i(64, 64)
-0:0/0 = 0
+centered = false
 
-[sub_resource type="TileSet" id="TileSet_kddmf"]
-tile_size = Vector2i(64, 64)
-sources/4 = SubResource("TileSetAtlasSource_i81v0")
+[node name="StaticBody2D" type="StaticBody2D" parent="." unique_id=1691340167]
 
-[node name="Map1" type="TileMapLayer" unique_id=1653393341]
-tile_map_data = PackedByteArray("AAAAAAoABAAAAAAAAAABAAoABAAAAAAAAAACAAoABAAAAAAAAAADAAoABAAAAAAAAAAEAAsABAAAAAAAAAAFAAsABAAAAAAAAAAGAAsABAAAAAAAAAAHAAsABAAAAAAAAAAIAAsABAAAAAAAAAAJAAsABAAAAAAAAAAKAAsABAAAAAAAAAALAAsABAAAAAAAAAAMAAsABAAAAAAAAAANAAsABAAAAAAAAAAOAAsABAAAAAAAAAAPAAsABAAAAAAAAAAQAAsABAAAAAAAAAARAAsABAAAAAAAAAARAAoABAAAAAAAAAASAAoABAAAAAAAAAATAAoABAAAAAAAAAAQAAoABAAAAAAAAAAPAAoABAAAAAAAAAAOAAoABAAAAAAAAAAOAAkABAAAAAAAAAANAAkABAAAAAAAAAAMAAkABAAAAAAAAAALAAkABAAAAAAAAAAKAAkABAAAAAAAAAAJAAkABAAAAAAAAAAIAAkABAAAAAAAAAAHAAkABAAAAAAAAAAGAAkABAAAAAAAAAAFAAkABAAAAAAAAAAEAAkABAAAAAAAAAADAAkABAAAAAAAAAACAAkABAAAAAAAAAAEAAoABAAAAAAAAAAFAAoABAAAAAAAAAAGAAoABAAAAAAAAAAHAAoABAAAAAAAAAAIAAoABAAAAAAAAAAJAAoABAAAAAAAAAAKAAoABAAAAAAAAAAAAAsABAAAAAAAAAABAAsABAAAAAAAAAACAAsABAAAAAAAAAADAAsABAAAAAAAAAASAAsABAAAAAAAAAATAAsABAAAAAAAAAALAAoABAAAAAAAAAAMAAoABAAAAAAAAAANAAoABAAAAAAAAAATAAkABAAAAAAAAAASAAkABAAAAAAAAAARAAkABAAAAAAAAAAQAAkABAAAAAAAAAAPAAkABAAAAAAAAAABAAkABAAAAAAAAAAAAAkABAAAAAAAAAAAAAYABAAAAAAAAAAAAAcABAAAAAAAAAAAAAgABAAAAAAAAAABAAgABAAAAAAAAAABAAcABAAAAAAAAAABAAYABAAAAAAAAAACAAgABAAAAAAAAAADAAgABAAAAAAAAAADAAcABAAAAAAAAAACAAcABAAAAAAAAAAKAAgABAAAAAAAAAAKAAcABAAAAAAAAAAJAAcABAAAAAAAAAAJAAgABAAAAAAAAAAJAAYABAAAAAAAAAAKAAYABAAAAAAAAAAPAAgABAAAAAAAAAAPAAcABAAAAAAAAAAQAAcABAAAAAAAAAAQAAgABAAAAAAAAAARAAgABAAAAAAAAAARAAcABAAAAAAAAAASAAcABAAAAAAAAAASAAgABAAAAAAAAAATAAgABAAAAAAAAAASAAYABAAAAAAAAAATAAYABAAAAAAAAAATAAcABAAAAAAAAAA=")
-tile_set = SubResource("TileSet_kddmf")
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="StaticBody2D" unique_id=820462382]
+light_mask = 2
+polygon = PackedVector2Array(607, 506, 627, 527, 651, 527, 671, 507, 670, 474, 607, 474)
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="StaticBody2D" unique_id=2088979653]
+occluder = SubResource("OccluderPolygon2D_i81v0")
+
+[node name="Sprite2D" type="Sprite2D" parent="StaticBody2D" unique_id=441472351]
+light_mask = 2
+position = Vector2(639.25, 501.00003)
+scale = Vector2(0.9921875, 0.87500006)
+texture = ExtResource("2_og561")
+
+[node name="PointLight2D" type="PointLight2D" parent="." unique_id=1160564642]
+position = Vector2(634, 179.99998)
+scale = Vector2(67.917, 38.682)
+shadow_enabled = true
+texture = SubResource("GradientTexture2D_kddmf")
