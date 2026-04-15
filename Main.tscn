@@ -1,17 +1,9 @@
 [gd_scene format=3 uid="uid://bww728qimvqnl"]
 
 [ext_resource type="Script" uid="uid://d2bx1tgttywxb" path="res://Main.gd" id="1_glv2v"]
-[ext_resource type="Texture2D" uid="uid://bcgi4rr45lfwn" path="res://assets/Gray_64x64.png" id="2_uu6xs"]
 
 [node name="Main" type="Node2D" unique_id=396516426]
 script = ExtResource("1_glv2v")
 
 [node name="SceneRoot" type="Node" parent="." unique_id=1927336674]
 unique_name_in_owner = true
-
-[node name="StaticBody2D" type="StaticBody2D" parent="." unique_id=1826999874]
-
-[node name="Sprite2D" type="Sprite2D" parent="StaticBody2D" unique_id=273855741]
-texture = ExtResource("2_uu6xs")
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D" unique_id=1237296172]

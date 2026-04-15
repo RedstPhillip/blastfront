@@ -22,14 +22,6 @@ window/size/viewport_height=720
 window/size/mode=2
 window/stretch/mode="canvas_items"
 
-[editor_plugins]
-
-enabled=PackedStringArray("res://addons/godot_vim/plugin.cfg")
-
-[display]
-
-window/size/mode=2
-
 [input]
 
 right={
