@@ -1,7 +1,7 @@
 extends Node2D
 
-@export var upper_len : float = 15.0
-@export var lower_len : float = 15.0
+@export var upper_len : float = 10.0
+@export var lower_len : float = 10.0
 @export var line_w    : float = 4.0
 @export var col_leg   : Color = Color(0.15, 0.15, 0.15)
 @export var col_joint : Color = Color(0.08, 0.08, 0.08)

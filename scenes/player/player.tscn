@@ -11,6 +11,7 @@ angular_damp = 3.0
 script = ExtResource("1_onrkg")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1037254364]
+light_mask = 2
 scale = Vector2(0.25, 0.25)
 texture = ExtResource("1_4flbx")
 
