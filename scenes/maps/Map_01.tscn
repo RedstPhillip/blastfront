@@ -1,108 +1,57 @@
-[gd_scene format=3 uid="uid://4sydrtfynkep"]
+[gd_scene format=3 uid="uid://b0xyw5i1rwqns"]
 
+[ext_resource type="PackedScene" uid="uid://dvuxee5nnoh77" path="res://scenes/maps/platforms/RectPlatform.tscn" id="2_gsqyd"]
+[ext_resource type="PackedScene" uid="uid://doun1m2ix5any" path="res://scenes/player/player.tscn" id="3_71plc"]
+[ext_resource type="PackedScene" uid="uid://dol6a502uukfn" path="res://scenes/maps/platforms/SmallPlatform.tscn" id="3_amlfo"]
 [ext_resource type="Shader" uid="uid://cs6ploa15ewpl" path="res://scenes/maps/Background.gdshader" id="3_kddmf"]
-[ext_resource type="Shader" uid="uid://dcbhx6o75l1eh" path="res://scenes/maps/Platform.gdshader" id="4_a4ds5"]
+[ext_resource type="PackedScene" uid="uid://d8fo7sfpor56" path="res://scenes/maps/platforms/OctanglePlatform.tscn" id="4_5ogjs"]
+[ext_resource type="PackedScene" uid="uid://ccva00o58sb32" path="res://scenes/maps/platforms/LongPlatform.tscn" id="5_hmdes"]
 
 [sub_resource type="Gradient" id="Gradient_og561"]
 offsets = PackedFloat32Array(0.16346154, 0.71794873)
 colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
 
-[sub_resource type="GradientTexture2D" id="GradientTexture2D_kddmf"]
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_mqbrq"]
 gradient = SubResource("Gradient_og561")
 fill = 1
 fill_from = Vector2(0.525641, 0.508547)
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_71plc"]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_nlnfm"]
 shader = ExtResource("3_kddmf")
 shader_parameter/color1 = Color(0.062000003, 0.11260002, 0.2, 1)
 shader_parameter/color2 = Color(0.062000003, 0.2, 0.1678, 1)
 shader_parameter/speed = 0.5
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_gsqyd"]
-shader = ExtResource("4_a4ds5")
-shader_parameter/color1 = Color(0.9, 0.2, 0.4, 1)
-shader_parameter/color2 = Color(1, 0.5, 0.2, 1)
-shader_parameter/speed = 0.3
-shader_parameter/scale = 6.0
-shader_parameter/warp1 = 1.2
-shader_parameter/warp2 = 2.0
+[node name="Map02" type="Node2D" unique_id=1667803264]
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_a4ds5"]
-shader = ExtResource("4_a4ds5")
-shader_parameter/color1 = Color(0.9, 0.2, 0.4, 1)
-shader_parameter/color2 = Color(1, 0.5, 0.2, 1)
-shader_parameter/speed = 1.5
-shader_parameter/scale = 2.5
-shader_parameter/warp1 = 1.2
-shader_parameter/warp2 = 2.0
-
-[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_71plc"]
-polygon = PackedVector2Array(700, 300, 750, 300, 750, 350, 700, 350)
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_amlfo"]
-shader = ExtResource("4_a4ds5")
-shader_parameter/color1 = Color(0.9, 0.2, 0.4, 1)
-shader_parameter/color2 = Color(1, 0.5, 0.2, 1)
-shader_parameter/speed = 0.8
-shader_parameter/scale = 2.0
-shader_parameter/warp1 = 1.2
-shader_parameter/warp2 = 2.0
-
-[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_og561"]
-polygon = PackedVector2Array(841, 493, 925, 494, 885, 409)
-
-[node name="Map1" type="Node" unique_id=831889074]
-
-[node name="PointLight2D" type="PointLight2D" parent="." unique_id=1160564642]
+[node name="PointLight2D" type="PointLight2D" parent="." unique_id=1078306765]
 position = Vector2(640, 0)
 scale = Vector2(67.917, 38.682)
 energy = 0.73
 shadow_enabled = true
-texture = SubResource("GradientTexture2D_kddmf")
+texture = SubResource("GradientTexture2D_mqbrq")
 
-[node name="ColorRect" type="ColorRect" parent="." unique_id=529366466]
-material = SubResource("ShaderMaterial_71plc")
+[node name="ColorRect" type="ColorRect" parent="." unique_id=1789728662]
+material = SubResource("ShaderMaterial_nlnfm")
 custom_minimum_size = Vector2(1280, 720)
 offset_right = 1280.0
 offset_bottom = 720.0
 
-[node name="StaticBody2D" type="StaticBody2D" parent="." unique_id=147541938]
-material = SubResource("ShaderMaterial_gsqyd")
+[node name="RectPlatform" parent="." unique_id=1842410348 instance=ExtResource("2_gsqyd")]
+position = Vector2(704, 384.00003)
+scale = Vector2(11.45, 11.45)
 
-[node name="Polygon2D" type="Polygon2D" parent="StaticBody2D" unique_id=1842369328]
-light_mask = 0
-material = SubResource("ShaderMaterial_a4ds5")
-polygon = PackedVector2Array(700, 300, 750, 300, 750, 350, 700, 350)
+[node name="SmallPlatform" parent="." unique_id=609285380 instance=ExtResource("3_amlfo")]
+position = Vector2(104.00001, 352)
+scale = Vector2(6.535, 6.535)
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="StaticBody2D" unique_id=1967121926]
-polygon = PackedVector2Array(700, 300, 750, 300, 750, 350, 700, 350)
+[node name="OctanglePlatform" parent="." unique_id=556789199 instance=ExtResource("4_5ogjs")]
+position = Vector2(1072, 376)
+scale = Vector2(10, 10)
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="StaticBody2D" unique_id=780559795]
-occluder = SubResource("OccluderPolygon2D_71plc")
+[node name="LongPlatform" parent="." unique_id=1441916880 instance=ExtResource("5_hmdes")]
+position = Vector2(368.00003, 360.00003)
+scale = Vector2(10.16, 10.16)
 
-[node name="StaticBody2D2" type="StaticBody2D" parent="." unique_id=210534002]
-
-[node name="Polygon2D" type="Polygon2D" parent="StaticBody2D2" unique_id=703478474]
-light_mask = 0
-material = SubResource("ShaderMaterial_amlfo")
-polygon = PackedVector2Array(841, 493, 925, 494, 885, 409)
-
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="StaticBody2D2" unique_id=1517149468]
-polygon = PackedVector2Array(841, 493, 925, 494, 885, 409)
-
-[node name="LightOccluder2D" type="LightOccluder2D" parent="StaticBody2D2" unique_id=1686236095]
-occluder = SubResource("OccluderPolygon2D_og561")
-
-[node name="StaticBody2D3" type="StaticBody2D" parent="." unique_id=1913605124]
-position = Vector2(-400, -83.594)
-
-[node name="Polygon2D" type="Polygon2D" parent="StaticBody2D3" unique_id=401862419]
-light_mask = 0
-material = SubResource("ShaderMaterial_amlfo")
-polygon = PackedVector2Array(841, 493, 925, 494, 885, 409)
-
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="StaticBody2D3" unique_id=474636572]
-polygon = PackedVector2Array(841, 493, 925, 494, 885, 409)
-
-[node name="LightOccluder2D" type="LightOccluder2D" parent="StaticBody2D3" unique_id=297501565]
-occluder = SubResource("OccluderPolygon2D_og561")
+[node name="Player" parent="." unique_id=874337750 instance=ExtResource("3_71plc")]
+position = Vector2(728, 160)

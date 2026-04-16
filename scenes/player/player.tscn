@@ -17,11 +17,11 @@ texture = ExtResource("1_4flbx")
 
 [node name="RayL" type="RayCast2D" parent="." unique_id=1267503647]
 position = Vector2(-16, 19)
-target_position = Vector2(0, 80)
+target_position = Vector2(0, 25)
 
 [node name="RayR" type="RayCast2D" parent="." unique_id=110282609]
 position = Vector2(17, 18)
-target_position = Vector2(0, 80)
+target_position = Vector2(0, 25)
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="." unique_id=1291126979]
 scale = Vector2(0.25, 0.25)

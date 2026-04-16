@@ -1,0 +1,27 @@
+[gd_scene format=3 uid="uid://ccva00o58sb32"]
+
+[ext_resource type="Shader" uid="uid://dcbhx6o75l1eh" path="res://scenes/maps/Platform.gdshader" id="1_tcbjq"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_tcbjq"]
+shader = ExtResource("1_tcbjq")
+shader_parameter/color1 = Color(0.9, 0.2, 0.4, 1)
+shader_parameter/color2 = Color(1, 0.5, 0.2, 1)
+shader_parameter/speed = 1.5
+shader_parameter/scale = 2.5
+shader_parameter/warp1 = 1.2
+shader_parameter/warp2 = 2.0
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_tcbjq"]
+polygon = PackedVector2Array(12, -2, 12, 0, 10, 2, -10, 2, -12, 0, -12, -2, 0, -2)
+
+[node name="LongPlatform" type="StaticBody2D" unique_id=1441916880]
+
+[node name="Polygon2D" type="Polygon2D" parent="." unique_id=441828369]
+material = SubResource("ShaderMaterial_tcbjq")
+polygon = PackedVector2Array(12, -2, 12, 0, 10, 2, -10, 2, -12, 0, -12, -2, 0, -2)
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="." unique_id=619440234]
+polygon = PackedVector2Array(12, -2, 12, 0, 10, 2, -10, 2, -12, 0, -12, -2, 0, -2)
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="." unique_id=1219736515]
+occluder = SubResource("OccluderPolygon2D_tcbjq")
