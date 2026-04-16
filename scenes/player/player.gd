@@ -33,8 +33,6 @@ var _last_stepped : int = 1
 
 var last_dir : float = 1.0
 
-var last_dir : float = 1.0
-
 @onready var _ray_l : RayCast2D = $RayL
 @onready var _ray_r : RayCast2D = $RayR
 
@@ -100,11 +98,11 @@ func _update_steps(delta: float, hip: Vector2, floor_y: float) -> void:
 		bounce_t += delta * 12.0 * (absf(linear_velocity.x) / max_speed)
 
 	if _step_t_l < 1.0:
-		_step_t_l = minf(_step_t_l + delta / step_duration, 1.0)
+		_step_t_l  = minf(_step_t_l + delta / step_duration, 1.0)
 		foot_pos_l = _arc(_step_from_l, _step_to_l, _step_t_l)
 
 	if _step_t_r < 1.0:
-		_step_t_r = minf(_step_t_r + delta / step_duration, 1.0)
+		_step_t_r  = minf(_step_t_r + delta / step_duration, 1.0)
 		foot_pos_r = _arc(_step_from_r, _step_to_r, _step_t_r)
 
 	var ideal_l := Vector2(hip.x - foot_spread, floor_y)

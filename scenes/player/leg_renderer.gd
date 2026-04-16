@@ -1,10 +1,10 @@
 extends Node2D
 
-@export var upper_len  : float = 13.0
-@export var lower_len  : float = 12.0
-@export var line_w     : float = 3.0
-@export var col_leg    : Color = Color8(238, 130, 238, 255)
-@export var bezier_pts : int = 16
+@export var upper_len   : float = 13.0
+@export var lower_len   : float = 12.0
+@export var line_w      : float = 3.0
+@export var col_leg     : Color = Color8(238, 130, 238, 255)
+@export var bezier_pts  : int = 16
 @export var knee_smooth : float = 8.0
 
 var _p : RigidBody2D
@@ -30,7 +30,7 @@ func _draw() -> void:
 	var spread : float = _p.get("foot_spread") if "foot_spread" in _p else 16.0
 	var b_amp  : float = _p.get("bounce_amp") if "bounce_amp" in _p else 0.0
 	var bt     : float = _p.get("bounce_t") if "bounce_t" in _p else 0.0
-	var bounce  : float = sin(bt) * b_amp
+	var bounce : float = sin(bt) * b_amp
 
 	var vel_x : float = _p.linear_velocity.x
 
@@ -47,13 +47,24 @@ func _draw() -> void:
 	var hip_l : Vector2 = hip_w + Vector2(-spread * 0.4, bounce)
 	var hip_r : Vector2 = hip_w + Vector2( spread * 0.4, bounce)
 
-	var hip_l_local  = to_local(hip_l)
-	var hip_r_local  = to_local(hip_r)
-	var foot_l_local = to_local(_p.foot_pos_l)
-	var foot_r_local = to_local(_p.foot_pos_r)
+	var hip_l_local : Vector2 = to_local(hip_l)
+	var hip_r_local : Vector2 = to_local(hip_r)
+	var foot_l_local : Vector2 = to_local(_p.foot_pos_l)
+	var foot_r_local : Vector2 = to_local(_p.foot_pos_r)
+
+	var max_reach := (upper_len + lower_len) - 0.5
+	foot_l_local = _clamp_to_reach(hip_l_local, foot_l_local, max_reach)
+	foot_r_local = _clamp_to_reach(hip_r_local, foot_r_local, max_reach)
 
 	_draw_leg(hip_l_local, foot_l_local, _knee_dir_smoothed)
 	_draw_leg(hip_r_local, foot_r_local, _knee_dir_smoothed)
+
+func _clamp_to_reach(hip: Vector2, foot: Vector2, max_dist: float) -> Vector2:
+	var offset := foot - hip
+	var dist := offset.length()
+	if dist > max_dist and dist > 0.0001:
+		return hip + offset / dist * max_dist
+	return foot
 
 func _draw_leg(hip: Vector2, foot: Vector2, knee_dir: float) -> void:
 	var knee : Vector2 = _two_bone_ik(hip, foot, upper_len, lower_len, knee_dir)
@@ -62,7 +73,7 @@ func _draw_leg(hip: Vector2, foot: Vector2, knee_dir: float) -> void:
 func _draw_bezier(p0: Vector2, p1: Vector2, p2: Vector2) -> void:
 	var points := PackedVector2Array()
 	for i in range(bezier_pts + 1):
-		var t  : float = float(i) / float(bezier_pts)
+		var t : float = float(i) / float(bezier_pts)
 		var mt : float = 1.0 - t
 		var pt : Vector2 = mt * mt * p0 + 2.0 * mt * t * p1 + t * t * p2
 		points.append(pt)
