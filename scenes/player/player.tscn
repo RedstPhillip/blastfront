@@ -20,7 +20,7 @@ position = Vector2(-16, 19)
 target_position = Vector2(0, 25)
 
 [node name="RayR" type="RayCast2D" parent="." unique_id=110282609]
-position = Vector2(17, 18)
+position = Vector2(16, 19)
 target_position = Vector2(0, 25)
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="." unique_id=1291126979]
