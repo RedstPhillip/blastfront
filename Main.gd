@@ -8,7 +8,7 @@ func _ready() -> void:
 	show_menu();
 
 func show_menu() -> void:
-	change_scene("res://scenes/maps/Map_01.tscn");
+	change_scene("res://scenes/maps/Map_02.tscn");
 
 
 func change_scene(path: String) -> void:

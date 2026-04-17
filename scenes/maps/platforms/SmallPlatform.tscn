@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://dol6a502uukfn"]
 
-[ext_resource type="Shader" uid="uid://dcbhx6o75l1eh" path="res://scenes/maps/Platform.gdshader" id="1_yuvqu"]
+[ext_resource type="Shader" path="res://scenes/maps/platforms/Platform.gdshader" id="1_yuvqu"]
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_cwp8t"]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_yuvqu"]
 shader = ExtResource("1_yuvqu")
 shader_parameter/color1 = Color(0.9, 0.2, 0.4, 1)
 shader_parameter/color2 = Color(1, 0.5, 0.2, 1)
@@ -17,7 +17,7 @@ polygon = PackedVector2Array(10, -8, 10, 5, 5, 10, -5, 10, -10, 5, -10, -8, 0, -
 [node name="SmallPlatform" type="StaticBody2D" unique_id=609285380]
 
 [node name="Polygon2D" type="Polygon2D" parent="." unique_id=810806674]
-material = SubResource("ShaderMaterial_cwp8t")
+material = SubResource("ShaderMaterial_yuvqu")
 polygon = PackedVector2Array(10, -8, 10, 5, 5, 10, -5, 10, -10, 5, -10, -8, 0, -8)
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="." unique_id=1828117649]

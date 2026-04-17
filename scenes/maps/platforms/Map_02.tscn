@@ -1,0 +1,37 @@
+[gd_scene format=3 uid="uid://d0ihpfaut4nw4"]
+
+[ext_resource type="Shader" uid="uid://cs6ploa15ewpl" path="res://scenes/maps/Background.gdshader" id="1_f5mry"]
+[ext_resource type="PackedScene" uid="uid://doun1m2ix5any" path="res://scenes/player/player.tscn" id="2_hvjb6"]
+
+[sub_resource type="Gradient" id="Gradient_og561"]
+offsets = PackedFloat32Array(0.16346154, 0.71794873)
+colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_wa6f0"]
+gradient = SubResource("Gradient_og561")
+fill = 1
+fill_from = Vector2(0.525641, 0.508547)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_hvjb6"]
+shader = ExtResource("1_f5mry")
+shader_parameter/color1 = Color(0.062000003, 0.11260002, 0.2, 1)
+shader_parameter/color2 = Color(0.062000003, 0.2, 0.1678, 1)
+shader_parameter/speed = 0.5
+
+[node name="Map02" type="Node2D" unique_id=865662757]
+
+[node name="PointLight2D" type="PointLight2D" parent="." unique_id=1750659926]
+position = Vector2(640, 0)
+scale = Vector2(67.917, 38.682)
+energy = 0.73
+shadow_enabled = true
+texture = SubResource("GradientTexture2D_wa6f0")
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=2048650616]
+material = SubResource("ShaderMaterial_hvjb6")
+custom_minimum_size = Vector2(1280, 720)
+offset_right = 1280.0
+offset_bottom = 720.0
+
+[node name="Player" parent="." unique_id=874337750 instance=ExtResource("2_hvjb6")]
+position = Vector2(632, 232)

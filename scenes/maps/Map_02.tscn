@@ -1,0 +1,174 @@
+[gd_scene format=3 uid="uid://b6l5ourgm7xuq"]
+
+[ext_resource type="Shader" uid="uid://cs6ploa15ewpl" path="res://scenes/maps/Background.gdshader" id="1_f5mry"]
+[ext_resource type="PackedScene" uid="uid://doun1m2ix5any" path="res://scenes/player/player.tscn" id="2_hvjb6"]
+[ext_resource type="Shader" path="res://scenes/maps/platforms/Platform.gdshader" id="3_leycp"]
+[ext_resource type="PackedScene" uid="uid://dvuxee5nnoh77" path="res://scenes/maps/platforms/RectPlatform.tscn" id="3_yugup"]
+[ext_resource type="PackedScene" uid="uid://d8fo7sfpor56" path="res://scenes/maps/platforms/OctanglePlatform.tscn" id="4_kpb4k"]
+[ext_resource type="PackedScene" uid="uid://ccva00o58sb32" path="res://scenes/maps/platforms/LongPlatform.tscn" id="5_4w2pl"]
+[ext_resource type="PackedScene" uid="uid://dol6a502uukfn" path="res://scenes/maps/platforms/SmallPlatform.tscn" id="7_23d8d"]
+
+[sub_resource type="Gradient" id="Gradient_og561"]
+offsets = PackedFloat32Array(0.16346154, 0.71794873)
+colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_wa6f0"]
+gradient = SubResource("Gradient_og561")
+fill = 1
+fill_from = Vector2(0.525641, 0.508547)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_hvjb6"]
+shader = ExtResource("1_f5mry")
+shader_parameter/color1 = Color(0.062000003, 0.11260002, 0.2, 1)
+shader_parameter/color2 = Color(0.062000003, 0.2, 0.1678, 1)
+shader_parameter/speed = 0.5
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_23d8d"]
+shader = ExtResource("3_leycp")
+shader_parameter/color1 = Color(0.9, 0.2, 0.4, 1)
+shader_parameter/color2 = Color(1, 0.5, 0.2, 1)
+shader_parameter/speed = 1.5
+shader_parameter/scale = 2.5
+shader_parameter/warp1 = 1.2
+shader_parameter/warp2 = 2.0
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_leycp"]
+polygon = PackedVector2Array(64, 720, 64, 536, 144, 536, 192, 560, 504, 560, 560, 608, 560, 719.2001)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_leycp"]
+shader = ExtResource("3_leycp")
+shader_parameter/color1 = Color(0.9, 0.2, 0.4, 1)
+shader_parameter/color2 = Color(1, 0.5, 0.2, 1)
+shader_parameter/speed = 1.5
+shader_parameter/scale = 2.5
+shader_parameter/warp1 = 1.2
+shader_parameter/warp2 = 2.0
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_23d8d"]
+polygon = PackedVector2Array(656, 704, 656, 528, 576, 528, 528, 552, 216, 552, 160, 600, 160, 704)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_iok3r"]
+shader = ExtResource("3_leycp")
+shader_parameter/color1 = Color(0.9, 0.2, 0.4, 1)
+shader_parameter/color2 = Color(1, 0.5, 0.2, 1)
+shader_parameter/speed = 1.5
+shader_parameter/scale = 2.5
+shader_parameter/warp1 = 1.2
+shader_parameter/warp2 = 2.0
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_iok3r"]
+polygon = PackedVector2Array(632, 400, 648, 400, 664, 376, 664, 312, 688, 280, 688, 208, 592, 208, 592, 280, 616, 312, 616, 376)
+
+[node name="Map02" type="Node2D" unique_id=865662757]
+
+[node name="PointLight2D" type="PointLight2D" parent="." unique_id=1750659926]
+position = Vector2(640, 0)
+scale = Vector2(67.917, 38.682)
+energy = 0.73
+shadow_enabled = true
+texture = SubResource("GradientTexture2D_wa6f0")
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=2048650616]
+material = SubResource("ShaderMaterial_hvjb6")
+custom_minimum_size = Vector2(1280, 720)
+offset_left = -8.0
+offset_right = 1272.0
+offset_bottom = 720.0
+
+[node name="Player" parent="." unique_id=874337750 instance=ExtResource("2_hvjb6")]
+position = Vector2(640, 232)
+
+[node name="StaticBody2D" type="StaticBody2D" parent="." unique_id=252369944]
+
+[node name="Polygon2D" type="Polygon2D" parent="StaticBody2D" unique_id=270262714]
+material = SubResource("ShaderMaterial_23d8d")
+position = Vector2(-16, 24)
+scale = Vector2(1, 0.9677419)
+polygon = PackedVector2Array(64, 720, 64, 536, 144, 536, 192, 560, 504, 560, 560, 608, 560, 719.2001)
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="StaticBody2D" unique_id=1211360383]
+position = Vector2(-16, 8)
+polygon = PackedVector2Array(64, 720, 64, 536, 144, 536, 192, 560, 504, 560, 560, 608, 560, 719.2001)
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="StaticBody2D" unique_id=1284494552]
+position = Vector2(-16, 8)
+occluder = SubResource("OccluderPolygon2D_leycp")
+
+[node name="RectPlatform" parent="." unique_id=1842410348 instance=ExtResource("3_yugup")]
+position = Vector2(640, 680)
+scale = Vector2(5, 5)
+
+[node name="StaticBody2D2" type="StaticBody2D" parent="." unique_id=664265493]
+
+[node name="Polygon2D" type="Polygon2D" parent="StaticBody2D2" unique_id=666638955]
+material = SubResource("ShaderMaterial_leycp")
+position = Vector2(576, 16)
+polygon = PackedVector2Array(656, 704, 656, 528, 576, 528, 528, 552, 216, 552, 160, 600, 160, 704)
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="StaticBody2D2" unique_id=840037356]
+position = Vector2(576, 16)
+occluder = SubResource("OccluderPolygon2D_23d8d")
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="StaticBody2D2" unique_id=279067375]
+position = Vector2(576, 16)
+polygon = PackedVector2Array(656, 704, 656, 528, 576, 528, 528, 552, 216, 552, 160, 600, 160, 704)
+
+[node name="OctanglePlatform" parent="." unique_id=556789199 instance=ExtResource("4_kpb4k")]
+position = Vector2(640, 488)
+scale = Vector2(6, 6)
+
+[node name="LongPlatform" parent="." unique_id=1441916880 instance=ExtResource("5_4w2pl")]
+position = Vector2(264, 464)
+scale = Vector2(8, 8)
+
+[node name="LongPlatform2" parent="." unique_id=2010732592 instance=ExtResource("5_4w2pl")]
+position = Vector2(264, 328)
+scale = Vector2(8, 8)
+
+[node name="SmallPlatform" parent="." unique_id=609285380 instance=ExtResource("7_23d8d")]
+position = Vector2(424, 408)
+scale = Vector2(3, 3)
+
+[node name="SmallPlatform2" parent="." unique_id=1593659193 instance=ExtResource("7_23d8d")]
+position = Vector2(456.00003, 248)
+scale = Vector2(3, 3)
+
+[node name="SmallPlatform3" parent="." unique_id=1324140178 instance=ExtResource("7_23d8d")]
+position = Vector2(528, 360)
+scale = Vector2(3, 3)
+
+[node name="StaticBody2D3" type="StaticBody2D" parent="." unique_id=1586225833]
+
+[node name="Polygon2D" type="Polygon2D" parent="StaticBody2D3" unique_id=884992612]
+material = SubResource("ShaderMaterial_iok3r")
+position = Vector2(0, -24)
+polygon = PackedVector2Array(632, 400, 648, 400, 664, 376, 664, 312, 688, 280, 688, 208, 592, 208, 592, 280, 616, 312, 616, 376)
+uv = PackedVector2Array(-223, 50)
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="StaticBody2D3" unique_id=1341595190]
+position = Vector2(0, -24)
+polygon = PackedVector2Array(632, 400, 648, 400, 664, 376, 664, 312, 688, 280, 688, 208, 592, 208, 592, 280, 616, 312, 616, 376)
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="StaticBody2D3" unique_id=1149139131]
+position = Vector2(0, -24)
+occluder = SubResource("OccluderPolygon2D_iok3r")
+
+[node name="LongPlatform3" parent="." unique_id=1168953314 instance=ExtResource("5_4w2pl")]
+position = Vector2(1016, 464)
+scale = Vector2(8, 8)
+
+[node name="LongPlatform4" parent="." unique_id=501543076 instance=ExtResource("5_4w2pl")]
+position = Vector2(1016, 328)
+scale = Vector2(8, 8)
+
+[node name="SmallPlatform4" parent="." unique_id=1562509204 instance=ExtResource("7_23d8d")]
+position = Vector2(856, 408)
+scale = Vector2(3, 3)
+
+[node name="SmallPlatform5" parent="." unique_id=916779312 instance=ExtResource("7_23d8d")]
+position = Vector2(752.00006, 360)
+scale = Vector2(3, 3)
+
+[node name="SmallPlatform6" parent="." unique_id=560003958 instance=ExtResource("7_23d8d")]
+position = Vector2(824.00006, 248)
+scale = Vector2(3, 3)
