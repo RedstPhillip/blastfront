@@ -1,8 +1,8 @@
 extends Node2D
 
-@export var upper_len := 13.0
-@export var lower_len := 12.0
-@export var line_w := 3.0
+@export var upper_len := 9.75
+@export var lower_len := 9.0
+@export var line_w := 2.25
 @export var col_leg: Color = Color8(238, 130, 238, 255)
 @export var bezier_pts := 16
 @export var knee_smooth := 8.0
@@ -23,9 +23,8 @@ func _draw() -> void:
 	if not _p or not ("foot_pos_l" in _p) or not ("foot_pos_r" in _p):
 		return
 
-	var hip_y: float = _p.get("hip_y_offset") if "hip_y_offset" in _p else 18.0
-	var spread: float = _p.get("foot_spread") if "foot_spread" in _p else 16.0
-
+	var hip_y: float = (_p.get("hip_y_offset") if "hip_y_offset" in _p else 13.5) - 4.0
+	var spread: float = _p.get("foot_spread") if "foot_spread" in _p else 12.0
 	var bt: float = _p.get("bounce_t") if "bounce_t" in _p else 0.0
 	var b_amp: float = _p.get("bounce_amp") if "bounce_amp" in _p else 0.0
 	var bounce: float = sin(bt) * b_amp
@@ -37,6 +36,7 @@ func _draw() -> void:
 	var hip_w := _p.global_position + Vector2(0.0, hip_y).rotated(_p.rotation)
 	var hip_l := to_local(hip_w + Vector2(-spread * 0.4, bounce))
 	var hip_r := to_local(hip_w + Vector2(spread * 0.4, bounce))
+
 	var foot_l := to_local(_p.foot_pos_l)
 	var foot_r := to_local(_p.foot_pos_r)
 
