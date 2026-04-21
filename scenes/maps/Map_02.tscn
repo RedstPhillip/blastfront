@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://b6l5ourgm7xuq"]
 
 [ext_resource type="Shader" uid="uid://cs6ploa15ewpl" path="res://scenes/maps/Background.gdshader" id="1_f5mry"]
-[ext_resource type="Shader" path="res://scenes/maps/platforms/Platform.gdshader" id="3_leycp"]
+[ext_resource type="Shader" uid="uid://dcbhx6o75l1eh" path="res://scenes/maps/platforms/Platform.gdshader" id="3_leycp"]
 [ext_resource type="PackedScene" uid="uid://dvuxee5nnoh77" path="res://scenes/maps/platforms/RectPlatform.tscn" id="3_yugup"]
 [ext_resource type="PackedScene" uid="uid://d8fo7sfpor56" path="res://scenes/maps/platforms/OctanglePlatform.tscn" id="4_kpb4k"]
 [ext_resource type="PackedScene" uid="uid://ccva00o58sb32" path="res://scenes/maps/platforms/LongPlatform.tscn" id="5_4w2pl"]
@@ -70,8 +70,7 @@ texture = SubResource("GradientTexture2D_wa6f0")
 [node name="ColorRect" type="ColorRect" parent="." unique_id=2048650616]
 material = SubResource("ShaderMaterial_hvjb6")
 custom_minimum_size = Vector2(1280, 720)
-offset_left = -8.0
-offset_right = 1272.0
+offset_right = 1280.0
 offset_bottom = 720.0
 
 [node name="StaticBody2D" type="StaticBody2D" parent="." unique_id=252369944]

@@ -2,7 +2,7 @@ extends RigidBody2D
 
 @export var move_force := 600.0
 @export var max_speed := 210.0
-@export var jump_force := 360.0
+@export var jump_force := 460.0
 @export var hover_dist := 30.0
 @export var spring_str := 150.0
 @export var damp_str := 15.0

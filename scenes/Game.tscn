@@ -11,7 +11,7 @@ script = ExtResource("1_ibkli")
 [node name="Map02" parent="." unique_id=865662757 instance=ExtResource("2_78awf")]
 
 [node name="Player" parent="." unique_id=874337750 instance=ExtResource("3_78awf")]
-position = Vector2(656, 116)
+position = Vector2(637, 116)
 
 [node name="MapBorder" type="Node2D" parent="." unique_id=1943801248]
 script = ExtResource("4_78awf")
