@@ -1,15 +1,17 @@
 [gd_scene format=3 uid="uid://dol6a502uukfn"]
 
-[ext_resource type="Shader" path="res://scenes/maps/platforms/Platform.gdshader" id="1_yuvqu"]
+[ext_resource type="Shader" uid="uid://dcbhx6o75l1eh" path="res://scenes/maps/platforms/Platform.gdshader" id="1_yuvqu"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_yuvqu"]
 shader = ExtResource("1_yuvqu")
-shader_parameter/color1 = Color(0.9, 0.2, 0.4, 1)
-shader_parameter/color2 = Color(1, 0.5, 0.2, 1)
 shader_parameter/speed = 1.5
 shader_parameter/scale = 2.5
-shader_parameter/warp1 = 1.2
-shader_parameter/warp2 = 2.0
+shader_parameter/sky_top = Color(0.28, 0.38, 0.34, 1)
+shader_parameter/sky_bottom = Color(0.14, 0.2, 0.18, 1)
+shader_parameter/layer1 = Color(0.28, 0.4, 0.26, 1)
+shader_parameter/layer2 = Color(0.2, 0.3, 0.2, 1)
+shader_parameter/layer3 = Color(0.12, 0.18, 0.12, 1)
+shader_parameter/layer4 = Color(0.08, 0.12, 0.08, 1)
 
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_r71tw"]
 polygon = PackedVector2Array(10, -8, 10, 5, 5, 10, -5, 10, -10, 5, -10, -8, 0, -8)
