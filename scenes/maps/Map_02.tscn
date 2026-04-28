@@ -68,6 +68,7 @@ shadow_enabled = true
 texture = SubResource("GradientTexture2D_wa6f0")
 
 [node name="TextureRect" type="TextureRect" parent="." unique_id=536264738]
+z_index = -1
 offset_left = -92.555
 offset_right = 4003.445
 offset_bottom = 1888.0
