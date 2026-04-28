@@ -6,7 +6,7 @@ extends Node2D
 var _pointing_right := false
 
 @onready var _player: Node2D = get_parent() as Node2D
-@onready var _sprite: Sprite2D = $Sprite2D
+@onready var _visual_root: Node2D = $VisualRoot
 
 
 func _process(_delta: float) -> void:
@@ -25,4 +25,4 @@ func _process(_delta: float) -> void:
 
 	global_position = _player.global_position + aim_direction * orbit_radius
 	global_rotation = aim_direction.angle() + deg_to_rad(aim_angle_offset_degrees)
-	_sprite.flip_v = _pointing_right
+	_visual_root.scale.y = -1.0 if _pointing_right else 1.0
