@@ -9,6 +9,8 @@
 can_sleep = false
 linear_damp = 0.5
 angular_damp = 3.0
+collision_layer = 2
+collision_mask = 1
 script = ExtResource("1_onrkg")
 
 [node name="LegRenderer" type="Node2D" parent="." unique_id=878611532]

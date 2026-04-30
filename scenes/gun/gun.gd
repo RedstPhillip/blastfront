@@ -58,4 +58,3 @@ func _shoot() -> void:
 	projectile.max_distance = projectile_max_distance
 	projectile.initial_velocity = _aim_direction * projectile_speed
 	world.spawn_projectile(projectile, _muzzle.global_position)
-	projectile.add_collision_exception_with(_player)

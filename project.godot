@@ -50,6 +50,9 @@ shoot={
 [physics]
 
 3d/physics_engine="Jolt Physics"
+2d/physics/layer_1="World"
+2d/physics/layer_2="Player"
+2d/physics/layer_3="Projectile"
 
 [rendering]
 
