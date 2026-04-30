@@ -1,11 +1,8 @@
 extends Node2D
 
-
-# Called when the node enters the scene tree for the first time.
-func _ready() -> void:
-	pass # Replace with function body.
+@onready var _projectiles: Node2D = $Projectiles
 
 
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
-	pass
+func spawn_projectile(projectile: Node2D, spawn_position: Vector2) -> void:
+	_projectiles.add_child(projectile)
+	projectile.global_position = spawn_position
