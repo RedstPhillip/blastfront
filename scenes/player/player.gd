@@ -1,10 +1,13 @@
-extends RigidBody2D
+extends CharacterBody2D
+class_name Player
 
 const PlayerMovementLogic = preload("res://scenes/player/player_movement_logic.gd")
 
-@export var move_force := 600.0
-@export var max_speed := 210.0
-@export var jump_force := 460.0
+@export var gravity := 1000;
+@export var wall_slide_speed := 100;
+@export var move_force := 600.0;
+@export var air_speed := 120;
+@export var speed := 210.0
 @export var hover_dist := 30.0
 @export var spring_str := 150.0
 @export var damp_str := 15.0
@@ -21,10 +24,10 @@ const PlayerMovementLogic = preload("res://scenes/player/player_movement_logic.g
 @export var air_foot_tuck_y := 7.5
 
 @export var stride_min_interval := 0.065
-@export var stride_cycle_base := 0.19
 @export var speed_step_boost := 0.55
 @export var fast_step_duration_scale := 0.725
 @export var fast_step_arc_scale := 1.35
+
 
 const BASE_LEG_LENGTH := 25.0
 
@@ -45,4 +48,5 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	_movement_logic.physics_process(self, delta)
+	pass
+	#_movement_logic.physics_process(self, delta)

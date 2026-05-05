@@ -11,7 +11,6 @@ enum MovementState {
 var _state: int = MovementState.FALLING
 
 var _step_clock := 0.0
-var _gait_timer := 0.0
 var _last_stepped := 1
 var _last_step_time_l := -1000.0
 var _last_step_time_r := -1000.0
@@ -118,7 +117,6 @@ func _update_running_state(player, delta: float, hip: Vector2, hit_l: bool, hit_
 func _update_falling_state(player, delta: float, hip: Vector2) -> void:
 	_step_t_l = 1.0
 	_step_t_r = 1.0
-	_gait_timer = 0.0
 	player.bounce_t = 0.0
 	var air_l: Vector2 = hip + Vector2(-player.air_foot_tuck_x, player.hover_dist * 0.7 - player.air_foot_tuck_y)
 	var air_r: Vector2 = hip + Vector2(player.air_foot_tuck_x, player.hover_dist * 0.7 - player.air_foot_tuck_y)
@@ -167,31 +165,21 @@ func _update_steps(player, delta: float, hip: Vector2, hit_l: bool, hit_r: bool,
 	var l_ready: bool = (_step_clock - _last_step_time_l) >= min_interval
 	var r_ready: bool = (_step_clock - _last_step_time_r) >= min_interval
 
-	_gait_timer += delta
-	var cycle: float = (player.stride_cycle_base * scale) / (1.0 + speed_norm * player.speed_step_boost)
-
 	var force_l: bool = dl > player.step_trigger * 1.7
 	var force_r: bool = dr > player.step_trigger * 1.7
-
-	if _gait_timer < cycle and not force_l and not force_r:
-		return
 
 	var prefer_left: bool = _last_stepped == 1
 
 	if prefer_left:
 		if (dl > player.step_trigger or force_l) and l_ready:
 			_begin_step(player, true, hip, floor_l, hit_l, speed_norm)
-			_gait_timer = 0.0
 		elif (dr > player.step_trigger or force_r) and r_ready:
 			_begin_step(player, false, hip, floor_r, hit_r, speed_norm)
-			_gait_timer = 0.0
 	else:
 		if (dr > player.step_trigger or force_r) and r_ready:
 			_begin_step(player, false, hip, floor_r, hit_r, speed_norm)
-			_gait_timer = 0.0
 		elif (dl > player.step_trigger or force_l) and l_ready:
 			_begin_step(player, true, hip, floor_l, hit_l, speed_norm)
-			_gait_timer = 0.0
 
 
 func _begin_step(player, is_left: bool, hip: Vector2, floor_y: float, has_ground: bool, speed_norm: float) -> void:

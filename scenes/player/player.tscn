@@ -6,14 +6,21 @@
 [ext_resource type="Script" uid="uid://8hfnbsqidpdh" path="res://scenes/player/leg_renderer.gd" id="3_gmlin"]
 [ext_resource type="PackedScene" uid="uid://dhc5lavdjobne" path="res://scenes/hands/gun/gun.tscn" id="4_lvxji"]
 [ext_resource type="Script" path="res://scenes/hands/hands_renderer.gd" id="5_u0tt0"]
+[ext_resource type="Script" uid="uid://b6if82m2oq8te" path="res://scenes/player/state_machine.gd" id="6_state"]
+[ext_resource type="Script" uid="uid://bid4ib5idv7ae" path="res://scenes/player/run_state.gd" id="7_run"]
+[ext_resource type="Script" uid="uid://dnkmfa0brepu3" path="res://scenes/player/jump_state.gd" id="8_jump"]
+[ext_resource type="Curve" uid="uid://c6awdu3a2aghn" path="res://scenes/player/jump_curve.tres" id="9_jump_curve"]
+[ext_resource type="Script" uid="uid://tstjolcc3t2" path="res://scenes/player/wall_state.gd" id="10_wall"]
+[ext_resource type="Curve" uid="uid://d0eqmfgyf85wq" path="res://scenes/player/fall_curve.tres" id="11_fall_curve"]
+[ext_resource type="Script" uid="uid://d03ad0fet400" path="res://scenes/player/fall_state.gd" id="12_fall"]
 
-[node name="Player" type="RigidBody2D" unique_id=874337750]
+[node name="Player" type="CharacterBody2D" unique_id=874337750]
+script = ExtResource("1_onrkg")
 can_sleep = false
 linear_damp = 0.5
 angular_damp = 3.0
 collision_layer = 2
 collision_mask = 1
-script = ExtResource("1_onrkg")
 
 [node name="LegRenderer" type="Node2D" parent="." unique_id=878611532]
 script = ExtResource("3_gmlin")
@@ -45,3 +52,21 @@ polygon = PackedVector2Array(29, -100, -27.300003, -100, -36.3, -97, -39.6, -97,
 
 [node name="Gun" parent="." unique_id=926933887 instance=ExtResource("4_lvxji")]
 position = Vector2(-30, 0)
+
+[node name="State" type="Node" parent="." unique_id=693771130 node_paths=PackedStringArray("initial_state")]
+script = ExtResource("6_state")
+initial_state = NodePath("RunState")
+
+[node name="RunState" type="Node" parent="State" unique_id=2071840892]
+script = ExtResource("7_run")
+
+[node name="JumpState" type="Node" parent="State" unique_id=1612349366]
+script = ExtResource("8_jump")
+jump_curve = ExtResource("9_jump_curve")
+
+[node name="FallState" type="Node" parent="State" unique_id=705462720]
+script = ExtResource("12_fall")
+fall_curve = ExtResource("11_fall_curve")
+
+[node name="WallState" type="Node" parent="State" unique_id=1554133580]
+script = ExtResource("10_wall")
