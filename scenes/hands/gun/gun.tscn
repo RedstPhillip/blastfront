@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://dhc5lavdjobne"]
 
-[ext_resource type="Texture2D" uid="uid://dvg5y2brav3ic" path="res://assets/gun.png" id="1_csbbp"]
-[ext_resource type="Script" uid="uid://ba6ko072cd8fl" path="res://scenes/gun/gun.gd" id="2_bf1r1"]
+[ext_resource type="Texture2D" uid="uid://dvg5y2brav3ic" path="res://assets/hands/gun/gun.png" id="1_csbbp"]
+[ext_resource type="Script" path="res://scenes/hands/gun/gun.gd" id="2_bf1r1"]
 
 [node name="Gun" type="Node2D" unique_id=926933887]
 z_index = -1
@@ -11,8 +11,9 @@ script = ExtResource("2_bf1r1")
 [node name="VisualRoot" type="Node2D" parent="." unique_id=1111947942]
 
 [node name="Sprite2D" type="Sprite2D" parent="VisualRoot" unique_id=2022357595]
+position = Vector2(-24.999998, -24.999998)
 scale = Vector2(0.19999999, 0.19999999)
 texture = ExtResource("1_csbbp")
 
 [node name="Muzzle" type="Marker2D" parent="VisualRoot" unique_id=167400188]
-position = Vector2(-45, -20)
+position = Vector2(-65, -40)
