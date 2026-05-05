@@ -62,7 +62,7 @@ func physics_process(player, delta: float) -> void:
 		if compression > 0.0:
 			player.apply_central_force(Vector2(0.0, -player.spring_str * compression - player.damp_str * player.linear_velocity.y))
 
-	var dir: float = Input.get_axis("left", "right")
+	var dir: float = player.get_move_direction()
 	if dir != 0.0:
 		player.last_dir = signf(dir)
 		player.apply_central_force(Vector2(dir * player.move_force, 0.0))
@@ -70,7 +70,7 @@ func physics_process(player, delta: float) -> void:
 	elif grounded:
 		player.linear_velocity.x = lerp(player.linear_velocity.x, 0.0, 15.0 * delta)
 
-	if Input.is_action_just_pressed("jump") and grounded:
+	if player.is_jump_pressed() and grounded:
 		player.linear_velocity.y = -player.jump_force
 
 	# Hip anchor is computed before the final tilt, same as before.

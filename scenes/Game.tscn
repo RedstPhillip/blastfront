@@ -10,10 +10,10 @@ script = ExtResource("1_ibkli")
 
 [node name="Map02" parent="." unique_id=865662757 instance=ExtResource("2_78awf")]
 
-[node name="Player1" parent="." instance=ExtResource("3_78awf")]
+[node name="Player1" parent="." unique_id=879097413 instance=ExtResource("3_78awf")]
 position = Vector2(600, 116)
 
-[node name="Player2" parent="." instance=ExtResource("3_78awf")]
+[node name="Player2" parent="." unique_id=854588095 instance=ExtResource("3_78awf")]
 position = Vector2(680, 116)
 
 [node name="Projectiles" type="Node2D" parent="." unique_id=640378572]

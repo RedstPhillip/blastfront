@@ -20,7 +20,7 @@ var _fire_cooldown := 0.0
 @onready var _muzzle: Marker2D = $VisualRoot/Muzzle
 
 
-func _process(delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if _player == null:
 		return
 
