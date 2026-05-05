@@ -5,6 +5,8 @@ func enter():
 	print("Entered Wall");
 
 func physics_update(delta: float):
+	var direction: float = player.get_move_direction();
+
 	player.velocity.y += player.gravity * delta;
 	
 	if player.velocity.y > player.wall_slide_speed:
@@ -12,7 +14,7 @@ func physics_update(delta: float):
 	
 	player.move_and_slide();
 	
-	if not player.is_on_wall() or Input.get_axis("left", "right") == 0:
+	if not player.is_on_wall() or direction == 0.0:
 		state_machine.change_state("FallState");
 		
 	if player._ray_l.is_colliding() or player._ray_r.is_colliding():

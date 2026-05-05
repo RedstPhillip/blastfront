@@ -7,11 +7,11 @@ extends Node2D
 @export var bezier_pts := 16
 @export var knee_smooth := 8.0
 
-var _p: RigidBody2D
+var _p: CharacterBody2D
 var _knee_dir_smoothed := 1.0
 
 func _ready() -> void:
-	_p = get_parent() as RigidBody2D
+	_p = get_parent() as CharacterBody2D
 	var mat := CanvasItemMaterial.new()
 	mat.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
 	material = mat
@@ -29,7 +29,7 @@ func _draw() -> void:
 	var b_amp: float = _p.get("bounce_amp") if "bounce_amp" in _p else 0.0
 	var bounce: float = sin(bt) * b_amp
 
-	var vel_x := _p.linear_velocity.x
+	var vel_x := _p.velocity.x
 	var target_knee: float = -signf(vel_x) if absf(vel_x) > 20.0 else -_p.last_dir
 	_knee_dir_smoothed = lerp(_knee_dir_smoothed, target_knee, get_process_delta_time() * knee_smooth)
 

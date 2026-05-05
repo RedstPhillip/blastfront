@@ -11,7 +11,7 @@ func enter():
 	print("Entered Fall");
 
 func physics_update(delta: float):
-	var direction = Input.get_axis("left", "right");
+	var direction: float = player.get_move_direction();
 	
 	player.velocity.x = direction * player.air_speed;
 	

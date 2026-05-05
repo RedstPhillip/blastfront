@@ -31,6 +31,12 @@ const PlayerMovementLogic = preload("res://scenes/player/player_movement_logic.g
 
 const BASE_LEG_LENGTH := 25.0
 
+var player_slot := 0
+var move_left_action: StringName = &"p1_move_left"
+var move_right_action: StringName = &"p1_move_right"
+var jump_action: StringName = &"p1_jump"
+var shoot_action: StringName = &"p1_shoot"
+
 var foot_pos_l: Vector2
 var foot_pos_r: Vector2
 var bounce_t := 0.0
@@ -50,3 +56,23 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	pass
 	#_movement_logic.physics_process(self, delta)
+
+
+func get_move_direction() -> float:
+	return clampf(Input.get_action_strength(move_right_action) - Input.get_action_strength(move_left_action), -1.0, 1.0)
+
+
+func is_jump_pressed() -> bool:
+	return Input.is_action_just_pressed(jump_action)
+
+
+func is_shoot_pressed() -> bool:
+	return Input.is_action_just_pressed(shoot_action)
+
+
+func is_shoot_down() -> bool:
+	return Input.is_action_pressed(shoot_action)
+
+
+func get_aim_world_position() -> Vector2:
+	return get_global_mouse_position()

@@ -13,7 +13,7 @@ extends Node2D
 @export var guard_follow_y := 5.0
 @export var glove_rotation_offset_degrees := 0.0
 
-var _p: RigidBody2D
+var _p: CharacterBody2D
 var _gun: Node2D
 var _glove: Sprite2D
 
@@ -29,8 +29,9 @@ var _guard_side := -1.0
 
 
 func _ready() -> void:
-	_p = get_parent() as RigidBody2D
-	_gun = _p.get_node_or_null("Gun") as Node2D
+	_p = get_parent() as CharacterBody2D
+	if _p != null:
+		_gun = _p.get_node_or_null("Gun") as Node2D
 	_glove = get_node_or_null("Glove") as Sprite2D
 
 	var mat := CanvasItemMaterial.new()
