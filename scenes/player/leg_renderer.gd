@@ -7,11 +7,11 @@ extends Node2D
 @export var bezier_pts := 16
 @export var knee_smooth := 8.0
 
-var _p: CharacterBody2D
-var _knee_dir_smoothed := 1.0
+var _p: Player
+var _knee_forward_smoothed := 1.0
 
 func _ready() -> void:
-	_p = get_parent() as CharacterBody2D
+	_p = get_parent() as Player
 	var mat := CanvasItemMaterial.new()
 	mat.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
 	material = mat
@@ -20,22 +20,22 @@ func _process(_delta: float) -> void:
 	queue_redraw()
 
 func _draw() -> void:
-	if not _p or not ("foot_pos_l" in _p) or not ("foot_pos_r" in _p):
+	if _p == null:
 		return
 
-	var hip_y: float = (_p.get("hip_y_offset") if "hip_y_offset" in _p else 13.5) - 4.0
-	var spread: float = _p.get("foot_spread") if "foot_spread" in _p else 12.0
-	var bt: float = _p.get("bounce_t") if "bounce_t" in _p else 0.0
-	var b_amp: float = _p.get("bounce_amp") if "bounce_amp" in _p else 0.0
+	var hip_y: float = _p.hip_y_offset - 4.0
+	var spread: float = _p.foot_spread
+	var bt: float = _p.bounce_t
+	var b_amp: float = _p.bounce_amp
 	var bounce: float = sin(bt) * b_amp
 
 	var vel_x := _p.velocity.x
-	var target_knee: float = -signf(vel_x) if absf(vel_x) > 20.0 else -_p.last_dir
-	_knee_dir_smoothed = lerp(_knee_dir_smoothed, target_knee, get_process_delta_time() * knee_smooth)
+	var target_forward: float = signf(vel_x) if absf(vel_x) > 20.0 else _p.last_dir
+	_knee_forward_smoothed = lerp(_knee_forward_smoothed, target_forward, get_process_delta_time() * knee_smooth)
 
 	var hip_w := _p.global_position + Vector2(0.0, hip_y).rotated(_p.rotation)
-	var hip_l := to_local(hip_w + Vector2(-spread * 0.4, bounce))
-	var hip_r := to_local(hip_w + Vector2(spread * 0.4, bounce))
+	var hip_l := to_local(hip_w + Vector2(-spread * 0.55, bounce))
+	var hip_r := to_local(hip_w + Vector2(spread * 0.55, bounce))
 
 	var foot_l := to_local(_p.foot_pos_l)
 	var foot_r := to_local(_p.foot_pos_r)
@@ -44,8 +44,8 @@ func _draw() -> void:
 	foot_l = _clamp_to_reach(hip_l, foot_l, max_reach)
 	foot_r = _clamp_to_reach(hip_r, foot_r, max_reach)
 
-	_draw_leg(hip_l, foot_l, _knee_dir_smoothed)
-	_draw_leg(hip_r, foot_r, _knee_dir_smoothed)
+	_draw_leg(hip_l, foot_l, -_knee_forward_smoothed)
+	_draw_leg(hip_r, foot_r, _knee_forward_smoothed)
 
 func _clamp_to_reach(hip: Vector2, foot: Vector2, max_dist: float) -> Vector2:
 	var v := foot - hip
