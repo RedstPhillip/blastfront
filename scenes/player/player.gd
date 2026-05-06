@@ -4,23 +4,24 @@ class_name Player
 const CONTROL_LOCAL: StringName = &"local"
 const CONTROL_REMOTE: StringName = &"remote"
 
-@export var gravity := 1000.0
+@export var gravity := 1350.0
 @export var wall_slide_speed := 80.0
 @export var air_speed := 120.0
 @export var speed := 250.0
-@export var ground_acceleration := 3300.0
-@export var ground_friction := 3600.0
-@export var air_acceleration := 1700.0
-@export var air_friction := 500.0
-@export var fall_gravity_multiplier := 1.35
-@export var low_jump_gravity_multiplier := 2.1
-@export var jump_velocity := 420.0
+@export var ground_acceleration := 6000.0
+@export var ground_friction := 5500.0
+@export var air_acceleration := 3000.0
+@export var air_friction := 1000.0
+@export var fall_gravity_multiplier := 1.5
+@export var low_jump_gravity_multiplier := 2.5
+@export var jump_velocity := 500.0
 @export var coyote_time := 0.12
 @export var jump_buffer_time := 0.12
+@export var wall_coyote_time := 0.15
 @export var max_fall_speed := 720.0
-@export var wall_jump_velocity := Vector2(290.0, -380.0)
+@export var wall_jump_velocity := Vector2(320.0, -500.0)
 @export var hover_dist := 24.0
-@export var hover_snap_speed := 18.0
+@export var hover_snap_speed := 30.0
 @export var foot_spread := 12.0
 @export var hip_y_offset := 13.5
 @export var bounce_amp := 1.5
@@ -34,7 +35,7 @@ const CONTROL_REMOTE: StringName = &"remote"
 @export var air_foot_tuck_x := 10.5
 @export var air_foot_tuck_y := 7.5
 
-@export var remote_interpolation_speed := 18.0
+@export var remote_interpolation_speed := 25.0
 
 var player_slot := 0
 var control_mode: StringName = CONTROL_LOCAL
@@ -55,6 +56,8 @@ var _network_aim_world_position := Vector2.ZERO
 var _has_network_target := false
 var _coyote_timer := 0.0
 var _jump_buffer_timer := 0.0
+var _wall_coyote_timer := 0.0
+var _wall_coyote_dir := 0.0
 var _step_clock := 0.0
 var _last_stepped := 1
 var _last_step_time_l := -1000.0
@@ -87,6 +90,7 @@ func _physics_process(delta: float) -> void:
 		global_position = global_position.lerp(_network_target_position, interpolation_weight)
 		velocity = _network_target_velocity
 	_update_movement_timers(delta)
+	update_wall_coyote(delta)
 
 
 func configure_local_control(slot: int, move_left: StringName, move_right: StringName, jump: StringName, shoot: StringName, allow_shoot: bool) -> void:
@@ -186,6 +190,33 @@ func has_buffered_jump() -> bool:
 
 func consume_jump_buffer() -> void:
 	_jump_buffer_timer = 0.0
+
+
+func update_wall_coyote(delta: float) -> void:
+	if is_on_wall():
+		_wall_coyote_timer = wall_coyote_time
+		var wall_x := get_wall_normal().x
+		_wall_coyote_dir = signf(wall_x) if absf(wall_x) > 0.0 else -last_dir
+	else:
+		_wall_coyote_timer = maxf(_wall_coyote_timer - delta, 0.0)
+
+
+func can_wall_jump() -> bool:
+	return _wall_coyote_timer > 0.0 and has_buffered_jump()
+
+
+func wall_jump() -> void:
+	var dir := _wall_coyote_dir
+	if dir == 0.0:
+		dir = -last_dir
+	var input_dir := get_move_direction()
+	if input_dir != 0.0:
+		dir = -signf(input_dir)
+	velocity.x = -dir * wall_jump_velocity.x
+	velocity.y = wall_jump_velocity.y
+	_wall_coyote_timer = 0.0
+	consume_jump_buffer()
+	_coyote_timer = 0.0
 
 
 func jump() -> void:
