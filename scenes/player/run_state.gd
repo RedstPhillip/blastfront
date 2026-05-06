@@ -2,18 +2,20 @@ extends State
 
 
 func enter():
-	print("Entered Run");
+	pass
 
 func physics_update(delta: float):
-	var direction: float = player.get_move_direction();
+	player.update_grounded()
+	player.apply_horizontal_movement(delta, player.speed, player.ground_acceleration, player.ground_friction)
 
-	player.velocity.x = direction * player.speed;
+	if player.has_buffered_jump() and player.can_jump():
+		player.jump()
+		state_machine.change_state("JumpState")
+		return
 
-	if player.is_jump_pressed():
-		state_machine.change_state("JumpState");
-		return;
-
-	player.move_and_slide();
+	player.move_and_slide()
+	player.maintain_hover_height(delta)
+	player.update_visual_movement(delta)
 	
-	if (not player._ray_l.is_colliding() and not player._ray_r.is_colliding()):
+	if not player.update_grounded():
 		state_machine.change_state("FallState")
