@@ -1,46 +1,24 @@
 extends Node2D
 
+const GAME_SYNC_SCRIPT := preload("res://scenes/network/game_sync.gd")
+const PROJECTILE_SCENE := preload("res://scenes/projectiles/projectile.tscn")
+
 @onready var _player_1: Player = $Player1
 @onready var _player_2: Player = $Player2
 @onready var _projectiles: Node2D = $Projectiles
 
-@export var network_send_rate := 20.0
-
 var _local_player: Player = null
-var _network_send_timer := 0.0
-var _network_send_interval := 0.0
+var _game_sync = null
 
 
 func _ready() -> void:
 	add_to_group("game_world")
-	_network_send_interval = 1.0 / network_send_rate
 
 	if NetworkSession.is_steam_match_active():
-		NetworkSession.register_game(self)
 		_configure_steam_players()
+		_create_game_sync()
 	else:
 		_configure_offline_players()
-
-
-func _exit_tree() -> void:
-	NetworkSession.unregister_game(self)
-
-
-func _physics_process(delta: float) -> void:
-	if not NetworkSession.is_steam_match_active() or _local_player == null:
-		return
-
-	_network_send_timer -= delta
-	if _network_send_timer > 0.0:
-		return
-
-	_network_send_timer = _network_send_interval
-	NetworkSession.send_player_state(
-		_local_player.player_slot,
-		_local_player.global_position,
-		_local_player.velocity,
-		_local_player.get_aim_world_position()
-	)
 
 
 func spawn_projectile(projectile: Node2D, spawn_position: Vector2) -> void:
@@ -48,11 +26,68 @@ func spawn_projectile(projectile: Node2D, spawn_position: Vector2) -> void:
 	projectile.global_position = spawn_position
 
 
-func apply_remote_player_snapshot(slot: int, snapshot: Dictionary) -> void:
-	var player := _get_player_by_slot(slot)
-	if player == null:
+func request_shot(owner: Node, spawn_position: Vector2, direction: Vector2, projectile_data: Dictionary) -> void:
+	var owner_slot: int = 0
+	if owner != null:
+		owner_slot = int(owner.get("player_slot"))
+	if NetworkSession.is_steam_match_active() and _game_sync != null and _game_sync.has_method("request_shot"):
+		_game_sync.call("request_shot", owner_slot, spawn_position, direction, projectile_data)
 		return
-	player.apply_remote_snapshot(snapshot)
+
+	var projectile := PROJECTILE_SCENE.instantiate() as Node2D
+	var muzzle_speed: float = float(projectile_data.get("muzzle_speed", projectile.get("muzzle_speed")))
+	projectile.set("direction", direction)
+	projectile.set("muzzle_speed", muzzle_speed)
+	projectile.set("gravity", float(projectile_data.get("gravity", projectile.get("gravity"))))
+	projectile.set("linear_damping", float(projectile_data.get("linear_damping", projectile.get("linear_damping"))))
+	projectile.set("max_distance", float(projectile_data.get("max_distance", projectile.get("max_distance"))))
+	projectile.set("initial_velocity", projectile_data.get("initial_velocity", direction * muzzle_speed))
+	spawn_projectile(projectile, spawn_position)
+
+
+func build_authoritative_shot(owner_slot: int) -> Dictionary:
+	var player: Player = _get_player_by_slot(owner_slot)
+	if player == null:
+		return {}
+
+	var gun: Node = player.get_node_or_null("Gun")
+	if gun == null or not gun.has_method("build_shot_data"):
+		return {}
+
+	var shot_data_variant: Variant = gun.call("build_shot_data")
+	if not (shot_data_variant is Dictionary):
+		return {}
+
+	var shot_data: Dictionary = shot_data_variant
+	var spawn_position: Vector2 = player.global_position
+	var direction: Vector2 = Vector2.LEFT
+	var fire_interval: float = 0.0
+	var projectile_data: Dictionary = {}
+
+	var spawn_position_variant: Variant = shot_data.get("spawn_position", spawn_position)
+	if spawn_position_variant is Vector2:
+		spawn_position = spawn_position_variant
+
+	var direction_variant: Variant = shot_data.get("direction", direction)
+	if direction_variant is Vector2:
+		var shot_direction: Vector2 = direction_variant
+		if shot_direction.length_squared() > 0.0001:
+			direction = shot_direction.normalized()
+
+	var projectile_data_variant: Variant = shot_data.get("projectile", {})
+	if projectile_data_variant is Dictionary:
+		projectile_data = projectile_data_variant
+
+	var fire_interval_variant: Variant = shot_data.get("fire_interval", fire_interval)
+	if fire_interval_variant is float or fire_interval_variant is int:
+		fire_interval = maxf(float(fire_interval_variant), 0.0)
+
+	return {
+		"spawn_position": spawn_position,
+		"direction": direction,
+		"fire_interval": fire_interval,
+		"projectile": projectile_data,
+	}
 
 
 func _configure_offline_players() -> void:
@@ -65,14 +100,14 @@ func _configure_steam_players() -> void:
 	_configure_common_player(_player_1, 1)
 	_configure_common_player(_player_2, 2)
 
-	var local_slot := NetworkSession.local_player_slot
-	var remote_slot := 2 if local_slot == 1 else 1
+	var local_slot: int = NetworkSession.local_player_slot
+	var remote_slot: int = 2 if local_slot == 1 else 1
 
 	_local_player = _get_player_by_slot(local_slot)
-	var remote_player := _get_player_by_slot(remote_slot)
+	var remote_player: Player = _get_player_by_slot(remote_slot)
 
 	if _local_player != null:
-		_configure_local_player(_local_player, local_slot, &"p1_move_left", &"p1_move_right", &"p1_jump", &"p1_shoot", false)
+		_configure_local_player(_local_player, local_slot, &"p1_move_left", &"p1_move_right", &"p1_jump", &"p1_shoot", true)
 
 	if remote_player != null:
 		remote_player.configure_remote_control(remote_slot)
@@ -89,6 +124,25 @@ func _configure_common_player(player: Player, slot: int) -> void:
 	player.player_slot = slot
 	player.add_to_group("players")
 	player.remove_from_group("local_players")
+
+
+func _create_game_sync() -> void:
+	_game_sync = GAME_SYNC_SCRIPT.new()
+	_game_sync.name = "GameSync"
+	add_child(_game_sync)
+	_game_sync.call("setup", self)
+
+
+func get_player_by_slot(slot: int) -> Player:
+	return _get_player_by_slot(slot)
+
+
+func get_local_player() -> Player:
+	return _local_player
+
+
+func get_projectiles_root() -> Node2D:
+	return _projectiles
 
 
 func _get_player_by_slot(slot: int) -> Player:
