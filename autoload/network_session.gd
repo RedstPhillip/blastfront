@@ -35,8 +35,8 @@ func _process(_delta: float) -> void:
 	if not _can_use_steam() or lobby_id == 0:
 		return
 
-	_read_messages(CHANNEL_HANDSHAKE)
-	_read_messages(CHANNEL_STATE)
+	_read_p2p_packets(CHANNEL_HANDSHAKE)
+	_read_p2p_packets(CHANNEL_STATE)
 
 
 func start_offline() -> void:
@@ -88,7 +88,7 @@ func join_invited_round(target_lobby_id: int) -> void:
 func leave_round() -> void:
 	if _can_use_steam():
 		if remote_steam_id != 0:
-			Steam.closeSessionWithUser(remote_steam_id)
+			Steam.closeP2PSessionWithUser(remote_steam_id)
 		if lobby_id != 0:
 			Steam.leaveLobby(lobby_id)
 
@@ -122,7 +122,7 @@ func send_player_state(slot: int, position: Vector2, velocity: Vector2, aim_worl
 		"velocity": velocity,
 		"aim": aim_world_position,
 	}
-	_send_packet(remote_steam_id, packet, Steam.NETWORKING_SEND_UNRELIABLE, CHANNEL_STATE)
+	_send_packet(remote_steam_id, packet, CHANNEL_STATE)
 
 
 func _connect_steam_signals() -> void:
@@ -133,8 +133,8 @@ func _connect_steam_signals() -> void:
 	Steam.lobby_created.connect(_on_lobby_created)
 	Steam.lobby_joined.connect(_on_lobby_joined)
 	Steam.lobby_chat_update.connect(_on_lobby_chat_update)
-	Steam.network_messages_session_request.connect(_on_network_messages_session_request)
-	Steam.network_messages_session_failed.connect(_on_network_messages_session_failed)
+	Steam.p2p_session_request.connect(_on_p2p_session_request)
+	Steam.p2p_session_connect_fail.connect(_on_p2p_session_connect_fail)
 
 
 func _check_command_line_invite() -> void:
@@ -168,14 +168,12 @@ func _on_lobby_created(connect: int, created_lobby_id: int) -> void:
 		return
 
 	lobby_id = created_lobby_id
+	Steam.allowP2PPacketRelay(true)
 	Steam.setLobbyJoinable(lobby_id, true)
 	Steam.setLobbyData(lobby_id, "game", GAME_KEY)
 	Steam.setLobbyData(lobby_id, "version", GAME_VERSION)
 	Steam.setLobbyData(lobby_id, "mode", "friend-invite-test")
 	Steam.setLobbyData(lobby_id, "name", "%s's Blastfront Round" % SteamService.steam_name)
-
-	if Steam.has_method("allowP2PPacketRelay"):
-		Steam.allowP2PPacketRelay(true)
 
 	_refresh_lobby_members()
 	_start_match("Hosting invite round")
@@ -189,6 +187,7 @@ func _on_lobby_joined(joined_lobby_id: int, _permissions: int, _locked: bool, re
 		return
 
 	lobby_id = joined_lobby_id
+	Steam.allowP2PPacketRelay(true)
 	_refresh_lobby_members()
 
 	if mode == MODE_CLIENT:
@@ -218,20 +217,20 @@ func _on_lobby_chat_update(changed_lobby_id: int, changed_id: int, _making_chang
 		_set_status("Friend left the round")
 
 
-func _on_network_messages_session_request(remote_id) -> void:
+func _on_p2p_session_request(remote_id) -> void:
 	var requester_id := _extract_steam_id(remote_id)
 	if requester_id == 0:
 		return
 
 	if _is_lobby_member(requester_id):
-		Steam.acceptSessionWithUser(requester_id)
+		Steam.acceptP2PSessionWithUser(requester_id)
 		remote_steam_id = requester_id
 		_send_handshake()
 
 
-func _on_network_messages_session_failed(remote_id, reason := 0, _connection_state := 0, debug_message := "") -> void:
+func _on_p2p_session_connect_fail(remote_id, session_error := -1) -> void:
 	var failed_id := _extract_steam_id(remote_id)
-	_set_status("Steam P2P failed with %s: %s (%s)" % [failed_id, debug_message, reason])
+	_set_status("Steam P2P failed with %s: %s" % [failed_id, _describe_p2p_error(int(session_error))])
 
 
 func _refresh_lobby_members() -> void:
@@ -260,43 +259,57 @@ func _send_handshake() -> void:
 		"steam_id": SteamService.steam_id,
 		"name": SteamService.steam_name,
 	}
-	_send_packet(remote_steam_id, packet, Steam.NETWORKING_SEND_RELIABLE_NO_NAGLE, CHANNEL_HANDSHAKE)
+	_send_packet(remote_steam_id, packet, CHANNEL_HANDSHAKE)
 
 
-func _read_messages(channel: int) -> void:
-	var messages: Array = Steam.receiveMessagesOnChannel(channel, PACKET_READ_LIMIT)
-	for message in messages:
-		var payload: PackedByteArray = message.get("payload", PackedByteArray())
+func _read_p2p_packets(channel: int) -> void:
+	var packets_read := 0
+	while packets_read < PACKET_READ_LIMIT:
+		var packet_size: int = Steam.getAvailableP2PPacketSize(channel)
+		if packet_size <= 0:
+			return
+
+		var raw_packet: Dictionary = Steam.readP2PPacket(packet_size, channel)
+		packets_read += 1
+
+		if raw_packet.is_empty():
+			continue
+
+		var payload: PackedByteArray = raw_packet.get("data", PackedByteArray())
 		var packet: Variant = bytes_to_var(payload)
 		if not (packet is Dictionary):
 			continue
 
-		var sender_id := int(message.get("identity", 0))
-		_handle_packet(sender_id, packet as Dictionary)
+		var packet_dictionary: Dictionary = packet
+		var sender_id := _extract_steam_id(raw_packet)
+		_handle_packet(sender_id, packet_dictionary)
 
 
 func _handle_packet(sender_id: int, packet: Dictionary) -> void:
 	match str(packet.get("type", "")):
 		"hello":
-			if _is_lobby_member(sender_id):
-				remote_steam_id = sender_id
-				_set_status("Steam peer ready: %s" % packet.get("name", sender_id))
-				_send_packet(sender_id, {"type": "hello_ack", "slot": local_player_slot}, Steam.NETWORKING_SEND_RELIABLE_NO_NAGLE, CHANNEL_HANDSHAKE)
+			var hello_sender := _resolve_packet_sender(sender_id, packet)
+			if _is_lobby_member(hello_sender):
+				remote_steam_id = hello_sender
+				_set_status("Steam peer ready: %s" % packet.get("name", hello_sender))
+				_send_packet(hello_sender, {"type": "hello_ack", "slot": local_player_slot, "steam_id": SteamService.steam_id}, CHANNEL_HANDSHAKE)
 		"hello_ack":
-			if _is_lobby_member(sender_id):
-				remote_steam_id = sender_id
+			var ack_sender := _resolve_packet_sender(sender_id, packet)
+			if _is_lobby_member(ack_sender):
+				remote_steam_id = ack_sender
 				_set_status("Steam peer ready")
 		"player_state":
 			if _game != null and _game.has_method("apply_remote_player_snapshot"):
 				_game.apply_remote_player_snapshot(int(packet.get("slot", 0)), packet)
 
 
-func _send_packet(target_steam_id: int, packet: Dictionary, flags: int, channel: int) -> void:
+func _send_packet(target_steam_id: int, packet: Dictionary, channel: int) -> void:
 	if not _can_use_steam() or target_steam_id == 0:
 		return
 
 	var data := var_to_bytes(packet)
-	Steam.sendMessageToUser(target_steam_id, data, flags, channel)
+	var send_type := _get_p2p_send_type(packet)
+	Steam.sendP2PPacket(target_steam_id, data, send_type, channel)
 
 
 func _start_match(message: String) -> void:
@@ -318,8 +331,43 @@ func _is_lobby_member(steam_id: int) -> bool:
 
 func _extract_steam_id(value) -> int:
 	if value is Dictionary:
-		return int(value.get("remote_steam_id", value.get("steam_id_remote", 0)))
+		if value.has("remote_steam_id"):
+			return int(value["remote_steam_id"])
+		if value.has("steam_id_remote"):
+			return int(value["steam_id_remote"])
+		if value.has("steam_id"):
+			return int(value["steam_id"])
+		if value.has("identity"):
+			return int(value["identity"])
 	return int(value)
+
+
+func _resolve_packet_sender(sender_id: int, packet: Dictionary) -> int:
+	if sender_id != 0:
+		return sender_id
+	return int(packet.get("steam_id", 0))
+
+
+func _get_p2p_send_type(packet: Dictionary) -> int:
+	if str(packet.get("type", "")).begins_with("hello"):
+		return Steam.P2P_SEND_RELIABLE
+	return Steam.P2P_SEND_UNRELIABLE_NO_DELAY
+
+
+func _describe_p2p_error(session_error: int) -> String:
+	match session_error:
+		0:
+			return "none"
+		1:
+			return "target user not running same game"
+		2:
+			return "local user does not own app"
+		3:
+			return "target user is not connected to Steam"
+		4:
+			return "connection timed out"
+		_:
+			return "unknown error %s" % session_error
 
 
 func _can_use_steam() -> bool:
