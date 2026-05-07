@@ -57,6 +57,16 @@ func _shoot() -> void:
 	var world = get_tree().get_first_node_in_group("game_world")
 	if world == null:
 		world = _player.get_parent()
+	if world != null and world.has_method("request_shot"):
+		world.request_shot(_player, _muzzle.global_position, _aim_direction, {
+			"muzzle_speed": projectile_speed,
+			"gravity": projectile_gravity,
+			"linear_damping": projectile_linear_damping,
+			"max_distance": projectile_max_distance,
+			"initial_velocity": _aim_direction * projectile_speed,
+		})
+		return
+
 	if world == null or not world.has_method("spawn_projectile"):
 		return
 

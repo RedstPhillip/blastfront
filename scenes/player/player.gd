@@ -118,6 +118,7 @@ func apply_remote_snapshot(snapshot: Dictionary) -> void:
 	var snapshot_position: Variant = snapshot.get("position", global_position)
 	var snapshot_velocity: Variant = snapshot.get("velocity", velocity)
 	var snapshot_aim: Variant = snapshot.get("aim", _network_aim_world_position)
+	var snapshot_facing: Variant = snapshot.get("facing", last_dir)
 	var had_network_target := _has_network_target
 
 	if snapshot_position is Vector2:
@@ -126,6 +127,8 @@ func apply_remote_snapshot(snapshot: Dictionary) -> void:
 		_network_target_velocity = snapshot_velocity
 	if snapshot_aim is Vector2:
 		_network_aim_world_position = snapshot_aim
+	if (snapshot_facing is float or snapshot_facing is int) and absf(float(snapshot_facing)) > 0.0:
+		last_dir = signf(float(snapshot_facing))
 
 	_has_network_target = true
 	if not had_network_target:

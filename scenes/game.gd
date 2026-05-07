@@ -1,49 +1,48 @@
 extends Node2D
 
+const GAME_SYNC_SCRIPT := preload("res://scenes/network/game_sync.gd")
+const PROJECTILE_SCENE := preload("res://scenes/projectiles/projectile.tscn")
+
 @onready var _player_1: Player = $Player1
 @onready var _player_2: Player = $Player2
 @onready var _projectiles: Node2D = $Projectiles
 
-@export var network_send_rate := 20.0
-
 var _local_player: Player = null
-var _network_send_timer := 0.0
+var _game_sync = null
 
 
 func _ready() -> void:
 	add_to_group("game_world")
 
 	if NetworkSession.is_steam_match_active():
-		NetworkSession.register_game(self)
 		_configure_steam_players()
+		_create_game_sync()
 	else:
 		_configure_offline_players()
-
-
-func _exit_tree() -> void:
-	NetworkSession.unregister_game(self)
-
-
-func _physics_process(delta: float) -> void:
-	if not NetworkSession.is_steam_match_active() or _local_player == null:
-		return
-
-	_network_send_timer -= delta
-	if _network_send_timer > 0.0:
-		return
-
-	_network_send_timer = 1.0 / network_send_rate
-	NetworkSession.send_player_state(
-		_local_player.player_slot,
-		_local_player.global_position,
-		_local_player.velocity,
-		_local_player.get_aim_world_position()
-	)
 
 
 func spawn_projectile(projectile: Node2D, spawn_position: Vector2) -> void:
 	_projectiles.add_child(projectile)
 	projectile.global_position = spawn_position
+
+
+func request_shot(owner: Node, spawn_position: Vector2, direction: Vector2, projectile_data: Dictionary) -> void:
+	var owner_slot := 0
+	if owner != null:
+		owner_slot = int(owner.get("player_slot"))
+	if NetworkSession.is_steam_match_active() and _game_sync != null and _game_sync.has_method("request_shot"):
+		_game_sync.call("request_shot", owner_slot, spawn_position, direction, projectile_data)
+		return
+
+	var projectile := PROJECTILE_SCENE.instantiate() as Node2D
+	var muzzle_speed := float(projectile_data.get("muzzle_speed", projectile.get("muzzle_speed")))
+	projectile.set("direction", direction)
+	projectile.set("muzzle_speed", muzzle_speed)
+	projectile.set("gravity", float(projectile_data.get("gravity", projectile.get("gravity"))))
+	projectile.set("linear_damping", float(projectile_data.get("linear_damping", projectile.get("linear_damping"))))
+	projectile.set("max_distance", float(projectile_data.get("max_distance", projectile.get("max_distance"))))
+	projectile.set("initial_velocity", projectile_data.get("initial_velocity", direction * muzzle_speed))
+	spawn_projectile(projectile, spawn_position)
 
 
 func apply_remote_player_snapshot(slot: int, snapshot: Dictionary) -> void:
@@ -71,7 +70,7 @@ func _configure_steam_players() -> void:
 	var remote_player := _get_player_by_slot(remote_slot)
 
 	if _local_player != null:
-		_configure_local_player(_local_player, local_slot, &"p1_move_left", &"p1_move_right", &"p1_jump", &"p1_shoot", false)
+		_configure_local_player(_local_player, local_slot, &"p1_move_left", &"p1_move_right", &"p1_jump", &"p1_shoot", true)
 
 	if remote_player != null:
 		remote_player.configure_remote_control(remote_slot)
@@ -88,6 +87,25 @@ func _configure_common_player(player: Player, slot: int) -> void:
 	player.player_slot = slot
 	player.add_to_group("players")
 	player.remove_from_group("local_players")
+
+
+func _create_game_sync() -> void:
+	_game_sync = GAME_SYNC_SCRIPT.new()
+	_game_sync.name = "GameSync"
+	add_child(_game_sync)
+	_game_sync.call("setup", self)
+
+
+func get_player_by_slot(slot: int) -> Player:
+	return _get_player_by_slot(slot)
+
+
+func get_local_player() -> Player:
+	return _local_player
+
+
+func get_projectiles_root() -> Node2D:
+	return _projectiles
 
 
 func _get_player_by_slot(slot: int) -> Player:

@@ -2,15 +2,18 @@ extends Node
 
 signal status_changed(message: String)
 signal match_started
+signal packet_received(packet: Dictionary, sender_id: int)
 
 const MODE_OFFLINE: StringName = &"offline"
 const MODE_HOST: StringName = &"host"
 const MODE_CLIENT: StringName = &"client"
 
+const PROTOCOL_VERSION := 1
 const GAME_KEY := "blastfront"
 const GAME_VERSION := "invite-test-1"
-const CHANNEL_HANDSHAKE := 0
+const CHANNEL_CONTROL := 0
 const CHANNEL_STATE := 1
+const CHANNEL_EVENTS := 2
 const PACKET_READ_LIMIT := 32
 
 var mode: StringName = MODE_OFFLINE
@@ -21,7 +24,6 @@ var remote_steam_id: int = 0
 var status_text := "Offline"
 
 var _match_active := false
-var _game: Node = null
 
 
 func _ready() -> void:
@@ -35,8 +37,9 @@ func _process(_delta: float) -> void:
 	if not _can_use_steam() or lobby_id == 0:
 		return
 
-	_read_p2p_packets(CHANNEL_HANDSHAKE)
+	_read_p2p_packets(CHANNEL_CONTROL)
 	_read_p2p_packets(CHANNEL_STATE)
+	_read_p2p_packets(CHANNEL_EVENTS)
 
 
 func start_offline() -> void:
@@ -45,7 +48,6 @@ func start_offline() -> void:
 	local_player_slot = 1
 	remote_steam_id = 0
 	_match_active = false
-	_game = null
 	_set_status("Offline local mode")
 
 
@@ -98,31 +100,24 @@ func leave_round() -> void:
 	_match_active = false
 
 
-func register_game(game: Node) -> void:
-	_game = game
-
-
-func unregister_game(game: Node) -> void:
-	if _game == game:
-		_game = null
-
-
 func is_steam_match_active() -> bool:
 	return _match_active and (mode == MODE_HOST or mode == MODE_CLIENT)
 
 
-func send_player_state(slot: int, position: Vector2, velocity: Vector2, aim_world_position: Vector2) -> void:
-	if not is_steam_match_active() or remote_steam_id == 0:
-		return
+func is_host() -> bool:
+	return is_steam_match_active() and mode == MODE_HOST
 
-	var packet := {
-		"type": "player_state",
-		"slot": slot,
-		"position": position,
-		"velocity": velocity,
-		"aim": aim_world_position,
-	}
-	_send_packet(remote_steam_id, packet, CHANNEL_STATE)
+
+func is_client() -> bool:
+	return is_steam_match_active() and mode == MODE_CLIENT
+
+
+func send_reliable(packet: Dictionary, channel := CHANNEL_EVENTS) -> void:
+	_send_packet(remote_steam_id, packet, Steam.P2P_SEND_RELIABLE, channel)
+
+
+func send_unreliable(packet: Dictionary, channel := CHANNEL_STATE) -> void:
+	_send_packet(remote_steam_id, packet, Steam.P2P_SEND_UNRELIABLE_NO_DELAY, channel)
 
 
 func _connect_steam_signals() -> void:
@@ -253,13 +248,30 @@ func _send_handshake() -> void:
 	if remote_steam_id == 0:
 		return
 
-	var packet := {
-		"type": "hello",
-		"slot": local_player_slot,
+	var packet := _make_control_packet(&"hello", {
 		"steam_id": SteamService.steam_id,
 		"name": SteamService.steam_name,
+	})
+	send_reliable(packet, CHANNEL_CONTROL)
+
+
+func _send_handshake_ack(target_steam_id: int) -> void:
+	var packet := _make_control_packet(&"hello_ack", {
+		"steam_id": SteamService.steam_id,
+		"name": SteamService.steam_name,
+	})
+	_send_packet(target_steam_id, packet, Steam.P2P_SEND_RELIABLE, CHANNEL_CONTROL)
+
+
+func _make_control_packet(packet_type: StringName, payload: Dictionary) -> Dictionary:
+	return {
+		"protocol_version": PROTOCOL_VERSION,
+		"type": str(packet_type),
+		"seq": 0,
+		"tick": 0,
+		"from_slot": local_player_slot,
+		"payload": payload,
 	}
-	_send_packet(remote_steam_id, packet, CHANNEL_HANDSHAKE)
 
 
 func _read_p2p_packets(channel: int) -> void:
@@ -286,30 +298,30 @@ func _read_p2p_packets(channel: int) -> void:
 
 
 func _handle_packet(sender_id: int, packet: Dictionary) -> void:
+	if int(packet.get("protocol_version", PROTOCOL_VERSION)) != PROTOCOL_VERSION:
+		return
+
 	match str(packet.get("type", "")):
 		"hello":
 			var hello_sender := _resolve_packet_sender(sender_id, packet)
 			if _is_lobby_member(hello_sender):
 				remote_steam_id = hello_sender
-				_set_status("Steam peer ready: %s" % packet.get("name", hello_sender))
-				_send_packet(hello_sender, {"type": "hello_ack", "slot": local_player_slot, "steam_id": SteamService.steam_id}, CHANNEL_HANDSHAKE)
+				_set_status("Steam peer ready: %s" % _get_payload(packet).get("name", hello_sender))
+				_send_handshake_ack(hello_sender)
 		"hello_ack":
 			var ack_sender := _resolve_packet_sender(sender_id, packet)
 			if _is_lobby_member(ack_sender):
 				remote_steam_id = ack_sender
 				_set_status("Steam peer ready")
-		"player_state":
-			if _game != null and _game.has_method("apply_remote_player_snapshot"):
-				_game.apply_remote_player_snapshot(int(packet.get("slot", 0)), packet)
+		_:
+			packet_received.emit(packet, sender_id)
 
 
-func _send_packet(target_steam_id: int, packet: Dictionary, channel: int) -> void:
+func _send_packet(target_steam_id: int, packet: Dictionary, send_type: int, channel: int) -> void:
 	if not _can_use_steam() or target_steam_id == 0:
 		return
 
-	var data := var_to_bytes(packet)
-	var send_type := _get_p2p_send_type(packet)
-	Steam.sendP2PPacket(target_steam_id, data, send_type, channel)
+	Steam.sendP2PPacket(target_steam_id, var_to_bytes(packet), send_type, channel)
 
 
 func _start_match(message: String) -> void:
@@ -339,19 +351,23 @@ func _extract_steam_id(value) -> int:
 			return int(value["steam_id"])
 		if value.has("identity"):
 			return int(value["identity"])
+		return 0
 	return int(value)
 
 
 func _resolve_packet_sender(sender_id: int, packet: Dictionary) -> int:
 	if sender_id != 0:
 		return sender_id
-	return int(packet.get("steam_id", 0))
+
+	var payload := _get_payload(packet)
+	return int(payload.get("steam_id", 0))
 
 
-func _get_p2p_send_type(packet: Dictionary) -> int:
-	if str(packet.get("type", "")).begins_with("hello"):
-		return Steam.P2P_SEND_RELIABLE
-	return Steam.P2P_SEND_UNRELIABLE_NO_DELAY
+func _get_payload(packet: Dictionary) -> Dictionary:
+	var payload: Variant = packet.get("payload", {})
+	if payload is Dictionary:
+		return payload
+	return {}
 
 
 func _describe_p2p_error(session_error: int) -> String:
