@@ -8,7 +8,8 @@ extends Node2D
 @export var knee_smooth := 8.0
 
 var _p: Player
-var _knee_forward_smoothed := 1.0
+var _knee_dir_smoothed := 1.0
+var _last_knee_source_dir: float = 0.0
 
 func _ready() -> void:
 	_p = get_parent() as Player
@@ -29,13 +30,19 @@ func _draw() -> void:
 	var b_amp: float = _p.bounce_amp
 	var bounce: float = sin(bt) * b_amp
 
-	var vel_x := _p.velocity.x
-	var target_forward: float = signf(vel_x) if absf(vel_x) > 20.0 else _p.last_dir
-	_knee_forward_smoothed = lerp(_knee_forward_smoothed, target_forward, get_process_delta_time() * knee_smooth)
+	var knee_source_dir: float = signf(_p.last_dir)
+	if knee_source_dir == 0.0:
+		knee_source_dir = 1.0
+	var target_knee: float = -knee_source_dir
+	if _last_knee_source_dir != 0.0 and knee_source_dir != _last_knee_source_dir:
+		_knee_dir_smoothed = target_knee
+	else:
+		_knee_dir_smoothed = lerp(_knee_dir_smoothed, target_knee, get_process_delta_time() * knee_smooth)
+	_last_knee_source_dir = knee_source_dir
 
 	var hip_w := _p.global_position + Vector2(0.0, hip_y).rotated(_p.rotation)
-	var hip_l := to_local(hip_w + Vector2(-spread * 0.55, bounce))
-	var hip_r := to_local(hip_w + Vector2(spread * 0.55, bounce))
+	var hip_l := to_local(hip_w + Vector2(-spread * 0.4, bounce))
+	var hip_r := to_local(hip_w + Vector2(spread * 0.4, bounce))
 
 	var foot_l := to_local(_p.foot_pos_l)
 	var foot_r := to_local(_p.foot_pos_r)
@@ -44,8 +51,8 @@ func _draw() -> void:
 	foot_l = _clamp_to_reach(hip_l, foot_l, max_reach)
 	foot_r = _clamp_to_reach(hip_r, foot_r, max_reach)
 
-	_draw_leg(hip_l, foot_l, -_knee_forward_smoothed)
-	_draw_leg(hip_r, foot_r, _knee_forward_smoothed)
+	_draw_leg(hip_l, foot_l, _knee_dir_smoothed)
+	_draw_leg(hip_r, foot_r, _knee_dir_smoothed)
 
 func _clamp_to_reach(hip: Vector2, foot: Vector2, max_dist: float) -> Vector2:
 	var v := foot - hip

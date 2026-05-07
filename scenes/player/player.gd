@@ -3,6 +3,7 @@ class_name Player
 
 const CONTROL_LOCAL: StringName = &"local"
 const CONTROL_REMOTE: StringName = &"remote"
+const FLOOR_NORMAL_Y_THRESHOLD: float = -0.5
 
 @export var gravity := 1350.0
 @export var wall_slide_speed := 80.0
@@ -49,6 +50,8 @@ var foot_pos_l: Vector2
 var foot_pos_r: Vector2
 var bounce_t := 0.0
 var last_dir := 1.0
+var _last_visual_move_dir: float = 0.0
+var _was_visual_grounded: bool = false
 
 var _network_target_position := Vector2.ZERO
 var _network_target_velocity := Vector2.ZERO
@@ -196,7 +199,11 @@ func _physics_process_remote(delta: float) -> void:
 
 
 func update_grounded() -> bool:
-	return is_on_floor() or _ray_l.is_colliding() or _ray_r.is_colliding()
+	if is_on_floor():
+		return true
+	if velocity.y < 0.0:
+		return false
+	return _is_floor_ray(_ray_l) or _is_floor_ray(_ray_r)
 
 
 func can_jump() -> bool:
@@ -272,9 +279,9 @@ func maintain_hover_height(delta: float) -> void:
 		return
 
 	var floor_y := global_position.y + hover_dist
-	if _ray_l.is_colliding():
+	if _is_floor_ray(_ray_l):
 		floor_y = minf(floor_y, _ray_l.get_collision_point().y)
-	if _ray_r.is_colliding():
+	if _is_floor_ray(_ray_r):
 		floor_y = minf(floor_y, _ray_r.get_collision_point().y)
 
 	var target_y := floor_y - hover_dist
@@ -285,16 +292,26 @@ func maintain_hover_height(delta: float) -> void:
 
 func update_visual_movement(delta: float) -> void:
 	var speed_ratio := clampf(absf(velocity.x) / maxf(speed, 1.0), 0.0, 1.0)
-	if update_grounded():
+	var grounded: bool = update_grounded()
+	if grounded:
 		var look := velocity.x * look_ahead
 		var floor_y := global_position.y + hover_dist
-		if _ray_l.is_colliding():
+		if _is_floor_ray(_ray_l):
 			floor_y = minf(floor_y, _ray_l.get_collision_point().y)
-		if _ray_r.is_colliding():
+		if _is_floor_ray(_ray_r):
 			floor_y = minf(floor_y, _ray_r.get_collision_point().y)
 
 		var ideal_l := Vector2(global_position.x - foot_spread + look, floor_y)
 		var ideal_r := Vector2(global_position.x + foot_spread + look, floor_y)
+		var move_dir: float = _get_visual_move_direction()
+		var changed_direction: bool = (
+			move_dir != 0.0
+			and _last_visual_move_dir != 0.0
+			and move_dir != _last_visual_move_dir
+		)
+
+		if not _was_visual_grounded:
+			_set_feet(ideal_l, ideal_r)
 
 		if _step_t_l < 1.0:
 			_step_t_l = minf(_step_t_l + delta / step_duration, 1.0)
@@ -303,11 +320,14 @@ func update_visual_movement(delta: float) -> void:
 			_step_t_r = minf(_step_t_r + delta / step_duration, 1.0)
 			foot_pos_r = _arc(_step_from_r, _step_to_r, _step_t_r, step_arc_h)
 
-		if _step_t_l >= 1.0 and _step_t_r >= 1.0:
+		if changed_direction:
+			_set_feet(ideal_l, ideal_r)
+		elif _step_t_l >= 1.0 and _step_t_r >= 1.0:
 			var dl := foot_pos_l.distance_to(ideal_l)
 			var dr := foot_pos_r.distance_to(ideal_r)
 			var l_ready := (_step_clock - _last_step_time_l) >= stride_min_interval
 			var r_ready := (_step_clock - _last_step_time_r) >= stride_min_interval
+
 			var prefer_left := _last_stepped == 1
 			if prefer_left:
 				if dl > step_trigger and l_ready:
@@ -321,7 +341,12 @@ func update_visual_movement(delta: float) -> void:
 					_begin_step(true, ideal_l)
 
 		bounce_t += delta * 8.0 * speed_ratio
+		_was_visual_grounded = true
+		if move_dir != 0.0:
+			_last_visual_move_dir = move_dir
 	else:
+		_was_visual_grounded = false
+		_last_visual_move_dir = 0.0
 		_step_t_l = 1.0
 		_step_t_r = 1.0
 		var hip := global_position + Vector2(0.0, hip_y_offset).rotated(rotation)
@@ -348,18 +373,42 @@ func _update_movement_timers(delta: float) -> void:
 
 
 func _initialize_feet() -> void:
-	foot_pos_l = global_position + Vector2(-foot_spread, hover_dist)
-	foot_pos_r = global_position + Vector2(foot_spread, hover_dist)
-	_step_from_l = foot_pos_l
-	_step_to_l = foot_pos_l
-	_step_from_r = foot_pos_r
-	_step_to_r = foot_pos_r
+	_set_feet(
+		global_position + Vector2(-foot_spread, hover_dist),
+		global_position + Vector2(foot_spread, hover_dist)
+	)
 
 
 func _update_ground_rays() -> void:
 	var target_len := maxf(hover_dist, 8.0)
 	_ray_l.target_position.y = target_len
 	_ray_r.target_position.y = target_len
+
+
+func _is_floor_ray(ray: RayCast2D) -> bool:
+	if not ray.is_colliding():
+		return false
+	return ray.get_collision_normal().y <= FLOOR_NORMAL_Y_THRESHOLD
+
+
+func _get_visual_move_direction() -> float:
+	var input_direction: float = get_move_direction()
+	if input_direction != 0.0:
+		return signf(input_direction)
+	if absf(velocity.x) > 20.0:
+		return signf(velocity.x)
+	return 0.0
+
+
+func _set_feet(left: Vector2, right: Vector2) -> void:
+	foot_pos_l = left
+	foot_pos_r = right
+	_step_from_l = foot_pos_l
+	_step_to_l = foot_pos_l
+	_step_from_r = foot_pos_r
+	_step_to_r = foot_pos_r
+	_step_t_l = 1.0
+	_step_t_r = 1.0
 
 
 func _arc(a: Vector2, b: Vector2, t: float, h: float) -> Vector2:
