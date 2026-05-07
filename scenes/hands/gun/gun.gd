@@ -58,23 +58,51 @@ func _shoot() -> void:
 	if world == null:
 		world = _player.get_parent()
 	if world != null and world.has_method("request_shot"):
-		world.request_shot(_player, _muzzle.global_position, _aim_direction, {
-			"muzzle_speed": projectile_speed,
-			"gravity": projectile_gravity,
-			"linear_damping": projectile_linear_damping,
-			"max_distance": projectile_max_distance,
-			"initial_velocity": _aim_direction * projectile_speed,
-		})
+		var direction: Vector2 = get_shot_direction()
+		world.request_shot(_player, get_muzzle_global_position(), direction, _build_projectile_data(direction))
 		return
 
 	if world == null or not world.has_method("spawn_projectile"):
 		return
 
-	var projectile := PROJECTILE_SCENE.instantiate()
-	projectile.direction = _aim_direction
-	projectile.muzzle_speed = projectile_speed
-	projectile.gravity = projectile_gravity
-	projectile.linear_damping = projectile_linear_damping
-	projectile.max_distance = projectile_max_distance
-	projectile.initial_velocity = _aim_direction * projectile_speed
-	world.spawn_projectile(projectile, _muzzle.global_position)
+	var direction: Vector2 = get_shot_direction()
+	var projectile := PROJECTILE_SCENE.instantiate() as Node2D
+	projectile.set("direction", direction)
+	projectile.set("muzzle_speed", projectile_speed)
+	projectile.set("gravity", projectile_gravity)
+	projectile.set("linear_damping", projectile_linear_damping)
+	projectile.set("max_distance", projectile_max_distance)
+	projectile.set("initial_velocity", direction * projectile_speed)
+	world.spawn_projectile(projectile, get_muzzle_global_position())
+
+
+func build_shot_data() -> Dictionary:
+	var direction: Vector2 = get_shot_direction()
+	return {
+		"spawn_position": get_muzzle_global_position(),
+		"direction": direction,
+		"fire_interval": fire_interval,
+		"projectile": _build_projectile_data(direction),
+	}
+
+
+func get_muzzle_global_position() -> Vector2:
+	if _muzzle == null:
+		return global_position
+	return _muzzle.global_position
+
+
+func get_shot_direction() -> Vector2:
+	if _aim_direction.length_squared() <= 0.0001:
+		return Vector2.LEFT
+	return _aim_direction.normalized()
+
+
+func _build_projectile_data(direction: Vector2) -> Dictionary:
+	return {
+		"muzzle_speed": projectile_speed,
+		"gravity": projectile_gravity,
+		"linear_damping": projectile_linear_damping,
+		"max_distance": projectile_max_distance,
+		"initial_velocity": direction * projectile_speed,
+	}

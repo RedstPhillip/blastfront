@@ -3,7 +3,8 @@ extends "res://scenes/network/sync_module.gd"
 const PROJECTILE_SCENE := preload("res://scenes/projectiles/projectile.tscn")
 
 var _next_projectile_id := 1
-var _projectiles := {}
+var _projectiles: Dictionary = {}
+var _last_shot_time_by_slot: Dictionary = {}
 
 
 func get_module_name() -> StringName:
@@ -20,30 +21,25 @@ func request_shot(owner_slot: int, spawn_position: Vector2, direction: Vector2, 
 		return
 
 	if game_sync.is_host():
-		_spawn_authoritative_projectile(owner_slot, spawn_position, direction, projectile_data)
+		_spawn_authoritative_projectile_for_owner(owner_slot, spawn_position, direction, projectile_data)
 	else:
 		game_sync.send_reliable(&"shot_request", {
 			"owner_slot": owner_slot,
-			"spawn_position": spawn_position,
-			"direction": direction,
-			"projectile": projectile_data,
+			"request_tick": game_sync.tick,
 		}, NetworkSession.CHANNEL_EVENTS)
 
 
 func handle_packet(packet: Dictionary) -> void:
-	var payload := _get_payload(packet)
+	var payload: Dictionary = _get_payload(packet)
 
 	match str(packet.get("type", "")):
 		"shot_request":
 			if not game_sync.is_host():
 				return
-			var owner_slot := int(packet.get("from_slot", payload.get("owner_slot", 0)))
-			_spawn_authoritative_projectile(
-				owner_slot,
-				payload.get("spawn_position", Vector2.ZERO),
-				payload.get("direction", Vector2.LEFT),
-				payload.get("projectile", {})
-			)
+			var owner_slot: int = int(packet.get("from_slot", payload.get("owner_slot", game_sync.get_remote_slot())))
+			if owner_slot != game_sync.get_remote_slot():
+				owner_slot = game_sync.get_remote_slot()
+			_spawn_authoritative_projectile_for_owner(owner_slot)
 		"projectile_spawned":
 			_apply_projectile_spawn(payload)
 		"projectile_despawned":
@@ -68,7 +64,7 @@ func apply_snapshot(data: Dictionary) -> void:
 		if not (snapshot is Dictionary):
 			continue
 
-		var net_id := int(snapshot.get("net_id", 0))
+		var net_id: int = int(snapshot.get("net_id", 0))
 		var projectile = _projectiles.get(net_id, null)
 		if projectile == null:
 			continue
@@ -77,8 +73,44 @@ func apply_snapshot(data: Dictionary) -> void:
 			projectile.call("apply_network_snapshot", snapshot)
 
 
-func _spawn_authoritative_projectile(owner_slot: int, spawn_position: Vector2, direction: Vector2, projectile_data: Dictionary) -> void:
-	var net_id := _next_projectile_id
+func _spawn_authoritative_projectile_for_owner(
+	owner_slot: int,
+	fallback_spawn_position: Vector2 = Vector2.ZERO,
+	fallback_direction: Vector2 = Vector2.LEFT,
+	fallback_projectile_data: Dictionary = {}
+) -> void:
+	var shot_data: Dictionary = _build_authoritative_shot(owner_slot)
+	var spawn_position: Vector2 = fallback_spawn_position
+	var direction: Vector2 = fallback_direction
+	var fire_interval: float = 0.0
+	var projectile_data: Dictionary = fallback_projectile_data
+
+	if not shot_data.is_empty():
+		var spawn_position_variant: Variant = shot_data.get("spawn_position", spawn_position)
+		if spawn_position_variant is Vector2:
+			spawn_position = spawn_position_variant
+
+		var direction_variant: Variant = shot_data.get("direction", direction)
+		if direction_variant is Vector2:
+			var shot_direction: Vector2 = direction_variant
+			if shot_direction.length_squared() > 0.0001:
+				direction = shot_direction.normalized()
+
+		var projectile_data_variant: Variant = shot_data.get("projectile", projectile_data)
+		if projectile_data_variant is Dictionary:
+			projectile_data = projectile_data_variant
+
+		var fire_interval_variant: Variant = shot_data.get("fire_interval", fire_interval)
+		if fire_interval_variant is float or fire_interval_variant is int:
+			fire_interval = maxf(float(fire_interval_variant), 0.0)
+
+	if projectile_data.is_empty():
+		return
+
+	if not _can_authoritative_shoot(owner_slot, fire_interval):
+		return
+
+	var net_id: int = _next_projectile_id
 	_next_projectile_id += 1
 
 	_spawn_projectile(net_id, owner_slot, spawn_position, direction, projectile_data, true)
@@ -91,23 +123,64 @@ func _spawn_authoritative_projectile(owner_slot: int, spawn_position: Vector2, d
 	}, NetworkSession.CHANNEL_EVENTS)
 
 
+func _build_authoritative_shot(owner_slot: int) -> Dictionary:
+	if game == null or not game.has_method("build_authoritative_shot"):
+		return {}
+
+	var shot_data_variant: Variant = game.call("build_authoritative_shot", owner_slot)
+	if shot_data_variant is Dictionary:
+		return shot_data_variant
+	return {}
+
+
+func _can_authoritative_shoot(owner_slot: int, fire_interval: float) -> bool:
+	if fire_interval <= 0.0:
+		return true
+
+	var now_seconds: float = Time.get_ticks_msec() / 1000.0
+	var last_shot_time: float = float(_last_shot_time_by_slot.get(owner_slot, -1000000.0))
+	if now_seconds - last_shot_time < fire_interval:
+		return false
+
+	_last_shot_time_by_slot[owner_slot] = now_seconds
+	return true
+
+
 func _apply_projectile_spawn(payload: Dictionary) -> void:
-	var net_id := int(payload.get("net_id", 0))
+	var net_id: int = int(payload.get("net_id", 0))
 	if net_id == 0 or _projectiles.has(net_id):
 		return
+
+	var spawn_position: Vector2 = Vector2.ZERO
+	var direction: Vector2 = Vector2.LEFT
+	var projectile_data: Dictionary = {}
+
+	var spawn_position_variant: Variant = payload.get("spawn_position", spawn_position)
+	if spawn_position_variant is Vector2:
+		spawn_position = spawn_position_variant
+
+	var direction_variant: Variant = payload.get("direction", direction)
+	if direction_variant is Vector2:
+		var spawned_direction: Vector2 = direction_variant
+		if spawned_direction.length_squared() > 0.0001:
+			direction = spawned_direction.normalized()
+
+	var projectile_data_variant: Variant = payload.get("projectile", {})
+	if projectile_data_variant is Dictionary:
+		projectile_data = projectile_data_variant
 
 	_spawn_projectile(
 		net_id,
 		int(payload.get("owner_slot", 0)),
-		payload.get("spawn_position", Vector2.ZERO),
-		payload.get("direction", Vector2.LEFT),
-		payload.get("projectile", {}),
+		spawn_position,
+		direction,
+		projectile_data,
 		false
 	)
 
 
 func _apply_projectile_despawn(payload: Dictionary) -> void:
-	var net_id := int(payload.get("net_id", 0))
+	var net_id: int = int(payload.get("net_id", 0))
 	var projectile = _projectiles.get(net_id, null)
 	if projectile != null:
 		projectile.queue_free()
@@ -123,7 +196,7 @@ func _spawn_projectile(net_id: int, owner_slot: int, spawn_position: Vector2, di
 	projectile.set("owner_slot", owner_slot)
 	projectile.set("is_network_authority", authority)
 	projectile.set("direction", direction)
-	var muzzle_speed := float(projectile_data.get("muzzle_speed", projectile.get("muzzle_speed")))
+	var muzzle_speed: float = float(projectile_data.get("muzzle_speed", projectile.get("muzzle_speed")))
 	projectile.set("muzzle_speed", muzzle_speed)
 	projectile.set("gravity", float(projectile_data.get("gravity", projectile.get("gravity"))))
 	projectile.set("linear_damping", float(projectile_data.get("linear_damping", projectile.get("linear_damping"))))
