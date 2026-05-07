@@ -8,10 +8,12 @@ extends Node2D
 
 var _local_player: Player = null
 var _network_send_timer := 0.0
+var _network_send_interval := 0.0
 
 
 func _ready() -> void:
 	add_to_group("game_world")
+	_network_send_interval = 1.0 / network_send_rate
 
 	if NetworkSession.is_steam_match_active():
 		NetworkSession.register_game(self)
@@ -32,7 +34,7 @@ func _physics_process(delta: float) -> void:
 	if _network_send_timer > 0.0:
 		return
 
-	_network_send_timer = 1.0 / network_send_rate
+	_network_send_timer = _network_send_interval
 	NetworkSession.send_player_state(
 		_local_player.player_slot,
 		_local_player.global_position,
@@ -50,7 +52,6 @@ func apply_remote_player_snapshot(slot: int, snapshot: Dictionary) -> void:
 	var player := _get_player_by_slot(slot)
 	if player == null:
 		return
-
 	player.apply_remote_snapshot(snapshot)
 
 

@@ -1,0 +1,7 @@
+[gd_scene format=3 uid="uid://b7nv78gm5amfm"]
+
+[ext_resource type="Script" uid="uid://canek1a6obvjn" path="res://scenes/components/health_component.gd" id="1_iv1uk"]
+
+[node name="HealthComponent" type="Node" unique_id=1673934911]
+script = ExtResource("1_iv1uk")
+max_health = null

@@ -72,6 +72,7 @@ var _step_t_r := 1.0
 @onready var _ray_l: RayCast2D = $RayL
 @onready var _ray_r: RayCast2D = $RayR
 @onready var _state_machine: StateMachine = $State
+@onready var health_component: HealthComponent = $HealthComponent
 
 
 func _ready() -> void:
