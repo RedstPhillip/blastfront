@@ -17,7 +17,7 @@ func _ready() -> void:
 		_lines[side] = cr
 
 func _process(_delta: float) -> void:
-	var players := _get_local_players()
+	var players: Array[Node2D] = _get_tracked_players()
 	if players.is_empty():
 		_hide_all_lines()
 		return
@@ -34,9 +34,9 @@ func _process(_delta: float) -> void:
 	_update_horizontal("bottom", _find_bottom_player(players, bottom), bottom)
 
 
-func _get_local_players() -> Array[Node2D]:
+func _get_tracked_players() -> Array[Node2D]:
 	var players: Array[Node2D] = []
-	for node in get_tree().get_nodes_in_group("local_players"):
+	for node in get_tree().get_nodes_in_group("players"):
 		if node is Node2D:
 			players.append(node)
 	return players
