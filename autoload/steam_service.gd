@@ -4,7 +4,7 @@ signal initialized
 signal initialization_failed(message: String)
 signal status_changed(message: String)
 
-const DEV_APP_ID := 480
+const GAME_APP_ID := 4714540
 
 var steam_enabled := false
 var steam_id: int = 0
@@ -32,7 +32,7 @@ func initialize_steam() -> void:
 		initialization_failed.emit(initialization_message)
 		return
 
-	var response: Dictionary = Steam.steamInitEx(DEV_APP_ID, false)
+	var response: Dictionary = Steam.steamInitEx(GAME_APP_ID, false)
 	initialization_status = int(response.get("status", 1))
 	initialization_message = str(response.get("verbal", "Unknown Steam init response."))
 	steam_enabled = initialization_status == 0

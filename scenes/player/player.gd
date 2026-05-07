@@ -85,10 +85,9 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	_update_ground_rays()
 	_step_clock += delta
-	if control_mode == CONTROL_REMOTE and _has_network_target:
-		var interpolation_weight := clampf(delta * remote_interpolation_speed, 0.0, 1.0)
-		global_position = global_position.lerp(_network_target_position, interpolation_weight)
-		velocity = _network_target_velocity
+	if control_mode == CONTROL_REMOTE:
+		_physics_process_remote(delta)
+		return
 	_update_movement_timers(delta)
 	update_wall_coyote(delta)
 
@@ -119,6 +118,7 @@ func apply_remote_snapshot(snapshot: Dictionary) -> void:
 	var snapshot_position: Variant = snapshot.get("position", global_position)
 	var snapshot_velocity: Variant = snapshot.get("velocity", velocity)
 	var snapshot_aim: Variant = snapshot.get("aim", _network_aim_world_position)
+	var had_network_target := _has_network_target
 
 	if snapshot_position is Vector2:
 		_network_target_position = snapshot_position
@@ -128,6 +128,9 @@ func apply_remote_snapshot(snapshot: Dictionary) -> void:
 		_network_aim_world_position = snapshot_aim
 
 	_has_network_target = true
+	if not had_network_target:
+		global_position = _network_target_position
+		velocity = _network_target_velocity
 
 
 func get_move_direction() -> float:
@@ -174,6 +177,18 @@ func _apply_control_mode() -> void:
 		_state_machine.process_mode = Node.PROCESS_MODE_DISABLED
 	else:
 		_state_machine.process_mode = Node.PROCESS_MODE_INHERIT
+
+
+func _physics_process_remote(delta: float) -> void:
+	if not _has_network_target:
+		return
+
+	var interpolation_weight := clampf(delta * remote_interpolation_speed, 0.0, 1.0)
+	global_position = global_position.lerp(_network_target_position, interpolation_weight)
+	velocity = _network_target_velocity
+	if absf(velocity.x) > 1.0:
+		last_dir = signf(velocity.x)
+	update_visual_movement(delta)
 
 
 func update_grounded() -> bool:
@@ -310,7 +325,10 @@ func update_visual_movement(delta: float) -> void:
 		foot_pos_r = foot_pos_r.lerp(hip + Vector2(air_foot_tuck_x, hover_dist * 0.7 - air_foot_tuck_y), delta * 10.0)
 		bounce_t = lerp(bounce_t, 0.0, delta * 8.0)
 
-	rotation = lerp_angle(rotation, get_move_direction() * 0.08, delta * 10.0)
+	var visual_direction := get_move_direction()
+	if control_mode == CONTROL_REMOTE:
+		visual_direction = clampf(velocity.x / maxf(speed, 1.0), -1.0, 1.0)
+	rotation = lerp_angle(rotation, visual_direction * 0.08, delta * 10.0)
 
 
 func _update_movement_timers(delta: float) -> void:
