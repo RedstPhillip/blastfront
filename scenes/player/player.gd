@@ -303,6 +303,16 @@ func update_visual_movement(delta: float) -> void:
 
 		var ideal_l := Vector2(global_position.x - foot_spread + look, floor_y)
 		var ideal_r := Vector2(global_position.x + foot_spread + look, floor_y)
+		var floor_l: bool = _is_floor_ray(_ray_l)
+		var floor_r: bool = _is_floor_ray(_ray_r)
+		if floor_l != floor_r:
+			var edge_gap: float = foot_spread * 1.25
+			if floor_l:
+				ideal_l.x = minf(ideal_l.x, _ray_l.get_collision_point().x)
+				ideal_r.x = minf(ideal_r.x, ideal_l.x + edge_gap)
+			else:
+				ideal_r.x = maxf(ideal_r.x, _ray_r.get_collision_point().x)
+				ideal_l.x = maxf(ideal_l.x, ideal_r.x - edge_gap)
 		var move_dir: float = _get_visual_move_direction()
 		var changed_direction: bool = (
 			move_dir != 0.0
