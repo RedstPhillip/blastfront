@@ -5,7 +5,7 @@ signal max_health_changed(old: int, new: int)
 signal health_changed(old: int, new: int)
 signal health_depleted
 
-@export var max_health: int = 3:
+@export var max_health: int = 100:
 	set(value):
 		var new_value = maxi(value, 1)
 		if new_value == max_health:
@@ -35,8 +35,6 @@ var health: int = max_health:
 func damage(amount: int) -> void:
 	if amount > 0:
 		health -= amount
-		print(health)
-		
 
 
 func heal(amount: int) -> void:

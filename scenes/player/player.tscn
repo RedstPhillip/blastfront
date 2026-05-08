@@ -12,6 +12,7 @@
 [ext_resource type="Script" uid="uid://tstjolcc3t2" path="res://scenes/player/wall_state.gd" id="10_wall"]
 [ext_resource type="Script" uid="uid://d03ad0fet400" path="res://scenes/player/fall_state.gd" id="12_fall"]
 [ext_resource type="Script" uid="uid://canek1a6obvjn" path="res://scenes/components/health_component.gd" id="13_health"]
+[ext_resource type="Script" path="res://scenes/player/health_bar.gd" id="14_healthbar"]
 
 [node name="Player" type="CharacterBody2D" unique_id=874337750]
 collision_layer = 2
@@ -67,3 +68,7 @@ script = ExtResource("10_wall")
 
 [node name="HealthComponent" type="Node" parent="." unique_id=832184161]
 script = ExtResource("13_health")
+
+[node name="HealthBar" type="Node2D" parent="."]
+z_index = 2
+script = ExtResource("14_healthbar")

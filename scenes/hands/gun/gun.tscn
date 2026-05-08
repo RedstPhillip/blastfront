@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://dhc5lavdjobne"]
 
 [ext_resource type="Texture2D" uid="uid://dvg5y2brav3ic" path="res://assets/hands/gun/gun.png" id="1_csbbp"]
-[ext_resource type="Script" path="res://scenes/hands/gun/gun.gd" id="2_bf1r1"]
+[ext_resource type="Script" uid="uid://ba6ko072cd8fl" path="res://scenes/hands/gun/gun.gd" id="2_bf1r1"]
 
 [node name="Gun" type="Node2D" unique_id=926933887]
 z_index = -1

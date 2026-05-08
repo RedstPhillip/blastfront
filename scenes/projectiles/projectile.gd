@@ -71,7 +71,7 @@ func _on_collision(collision: KinematicCollision2D) -> void:
 func _apply_local_collision_damage(collider) -> void:
 	var player := collider as Player
 	if player != null:
-		player.health_component.damage(1)
+		player.health_component.damage(10)
 
 
 func _request_despawn(reason: StringName, collider) -> void:
