@@ -89,7 +89,7 @@ polygon = PackedVector2Array(1560, 720, 1560, 536, 1490, 536, 1440, 560, 1390, 5
 [node name="Map03" type="Node2D" unique_id=865662757]
 
 [node name="PointLight2D" type="PointLight2D" parent="." unique_id=1750659926]
-position = Vector2(640, 0)
+position = Vector2(1140, 0)
 scale = Vector2(67.917, 38.682)
 energy = 0.73
 shadow_enabled = true
@@ -97,8 +97,7 @@ texture = SubResource("GradientTexture2D_wa6f0")
 
 [node name="TextureRect" type="TextureRect" parent="." unique_id=536264738]
 z_index = -1
-offset_left = -800.0
-offset_right = 5000.0
+offset_right = 5800.0
 offset_bottom = 1888.0
 scale = Vector2(0.39, 0.39)
 texture = ExtResource("2_23d8d")
@@ -107,98 +106,99 @@ texture = ExtResource("2_23d8d")
 
 [node name="Polygon2D" type="Polygon2D" parent="StaticBody2D" unique_id=270262714]
 material = SubResource("ShaderMaterial_23d8d")
-position = Vector2(-16, 24)
+position = Vector2(484, 24)
 scale = Vector2(1, 0.9677419)
 polygon = PackedVector2Array(64, 720, 64, 536, 144, 536, 192, 560, 504, 560, 560, 608, 560, 719.2001)
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="StaticBody2D" unique_id=1211360383]
-position = Vector2(-16, 8)
+position = Vector2(484, 8)
 polygon = PackedVector2Array(64, 720, 64, 536, 144, 536, 192, 560, 504, 560, 560, 608, 560, 719.2001)
 
 [node name="LightOccluder2D" type="LightOccluder2D" parent="StaticBody2D" unique_id=1284494552]
-position = Vector2(-16, 8)
+position = Vector2(484, 8)
 occluder = SubResource("OccluderPolygon2D_leycp")
 
 [node name="RectPlatform" parent="." unique_id=1842410348 instance=ExtResource("3_yugup")]
-position = Vector2(640, 680)
+position = Vector2(1140, 680)
 scale = Vector2(5, 5)
 
 [node name="StaticBody2D2" type="StaticBody2D" parent="." unique_id=664265493]
 
 [node name="Polygon2D" type="Polygon2D" parent="StaticBody2D2" unique_id=666638955]
 material = SubResource("ShaderMaterial_leycp")
-position = Vector2(576, 16)
+position = Vector2(1076, 16)
 polygon = PackedVector2Array(656, 704, 656, 528, 576, 528, 528, 552, 216, 552, 160, 600, 160, 704)
 
 [node name="LightOccluder2D" type="LightOccluder2D" parent="StaticBody2D2" unique_id=840037356]
-position = Vector2(576, 16)
+position = Vector2(1076, 16)
 occluder = SubResource("OccluderPolygon2D_23d8d")
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="StaticBody2D2" unique_id=279067375]
-position = Vector2(576, 16)
+position = Vector2(1076, 16)
 polygon = PackedVector2Array(656, 704, 656, 528, 576, 528, 528, 552, 216, 552, 160, 600, 160, 704)
 
 [node name="OctanglePlatform" parent="." unique_id=556789199 instance=ExtResource("4_kpb4k")]
-position = Vector2(640, 488)
+position = Vector2(1140, 488)
 scale = Vector2(6, 6)
 
 [node name="LongPlatform" parent="." unique_id=1441916880 instance=ExtResource("5_4w2pl")]
-position = Vector2(264, 464)
+position = Vector2(764, 464)
 scale = Vector2(8, 8)
 
 [node name="LongPlatform2" parent="." unique_id=2010732592 instance=ExtResource("5_4w2pl")]
-position = Vector2(264, 328)
+position = Vector2(764, 328)
 scale = Vector2(8, 8)
 
 [node name="SmallPlatform" parent="." unique_id=609285380 instance=ExtResource("7_23d8d")]
-position = Vector2(424, 408)
+position = Vector2(924, 408)
 scale = Vector2(3, 3)
 
 [node name="SmallPlatform2" parent="." unique_id=1593659193 instance=ExtResource("7_23d8d")]
-position = Vector2(456.00003, 248)
+position = Vector2(956, 248)
 scale = Vector2(3, 3)
 
 [node name="SmallPlatform3" parent="." unique_id=1324140178 instance=ExtResource("7_23d8d")]
-position = Vector2(528, 360)
+position = Vector2(1028, 360)
 scale = Vector2(3, 3)
 
 [node name="StaticBody2D3" type="StaticBody2D" parent="." unique_id=1586225833]
 
 [node name="Polygon2D" type="Polygon2D" parent="StaticBody2D3" unique_id=884992612]
 material = SubResource("ShaderMaterial_iok3r")
-position = Vector2(0, -24)
+position = Vector2(500, -24)
 polygon = PackedVector2Array(632, 400, 648, 400, 664, 376, 664, 312, 688, 280, 688, 208, 592, 208, 592, 280, 616, 312, 616, 376)
 uv = PackedVector2Array(-223, 50)
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="StaticBody2D3" unique_id=1341595190]
-position = Vector2(0, -24)
+position = Vector2(500, -24)
 polygon = PackedVector2Array(632, 400, 648, 400, 664, 376, 664, 312, 688, 280, 688, 208, 592, 208, 592, 280, 616, 312, 616, 376)
 
 [node name="LightOccluder2D" type="LightOccluder2D" parent="StaticBody2D3" unique_id=1149139131]
-position = Vector2(0, -24)
+position = Vector2(500, -24)
 occluder = SubResource("OccluderPolygon2D_iok3r")
 
 [node name="LongPlatform3" parent="." unique_id=1168953314 instance=ExtResource("5_4w2pl")]
-position = Vector2(1016, 464)
+position = Vector2(1516, 464)
 scale = Vector2(8, 8)
 
 [node name="LongPlatform4" parent="." unique_id=501543076 instance=ExtResource("5_4w2pl")]
-position = Vector2(1016, 328)
+position = Vector2(1516, 328)
 scale = Vector2(8, 8)
 
 [node name="SmallPlatform4" parent="." unique_id=1562509204 instance=ExtResource("7_23d8d")]
-position = Vector2(856, 408)
+position = Vector2(1356, 408)
 scale = Vector2(3, 3)
 
 [node name="SmallPlatform5" parent="." unique_id=916779312 instance=ExtResource("7_23d8d")]
-position = Vector2(752.00006, 360)
+position = Vector2(1252, 360)
 scale = Vector2(3, 3)
 
 [node name="SmallPlatform6" parent="." unique_id=560003958 instance=ExtResource("7_23d8d")]
-position = Vector2(824.00006, 248)
+position = Vector2(1324, 248)
 scale = Vector2(3, 3)
 
 [node name="StaticBody2D4" type="StaticBody2D" parent="." unique_id=1403371088]
+position = Vector2(500, 0)
 
 [node name="Polygon2D" type="Polygon2D" parent="StaticBody2D4" unique_id=742269769]
 material = SubResource("ShaderMaterial_farleft")
@@ -211,6 +211,7 @@ polygon = PackedVector2Array(-400, 720, -400, 536, -330, 536, -280, 560, -230, 5
 occluder = SubResource("OccluderPolygon2D_farleft")
 
 [node name="StaticBody2D5" type="StaticBody2D" parent="." unique_id=1532392800]
+position = Vector2(500, 0)
 
 [node name="Polygon2D" type="Polygon2D" parent="StaticBody2D5" unique_id=1202360068]
 material = SubResource("ShaderMaterial_farright")
@@ -223,41 +224,41 @@ polygon = PackedVector2Array(1560, 720, 1560, 536, 1490, 536, 1440, 560, 1390, 5
 occluder = SubResource("OccluderPolygon2D_farright")
 
 [node name="LongPlatform5" parent="." unique_id=1875034294 instance=ExtResource("5_4w2pl")]
-position = Vector2(-136, 464)
+position = Vector2(364, 464)
 scale = Vector2(8, 8)
 
 [node name="LongPlatform6" parent="." unique_id=366257260 instance=ExtResource("5_4w2pl")]
-position = Vector2(-136, 328)
+position = Vector2(364, 328)
 scale = Vector2(8, 8)
 
 [node name="SmallPlatform7" parent="." unique_id=1870931441 instance=ExtResource("7_23d8d")]
-position = Vector2(24, 408)
+position = Vector2(524, 408)
 scale = Vector2(3, 3)
 
 [node name="SmallPlatform8" parent="." unique_id=1892778146 instance=ExtResource("7_23d8d")]
-position = Vector2(56, 248)
+position = Vector2(556, 248)
 scale = Vector2(3, 3)
 
 [node name="SmallPlatform9" parent="." unique_id=1081236825 instance=ExtResource("7_23d8d")]
-position = Vector2(128, 360)
+position = Vector2(628, 360)
 scale = Vector2(3, 3)
 
 [node name="LongPlatform7" parent="." unique_id=1285528058 instance=ExtResource("5_4w2pl")]
-position = Vector2(1416, 464)
+position = Vector2(1916, 464)
 scale = Vector2(8, 8)
 
 [node name="LongPlatform8" parent="." unique_id=1194640402 instance=ExtResource("5_4w2pl")]
-position = Vector2(1416, 328)
+position = Vector2(1916, 328)
 scale = Vector2(8, 8)
 
 [node name="SmallPlatform10" parent="." unique_id=1946174900 instance=ExtResource("7_23d8d")]
-position = Vector2(1256, 408)
+position = Vector2(1756, 408)
 scale = Vector2(3, 3)
 
 [node name="SmallPlatform11" parent="." unique_id=836305215 instance=ExtResource("7_23d8d")]
-position = Vector2(1152, 360)
+position = Vector2(1652, 360)
 scale = Vector2(3, 3)
 
 [node name="SmallPlatform12" parent="." unique_id=1434251662 instance=ExtResource("7_23d8d")]
-position = Vector2(1224, 248)
+position = Vector2(1724, 248)
 scale = Vector2(3, 3)
