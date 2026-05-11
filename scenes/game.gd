@@ -6,13 +6,20 @@ const PROJECTILE_SCENE := preload("res://scenes/projectiles/projectile.tscn")
 const CAMERA_FOLLOW_SPEED: float = 5.0
 const CAMERA_Y: float = 360.0
 
+const SPAWN_LEFT := Vector2(200, 116)
+const SPAWN_RIGHT := Vector2(1100, 116)
+const OFFLINE_WINS_NEEDED := 2
+
 @onready var _player_1: Player = $Player1
 @onready var _player_2: Player = $Player2
 @onready var _projectiles: Node2D = $Projectiles
 @onready var _camera: Camera2D = $Camera2D
+@onready var _score_label: Label = $HUD/ScoreLabel
 
 var _local_player: Player = null
 var _game_sync = null
+var _offline_score := {1: 0, 2: 0}
+var _offline_match_over := false
 
 
 func _ready() -> void:
@@ -23,7 +30,9 @@ func _ready() -> void:
 		_create_game_sync()
 	else:
 		_configure_offline_players()
+		_connect_offline_health()
 
+	_set_spawn_positions()
 	_camera.make_current()
 	_camera.global_position = Vector2(
 		(_player_1.global_position.x + _player_2.global_position.x) * 0.5,
@@ -34,6 +43,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	var target_x := (_player_1.global_position.x + _player_2.global_position.x) * 0.5
 	_camera.global_position.x = lerp(_camera.global_position.x, target_x, delta * CAMERA_FOLLOW_SPEED)
+	_update_score_display()
 
 
 func spawn_projectile(projectile: Node2D, spawn_position: Vector2) -> void:
@@ -158,6 +168,65 @@ func get_local_player() -> Player:
 
 func get_projectiles_root() -> Node2D:
 	return _projectiles
+
+
+func respawn_players() -> void:
+	_set_spawn_positions()
+	_player_1.velocity = Vector2.ZERO
+	_player_2.velocity = Vector2.ZERO
+
+
+func on_match_over(winner_slot: int) -> void:
+	_score_label.text = "Player %d wins!" % winner_slot
+	_score_label.show()
+
+
+func _set_spawn_positions() -> void:
+	_player_1.global_position = SPAWN_LEFT
+	_player_1.last_dir = 1.0
+	_player_2.global_position = SPAWN_RIGHT
+	_player_2.last_dir = -1.0
+
+
+func _connect_offline_health() -> void:
+	_player_1.health_component.health_depleted.connect(_on_offline_health_depleted.bind(1))
+	_player_2.health_component.health_depleted.connect(_on_offline_health_depleted.bind(2))
+
+
+func _on_offline_health_depleted(slot: int) -> void:
+	if _offline_match_over:
+		return
+
+	var source_slot := 2 if slot == 1 else 1
+	_offline_score[source_slot] = _offline_score.get(source_slot, 0) + 1
+
+	if _offline_score[source_slot] >= OFFLINE_WINS_NEEDED:
+		_offline_match_over = true
+		_score_label.text = "Player %d wins!" % source_slot
+		return
+
+	_heal_and_respawn()
+
+
+func _heal_and_respawn() -> void:
+	respawn_players()
+	_player_1.health_component.heal(100)
+	_player_2.health_component.heal(100)
+
+
+func _update_score_display() -> void:
+	if _score_label == null:
+		return
+
+	if NetworkSession.is_steam_match_active() and _game_sync != null:
+		var round_sync = _game_sync.get_module(&"round")
+		if round_sync != null and round_sync.has_method("get_scores"):
+			var scores = round_sync.get_scores()
+			_score_label.text = "%d - %d" % [scores.get(1, 0), scores.get(2, 0)]
+		_score_label.show()
+	elif not NetworkSession.is_steam_match_active():
+		_score_label.text = "%d - %d" % [_offline_score.get(1, 0), _offline_score.get(2, 0)]
+		_score_label.show()
 
 
 func _get_player_by_slot(slot: int) -> Player:

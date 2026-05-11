@@ -11,12 +11,20 @@ script = ExtResource("1_ibkli")
 [node name="Map03" parent="." unique_id=865662757 instance=ExtResource("5_78awf")]
 
 [node name="Player1" parent="." unique_id=135243144 instance=ExtResource("3_78awf")]
-position = Vector2(600, 116)
+position = Vector2(200, 116)
 
 [node name="Player2" parent="." unique_id=603023101 instance=ExtResource("3_78awf")]
-position = Vector2(680, 116)
+position = Vector2(1100, 116)
 
 [node name="Projectiles" type="Node2D" parent="." unique_id=640378572]
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="ScoreLabel" type="Label" parent="HUD"]
+offset_left = 16.0
+offset_top = 16.0
+theme_override_font_sizes/font_size = 48
+text = "0 - 0"
 
 [node name="MapBorder" type="Node2D" parent="." unique_id=1943801248]
 script = ExtResource("4_78awf")
