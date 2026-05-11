@@ -5,6 +5,14 @@ const CONTROL_LOCAL: StringName = &"local"
 const CONTROL_REMOTE: StringName = &"remote"
 const FLOOR_NORMAL_Y_THRESHOLD: float = -0.5
 
+const BLUE_BODY_TEXTURE: Texture2D = preload("res://assets/Player/blue_ball.png")
+const BLUE_BODY_TEXTURE_MIRRORED: Texture2D = preload("res://assets/Player/blue_ball_mirrored.png")
+const RED_BODY_TEXTURE: Texture2D = preload("res://assets/Player/red_ball.png")
+const RED_BODY_TEXTURE_MIRRORED: Texture2D = preload("res://assets/Player/red_ball_mirrored.png")
+
+const BLUE_LIMB_COLOR: Color = Color8(80, 170, 255, 255)
+const RED_LIMB_COLOR: Color = Color8(235, 80, 80, 255)
+
 @export var gravity := 1350.0
 @export var wall_slide_speed := 80.0
 @export var air_speed := 120.0
@@ -72,6 +80,12 @@ var _step_from_r := Vector2.ZERO
 var _step_to_r := Vector2.ZERO
 var _step_t_r := 1.0
 
+@onready var _body_sprite: Sprite2D = $Sprite2D
+@onready var _glove: Sprite2D = $ArmRenderer/Glove
+
+var _leg_renderer
+var _arm_renderer
+
 @onready var _ray_l: RayCast2D = $RayL
 @onready var _ray_r: RayCast2D = $RayR
 @onready var _state_machine: StateMachine = $State
@@ -79,11 +93,14 @@ var _step_t_r := 1.0
 
 
 func _ready() -> void:
+	_leg_renderer = get_node_or_null("LegRenderer")
+	_arm_renderer = get_node_or_null("ArmRenderer")
 	_update_ground_rays()
 	_initialize_feet()
 	_network_target_position = global_position
 	_network_aim_world_position = global_position + Vector2.LEFT * 80.0
 	_apply_control_mode()
+	_apply_player_palette()
 
 
 func _physics_process(delta: float) -> void:
@@ -105,6 +122,7 @@ func configure_local_control(slot: int, move_left: StringName, move_right: Strin
 	shoot_action = shoot
 	shooting_enabled = allow_shoot
 	_apply_control_mode()
+	_apply_player_palette()
 
 
 func configure_remote_control(slot: int) -> void:
@@ -116,6 +134,7 @@ func configure_remote_control(slot: int) -> void:
 	_network_aim_world_position = global_position + Vector2.LEFT * 80.0
 	_has_network_target = false
 	_apply_control_mode()
+	_apply_player_palette()
 
 
 func apply_remote_snapshot(snapshot: Dictionary) -> void:
@@ -373,6 +392,7 @@ func update_visual_movement(delta: float) -> void:
 	if control_mode == CONTROL_REMOTE:
 		visual_direction = clampf(velocity.x / maxf(speed, 1.0), -1.0, 1.0)
 	rotation = lerp_angle(rotation, visual_direction * 0.08, delta * 10.0)
+	_update_body_sprite_direction()
 
 
 func _update_movement_timers(delta: float) -> void:
@@ -430,6 +450,38 @@ func _arc(a: Vector2, b: Vector2, t: float, h: float) -> Vector2:
 	var p := a.lerp(b, t)
 	p.y -= sin(t * PI) * h
 	return p
+
+
+func _apply_player_palette() -> void:
+	var limb_color := BLUE_LIMB_COLOR if _is_blue_player() else RED_LIMB_COLOR
+	if _leg_renderer != null:
+		_leg_renderer.col_leg = limb_color
+	if _arm_renderer != null:
+		_arm_renderer.col_arm = limb_color
+	if _glove != null:
+		_glove.modulate = limb_color
+	_update_body_sprite_direction()
+
+
+func _update_body_sprite_direction() -> void:
+	if _body_sprite == null:
+		return
+	var facing_dir := signf(last_dir)
+	if facing_dir == 0.0:
+		facing_dir = 1.0
+	var facing_left := facing_dir < 0.0
+	var next_texture: Texture2D
+	if _is_blue_player():
+		next_texture = BLUE_BODY_TEXTURE_MIRRORED if facing_left else BLUE_BODY_TEXTURE
+	else:
+		next_texture = RED_BODY_TEXTURE_MIRRORED if facing_left else RED_BODY_TEXTURE
+	if _body_sprite.texture != next_texture:
+		_body_sprite.texture = next_texture
+	_body_sprite.flip_h = false
+
+
+func _is_blue_player() -> bool:
+	return player_slot != 2
 
 
 func _begin_step(is_left: bool, target: Vector2) -> void:
