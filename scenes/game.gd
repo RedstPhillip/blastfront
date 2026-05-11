@@ -5,6 +5,7 @@ const PROJECTILE_SCENE := preload("res://scenes/projectiles/projectile.tscn")
 
 const CAMERA_FOLLOW_SPEED: float = 5.0
 const CAMERA_Y: float = 360.0
+const MAP_CENTER_X: float = 1140.0
 
 const SPAWN_LEFT := Vector2(200, 116)
 const SPAWN_RIGHT := Vector2(1100, 116)
@@ -34,6 +35,10 @@ func _ready() -> void:
 
 	_set_spawn_positions()
 	_camera.make_current()
+	_camera.limit_left = 0
+	_camera.limit_right = 2262
+	_camera.limit_top = 0
+	_camera.limit_bottom = 736
 	_camera.global_position = Vector2(
 		(_player_1.global_position.x + _player_2.global_position.x) * 0.5,
 		CAMERA_Y
@@ -41,7 +46,11 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	var target_x := (_player_1.global_position.x + _player_2.global_position.x) * 0.5
+	var target_x: float
+	if NetworkSession.is_steam_match_active() and _local_player != null:
+		target_x = (_local_player.global_position.x + MAP_CENTER_X) * 0.5
+	else:
+		target_x = (_player_1.global_position.x + _player_2.global_position.x) * 0.5
 	_camera.global_position.x = lerp(_camera.global_position.x, target_x, delta * CAMERA_FOLLOW_SPEED)
 	_update_score_display()
 
