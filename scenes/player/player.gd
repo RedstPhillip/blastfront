@@ -131,6 +131,11 @@ func apply_remote_snapshot(snapshot: Dictionary) -> void:
 		_network_target_velocity = snapshot_velocity
 	if snapshot_aim is Vector2:
 		_network_aim_world_position = snapshot_aim
+		var aim_vector: Vector2 = snapshot_aim - _network_target_position
+		if aim_vector.length_squared() > 0.0001:
+			var gun: Node = get_node_or_null("Gun")
+			if gun != null and gun.has_method("set_aim_direction"):
+				gun.call("set_aim_direction", aim_vector.normalized())
 	if (snapshot_facing is float or snapshot_facing is int) and absf(float(snapshot_facing)) > 0.0:
 		last_dir = signf(float(snapshot_facing))
 

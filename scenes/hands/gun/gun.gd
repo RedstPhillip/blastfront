@@ -88,6 +88,14 @@ func get_shot_direction() -> Vector2:
 	return _aim_direction.normalized()
 
 
+func set_aim_direction(direction: Vector2) -> void:
+	if direction.length_squared() > 0.0001:
+		_aim_direction = direction.normalized()
+		_pointing_right = _aim_direction.x > 0.0
+		global_rotation = _aim_direction.angle() + deg_to_rad(aim_angle_offset_degrees)
+		_visual_root.scale.y = -1.0 if _pointing_right else 1.0
+
+
 func _build_projectile_data(direction: Vector2) -> Dictionary:
 	return {
 		"muzzle_speed": projectile_speed,
