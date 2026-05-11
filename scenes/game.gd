@@ -3,9 +3,13 @@ extends Node2D
 const GAME_SYNC_SCRIPT := preload("res://scenes/network/game_sync.gd")
 const PROJECTILE_SCENE := preload("res://scenes/projectiles/projectile.tscn")
 
+const CAMERA_FOLLOW_SPEED: float = 5.0
+const CAMERA_Y: float = 360.0
+
 @onready var _player_1: Player = $Player1
 @onready var _player_2: Player = $Player2
 @onready var _projectiles: Node2D = $Projectiles
+@onready var _camera: Camera2D = $Camera2D
 
 var _local_player: Player = null
 var _game_sync = null
@@ -19,6 +23,17 @@ func _ready() -> void:
 		_create_game_sync()
 	else:
 		_configure_offline_players()
+
+	_camera.make_current()
+	_camera.global_position = Vector2(
+		(_player_1.global_position.x + _player_2.global_position.x) * 0.5,
+		CAMERA_Y
+	)
+
+
+func _process(delta: float) -> void:
+	var target_x := (_player_1.global_position.x + _player_2.global_position.x) * 0.5
+	_camera.global_position.x = lerp(_camera.global_position.x, target_x, delta * CAMERA_FOLLOW_SPEED)
 
 
 func spawn_projectile(projectile: Node2D, spawn_position: Vector2) -> void:

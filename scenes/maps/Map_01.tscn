@@ -2,7 +2,7 @@
 
 [ext_resource type="PackedScene" uid="uid://dvuxee5nnoh77" path="res://scenes/maps/platforms/RectPlatform.tscn" id="2_gsqyd"]
 [ext_resource type="PackedScene" uid="uid://dol6a502uukfn" path="res://scenes/maps/platforms/SmallPlatform.tscn" id="3_amlfo"]
-[ext_resource type="Shader" uid="uid://cs6ploa15ewpl" path="res://scenes/maps/Background.gdshader" id="3_kddmf"]
+[ext_resource type="Shader" uid="uid://s7oc3ptqfk8g" path="res://scenes/maps/Background.gdshader" id="3_kddmf"]
 [ext_resource type="PackedScene" uid="uid://d8fo7sfpor56" path="res://scenes/maps/platforms/OctanglePlatform.tscn" id="4_5ogjs"]
 [ext_resource type="PackedScene" uid="uid://ccva00o58sb32" path="res://scenes/maps/platforms/LongPlatform.tscn" id="5_hmdes"]
 

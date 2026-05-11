@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://d05r6pcnn1ra3"]
+[gd_scene format=3 uid="uid://lpjfvx4lrgjo"]
 
 [ext_resource type="Texture2D" uid="uid://buq51x7mcmglt" path="res://assets/bg-image-3.png" id="2_23d8d"]
 [ext_resource type="Shader" uid="uid://dcbhx6o75l1eh" path="res://scenes/maps/platforms/Platform.gdshader" id="3_leycp"]
@@ -58,7 +58,35 @@ shader_parameter/layer4 = Color(0.08, 0.12, 0.08, 1)
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_iok3r"]
 polygon = PackedVector2Array(632, 400, 648, 400, 664, 376, 664, 312, 688, 280, 688, 208, 592, 208, 592, 280, 616, 312, 616, 376)
 
-[node name="Map02" type="Node2D" unique_id=865662757]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_farleft"]
+shader = ExtResource("3_leycp")
+shader_parameter/speed = 1.5
+shader_parameter/scale = 2.5
+shader_parameter/sky_top = Color(0.12, 0.18, 0.28, 1)
+shader_parameter/sky_bottom = Color(0.22, 0.14, 0.1, 1)
+shader_parameter/layer1 = Color(0.28, 0.4, 0.26, 1)
+shader_parameter/layer2 = Color(0.2, 0.3, 0.2, 1)
+shader_parameter/layer3 = Color(0.12, 0.18, 0.12, 1)
+shader_parameter/layer4 = Color(0.08, 0.12, 0.08, 1)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_farleft"]
+polygon = PackedVector2Array(-400, 720, -400, 536, -330, 536, -280, 560, -230, 560, -230, 608, -230, 720)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_farright"]
+shader = ExtResource("3_leycp")
+shader_parameter/speed = 1.5
+shader_parameter/scale = 2.5
+shader_parameter/sky_top = Color(0.12, 0.18, 0.28, 1)
+shader_parameter/sky_bottom = Color(0.22, 0.14, 0.1, 1)
+shader_parameter/layer1 = Color(0.28, 0.4, 0.26, 1)
+shader_parameter/layer2 = Color(0.2, 0.3, 0.2, 1)
+shader_parameter/layer3 = Color(0.12, 0.18, 0.12, 1)
+shader_parameter/layer4 = Color(0.08, 0.12, 0.08, 1)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_farright"]
+polygon = PackedVector2Array(1560, 720, 1560, 536, 1490, 536, 1440, 560, 1390, 560, 1390, 608, 1390, 720)
+
+[node name="Map03" type="Node2D" unique_id=865662757]
 
 [node name="PointLight2D" type="PointLight2D" parent="." unique_id=1750659926]
 position = Vector2(640, 0)
@@ -69,8 +97,8 @@ texture = SubResource("GradientTexture2D_wa6f0")
 
 [node name="TextureRect" type="TextureRect" parent="." unique_id=536264738]
 z_index = -1
-offset_left = -92.555
-offset_right = 4003.445
+offset_left = -800.0
+offset_right = 5000.0
 offset_bottom = 1888.0
 scale = Vector2(0.39, 0.39)
 texture = ExtResource("2_23d8d")
@@ -168,4 +196,68 @@ scale = Vector2(3, 3)
 
 [node name="SmallPlatform6" parent="." unique_id=560003958 instance=ExtResource("7_23d8d")]
 position = Vector2(824.00006, 248)
+scale = Vector2(3, 3)
+
+[node name="StaticBody2D4" type="StaticBody2D" parent="." unique_id=1403371088]
+
+[node name="Polygon2D" type="Polygon2D" parent="StaticBody2D4" unique_id=742269769]
+material = SubResource("ShaderMaterial_farleft")
+polygon = PackedVector2Array(-400, 720, -400, 536, -330, 536, -280, 560, -230, 560, -230, 608, -230, 720)
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="StaticBody2D4" unique_id=17666909]
+polygon = PackedVector2Array(-400, 720, -400, 536, -330, 536, -280, 560, -230, 560, -230, 608, -230, 720)
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="StaticBody2D4" unique_id=1154846527]
+occluder = SubResource("OccluderPolygon2D_farleft")
+
+[node name="StaticBody2D5" type="StaticBody2D" parent="." unique_id=1532392800]
+
+[node name="Polygon2D" type="Polygon2D" parent="StaticBody2D5" unique_id=1202360068]
+material = SubResource("ShaderMaterial_farright")
+polygon = PackedVector2Array(1560, 720, 1560, 536, 1490, 536, 1440, 560, 1390, 560, 1390, 608, 1390, 720)
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="StaticBody2D5" unique_id=740919343]
+polygon = PackedVector2Array(1560, 720, 1560, 536, 1490, 536, 1440, 560, 1390, 560, 1390, 608, 1390, 720)
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="StaticBody2D5" unique_id=1510497244]
+occluder = SubResource("OccluderPolygon2D_farright")
+
+[node name="LongPlatform5" parent="." unique_id=1875034294 instance=ExtResource("5_4w2pl")]
+position = Vector2(-136, 464)
+scale = Vector2(8, 8)
+
+[node name="LongPlatform6" parent="." unique_id=366257260 instance=ExtResource("5_4w2pl")]
+position = Vector2(-136, 328)
+scale = Vector2(8, 8)
+
+[node name="SmallPlatform7" parent="." unique_id=1870931441 instance=ExtResource("7_23d8d")]
+position = Vector2(24, 408)
+scale = Vector2(3, 3)
+
+[node name="SmallPlatform8" parent="." unique_id=1892778146 instance=ExtResource("7_23d8d")]
+position = Vector2(56, 248)
+scale = Vector2(3, 3)
+
+[node name="SmallPlatform9" parent="." unique_id=1081236825 instance=ExtResource("7_23d8d")]
+position = Vector2(128, 360)
+scale = Vector2(3, 3)
+
+[node name="LongPlatform7" parent="." unique_id=1285528058 instance=ExtResource("5_4w2pl")]
+position = Vector2(1416, 464)
+scale = Vector2(8, 8)
+
+[node name="LongPlatform8" parent="." unique_id=1194640402 instance=ExtResource("5_4w2pl")]
+position = Vector2(1416, 328)
+scale = Vector2(8, 8)
+
+[node name="SmallPlatform10" parent="." unique_id=1946174900 instance=ExtResource("7_23d8d")]
+position = Vector2(1256, 408)
+scale = Vector2(3, 3)
+
+[node name="SmallPlatform11" parent="." unique_id=836305215 instance=ExtResource("7_23d8d")]
+position = Vector2(1152, 360)
+scale = Vector2(3, 3)
+
+[node name="SmallPlatform12" parent="." unique_id=1434251662 instance=ExtResource("7_23d8d")]
+position = Vector2(1224, 248)
 scale = Vector2(3, 3)

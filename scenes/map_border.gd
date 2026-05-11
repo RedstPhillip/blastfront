@@ -22,11 +22,18 @@ func _process(_delta: float) -> void:
 		_hide_all_lines()
 		return
 
-	var vp   := get_viewport_rect()
-	var left   := vp.position.x
-	var right  := vp.position.x + vp.size.x
-	var top    := vp.position.y
-	var bottom := vp.position.y + vp.size.y
+	var camera := get_viewport().get_camera_2d()
+	if camera == null:
+		_hide_all_lines()
+		return
+
+	var viewport_size := get_viewport_rect().size
+	var half := viewport_size * 0.5 / camera.zoom
+	var center := camera.global_position
+	var left   := center.x - half.x
+	var right  := center.x + half.x
+	var top    := center.y - half.y
+	var bottom := center.y + half.y
 
 	_update_vertical("left", _find_left_player(players, left), left)
 	_update_vertical("right", _find_right_player(players, right), right)
