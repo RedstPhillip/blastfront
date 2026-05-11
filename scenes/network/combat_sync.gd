@@ -1,11 +1,10 @@
 extends "res://scenes/network/sync_module.gd"
 
-const DEFAULT_HEALTH := 100
-const PROJECTILE_DAMAGE := 1
+const PROJECTILE_DAMAGE := 10
 
 var _health: Dictionary = {
-	1: DEFAULT_HEALTH,
-	2: DEFAULT_HEALTH,
+	1: 100,
+	2: 100,
 }
 
 
@@ -20,15 +19,15 @@ func get_packet_types() -> Array[StringName]:
 func setup(sync: Node, game_world: Node) -> void:
 	game_sync = sync
 	game = game_world
-	_reset_health()
+	_sync_health_from_players()
 
 
 func apply_hit(target_slot: int, source_slot: int, projectile_id: int, damage: int = PROJECTILE_DAMAGE) -> void:
 	if game_sync == null or not game_sync.is_host():
 		return
 
-	var new_health: int = _damage_player(target_slot, damage)
-	_health[target_slot] = new_health
+	_damage_player(target_slot, damage)
+	_health[target_slot] = _get_player(target_slot).health_component.health
 
 	game_sync.send_reliable(&"player_hit", {
 		"target_slot": target_slot,
@@ -38,24 +37,16 @@ func apply_hit(target_slot: int, source_slot: int, projectile_id: int, damage: i
 	}, NetworkSession.CHANNEL_EVENTS)
 	game_sync.send_reliable(&"health_changed", {
 		"slot": target_slot,
-		"health": new_health,
+		"health": _health[target_slot],
 	}, NetworkSession.CHANNEL_EVENTS)
 
-	if new_health <= 0:
+	if _health[target_slot] <= 0:
 		_handle_player_killed(target_slot, source_slot)
 
 
 func _handle_player_killed(target_slot: int, source_slot: int) -> void:
-	_reset_health()
-
-	game_sync.send_reliable(&"health_changed", {
-		"slot": 1,
-		"health": DEFAULT_HEALTH,
-	}, NetworkSession.CHANNEL_EVENTS)
-	game_sync.send_reliable(&"health_changed", {
-		"slot": 2,
-		"health": DEFAULT_HEALTH,
-	}, NetworkSession.CHANNEL_EVENTS)
+	_heal_players()
+	_broadcast_health_reset()
 	game_sync.send_reliable(&"player_killed", {
 		"target_slot": target_slot,
 		"source_slot": source_slot,
@@ -70,22 +61,23 @@ func _handle_player_killed(target_slot: int, source_slot: int) -> void:
 
 
 func handle_packet(packet: Dictionary) -> void:
-	var payload: Dictionary = _get_payload(packet)
+	var payload := _get_payload(packet)
 	match str(packet.get("type", "")):
 		"health_changed":
 			var slot: int = int(payload.get("slot", 0))
-			var health: int = int(payload.get("health", DEFAULT_HEALTH))
+			var health: int = int(payload.get("health", 100))
 			_health[slot] = health
 			_set_player_health(slot, health)
 		"player_hit":
 			pass
 		"player_killed":
-			_reset_health()
+			_heal_players()
 			if game != null and game.has_method("respawn_players"):
 				game.respawn_players()
 
 
 func build_snapshot() -> Dictionary:
+	_sync_health_from_players()
 	return {"health": _health.duplicate()}
 
 
@@ -98,34 +90,41 @@ func apply_snapshot(data: Dictionary) -> void:
 
 
 func get_health(slot: int) -> int:
-	return int(_health.get(slot, DEFAULT_HEALTH))
+	return int(_health.get(slot, 100))
 
 
-func _reset_health() -> void:
-	_health[1] = DEFAULT_HEALTH
-	_health[2] = DEFAULT_HEALTH
+func _heal_players() -> void:
 	for slot in [1, 2]:
 		var player: Player = _get_player(slot)
 		if player != null and player.health_component != null:
-			player.health_component.max_health = DEFAULT_HEALTH
-			player.health_component.health = DEFAULT_HEALTH
+			player.health_component.heal(100)
 
 
-func _damage_player(slot: int, damage: int) -> int:
+func _broadcast_health_reset() -> void:
+	for slot in [1, 2]:
+		game_sync.send_reliable(&"health_changed", {
+			"slot": slot,
+			"health": 100,
+		}, NetworkSession.CHANNEL_EVENTS)
+
+
+func _damage_player(slot: int, damage: int) -> void:
 	var player: Player = _get_player(slot)
 	if player != null and player.health_component != null:
 		player.health_component.damage(damage)
-		return player.health_component.health
-
-	var current_health: int = int(_health.get(slot, DEFAULT_HEALTH))
-	return maxi(current_health - damage, 0)
 
 
 func _set_player_health(slot: int, health: int) -> void:
 	var player: Player = _get_player(slot)
 	if player != null and player.health_component != null:
-		player.health_component.max_health = DEFAULT_HEALTH
 		player.health_component.health = health
+
+
+func _sync_health_from_players() -> void:
+	for slot in [1, 2]:
+		var player: Player = _get_player(slot)
+		if player != null and player.health_component != null:
+			_health[slot] = player.health_component.health
 
 
 func _get_player(slot: int) -> Player:
