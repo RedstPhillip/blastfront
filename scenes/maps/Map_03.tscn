@@ -1,5 +1,6 @@
 [gd_scene format=3 uid="uid://lpjfvx4lrgjo"]
 
+[ext_resource type="Script" uid="uid://cq0ljg6rpg73j" path="res://scenes/maps/map_bounds.gd" id="1_mapbounds"]
 [ext_resource type="Texture2D" uid="uid://buq51x7mcmglt" path="res://assets/bg-image-3.png" id="2_23d8d"]
 [ext_resource type="Shader" uid="uid://dcbhx6o75l1eh" path="res://scenes/maps/platforms/Platform.gdshader" id="3_leycp"]
 [ext_resource type="PackedScene" uid="uid://dvuxee5nnoh77" path="res://scenes/maps/platforms/RectPlatform.tscn" id="3_yugup"]
@@ -87,6 +88,9 @@ shader_parameter/layer4 = Color(0.08, 0.12, 0.08, 1)
 polygon = PackedVector2Array(1560, 720, 1560, 536, 1490, 536, 1440, 560, 1390, 560, 1390, 608, 1390, 720)
 
 [node name="Map03" type="Node2D" unique_id=865662757]
+
+[node name="MapBounds" type="Node" parent="." unique_id=1628206641]
+script = ExtResource("1_mapbounds")
 
 [node name="PointLight2D" type="PointLight2D" parent="." unique_id=1750659926]
 position = Vector2(1140, 0)

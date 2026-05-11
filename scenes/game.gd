@@ -6,6 +6,7 @@ const PROJECTILE_SCENE := preload("res://scenes/projectiles/projectile.tscn")
 const CAMERA_FOLLOW_SPEED: float = 5.0
 const CAMERA_Y: float = 360.0
 const MAP_CENTER_X: float = 1140.0
+const DEFAULT_MAP_BOUNDS := Rect2(0.0, 0.0, 2262.0, 720.0)
 
 const SPAWN_LEFT := Vector2(200, 116)
 const SPAWN_RIGHT := Vector2(1100, 116)
@@ -35,10 +36,11 @@ func _ready() -> void:
 
 	_set_spawn_positions()
 	_camera.make_current()
-	_camera.limit_left = 0
-	_camera.limit_right = 2262
-	_camera.limit_top = 0
-	_camera.limit_bottom = 736
+	var bounds := _get_map_bounds()
+	_camera.limit_left = int(bounds.position.x)
+	_camera.limit_right = int(bounds.position.x + bounds.size.x)
+	_camera.limit_top = int(bounds.position.y)
+	_camera.limit_bottom = int(bounds.position.y + bounds.size.y)
 	_camera.global_position = Vector2(
 		(_player_1.global_position.x + _player_2.global_position.x) * 0.5,
 		CAMERA_Y
@@ -244,3 +246,12 @@ func _get_player_by_slot(slot: int) -> Player:
 	if slot == 2:
 		return _player_2
 	return null
+
+
+func _get_map_bounds() -> Rect2:
+	var bounds_node := get_tree().get_first_node_in_group("map_bounds")
+	if bounds_node != null:
+		var bounds: Variant = bounds_node.get("bounds")
+		if bounds is Rect2:
+			return bounds
+	return DEFAULT_MAP_BOUNDS
