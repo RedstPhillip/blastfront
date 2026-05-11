@@ -32,8 +32,15 @@ float small_detail(vec2 p) {
 	return noise(p * 6.0) * 0.08;
 }
 
+varying vec2 world_pos;
+
+void vertex() {
+	world_pos = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).xy;
+}
+
 void fragment() {
-	vec2 uv = SCREEN_UV;
+	vec2 uv = world_pos;
+	uv /= 800.0;
 
 	// MUCH slower animation
 	float t = TIME * speed * 0.02;
@@ -43,9 +50,9 @@ void fragment() {
 	float n = small_detail(p + vec2(t, 0.0));
 	float h = uv.y + n;
 
-	float m1 = step(0.72, h);
-	float m2 = step(0.52, h) - m1;
-	float m3 = step(0.34, h) - m2 - m1;
+	float m1 = step(0.70, h);
+	float m2 = step(0.50, h) - m1;
+	float m3 = step(0.32, h) - m2 - m1;
 	float m4 = 1.0 - m1 - m2 - m3;
 
 	float d = noise(p * 3.0);
