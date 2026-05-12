@@ -58,7 +58,7 @@ func handle_packet(packet: Dictionary) -> void:
 	match str(packet.get("type", "")):
 		"health_changed":
 			var slot: int = int(payload.get("slot", 0))
-			var health: int = int(payload.get("health", 100))
+			var health: int = int(payload.get("health", 0))
 			_set_player_health(slot, health)
 		"player_hit":
 			pass
@@ -88,21 +88,26 @@ func get_health(slot: int) -> int:
 	var player: Player = _get_player(slot)
 	if player != null and player.health_component != null:
 		return player.health_component.health
-	return 100
+	return 0
 
 
 func _heal_players() -> void:
 	for slot in [1, 2]:
 		var player: Player = _get_player(slot)
 		if player != null and player.health_component != null:
-			player.health_component.heal(100)
+			var max_health := player.health_component.max_health
+			player.health_component.heal(max_health)
 
 
 func _broadcast_health_reset() -> void:
 	for slot in [1, 2]:
+		var player: Player = _get_player(slot)
+		var max_health := 100
+		if player != null and player.health_component != null:
+			max_health = player.health_component.max_health
 		game_sync.send_reliable(&"health_changed", {
 			"slot": slot,
-			"health": 100,
+			"health": max_health,
 		}, NetworkSession.CHANNEL_EVENTS)
 
 
