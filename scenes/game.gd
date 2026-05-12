@@ -13,6 +13,7 @@ var _local_player: Player = null
 var _game_sync = null
 var _offline_score := {1: 0, 2: 0}
 var _offline_match_over := false
+var _camera_bounds: Rect2 = Rect2(0, 0, 2262, 720)
 
 
 func _ready() -> void:
@@ -26,16 +27,16 @@ func _ready() -> void:
 		_connect_offline_health()
 
 	_set_spawn_positions()
+	_apply_camera_bounds()
 	_camera.make_current()
 	_camera.global_position = Vector2(
-		(_player_1.global_position.x + _player_2.global_position.x) * 0.5,
+		_get_camera_target_x(),
 		get_config().camera_y
 	)
-	_apply_camera_bounds()
 
 
 func _process(delta: float) -> void:
-	var target_x := (_player_1.global_position.x + _player_2.global_position.x) * 0.5
+	var target_x: float = _get_camera_target_x()
 	_camera.global_position.x = lerp(_camera.global_position.x, target_x, delta * get_config().camera_follow_speed)
 	_update_score_display()
 
@@ -176,16 +177,28 @@ func _set_spawn_positions() -> void:
 
 func _apply_camera_bounds() -> void:
 	var bounds_node := get_tree().get_first_node_in_group("map_bounds")
-	var bounds := Rect2(0, 0, 2262, 720)
+	var bounds: Rect2 = _camera_bounds
 	if bounds_node != null:
 		var b: Variant = bounds_node.get("bounds")
 		if b is Rect2:
 			bounds = b
 
+	_camera_bounds = bounds
 	_camera.limit_left = int(bounds.position.x)
 	_camera.limit_right = int(bounds.position.x + bounds.size.x)
 	_camera.limit_top = int(bounds.position.y)
 	_camera.limit_bottom = int(bounds.position.y + bounds.size.y)
+
+
+func _get_camera_target_x() -> float:
+	if NetworkSession.is_steam_match_active() and _local_player != null:
+		return (_local_player.global_position.x + _get_map_center_x()) * 0.5
+
+	return (_player_1.global_position.x + _player_2.global_position.x) * 0.5
+
+
+func _get_map_center_x() -> float:
+	return _camera_bounds.position.x + _camera_bounds.size.x * 0.5
 
 
 func _connect_offline_health() -> void:
