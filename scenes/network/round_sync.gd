@@ -1,12 +1,11 @@
 extends "res://scenes/network/sync_module.gd"
 
-const WINS_NEEDED := 2
-
 var _round_state := "playing"
 var _score := {
 	1: 0,
 	2: 0,
 }
+var _wins_needed := 2
 
 
 func get_module_name() -> StringName:
@@ -17,6 +16,14 @@ func get_packet_types() -> Array[StringName]:
 	return [&"round_state_changed", &"score_changed", &"match_over"]
 
 
+func setup(sync: Node, game_world: Node) -> void:
+	game_sync = sync
+	game = game_world
+	if game != null and game.has_method("get_config"):
+		var config = game.get_config()
+		_wins_needed = config.get("wins_needed", 2)
+
+
 func add_score(slot: int) -> bool:
 	_score[slot] = _score.get(slot, 0) + 1
 	game_sync.send_reliable(&"score_changed", {
@@ -24,7 +31,7 @@ func add_score(slot: int) -> bool:
 		"score": _score[slot],
 	}, NetworkSession.CHANNEL_EVENTS)
 
-	if _score[slot] >= WINS_NEEDED:
+	if _score[slot] >= _wins_needed:
 		_round_state = "finished"
 		game_sync.send_reliable(&"round_state_changed", {
 			"state": "finished",
@@ -67,6 +74,10 @@ func apply_snapshot(data: Dictionary) -> void:
 
 func get_scores() -> Dictionary:
 	return _score.duplicate()
+
+
+func get_wins_needed() -> int:
+	return _wins_needed
 
 
 func _get_payload(packet: Dictionary) -> Dictionary:

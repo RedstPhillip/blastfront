@@ -3,15 +3,6 @@ extends Node2D
 const GAME_SYNC_SCRIPT := preload("res://scenes/network/game_sync.gd")
 const PROJECTILE_SCENE := preload("res://scenes/projectiles/projectile.tscn")
 
-const CAMERA_FOLLOW_SPEED: float = 5.0
-const CAMERA_Y: float = 360.0
-const MAP_CENTER_X: float = 1140.0
-const DEFAULT_MAP_BOUNDS := Rect2(0.0, 0.0, 2262.0, 720.0)
-
-const SPAWN_LEFT := Vector2(200, 116)
-const SPAWN_RIGHT := Vector2(1100, 116)
-const OFFLINE_WINS_NEEDED := 2
-
 @onready var _player_1: Player = $Player1
 @onready var _player_2: Player = $Player2
 @onready var _projectiles: Node2D = $Projectiles
@@ -36,25 +27,28 @@ func _ready() -> void:
 
 	_set_spawn_positions()
 	_camera.make_current()
-	var bounds := _get_map_bounds()
-	_camera.limit_left = int(bounds.position.x)
-	_camera.limit_right = int(bounds.position.x + bounds.size.x)
-	_camera.limit_top = int(bounds.position.y)
-	_camera.limit_bottom = int(bounds.position.y + bounds.size.y)
 	_camera.global_position = Vector2(
 		(_player_1.global_position.x + _player_2.global_position.x) * 0.5,
-		CAMERA_Y
+		get_config().camera_y
 	)
+	_apply_camera_bounds()
 
 
 func _process(delta: float) -> void:
-	var target_x: float
-	if NetworkSession.is_steam_match_active() and _local_player != null:
-		target_x = (_local_player.global_position.x + MAP_CENTER_X) * 0.5
-	else:
-		target_x = (_player_1.global_position.x + _player_2.global_position.x) * 0.5
-	_camera.global_position.x = lerp(_camera.global_position.x, target_x, delta * CAMERA_FOLLOW_SPEED)
+	var target_x := (_player_1.global_position.x + _player_2.global_position.x) * 0.5
+	_camera.global_position.x = lerp(_camera.global_position.x, target_x, delta * get_config().camera_follow_speed)
 	_update_score_display()
+
+
+func get_config() -> Dictionary:
+	return {
+		"spawn_left": Vector2(200, 116),
+		"spawn_right": Vector2(1100, 116),
+		"wins_needed": 2,
+		"camera_follow_speed": 5.0,
+		"camera_y": 360.0,
+		"snapshot_rate": 10.0,
+	}
 
 
 func spawn_projectile(projectile: Node2D, spawn_position: Vector2) -> void:
@@ -71,13 +65,12 @@ func request_shot(owner: Node, spawn_position: Vector2, direction: Vector2, proj
 		return
 
 	var projectile := PROJECTILE_SCENE.instantiate() as Node2D
-	var muzzle_speed: float = float(projectile_data.get("muzzle_speed", projectile.get("muzzle_speed")))
 	projectile.set("direction", direction)
-	projectile.set("muzzle_speed", muzzle_speed)
+	projectile.set("muzzle_speed", float(projectile_data.get("muzzle_speed", projectile.get("muzzle_speed"))))
 	projectile.set("gravity", float(projectile_data.get("gravity", projectile.get("gravity"))))
 	projectile.set("linear_damping", float(projectile_data.get("linear_damping", projectile.get("linear_damping"))))
 	projectile.set("max_distance", float(projectile_data.get("max_distance", projectile.get("max_distance"))))
-	projectile.set("initial_velocity", projectile_data.get("initial_velocity", direction * muzzle_speed))
+	projectile.set("initial_velocity", projectile_data.get("initial_velocity", direction * float(projectile_data.get("muzzle_speed", 1200))))
 	spawn_projectile(projectile, spawn_position)
 
 
@@ -90,39 +83,20 @@ func build_authoritative_shot(owner_slot: int) -> Dictionary:
 	if gun == null or not gun.has_method("build_shot_data"):
 		return {}
 
-	var shot_data_variant: Variant = gun.call("build_shot_data")
-	if not (shot_data_variant is Dictionary):
+	var shot_data: Dictionary = gun.call("build_shot_data")
+	if shot_data.is_empty():
 		return {}
 
-	var shot_data: Dictionary = shot_data_variant
-	var spawn_position: Vector2 = player.global_position
 	var direction: Vector2 = Vector2.LEFT
-	var fire_interval: float = 0.0
-	var projectile_data: Dictionary = {}
-
-	var spawn_position_variant: Variant = shot_data.get("spawn_position", spawn_position)
-	if spawn_position_variant is Vector2:
-		spawn_position = spawn_position_variant
-
-	var direction_variant: Variant = shot_data.get("direction", direction)
-	if direction_variant is Vector2:
-		var shot_direction: Vector2 = direction_variant
-		if shot_direction.length_squared() > 0.0001:
-			direction = shot_direction.normalized()
-
-	var projectile_data_variant: Variant = shot_data.get("projectile", {})
-	if projectile_data_variant is Dictionary:
-		projectile_data = projectile_data_variant
-
-	var fire_interval_variant: Variant = shot_data.get("fire_interval", fire_interval)
-	if fire_interval_variant is float or fire_interval_variant is int:
-		fire_interval = maxf(float(fire_interval_variant), 0.0)
+	var dir_variant: Variant = shot_data.get("direction", direction)
+	if dir_variant is Vector2 and dir_variant.length_squared() > 0.0001:
+		direction = dir_variant.normalized()
 
 	return {
-		"spawn_position": spawn_position,
+		"spawn_position": shot_data.get("spawn_position", player.global_position),
 		"direction": direction,
-		"fire_interval": fire_interval,
-		"projectile": projectile_data,
+		"fire_interval": shot_data.get("fire_interval", 0.0),
+		"projectile": shot_data.get("projectile", {}),
 	}
 
 
@@ -193,10 +167,25 @@ func on_match_over(winner_slot: int) -> void:
 
 
 func _set_spawn_positions() -> void:
-	_player_1.global_position = SPAWN_LEFT
+	var config := get_config()
+	_player_1.global_position = config.spawn_left
 	_player_1.last_dir = 1.0
-	_player_2.global_position = SPAWN_RIGHT
+	_player_2.global_position = config.spawn_right
 	_player_2.last_dir = -1.0
+
+
+func _apply_camera_bounds() -> void:
+	var bounds_node := get_tree().get_first_node_in_group("map_bounds")
+	var bounds := Rect2(0, 0, 2262, 720)
+	if bounds_node != null:
+		var b: Variant = bounds_node.get("bounds")
+		if b is Rect2:
+			bounds = b
+
+	_camera.limit_left = int(bounds.position.x)
+	_camera.limit_right = int(bounds.position.x + bounds.size.x)
+	_camera.limit_top = int(bounds.position.y)
+	_camera.limit_bottom = int(bounds.position.y + bounds.size.y)
 
 
 func _connect_offline_health() -> void:
@@ -208,10 +197,11 @@ func _on_offline_health_depleted(slot: int) -> void:
 	if _offline_match_over:
 		return
 
+	var config := get_config()
 	var source_slot := 2 if slot == 1 else 1
 	_offline_score[source_slot] = _offline_score.get(source_slot, 0) + 1
 
-	if _offline_score[source_slot] >= OFFLINE_WINS_NEEDED:
+	if _offline_score[source_slot] >= config.wins_needed:
 		_offline_match_over = true
 		_score_label.text = "Player %d wins!" % source_slot
 		return
@@ -221,8 +211,8 @@ func _on_offline_health_depleted(slot: int) -> void:
 
 func _heal_and_respawn() -> void:
 	respawn_players()
-	_player_1.health_component.heal(100)
-	_player_2.health_component.heal(100)
+	_player_1.health_component.heal(_player_1.health_component.max_health)
+	_player_2.health_component.heal(_player_2.health_component.max_health)
 
 
 func _update_score_display() -> void:
@@ -246,12 +236,3 @@ func _get_player_by_slot(slot: int) -> Player:
 	if slot == 2:
 		return _player_2
 	return null
-
-
-func _get_map_bounds() -> Rect2:
-	var bounds_node := get_tree().get_first_node_in_group("map_bounds")
-	if bounds_node != null:
-		var bounds: Variant = bounds_node.get("bounds")
-		if bounds is Rect2:
-			return bounds
-	return DEFAULT_MAP_BOUNDS

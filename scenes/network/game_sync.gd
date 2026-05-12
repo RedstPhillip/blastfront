@@ -7,10 +7,6 @@ const COMBAT_SYNC_SCRIPT := preload("res://scenes/network/combat_sync.gd")
 const BLOCK_SYNC_SCRIPT := preload("res://scenes/network/block_sync.gd")
 const ROUND_SYNC_SCRIPT := preload("res://scenes/network/round_sync.gd")
 
-const CHANNEL_STATE := 1
-const CHANNEL_EVENTS := 2
-const WORLD_SNAPSHOT_RATE := 10.0
-
 var game: Node = null
 var tick := 0
 
@@ -19,11 +15,15 @@ var _modules: Array = []
 var _modules_by_name := {}
 var _packet_handlers := {}
 var _world_snapshot_timer := 0.0
+var _snapshot_rate := 10.0
 
 
 func setup(game_world: Node) -> void:
 	game = game_world
 	process_mode = Node.PROCESS_MODE_ALWAYS
+
+	if game != null and game.has_method("get_config"):
+		_snapshot_rate = game.get_config().get("snapshot_rate", 10.0)
 
 	if not NetworkSession.packet_received.is_connected(_on_packet_received):
 		NetworkSession.packet_received.connect(_on_packet_received)
@@ -52,7 +52,7 @@ func _physics_process(delta: float) -> void:
 	if is_host():
 		_world_snapshot_timer -= delta
 		if _world_snapshot_timer <= 0.0:
-			_world_snapshot_timer = 1.0 / WORLD_SNAPSHOT_RATE
+			_world_snapshot_timer = 1.0 / _snapshot_rate
 			_send_world_snapshot()
 
 
@@ -98,11 +98,15 @@ func get_remote_slot() -> int:
 	return 2 if get_local_slot() == 1 else 1
 
 
-func send_reliable(packet_type: StringName, payload: Dictionary, channel := CHANNEL_EVENTS) -> void:
+func send_reliable(packet_type: StringName, payload: Dictionary, channel := -1) -> void:
+	if channel == -1:
+		channel = NetworkSession.CHANNEL_EVENTS
 	NetworkSession.send_reliable(_make_packet(packet_type, payload), channel)
 
 
-func send_unreliable(packet_type: StringName, payload: Dictionary, channel := CHANNEL_STATE) -> void:
+func send_unreliable(packet_type: StringName, payload: Dictionary, channel := -1) -> void:
+	if channel == -1:
+		channel = NetworkSession.CHANNEL_STATE
 	NetworkSession.send_unreliable(_make_packet(packet_type, payload), channel)
 
 
@@ -158,7 +162,7 @@ func _send_world_snapshot() -> void:
 	if modules_snapshot.is_empty():
 		return
 
-	send_unreliable(&"world_snapshot", {"modules": modules_snapshot}, NetworkSession.CHANNEL_STATE)
+	send_unreliable(&"world_snapshot", {"modules": modules_snapshot})
 
 
 func _apply_world_snapshot(payload: Dictionary) -> void:
