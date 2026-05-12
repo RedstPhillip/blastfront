@@ -12,7 +12,7 @@
 [ext_resource type="Script" uid="uid://tstjolcc3t2" path="res://scenes/player/wall_state.gd" id="10_wall"]
 [ext_resource type="Script" uid="uid://d03ad0fet400" path="res://scenes/player/fall_state.gd" id="12_fall"]
 [ext_resource type="Script" uid="uid://canek1a6obvjn" path="res://scenes/components/health_component.gd" id="13_health"]
-[ext_resource type="Script" path="res://scenes/player/health_bar.gd" id="14_healthbar"]
+[ext_resource type="Script" uid="uid://om7yuqq5hoby" path="res://scenes/player/health_bar.gd" id="14_healthbar"]
 
 [node name="Player" type="CharacterBody2D" unique_id=874337750]
 collision_layer = 2
