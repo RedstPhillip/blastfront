@@ -4,14 +4,11 @@ signal initialized
 signal initialization_failed(message: String)
 signal status_changed(message: String)
 
-const GAME_APP_ID := 4714540
-const STEAM_INIT_OK := 0
-
-var steam_enabled := false
+var steam_enabled: bool = false
 var steam_id: int = 0
-var steam_name := "Offline"
-var initialization_status := -1
-var initialization_message := "Steam not initialized"
+var steam_name: String = GameSettings.STEAM_OFFLINE_NAME
+var initialization_status: int = -1
+var initialization_message: String = GameSettings.STEAM_NOT_INITIALIZED_MESSAGE
 
 
 func _ready() -> void:
@@ -33,8 +30,8 @@ func initialize_steam() -> void:
 		initialization_failed.emit(initialization_message)
 		return
 
-	_try_initialize_app(GAME_APP_ID)
-	steam_enabled = initialization_status == STEAM_INIT_OK
+	_try_initialize_app(GameSettings.STEAM_APP_ID)
+	steam_enabled = initialization_status == GameSettings.STEAM_INIT_OK
 
 	if not steam_enabled:
 		status_changed.emit("Steam failed: %s" % initialization_message)

@@ -1,7 +1,7 @@
 class_name MapBounds
 extends Node
 
-@export var bounds := Rect2(0.0, 0.0, 2262.0, 720.0)
+@export var bounds: Rect2 = GameSettings.DEFAULT_MAP_BOUNDS
 
 func _enter_tree() -> void:
-	add_to_group("map_bounds")
+	add_to_group(GameSettings.MAP_BOUNDS_GROUP)

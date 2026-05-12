@@ -1,43 +1,29 @@
 extends Node2D
 
-@export var warn_distance: float = 50.0
-@export var line_length: float = 60.0
-@export var line_thickness: float = 5.0
-@export var line_color: Color = Color(1, 0, 0, 0.85)
-@export var border_thickness: float = 24.0
-@export var knockback_speed: float = 1250.0
-@export var knockback_lift: float = 380.0
-@export var bottom_knockback_speed: float = 1500.0
-@export var damage_amount: int = 50
-@export var hit_cooldown: float = 0.25
+@export var warn_distance: float = GameSettings.MAP_BORDER_WARN_DISTANCE
+@export var line_length: float = GameSettings.MAP_BORDER_LINE_LENGTH
+@export var line_thickness: float = GameSettings.MAP_BORDER_LINE_THICKNESS
+@export var line_color: Color = GameSettings.MAP_BORDER_LINE_COLOR
+@export var border_thickness: float = GameSettings.MAP_BORDER_THICKNESS
+@export var knockback_speed: float = GameSettings.MAP_BORDER_KNOCKBACK_SPEED
+@export var knockback_lift: float = GameSettings.MAP_BORDER_KNOCKBACK_LIFT
+@export var bottom_knockback_speed: float = GameSettings.MAP_BORDER_BOTTOM_KNOCKBACK_SPEED
+@export var damage_amount: int = GameSettings.MAP_BORDER_DAMAGE
+@export var hit_cooldown: float = GameSettings.MAP_BORDER_HIT_COOLDOWN
 
 var _lines: Dictionary = {}
-var _bounds := Rect2(0.0, 0.0, 2262.0, 720.0)
+var _bounds: Rect2 = GameSettings.DEFAULT_MAP_BOUNDS
 var _areas: Dictionary = {}
 var _last_hit_time: Dictionary = {}
-var _game_sync = null
+var _game_sync: GameSync = null
+
 
 func _ready() -> void:
 	_bounds = _get_map_bounds()
 	_game_sync = _get_game_sync()
-	for side in ["left", "right", "top", "bottom"]:
-		var cr := ColorRect.new()
-		cr.color = line_color
-		cr.visible = false
-		cr.z_index = 100
-		add_child(cr)
-		_lines[side] = cr
-
-		var area := Area2D.new()
-		area.monitoring = true
-		area.monitorable = true
-		area.collision_mask = 2
-		var shape := CollisionShape2D.new()
-		shape.shape = RectangleShape2D.new()
-		area.add_child(shape)
-		add_child(area)
-		area.body_entered.connect(_on_border_body_entered.bind(side))
-		_areas[side] = area
+	for side in GameSettings.border_sides():
+		_create_warning_line(side)
+		_create_border_area(side)
 
 	_update_border_areas()
 
@@ -48,17 +34,44 @@ func _process(_delta: float) -> void:
 		_hide_all_lines()
 		return
 
-	_update_vertical("left", _find_left_player(players))
-	_update_vertical("right", _find_right_player(players))
-	var map_top := _bounds.position.y
-	var map_bottom := _bounds.position.y + _bounds.size.y
-	_update_horizontal("top", _find_top_player(players, map_top), map_top)
-	_update_horizontal("bottom", _find_bottom_player(players, map_bottom), map_bottom)
+	var left_edge: float = _bounds.position.x
+	var right_edge: float = _bounds.position.x + _bounds.size.x
+	var top_edge: float = _bounds.position.y
+	var bottom_edge: float = _bounds.position.y + _bounds.size.y
+
+	_update_vertical(GameSettings.MAP_BORDER_SIDE_LEFT, _find_player_near_vertical_edge(players, left_edge, true))
+	_update_vertical(GameSettings.MAP_BORDER_SIDE_RIGHT, _find_player_near_vertical_edge(players, right_edge, false))
+	_update_horizontal(GameSettings.MAP_BORDER_SIDE_TOP, _find_player_near_horizontal_edge(players, top_edge, true), top_edge)
+	_update_horizontal(GameSettings.MAP_BORDER_SIDE_BOTTOM, _find_player_near_horizontal_edge(players, bottom_edge, false), bottom_edge)
+
+
+func _create_warning_line(side: StringName) -> void:
+	var line := ColorRect.new()
+	line.color = line_color
+	line.visible = false
+	line.z_index = GameSettings.MAP_BORDER_LINE_Z_INDEX
+	add_child(line)
+	_lines[side] = line
+
+
+func _create_border_area(side: StringName) -> void:
+	var area := Area2D.new()
+	area.monitoring = true
+	area.monitorable = true
+	area.collision_mask = GameSettings.MAP_BORDER_COLLISION_MASK
+
+	var shape := CollisionShape2D.new()
+	shape.shape = RectangleShape2D.new()
+	area.add_child(shape)
+	add_child(area)
+
+	area.body_entered.connect(_on_border_body_entered.bind(side))
+	_areas[side] = area
 
 
 func _get_tracked_players() -> Array[Node2D]:
 	var players: Array[Node2D] = []
-	for node in get_tree().get_nodes_in_group("players"):
+	for node in get_tree().get_nodes_in_group(GameSettings.PLAYERS_GROUP):
 		if node is Node2D:
 			players.append(node)
 	return players
@@ -66,67 +79,54 @@ func _get_tracked_players() -> Array[Node2D]:
 
 func _hide_all_lines() -> void:
 	for line in _lines.values():
-		line.visible = false
+		var color_rect: ColorRect = line as ColorRect
+		if color_rect != null:
+			color_rect.visible = false
 
 
-func _find_left_player(players: Array[Node2D]):
-	var best_player = null
-	var best_distance := INF
+func _find_player_near_vertical_edge(players: Array[Node2D], edge_x: float, is_left_edge: bool) -> Node2D:
+	var best_player: Node2D = null
+	var best_distance: float = INF
 	for player in players:
-		var distance := player.global_position.x - _bounds.position.x
-		if distance >= 0.0 and distance < warn_distance and distance < best_distance:
+		var distance: float = player.global_position.x - edge_x if is_left_edge else edge_x - player.global_position.x
+		if _is_inside_warning_distance(distance, best_distance):
 			best_distance = distance
 			best_player = player
 	return best_player
 
 
-func _find_right_player(players: Array[Node2D]):
-	var best_player = null
-	var best_distance := INF
-	var right_edge := _bounds.position.x + _bounds.size.x
+func _find_player_near_horizontal_edge(players: Array[Node2D], edge_y: float, is_top_edge: bool) -> Node2D:
+	var best_player: Node2D = null
+	var best_distance: float = INF
 	for player in players:
-		var distance := right_edge - player.global_position.x
-		if distance >= 0.0 and distance < warn_distance and distance < best_distance:
+		var distance: float = player.global_position.y - edge_y if is_top_edge else edge_y - player.global_position.y
+		if _is_inside_warning_distance(distance, best_distance):
 			best_distance = distance
 			best_player = player
 	return best_player
 
 
-func _find_top_player(players: Array[Node2D], map_top: float):
-	var best_player = null
-	var best_distance := INF
-	for player in players:
-		var distance := player.global_position.y - map_top
-		if distance >= 0.0 and distance < warn_distance and distance < best_distance:
-			best_distance = distance
-			best_player = player
-	return best_player
+func _is_inside_warning_distance(distance: float, best_distance: float) -> bool:
+	return distance >= 0.0 and distance < warn_distance and distance < best_distance
 
 
-func _find_bottom_player(players: Array[Node2D], map_bottom: float):
-	var best_player = null
-	var best_distance := INF
-	for player in players:
-		var distance := map_bottom - player.global_position.y
-		if distance >= 0.0 and distance < warn_distance and distance < best_distance:
-			best_distance = distance
-			best_player = player
-	return best_player
-
-
-func _update_vertical(side: String, player) -> void:
-	var cr: ColorRect = _lines[side]
+func _update_vertical(side: StringName, player: Node2D) -> void:
+	var cr: ColorRect = _lines[side] as ColorRect
+	if cr == null:
+		return
 	cr.visible = player != null
 	if player == null:
 		return
 
-	var map_x := _bounds.position.x if side == "left" else _bounds.position.x + _bounds.size.x
+	var map_x: float = _bounds.position.x if side == GameSettings.MAP_BORDER_SIDE_LEFT else _bounds.position.x + _bounds.size.x
 	cr.size = Vector2(line_thickness, line_length)
 	cr.position = Vector2(map_x - line_thickness / 2.0, player.global_position.y - line_length / 2.0)
 
 
-func _update_horizontal(side: String, player, map_y: float) -> void:
-	var cr: ColorRect = _lines[side]
+func _update_horizontal(side: StringName, player: Node2D, map_y: float) -> void:
+	var cr: ColorRect = _lines[side] as ColorRect
+	if cr == null:
+		return
 	cr.visible = player != null
 	if player == null:
 		return
@@ -140,43 +140,43 @@ func _update_border_areas() -> void:
 	var right_x := _bounds.position.x + _bounds.size.x
 	var top_y := _bounds.position.y
 	var bottom_y := _bounds.position.y + _bounds.size.y
-	var center_x := _bounds.position.x + _bounds.size.x * 0.5
-	var center_y := _bounds.position.y + _bounds.size.y * 0.5
+	var center_x := _bounds.position.x + _bounds.size.x * GameSettings.HALF
+	var center_y := _bounds.position.y + _bounds.size.y * GameSettings.HALF
 
-	_update_border_area("left", Vector2(left_x, center_y), Vector2(border_thickness, _bounds.size.y))
-	_update_border_area("right", Vector2(right_x, center_y), Vector2(border_thickness, _bounds.size.y))
-	_update_border_area("top", Vector2(center_x, top_y), Vector2(_bounds.size.x, border_thickness))
-	_update_border_area("bottom", Vector2(center_x, bottom_y), Vector2(_bounds.size.x, border_thickness))
+	_update_border_area(GameSettings.MAP_BORDER_SIDE_LEFT, Vector2(left_x, center_y), Vector2(border_thickness, _bounds.size.y))
+	_update_border_area(GameSettings.MAP_BORDER_SIDE_RIGHT, Vector2(right_x, center_y), Vector2(border_thickness, _bounds.size.y))
+	_update_border_area(GameSettings.MAP_BORDER_SIDE_TOP, Vector2(center_x, top_y), Vector2(_bounds.size.x, border_thickness))
+	_update_border_area(GameSettings.MAP_BORDER_SIDE_BOTTOM, Vector2(center_x, bottom_y), Vector2(_bounds.size.x, border_thickness))
 
 
-func _update_border_area(side: String, position: Vector2, size: Vector2) -> void:
-	var area: Area2D = _areas.get(side, null)
+func _update_border_area(side: StringName, position: Vector2, size: Vector2) -> void:
+	var area: Area2D = _areas.get(side, null) as Area2D
 	if area == null:
 		return
 	area.position = position
-	var shape := area.get_child(0) as CollisionShape2D
+	var shape: CollisionShape2D = area.get_child(0) as CollisionShape2D
 	if shape != null and shape.shape is RectangleShape2D:
 		(shape.shape as RectangleShape2D).size = size
 
 
-func _on_border_body_entered(body: Node, side: String) -> void:
-	var player := body as Player
+func _on_border_body_entered(body: Node, side: StringName) -> void:
+	var player: Player = body as Player
 	if player == null:
 		return
 
-	var now := Time.get_ticks_msec() / 1000.0
-	var last_time: float = float(_last_hit_time.get(player, -1000.0))
+	var now: float = Time.get_ticks_msec() / GameSettings.MILLISECONDS_PER_SECOND
+	var last_time: float = float(_last_hit_time.get(player, GameSettings.MAP_BORDER_INITIAL_HIT_TIME))
 	if now - last_time < hit_cooldown:
 		return
 	_last_hit_time[player] = now
 
-	if not NetworkSession.is_steam_match_active() or player.control_mode == Player.CONTROL_LOCAL:
+	if not NetworkSession.is_steam_match_active() or player.control_mode == GameSettings.CONTROL_LOCAL:
 		player.velocity = _get_knockback_vector(side)
 
 	if NetworkSession.is_steam_match_active():
 		if _game_sync != null and _game_sync.is_host():
-			var source_slot := 2 if player.player_slot == 1 else 1
-			var combat_sync = _game_sync.get_module(&"combat")
+			var source_slot: int = GameSettings.PLAYER_TWO_SLOT if player.player_slot == GameSettings.PLAYER_ONE_SLOT else GameSettings.PLAYER_ONE_SLOT
+			var combat_sync: Variant = _game_sync.get_module(&"combat")
 			if combat_sync != null and combat_sync.has_method("apply_hit"):
 				combat_sync.call("apply_hit", player.player_slot, source_slot, 0, damage_amount)
 	else:
@@ -184,27 +184,26 @@ func _on_border_body_entered(body: Node, side: String) -> void:
 			player.health_component.damage(damage_amount)
 
 
-func _get_knockback_vector(side: String) -> Vector2:
-	match side:
-		"left":
-			return Vector2(knockback_speed, -knockback_lift)
-		"right":
-			return Vector2(-knockback_speed, -knockback_lift)
-		"top":
-			return Vector2(0.0, knockback_speed)
-		"bottom":
-			return Vector2(0.0, -bottom_knockback_speed)
+func _get_knockback_vector(side: StringName) -> Vector2:
+	if side == GameSettings.MAP_BORDER_SIDE_LEFT:
+		return Vector2(knockback_speed, -knockback_lift)
+	if side == GameSettings.MAP_BORDER_SIDE_RIGHT:
+		return Vector2(-knockback_speed, -knockback_lift)
+	if side == GameSettings.MAP_BORDER_SIDE_TOP:
+		return Vector2(0.0, knockback_speed)
+	if side == GameSettings.MAP_BORDER_SIDE_BOTTOM:
+		return Vector2(0.0, -bottom_knockback_speed)
 	return Vector2.ZERO
 
 
 func _get_map_bounds() -> Rect2:
-	var bounds_node := get_tree().get_first_node_in_group("map_bounds")
+	var bounds_node := get_tree().get_first_node_in_group(GameSettings.MAP_BOUNDS_GROUP)
 	if bounds_node != null:
 		var bounds: Variant = bounds_node.get("bounds")
 		if bounds is Rect2:
 			return bounds
-	return Rect2(0.0, 0.0, 2262.0, 720.0)
+	return GameSettings.DEFAULT_MAP_BOUNDS
 
 
-func _get_game_sync():
-	return get_node_or_null("../GameSync")
+func _get_game_sync() -> GameSync:
+	return get_node_or_null("../GameSync") as GameSync

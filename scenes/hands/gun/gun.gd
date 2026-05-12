@@ -2,18 +2,18 @@ extends Node2D
 
 const PROJECTILE_SCENE := preload("res://scenes/projectiles/projectile.tscn")
 
-@export var orbit_radius := 30.0
-@export var aim_angle_offset_degrees := 180.0
-@export var fire_interval := 0.12
-@export var automatic_fire := false
-@export var projectile_speed := 1200.0
-@export var projectile_gravity := 2500.0
-@export var projectile_linear_damping := 0.0
-@export var projectile_max_distance := 1400.0
+@export var orbit_radius: float = GameSettings.GUN_ORBIT_RADIUS
+@export var aim_angle_offset_degrees: float = GameSettings.GUN_AIM_ANGLE_OFFSET_DEGREES
+@export var fire_interval: float = GameSettings.GUN_FIRE_INTERVAL
+@export var automatic_fire: bool = GameSettings.GUN_AUTOMATIC_FIRE
+@export var projectile_speed: float = GameSettings.GUN_PROJECTILE_SPEED
+@export var projectile_gravity: float = GameSettings.GUN_PROJECTILE_GRAVITY
+@export var projectile_linear_damping: float = GameSettings.GUN_PROJECTILE_LINEAR_DAMPING
+@export var projectile_max_distance: float = GameSettings.GUN_PROJECTILE_MAX_DISTANCE
 
-var _aim_direction := Vector2.LEFT
-var _pointing_right := false
-var _fire_cooldown := 0.0
+var _aim_direction: Vector2 = Vector2.LEFT
+var _pointing_right: bool = false
+var _fire_cooldown: float = 0.0
 
 @onready var _player: Player = get_parent() as Player
 @onready var _visual_root: Node2D = $VisualRoot
@@ -28,14 +28,10 @@ func _physics_process(delta: float) -> void:
 
 	var aim_position: Vector2 = _player.get_aim_world_position()
 	var aim_vector: Vector2 = aim_position - _player.global_position
-	if aim_vector.length_squared() > 0.0001:
-		_aim_direction = aim_vector.normalized()
-		_pointing_right = _aim_direction.x > 0.0
+	if aim_vector.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
+		_set_aim_direction(aim_vector)
 
-	global_position = _player.global_position + _aim_direction * orbit_radius
-	global_rotation = _aim_direction.angle() + deg_to_rad(aim_angle_offset_degrees)
-
-	_visual_root.scale.y = -1.0 if _pointing_right else 1.0
+	_update_visual_transform()
 
 	var wants_shot: bool = _player.is_shoot_down() if automatic_fire else _player.is_shoot_pressed()
 	if wants_shot and _fire_cooldown <= 0.0:
@@ -56,7 +52,7 @@ func _shoot() -> void:
 		return
 
 	var direction: Vector2 = get_shot_direction()
-	var projectile := PROJECTILE_SCENE.instantiate() as Node2D
+	var projectile: Node2D = PROJECTILE_SCENE.instantiate() as Node2D
 	projectile.set("direction", direction)
 	projectile.set("muzzle_speed", projectile_speed)
 	projectile.set("gravity", projectile_gravity)
@@ -83,17 +79,32 @@ func get_muzzle_global_position() -> Vector2:
 
 
 func get_shot_direction() -> Vector2:
-	if _aim_direction.length_squared() <= 0.0001:
+	if _aim_direction.length_squared() <= GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
 		return Vector2.LEFT
 	return _aim_direction.normalized()
 
 
 func set_aim_direction(direction: Vector2) -> void:
-	if direction.length_squared() > 0.0001:
-		_aim_direction = direction.normalized()
-		_pointing_right = _aim_direction.x > 0.0
-		global_rotation = _aim_direction.angle() + deg_to_rad(aim_angle_offset_degrees)
-		_visual_root.scale.y = -1.0 if _pointing_right else 1.0
+	if _set_aim_direction(direction):
+		_update_visual_transform()
+
+
+func _set_aim_direction(direction: Vector2) -> bool:
+	if direction.length_squared() <= GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
+		return false
+
+	_aim_direction = direction.normalized()
+	_pointing_right = _aim_direction.x > 0.0
+	return true
+
+
+func _update_visual_transform() -> void:
+	if _player == null or _visual_root == null:
+		return
+
+	global_position = _player.global_position + _aim_direction * orbit_radius
+	global_rotation = _aim_direction.angle() + deg_to_rad(aim_angle_offset_degrees)
+	_visual_root.scale.y = -1.0 if _pointing_right else 1.0
 
 
 func _build_projectile_data(direction: Vector2) -> Dictionary:

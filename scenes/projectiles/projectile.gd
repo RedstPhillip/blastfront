@@ -2,27 +2,27 @@ extends CharacterBody2D
 
 signal despawn_requested(projectile: Node, reason: StringName, collider)
 
-@export var muzzle_speed := 1200.0
-@export var gravity := 980.0
-@export var max_distance := 1400.0
-@export var linear_damping := 0.0
-@export var rotate_to_velocity := true
+@export var muzzle_speed: float = GameSettings.PROJECTILE_MUZZLE_SPEED
+@export var gravity: float = GameSettings.PROJECTILE_GRAVITY
+@export var max_distance: float = GameSettings.PROJECTILE_MAX_DISTANCE
+@export var linear_damping: float = GameSettings.PROJECTILE_LINEAR_DAMPING
+@export var rotate_to_velocity: bool = GameSettings.PROJECTILE_ROTATE_TO_VELOCITY
 
-var net_id := 0
-var owner_slot := 0
-var is_network_authority := true
-var direction := Vector2.LEFT
-var initial_velocity := Vector2.ZERO
-var _distance_travelled := 0.0
-var _despawn_requested := false
+var net_id: int = 0
+var owner_slot: int = 0
+var is_network_authority: bool = true
+var direction: Vector2 = Vector2.LEFT
+var initial_velocity: Vector2 = Vector2.ZERO
+var _distance_travelled: float = 0.0
+var _despawn_requested: bool = false
 
 
 func _ready() -> void:
-	if direction.length_squared() <= 0.0001:
+	if direction.length_squared() <= GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
 		direction = Vector2.LEFT
 	direction = direction.normalized()
 
-	velocity = initial_velocity if initial_velocity.length_squared() > 0.0001 else direction * muzzle_speed
+	velocity = initial_velocity if initial_velocity.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED else direction * muzzle_speed
 	_update_rotation()
 
 
@@ -49,7 +49,7 @@ func apply_network_snapshot(snapshot: Dictionary) -> void:
 	var snapshot_rotation: Variant = snapshot.get("rotation", rotation)
 
 	if snapshot_position is Vector2:
-		global_position = global_position.lerp(snapshot_position, 0.6)
+		global_position = global_position.lerp(snapshot_position, GameSettings.PROJECTILE_SNAPSHOT_INTERPOLATION)
 	if snapshot_velocity is Vector2:
 		velocity = snapshot_velocity
 	if snapshot_rotation is float or snapshot_rotation is int:
@@ -57,7 +57,7 @@ func apply_network_snapshot(snapshot: Dictionary) -> void:
 
 
 func _update_rotation() -> void:
-	if rotate_to_velocity and velocity.length_squared() > 0.0001:
+	if rotate_to_velocity and velocity.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
 		rotation = velocity.angle()
 
 
@@ -68,13 +68,13 @@ func _on_collision(collision: KinematicCollision2D) -> void:
 	_request_despawn(&"collision", collider)
 
 
-func _apply_local_collision_damage(collider) -> void:
-	var player := collider as Player
+func _apply_local_collision_damage(collider: Object) -> void:
+	var player: Player = collider as Player
 	if player != null:
-		player.health_component.damage(10)
+		player.health_component.damage(GameSettings.PROJECTILE_DAMAGE)
 
 
-func _request_despawn(reason: StringName, collider) -> void:
+func _request_despawn(reason: StringName, collider: Object) -> void:
 	if _despawn_requested:
 		return
 

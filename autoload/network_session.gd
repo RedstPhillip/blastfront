@@ -4,26 +4,14 @@ signal status_changed(message: String)
 signal match_started
 signal packet_received(packet: Dictionary, sender_id: int)
 
-const MODE_OFFLINE: StringName = &"offline"
-const MODE_HOST: StringName = &"host"
-const MODE_CLIENT: StringName = &"client"
-
-const PROTOCOL_VERSION := 1
-const GAME_KEY := "blastfront"
-const GAME_VERSION := "invite-test-1"
-const CHANNEL_CONTROL := 0
-const CHANNEL_STATE := 1
-const CHANNEL_EVENTS := 2
-const PACKET_READ_LIMIT := 32
-
-var mode: StringName = MODE_OFFLINE
+var mode: StringName = GameSettings.NETWORK_MODE_OFFLINE
 var lobby_id: int = 0
 var lobby_members: Array[Dictionary] = []
-var local_player_slot := 1
+var local_player_slot: int = GameSettings.PLAYER_ONE_SLOT
 var remote_steam_id: int = 0
-var status_text := "Offline"
+var status_text: String = GameSettings.STEAM_OFFLINE_NAME
 
-var _match_active := false
+var _match_active: bool = false
 
 
 func _ready() -> void:
@@ -37,15 +25,15 @@ func _process(_delta: float) -> void:
 	if not _can_use_steam() or lobby_id == 0:
 		return
 
-	_read_p2p_packets(CHANNEL_CONTROL)
-	_read_p2p_packets(CHANNEL_STATE)
-	_read_p2p_packets(CHANNEL_EVENTS)
+	_read_p2p_packets(GameSettings.NETWORK_CHANNEL_CONTROL)
+	_read_p2p_packets(GameSettings.NETWORK_CHANNEL_STATE)
+	_read_p2p_packets(GameSettings.NETWORK_CHANNEL_EVENTS)
 
 
 func start_offline() -> void:
 	leave_round()
-	mode = MODE_OFFLINE
-	local_player_slot = 1
+	mode = GameSettings.NETWORK_MODE_OFFLINE
+	local_player_slot = GameSettings.PLAYER_ONE_SLOT
 	remote_steam_id = 0
 	_match_active = false
 	_set_status("Offline local mode")
@@ -57,10 +45,10 @@ func host_invite_round() -> void:
 		return
 
 	leave_round()
-	mode = MODE_HOST
-	local_player_slot = 1
+	mode = GameSettings.NETWORK_MODE_HOST
+	local_player_slot = GameSettings.PLAYER_ONE_SLOT
 	_set_status("Creating private Steam invite...")
-	Steam.createLobby(Steam.LOBBY_TYPE_PRIVATE, 2)
+	Steam.createLobby(Steam.LOBBY_TYPE_PRIVATE, GameSettings.NETWORK_LOBBY_MAX_MEMBERS)
 
 
 func open_invite_overlay() -> void:
@@ -81,8 +69,8 @@ func join_invited_round(target_lobby_id: int) -> void:
 		return
 
 	leave_round()
-	mode = MODE_CLIENT
-	local_player_slot = 2
+	mode = GameSettings.NETWORK_MODE_CLIENT
+	local_player_slot = GameSettings.PLAYER_TWO_SLOT
 	_set_status("Joining invited round...")
 	Steam.joinLobby(target_lobby_id)
 
@@ -101,22 +89,25 @@ func leave_round() -> void:
 
 
 func is_steam_match_active() -> bool:
-	return _match_active and (mode == MODE_HOST or mode == MODE_CLIENT)
+	return _match_active and (
+		mode == GameSettings.NETWORK_MODE_HOST
+		or mode == GameSettings.NETWORK_MODE_CLIENT
+	)
 
 
 func is_host() -> bool:
-	return is_steam_match_active() and mode == MODE_HOST
+	return is_steam_match_active() and mode == GameSettings.NETWORK_MODE_HOST
 
 
 func is_client() -> bool:
-	return is_steam_match_active() and mode == MODE_CLIENT
+	return is_steam_match_active() and mode == GameSettings.NETWORK_MODE_CLIENT
 
 
-func send_reliable(packet: Dictionary, channel := CHANNEL_EVENTS) -> void:
+func send_reliable(packet: Dictionary, channel: int = GameSettings.NETWORK_CHANNEL_EVENTS) -> void:
 	_send_packet(remote_steam_id, packet, Steam.P2P_SEND_RELIABLE, channel)
 
 
-func send_unreliable(packet: Dictionary, channel := CHANNEL_STATE) -> void:
+func send_unreliable(packet: Dictionary, channel: int = GameSettings.NETWORK_CHANNEL_STATE) -> void:
 	_send_packet(remote_steam_id, packet, Steam.P2P_SEND_UNRELIABLE_NO_DELAY, channel)
 
 
@@ -138,14 +129,14 @@ func _check_command_line_invite() -> void:
 
 	var args := OS.get_cmdline_args()
 	for index in range(args.size()):
-		if args[index] == "+connect_lobby" and index + 1 < args.size():
+		if args[index] == GameSettings.STEAM_CONNECT_LOBBY_ARG and index + 1 < args.size():
 			var invited_lobby_id := int(args[index + 1])
 			if invited_lobby_id != 0:
 				join_invited_round(invited_lobby_id)
 			return
 
 
-func _on_join_requested(invite, _friend_id := 0) -> void:
+func _on_join_requested(invite, _friend_id: int = 0) -> void:
 	var invited_lobby_id := 0
 	if invite is Dictionary:
 		invited_lobby_id = int(invite.get("lobby", 0))
@@ -157,17 +148,17 @@ func _on_join_requested(invite, _friend_id := 0) -> void:
 
 
 func _on_lobby_created(connect: int, created_lobby_id: int) -> void:
-	if connect != 1:
+	if connect != GameSettings.STEAM_LOBBY_CREATE_OK:
 		_set_status("Could not create Steam invite. Result: %s" % connect)
-		mode = MODE_OFFLINE
+		mode = GameSettings.NETWORK_MODE_OFFLINE
 		return
 
 	lobby_id = created_lobby_id
 	Steam.allowP2PPacketRelay(true)
 	Steam.setLobbyJoinable(lobby_id, true)
-	Steam.setLobbyData(lobby_id, "game", GAME_KEY)
-	Steam.setLobbyData(lobby_id, "version", GAME_VERSION)
-	Steam.setLobbyData(lobby_id, "mode", "friend-invite-test")
+	Steam.setLobbyData(lobby_id, "game", GameSettings.NETWORK_GAME_KEY)
+	Steam.setLobbyData(lobby_id, "version", GameSettings.NETWORK_GAME_VERSION)
+	Steam.setLobbyData(lobby_id, "mode", GameSettings.NETWORK_LOBBY_MODE)
 	Steam.setLobbyData(lobby_id, "name", "%s's Blastfront Round" % SteamService.steam_name)
 
 	_refresh_lobby_members()
@@ -178,15 +169,15 @@ func _on_lobby_created(connect: int, created_lobby_id: int) -> void:
 func _on_lobby_joined(joined_lobby_id: int, _permissions: int, _locked: bool, response: int) -> void:
 	if response != Steam.CHAT_ROOM_ENTER_RESPONSE_SUCCESS:
 		_set_status("Could not join invite. Response: %s" % response)
-		mode = MODE_OFFLINE
+		mode = GameSettings.NETWORK_MODE_OFFLINE
 		return
 
 	lobby_id = joined_lobby_id
 	Steam.allowP2PPacketRelay(true)
 	_refresh_lobby_members()
 
-	if mode == MODE_CLIENT:
-		local_player_slot = 2
+	if mode == GameSettings.NETWORK_MODE_CLIENT:
+		local_player_slot = GameSettings.PLAYER_TWO_SLOT
 		remote_steam_id = Steam.getLobbyOwner(lobby_id)
 		_start_match("Joined invited round")
 		_send_handshake()
@@ -223,7 +214,7 @@ func _on_p2p_session_request(remote_id) -> void:
 		_send_handshake()
 
 
-func _on_p2p_session_connect_fail(remote_id, session_error := -1) -> void:
+func _on_p2p_session_connect_fail(remote_id, session_error: int = -1) -> void:
 	var failed_id := _extract_steam_id(remote_id)
 	_set_status("Steam P2P failed with %s: %s" % [failed_id, _describe_p2p_error(int(session_error))])
 
@@ -252,7 +243,7 @@ func _send_handshake() -> void:
 		"steam_id": SteamService.steam_id,
 		"name": SteamService.steam_name,
 	})
-	send_reliable(packet, CHANNEL_CONTROL)
+	send_reliable(packet, GameSettings.NETWORK_CHANNEL_CONTROL)
 
 
 func _send_handshake_ack(target_steam_id: int) -> void:
@@ -260,12 +251,12 @@ func _send_handshake_ack(target_steam_id: int) -> void:
 		"steam_id": SteamService.steam_id,
 		"name": SteamService.steam_name,
 	})
-	_send_packet(target_steam_id, packet, Steam.P2P_SEND_RELIABLE, CHANNEL_CONTROL)
+	_send_packet(target_steam_id, packet, Steam.P2P_SEND_RELIABLE, GameSettings.NETWORK_CHANNEL_CONTROL)
 
 
 func _make_control_packet(packet_type: StringName, payload: Dictionary) -> Dictionary:
 	return {
-		"protocol_version": PROTOCOL_VERSION,
+		"protocol_version": GameSettings.NETWORK_PROTOCOL_VERSION,
 		"type": str(packet_type),
 		"seq": 0,
 		"tick": 0,
@@ -276,7 +267,7 @@ func _make_control_packet(packet_type: StringName, payload: Dictionary) -> Dicti
 
 func _read_p2p_packets(channel: int) -> void:
 	var packets_read := 0
-	while packets_read < PACKET_READ_LIMIT:
+	while packets_read < GameSettings.NETWORK_PACKET_READ_LIMIT:
 		var packet_size: int = Steam.getAvailableP2PPacketSize(channel)
 		if packet_size <= 0:
 			return
@@ -298,7 +289,7 @@ func _read_p2p_packets(channel: int) -> void:
 
 
 func _handle_packet(sender_id: int, packet: Dictionary) -> void:
-	if int(packet.get("protocol_version", PROTOCOL_VERSION)) != PROTOCOL_VERSION:
+	if int(packet.get("protocol_version", GameSettings.NETWORK_PROTOCOL_VERSION)) != GameSettings.NETWORK_PROTOCOL_VERSION:
 		return
 
 	match str(packet.get("type", "")):

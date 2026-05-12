@@ -2,17 +2,22 @@ extends "res://scenes/network/sync_module.gd"
 
 const PROJECTILE_SCENE := preload("res://scenes/projectiles/projectile.tscn")
 
-var _next_projectile_id := 1
+var _next_projectile_id: int = GameSettings.NETWORK_FIRST_PROJECTILE_ID
 var _projectiles: Dictionary = {}
 var _last_shot_time_by_slot: Dictionary = {}
 
 
 func get_module_name() -> StringName:
-	return &"projectile"
+	return GameSettings.MODULE_PROJECTILE
 
 
 func get_packet_types() -> Array[StringName]:
-	return [&"shot_request", &"projectile_spawned", &"projectile_despawned", &"projectile_snapshot"]
+	return [
+		GameSettings.PACKET_SHOT_REQUEST,
+		GameSettings.PACKET_PROJECTILE_SPAWNED,
+		GameSettings.PACKET_PROJECTILE_DESPAWNED,
+		GameSettings.PACKET_PROJECTILE_SNAPSHOT,
+	]
 
 
 func request_shot(owner_slot: int, spawn_position: Vector2, direction: Vector2, projectile_data: Dictionary) -> void:
@@ -23,29 +28,29 @@ func request_shot(owner_slot: int, spawn_position: Vector2, direction: Vector2, 
 	if game_sync.is_host():
 		_spawn_authoritative_projectile_for_owner(owner_slot, spawn_position, direction, projectile_data)
 	else:
-		game_sync.send_reliable(&"shot_request", {
+		game_sync.send_reliable(GameSettings.PACKET_SHOT_REQUEST, {
 			"owner_slot": owner_slot,
 			"request_tick": game_sync.tick,
-		}, NetworkSession.CHANNEL_EVENTS)
+		}, GameSettings.NETWORK_CHANNEL_EVENTS)
 
 
 func handle_packet(packet: Dictionary) -> void:
 	var payload: Dictionary = _get_payload(packet)
 
-	match str(packet.get("type", "")):
-		"shot_request":
-			if not game_sync.is_host():
-				return
-			var owner_slot: int = int(packet.get("from_slot", payload.get("owner_slot", game_sync.get_remote_slot())))
-			if owner_slot != game_sync.get_remote_slot():
-				owner_slot = game_sync.get_remote_slot()
-			_spawn_authoritative_projectile_for_owner(owner_slot)
-		"projectile_spawned":
-			_apply_projectile_spawn(payload)
-		"projectile_despawned":
-			_apply_projectile_despawn(payload)
-		"projectile_snapshot":
-			apply_snapshot(payload)
+	var packet_type: StringName = StringName(str(packet.get("type", "")))
+	if packet_type == GameSettings.PACKET_SHOT_REQUEST:
+		if not game_sync.is_host():
+			return
+		var owner_slot: int = int(packet.get("from_slot", payload.get("owner_slot", game_sync.get_remote_slot())))
+		if owner_slot != game_sync.get_remote_slot():
+			owner_slot = game_sync.get_remote_slot()
+		_spawn_authoritative_projectile_for_owner(owner_slot)
+	elif packet_type == GameSettings.PACKET_PROJECTILE_SPAWNED:
+		_apply_projectile_spawn(payload)
+	elif packet_type == GameSettings.PACKET_PROJECTILE_DESPAWNED:
+		_apply_projectile_despawn(payload)
+	elif packet_type == GameSettings.PACKET_PROJECTILE_SNAPSHOT:
+		apply_snapshot(payload)
 
 
 func build_snapshot() -> Dictionary:
@@ -65,7 +70,7 @@ func apply_snapshot(data: Dictionary) -> void:
 			continue
 
 		var net_id: int = int(snapshot.get("net_id", 0))
-		var projectile = _projectiles.get(net_id, null)
+		var projectile: Node = _projectiles.get(net_id, null) as Node
 		if projectile == null:
 			continue
 
@@ -93,7 +98,7 @@ func _spawn_authoritative_projectile_for_owner(
 		var direction_variant: Variant = shot_data.get("direction", direction)
 		if direction_variant is Vector2:
 			var shot_direction: Vector2 = direction_variant
-			if shot_direction.length_squared() > 0.0001:
+			if shot_direction.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
 				direction = shot_direction.normalized()
 
 		var projectile_data_variant: Variant = shot_data.get("projectile", projectile_data)
@@ -114,13 +119,13 @@ func _spawn_authoritative_projectile_for_owner(
 	_next_projectile_id += 1
 
 	_spawn_projectile(net_id, owner_slot, spawn_position, direction, projectile_data, true)
-	game_sync.send_reliable(&"projectile_spawned", {
+	game_sync.send_reliable(GameSettings.PACKET_PROJECTILE_SPAWNED, {
 		"net_id": net_id,
 		"owner_slot": owner_slot,
 		"spawn_position": spawn_position,
 		"direction": direction,
 		"projectile": projectile_data,
-	}, NetworkSession.CHANNEL_EVENTS)
+	}, GameSettings.NETWORK_CHANNEL_EVENTS)
 
 
 func _build_authoritative_shot(owner_slot: int) -> Dictionary:
@@ -137,8 +142,8 @@ func _can_authoritative_shoot(owner_slot: int, fire_interval: float) -> bool:
 	if fire_interval <= 0.0:
 		return true
 
-	var now_seconds: float = Time.get_ticks_msec() / 1000.0
-	var last_shot_time: float = float(_last_shot_time_by_slot.get(owner_slot, -1000000.0))
+	var now_seconds: float = Time.get_ticks_msec() / GameSettings.MILLISECONDS_PER_SECOND
+	var last_shot_time: float = float(_last_shot_time_by_slot.get(owner_slot, GameSettings.NETWORK_LAST_SHOT_INITIAL_TIME))
 	if now_seconds - last_shot_time < fire_interval:
 		return false
 
@@ -162,7 +167,7 @@ func _apply_projectile_spawn(payload: Dictionary) -> void:
 	var direction_variant: Variant = payload.get("direction", direction)
 	if direction_variant is Vector2:
 		var spawned_direction: Vector2 = direction_variant
-		if spawned_direction.length_squared() > 0.0001:
+		if spawned_direction.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
 			direction = spawned_direction.normalized()
 
 	var projectile_data_variant: Variant = payload.get("projectile", {})
@@ -181,7 +186,7 @@ func _apply_projectile_spawn(payload: Dictionary) -> void:
 
 func _apply_projectile_despawn(payload: Dictionary) -> void:
 	var net_id: int = int(payload.get("net_id", 0))
-	var projectile = _projectiles.get(net_id, null)
+	var projectile: Node = _projectiles.get(net_id, null) as Node
 	if projectile != null:
 		projectile.queue_free()
 	_projectiles.erase(net_id)
@@ -191,7 +196,7 @@ func _spawn_projectile(net_id: int, owner_slot: int, spawn_position: Vector2, di
 	if game == null or not game.has_method("spawn_projectile"):
 		return null
 
-	var projectile := PROJECTILE_SCENE.instantiate() as Node2D
+	var projectile: Node2D = PROJECTILE_SCENE.instantiate() as Node2D
 	projectile.set("net_id", net_id)
 	projectile.set("owner_slot", owner_slot)
 	projectile.set("is_network_authority", authority)
@@ -204,7 +209,7 @@ func _spawn_projectile(net_id: int, owner_slot: int, spawn_position: Vector2, di
 	projectile.set("initial_velocity", projectile_data.get("initial_velocity", direction * muzzle_speed))
 
 	if not authority:
-		projectile.set("collision_mask", 0)
+		projectile.set("collision_mask", GameSettings.PROJECTILE_REMOTE_COLLISION_MASK)
 
 	if net_id != 0:
 		_projectiles[net_id] = projectile
@@ -220,15 +225,16 @@ func _on_projectile_despawn_requested(projectile: Node, reason: StringName, coll
 	if game_sync == null or not game_sync.is_host() or net_id == 0:
 		return
 
-	if collider is Player and int(collider.player_slot) != int(projectile.get("owner_slot")):
-		var combat_sync = game_sync.get_module(&"combat")
+	var hit_player: Player = collider as Player
+	if hit_player != null and int(hit_player.player_slot) != int(projectile.get("owner_slot")):
+		var combat_sync: Variant = game_sync.get_module(GameSettings.MODULE_COMBAT)
 		if combat_sync != null and combat_sync.has_method("apply_hit"):
-			combat_sync.call("apply_hit", int(collider.player_slot), int(projectile.get("owner_slot")), net_id)
+			combat_sync.call("apply_hit", int(hit_player.player_slot), int(projectile.get("owner_slot")), net_id)
 
-	game_sync.send_reliable(&"projectile_despawned", {
+	game_sync.send_reliable(GameSettings.PACKET_PROJECTILE_DESPAWNED, {
 		"net_id": net_id,
 		"reason": str(reason),
-	}, NetworkSession.CHANNEL_EVENTS)
+	}, GameSettings.NETWORK_CHANNEL_EVENTS)
 
 
 func _on_projectile_tree_exited(net_id: int) -> void:
@@ -238,7 +244,7 @@ func _on_projectile_tree_exited(net_id: int) -> void:
 func _build_projectile_snapshots() -> Array[Dictionary]:
 	var snapshots: Array[Dictionary] = []
 	for net_id in _projectiles.keys():
-		var projectile := _projectiles[net_id] as Node2D
+		var projectile: Node2D = _projectiles[net_id] as Node2D
 		if projectile == null or not is_instance_valid(projectile):
 			continue
 

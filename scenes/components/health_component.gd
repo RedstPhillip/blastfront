@@ -5,12 +5,12 @@ signal max_health_changed(old: int, new: int)
 signal health_changed(old: int, new: int)
 signal health_depleted
 
-@export var max_health: int = 100:
+@export var max_health: int = GameSettings.DEFAULT_MAX_HEALTH:
 	set(value):
-		var new_value = maxi(value, 1)
+		var new_value: int = maxi(value, GameSettings.MIN_MAX_HEALTH)
 		if new_value == max_health:
 			return
-		var old_value = max_health
+		var old_value: int = max_health
 		max_health = new_value
 		if health > max_health:
 			health = max_health
@@ -20,10 +20,10 @@ signal health_depleted
 
 var health: int = max_health:
 	set(value):
-		var new_value = clampi(value, 0, max_health)
+		var new_value: int = clampi(value, 0, max_health)
 		if new_value == health:
 			return
-		var old_value = health
+		var old_value: int = health
 		health = new_value
 		health_changed.emit(old_value, health)
 		if old_value > 0 and health == 0:

@@ -1,10 +1,6 @@
 extends State
 
-
-func enter():
-	pass
-
-func physics_update(delta: float):
+func physics_update(delta: float) -> void:
 	player.update_grounded()
 	player.apply_horizontal_movement(delta, player.speed, player.ground_acceleration, player.ground_friction)
 
@@ -16,6 +12,6 @@ func physics_update(delta: float):
 	player.move_and_slide()
 	player.maintain_hover_height(delta)
 	player.update_visual_movement(delta)
-	
+
 	if not player.update_grounded():
 		state_machine.change_state("FallState")

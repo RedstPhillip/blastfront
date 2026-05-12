@@ -1,31 +1,31 @@
 extends Node2D
 
-@export var upper_len := 12.5
-@export var lower_len := 12.0
-@export var line_w := 2.25
-@export var col_arm: Color = Color8(238, 130, 238, 255)
-@export var shoulder_y := -2.0
-@export var shoulder_spread := 6.75
-@export var bezier_pts := 16
-@export var guard_hand_x := 30.0
-@export var guard_hand_y := 6.5
-@export var guard_follow_x := 4.0
-@export var guard_follow_y := 5.0
-@export var glove_rotation_offset_degrees := 0.0
+@export var upper_len: float = GameSettings.ARM_UPPER_LENGTH
+@export var lower_len: float = GameSettings.ARM_LOWER_LENGTH
+@export var line_w: float = GameSettings.ARM_LINE_WIDTH
+@export var col_arm: Color = GameSettings.DEFAULT_LIMB_COLOR
+@export var shoulder_y: float = GameSettings.ARM_SHOULDER_Y
+@export var shoulder_spread: float = GameSettings.ARM_SHOULDER_SPREAD
+@export var bezier_pts: int = GameSettings.ARM_BEZIER_POINTS
+@export var guard_hand_x: float = GameSettings.ARM_GUARD_HAND_X
+@export var guard_hand_y: float = GameSettings.ARM_GUARD_HAND_Y
+@export var guard_follow_x: float = GameSettings.ARM_GUARD_FOLLOW_X
+@export var guard_follow_y: float = GameSettings.ARM_GUARD_FOLLOW_Y
+@export var glove_rotation_offset_degrees: float = GameSettings.ARM_GLOVE_ROTATION_OFFSET_DEGREES
 
 var _p: CharacterBody2D
 var _gun: Node2D
 var _glove: Sprite2D
 
-var _gun_shoulder := Vector2.ZERO
-var _gun_hand := Vector2.ZERO
-var _gun_elbow := Vector2.ZERO
-var _gun_side := 1.0
+var _gun_shoulder: Vector2 = Vector2.ZERO
+var _gun_hand: Vector2 = Vector2.ZERO
+var _gun_elbow: Vector2 = Vector2.ZERO
+var _gun_side: float = 1.0
 
-var _guard_shoulder := Vector2.ZERO
-var _guard_hand := Vector2.ZERO
-var _guard_elbow := Vector2.ZERO
-var _guard_side := -1.0
+var _guard_shoulder: Vector2 = Vector2.ZERO
+var _guard_hand: Vector2 = Vector2.ZERO
+var _guard_elbow: Vector2 = Vector2.ZERO
+var _guard_side: float = -1.0
 
 
 func _ready() -> void:
@@ -64,7 +64,7 @@ func _update_pose() -> void:
 		return
 
 	var aim_vector := _gun.global_position - _p.global_position
-	var aim_dir := aim_vector.normalized() if aim_vector.length_squared() > 0.0001 else Vector2.RIGHT
+	var aim_dir := aim_vector.normalized() if aim_vector.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED else Vector2.RIGHT
 
 	_gun_side = 1.0 if _gun.global_position.x >= _p.global_position.x else -1.0
 	_guard_side = -_gun_side
@@ -74,7 +74,7 @@ func _update_pose() -> void:
 
 	_gun_shoulder = to_local(gun_shoulder_world)
 	_gun_hand = to_local(gun_hand_world)
-	_gun_hand = _clamp_to_reach(_gun_shoulder, _gun_hand, upper_len + lower_len - 0.5)
+	_gun_hand = _clamp_to_reach(_gun_shoulder, _gun_hand, upper_len + lower_len - GameSettings.LIMB_REACH_MARGIN)
 	_gun_elbow = _two_bone_ik(_gun_shoulder, _gun_hand, upper_len, lower_len, _gun_side)
 
 	var guard_shoulder_world := _shoulder_world(_guard_side)
@@ -82,7 +82,7 @@ func _update_pose() -> void:
 
 	_guard_shoulder = to_local(guard_shoulder_world)
 	_guard_hand = to_local(guard_hand_world)
-	_guard_hand = _clamp_to_reach(_guard_shoulder, _guard_hand, upper_len + lower_len - 0.5)
+	_guard_hand = _clamp_to_reach(_guard_shoulder, _guard_hand, upper_len + lower_len - GameSettings.LIMB_REACH_MARGIN)
 	_guard_elbow = _two_bone_ik(_guard_shoulder, _guard_hand, upper_len, lower_len, _guard_side)
 
 	_update_glove()
@@ -110,7 +110,7 @@ func _update_glove() -> void:
 func _clamp_to_reach(shoulder: Vector2, hand: Vector2, max_dist: float) -> Vector2:
 	var v := hand - shoulder
 	var d := v.length()
-	return shoulder + v / d * max_dist if d > max_dist and d > 0.0001 else hand
+	return shoulder + v / d * max_dist if d > max_dist and d > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED else hand
 
 
 func _draw_arm(shoulder: Vector2, elbow: Vector2, hand: Vector2) -> void:
@@ -127,7 +127,11 @@ func _draw_bezier(p0: Vector2, p1: Vector2, p2: Vector2) -> void:
 
 
 func _two_bone_ik(shoulder: Vector2, hand: Vector2, l1: float, l2: float, side: float) -> Vector2:
-	var d := clampf(shoulder.distance_to(hand), absf(l1 - l2) + 0.01, l1 + l2 - 0.01)
+	var d := clampf(
+		shoulder.distance_to(hand),
+		absf(l1 - l2) + GameSettings.IK_MIN_EXTENSION,
+		l1 + l2 - GameSettings.IK_MIN_EXTENSION
+	)
 	var a := (l1 * l1 - l2 * l2 + d * d) / (2.0 * d)
 	var h := sqrt(maxf(l1 * l1 - a * a, 0.0))
 	var dir := (hand - shoulder).normalized()

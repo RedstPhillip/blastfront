@@ -4,4 +4,3 @@
 
 [node name="HealthComponent" type="Node" unique_id=1673934911]
 script = ExtResource("1_iv1uk")
-max_health = null

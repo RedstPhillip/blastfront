@@ -1,12 +1,8 @@
 extends State
-
-func enter():
-	pass
-
-func physics_update(delta: float):
+func physics_update(delta: float) -> void:
 	player.apply_horizontal_movement(delta, player.speed, player.air_acceleration, player.air_friction)
 	player.apply_better_jump_gravity(delta)
-	
+
 	player.move_and_slide()
 	player.update_visual_movement(delta)
 

@@ -1,16 +1,14 @@
 extends "res://scenes/network/sync_module.gd"
 
-const PLAYER_STATE_RATE := 30.0
-
-var _send_timer := 0.0
+var _send_timer: float = 0.0
 
 
 func get_module_name() -> StringName:
-	return &"player"
+	return GameSettings.MODULE_PLAYER
 
 
 func get_packet_types() -> Array[StringName]:
-	return [&"player_snapshot"]
+	return [GameSettings.PACKET_PLAYER_SNAPSHOT]
 
 
 func physics_sync_tick(delta: float) -> void:
@@ -21,22 +19,22 @@ func physics_sync_tick(delta: float) -> void:
 	if _send_timer > 0.0:
 		return
 
-	_send_timer = 1.0 / PLAYER_STATE_RATE
+	_send_timer = 1.0 / GameSettings.NETWORK_PLAYER_STATE_RATE
 	if game_sync.is_host():
-		for slot in [1, 2]:
+		for slot in GameSettings.player_slots():
 			var player := _get_player(slot)
 			if player != null:
-				game_sync.send_unreliable(&"player_snapshot", _build_player_snapshot(player), NetworkSession.CHANNEL_STATE)
+				game_sync.send_unreliable(GameSettings.PACKET_PLAYER_SNAPSHOT, _build_player_snapshot(player), GameSettings.NETWORK_CHANNEL_STATE)
 	else:
 		var local_player := _get_player(game_sync.get_local_slot())
 		if local_player != null:
-			game_sync.send_unreliable(&"player_snapshot", _build_player_snapshot(local_player), NetworkSession.CHANNEL_STATE)
+			game_sync.send_unreliable(GameSettings.PACKET_PLAYER_SNAPSHOT, _build_player_snapshot(local_player), GameSettings.NETWORK_CHANNEL_STATE)
 
 
 func handle_packet(packet: Dictionary) -> void:
 	var payload := _get_payload(packet)
-	var sender_slot := int(packet.get("from_slot", 0))
-	var slot := int(payload.get("slot", sender_slot))
+	var sender_slot: int = int(packet.get("from_slot", 0))
+	var slot: int = int(payload.get("slot", sender_slot))
 
 	if game_sync.is_host():
 		slot = sender_slot
@@ -55,7 +53,7 @@ func build_snapshot() -> Dictionary:
 		return {}
 
 	var snapshots: Array[Dictionary] = []
-	for slot in [1, 2]:
+	for slot in GameSettings.player_slots():
 		var player := _get_player(slot)
 		if player != null:
 			snapshots.append(_build_player_snapshot(player))
@@ -71,7 +69,7 @@ func apply_snapshot(data: Dictionary) -> void:
 	for snapshot in players:
 		if not (snapshot is Dictionary):
 			continue
-		var slot := int(snapshot.get("slot", 0))
+		var slot: int = int(snapshot.get("slot", 0))
 		if slot == 0:
 			continue
 		if slot == game_sync.get_local_slot():

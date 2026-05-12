@@ -1,44 +1,46 @@
 extends "res://scenes/network/sync_module.gd"
 
-var _round_state := "playing"
-var _score := {
-	1: 0,
-	2: 0,
-}
-var _wins_needed := 2
+var _round_state: String = GameSettings.ROUND_STATE_PLAYING
+var _score: Dictionary = GameSettings.default_score()
+var _wins_needed: int = GameSettings.MATCH_WINS_NEEDED
 
 
 func get_module_name() -> StringName:
-	return &"round"
+	return GameSettings.MODULE_ROUND
 
 
 func get_packet_types() -> Array[StringName]:
-	return [&"round_state_changed", &"score_changed", &"match_over"]
+	return [
+		GameSettings.PACKET_ROUND_STATE_CHANGED,
+		GameSettings.PACKET_SCORE_CHANGED,
+		GameSettings.PACKET_MATCH_OVER,
+	]
 
 
 func setup(sync: Node, game_world: Node) -> void:
 	game_sync = sync
 	game = game_world
 	if game != null and game.has_method("get_config"):
-		var config = game.get_config()
-		_wins_needed = config.get("wins_needed", 2)
+		var config: Variant = game.call("get_config")
+		if config is Dictionary:
+			_wins_needed = config.get("wins_needed", GameSettings.MATCH_WINS_NEEDED)
 
 
 func add_score(slot: int) -> bool:
 	_score[slot] = _score.get(slot, 0) + 1
-	game_sync.send_reliable(&"score_changed", {
+	game_sync.send_reliable(GameSettings.PACKET_SCORE_CHANGED, {
 		"slot": slot,
 		"score": _score[slot],
-	}, NetworkSession.CHANNEL_EVENTS)
+	}, GameSettings.NETWORK_CHANNEL_EVENTS)
 
 	if _score[slot] >= _wins_needed:
-		_round_state = "finished"
-		game_sync.send_reliable(&"round_state_changed", {
-			"state": "finished",
-		}, NetworkSession.CHANNEL_EVENTS)
-		game_sync.send_reliable(&"match_over", {
+		_round_state = GameSettings.ROUND_STATE_FINISHED
+		game_sync.send_reliable(GameSettings.PACKET_ROUND_STATE_CHANGED, {
+			"state": GameSettings.ROUND_STATE_FINISHED,
+		}, GameSettings.NETWORK_CHANNEL_EVENTS)
+		game_sync.send_reliable(GameSettings.PACKET_MATCH_OVER, {
 			"winner_slot": slot,
-		}, NetworkSession.CHANNEL_EVENTS)
+		}, GameSettings.NETWORK_CHANNEL_EVENTS)
 		return true
 
 	return false
@@ -46,16 +48,16 @@ func add_score(slot: int) -> bool:
 
 func handle_packet(packet: Dictionary) -> void:
 	var payload := _get_payload(packet)
-	match str(packet.get("type", "")):
-		"round_state_changed":
-			_round_state = str(payload.get("state", _round_state))
-		"score_changed":
-			_score[int(payload.get("slot", 0))] = int(payload.get("score", 0))
-		"match_over":
-			_round_state = "finished"
-			var winner: int = int(payload.get("winner_slot", 0))
-			if game != null and game.has_method("on_match_over"):
-				game.on_match_over(winner)
+	var packet_type: StringName = StringName(str(packet.get("type", "")))
+	if packet_type == GameSettings.PACKET_ROUND_STATE_CHANGED:
+		_round_state = str(payload.get("state", _round_state))
+	elif packet_type == GameSettings.PACKET_SCORE_CHANGED:
+		_score[int(payload.get("slot", 0))] = int(payload.get("score", 0))
+	elif packet_type == GameSettings.PACKET_MATCH_OVER:
+		_round_state = GameSettings.ROUND_STATE_FINISHED
+		var winner: int = int(payload.get("winner_slot", 0))
+		if game != null and game.has_method("on_match_over"):
+			game.call("on_match_over", winner)
 
 
 func build_snapshot() -> Dictionary:

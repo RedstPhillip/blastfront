@@ -8,14 +8,14 @@ const BLOCK_SYNC_SCRIPT := preload("res://scenes/network/block_sync.gd")
 const ROUND_SYNC_SCRIPT := preload("res://scenes/network/round_sync.gd")
 
 var game: Node = null
-var tick := 0
+var tick: int = 0
 
-var _sequence := 0
-var _modules: Array = []
-var _modules_by_name := {}
-var _packet_handlers := {}
-var _world_snapshot_timer := 0.0
-var _snapshot_rate := 10.0
+var _sequence: int = 0
+var _modules: Array[SyncModule] = []
+var _modules_by_name: Dictionary = {}
+var _packet_handlers: Dictionary = {}
+var _world_snapshot_timer: float = 0.0
+var _snapshot_rate: float = GameSettings.DEFAULT_WORLD_SNAPSHOT_RATE
 
 
 func setup(game_world: Node) -> void:
@@ -23,16 +23,18 @@ func setup(game_world: Node) -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
 	if game != null and game.has_method("get_config"):
-		_snapshot_rate = game.get_config().get("snapshot_rate", 10.0)
+		var config: Variant = game.call("get_config")
+		if config is Dictionary:
+			_snapshot_rate = config.get("snapshot_rate", GameSettings.DEFAULT_WORLD_SNAPSHOT_RATE)
 
 	if not NetworkSession.packet_received.is_connected(_on_packet_received):
 		NetworkSession.packet_received.connect(_on_packet_received)
 
-	register_module(PLAYER_SYNC_SCRIPT.new())
-	register_module(PROJECTILE_SYNC_SCRIPT.new())
-	register_module(COMBAT_SYNC_SCRIPT.new())
-	register_module(BLOCK_SYNC_SCRIPT.new())
-	register_module(ROUND_SYNC_SCRIPT.new())
+	register_module(PLAYER_SYNC_SCRIPT.new() as SyncModule)
+	register_module(PROJECTILE_SYNC_SCRIPT.new() as SyncModule)
+	register_module(COMBAT_SYNC_SCRIPT.new() as SyncModule)
+	register_module(BLOCK_SYNC_SCRIPT.new() as SyncModule)
+	register_module(ROUND_SYNC_SCRIPT.new() as SyncModule)
 
 
 func _exit_tree() -> void:
@@ -46,8 +48,7 @@ func _physics_process(delta: float) -> void:
 
 	tick += 1
 	for module in _modules:
-		if module.has_method("physics_sync_tick"):
-			module.call("physics_sync_tick", delta)
+		module.physics_sync_tick(delta)
 
 	if is_host():
 		_world_snapshot_timer -= delta
@@ -56,26 +57,21 @@ func _physics_process(delta: float) -> void:
 			_send_world_snapshot()
 
 
-func register_module(module) -> void:
+func register_module(module: SyncModule) -> void:
 	add_child(module)
 	_modules.append(module)
 
-	if module.has_method("setup"):
-		module.call("setup", self, game)
+	module.setup(self, game)
 
-	var module_name: String = str(module.call("get_module_name")) if module.has_method("get_module_name") else module.name
+	var module_name: String = _get_module_name(module)
 	_modules_by_name[module_name] = module
 
-	if module.has_method("get_packet_types"):
-		var packet_types: Variant = module.call("get_packet_types")
-		if not (packet_types is Array):
-			return
-		for packet_type in packet_types:
-			_packet_handlers[str(packet_type)] = module
+	for packet_type in module.get_packet_types():
+		_packet_handlers[str(packet_type)] = module
 
 
-func get_module(module_name: StringName):
-	return _modules_by_name.get(str(module_name), null)
+func get_module(module_name: StringName) -> SyncModule:
+	return _modules_by_name.get(str(module_name), null) as SyncModule
 
 
 func is_network_active() -> bool:
@@ -95,23 +91,23 @@ func get_local_slot() -> int:
 
 
 func get_remote_slot() -> int:
-	return 2 if get_local_slot() == 1 else 1
+	return GameSettings.PLAYER_TWO_SLOT if get_local_slot() == GameSettings.PLAYER_ONE_SLOT else GameSettings.PLAYER_ONE_SLOT
 
 
-func send_reliable(packet_type: StringName, payload: Dictionary, channel := -1) -> void:
-	if channel == -1:
-		channel = NetworkSession.CHANNEL_EVENTS
+func send_reliable(packet_type: StringName, payload: Dictionary, channel: int = GameSettings.NETWORK_DEFAULT_CHANNEL) -> void:
+	if channel == GameSettings.NETWORK_DEFAULT_CHANNEL:
+		channel = GameSettings.NETWORK_CHANNEL_EVENTS
 	NetworkSession.send_reliable(_make_packet(packet_type, payload), channel)
 
 
-func send_unreliable(packet_type: StringName, payload: Dictionary, channel := -1) -> void:
-	if channel == -1:
-		channel = NetworkSession.CHANNEL_STATE
+func send_unreliable(packet_type: StringName, payload: Dictionary, channel: int = GameSettings.NETWORK_DEFAULT_CHANNEL) -> void:
+	if channel == GameSettings.NETWORK_DEFAULT_CHANNEL:
+		channel = GameSettings.NETWORK_CHANNEL_STATE
 	NetworkSession.send_unreliable(_make_packet(packet_type, payload), channel)
 
 
 func request_shot(owner_slot: int, spawn_position: Vector2, direction: Vector2, projectile_data: Dictionary) -> void:
-	var projectile_sync = get_module(&"projectile")
+	var projectile_sync: Variant = get_module(&"projectile")
 	if projectile_sync != null and projectile_sync.has_method("request_shot"):
 		projectile_sync.call("request_shot", owner_slot, spawn_position, direction, projectile_data)
 
@@ -119,7 +115,7 @@ func request_shot(owner_slot: int, spawn_position: Vector2, direction: Vector2, 
 func _make_packet(packet_type: StringName, payload: Dictionary) -> Dictionary:
 	_sequence += 1
 	return {
-		"protocol_version": NetworkSession.PROTOCOL_VERSION,
+		"protocol_version": GameSettings.NETWORK_PROTOCOL_VERSION,
 		"type": str(packet_type),
 		"seq": _sequence,
 		"tick": tick,
@@ -132,37 +128,30 @@ func _on_packet_received(packet: Dictionary, _sender_id: int) -> void:
 	if not is_network_active():
 		return
 
-	var packet_type := str(packet.get("type", ""))
-	if packet_type == "world_snapshot":
+	var packet_type: String = str(packet.get("type", ""))
+	if packet_type == str(GameSettings.PACKET_WORLD_SNAPSHOT):
 		_apply_world_snapshot(_get_payload(packet))
 		return
 
-	var module = _packet_handlers.get(packet_type, null)
-	if module != null and module.has_method("handle_packet"):
-		module.call("handle_packet", packet)
+	var module: SyncModule = _packet_handlers.get(packet_type, null) as SyncModule
+	if module != null:
+		module.handle_packet(packet)
 
 
 func _send_world_snapshot() -> void:
-	var modules_snapshot := {}
+	var modules_snapshot: Dictionary = {}
 	for module in _modules:
-		if not module.has_method("build_snapshot"):
-			continue
-
-		var module_snapshot_variant: Variant = module.call("build_snapshot")
-		if not (module_snapshot_variant is Dictionary):
-			continue
-
-		var module_snapshot: Dictionary = module_snapshot_variant
+		var module_snapshot: Dictionary = module.build_snapshot()
 		if module_snapshot.is_empty():
 			continue
 
-		var module_name: String = str(module.call("get_module_name")) if module.has_method("get_module_name") else module.name
+		var module_name: String = _get_module_name(module)
 		modules_snapshot[module_name] = module_snapshot
 
 	if modules_snapshot.is_empty():
 		return
 
-	send_unreliable(&"world_snapshot", {"modules": modules_snapshot})
+	send_unreliable(GameSettings.PACKET_WORLD_SNAPSHOT, {"modules": modules_snapshot})
 
 
 func _apply_world_snapshot(payload: Dictionary) -> void:
@@ -174,10 +163,10 @@ func _apply_world_snapshot(payload: Dictionary) -> void:
 		return
 
 	for module_name in modules_data.keys():
-		var module = _modules_by_name.get(str(module_name), null)
+		var module: SyncModule = _modules_by_name.get(str(module_name), null) as SyncModule
 		var module_data: Variant = modules_data[module_name]
-		if module != null and module.has_method("apply_snapshot") and (module_data is Dictionary):
-			module.call("apply_snapshot", module_data)
+		if module != null and (module_data is Dictionary):
+			module.apply_snapshot(module_data)
 
 
 func _get_payload(packet: Dictionary) -> Dictionary:
@@ -185,3 +174,7 @@ func _get_payload(packet: Dictionary) -> Dictionary:
 	if payload is Dictionary:
 		return payload
 	return {}
+
+
+func _get_module_name(module: SyncModule) -> String:
+	return str(module.get_module_name())
