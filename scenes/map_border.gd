@@ -174,9 +174,11 @@ func _on_border_body_entered(body: Node, side: StringName) -> void:
 		player.velocity = _get_knockback_vector(side)
 
 	if NetworkSession.is_steam_match_active():
+		if _game_sync == null:
+			_game_sync = _get_game_sync()
 		if _game_sync != null and _game_sync.is_host():
 			var source_slot: int = GameSettings.PLAYER_TWO_SLOT if player.player_slot == GameSettings.PLAYER_ONE_SLOT else GameSettings.PLAYER_ONE_SLOT
-			var combat_sync: Variant = _game_sync.get_module(&"combat")
+			var combat_sync: Variant = _game_sync.get_module(GameSettings.MODULE_COMBAT)
 			if combat_sync != null and combat_sync.has_method("apply_hit"):
 				combat_sync.call("apply_hit", player.player_slot, source_slot, 0, damage_amount)
 	else:
