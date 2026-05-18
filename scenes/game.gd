@@ -20,6 +20,8 @@ func _ready() -> void:
 	add_to_group(GameSettings.GAME_WORLD_GROUP)
 
 	if NetworkSession.is_steam_match_active():
+		OnlineMatch.phase_changed.connect(_on_online_phase_changed)
+		OnlineMatch.state_changed.connect(_on_online_state_changed)
 		_configure_steam_players()
 		_create_game_sync()
 	else:
@@ -33,6 +35,19 @@ func _ready() -> void:
 		_get_camera_target_x(),
 		GameSettings.CAMERA_Y
 	)
+	if NetworkSession.is_steam_match_active():
+		_apply_online_player_colors()
+		if OnlineMatch.phase == GameSettings.MATCH_PHASE_PLAYING_SET:
+			_prepare_online_round()
+		else:
+			_set_player_controls_enabled(false)
+
+
+func _exit_tree() -> void:
+	if OnlineMatch.phase_changed.is_connected(_on_online_phase_changed):
+		OnlineMatch.phase_changed.disconnect(_on_online_phase_changed)
+	if OnlineMatch.state_changed.is_connected(_on_online_state_changed):
+		OnlineMatch.state_changed.disconnect(_on_online_state_changed)
 
 
 func _process(delta: float) -> void:
@@ -55,6 +70,9 @@ func spawn_projectile(projectile: Node2D, spawn_position: Vector2) -> void:
 
 
 func request_shot(owner: Node, spawn_position: Vector2, direction: Vector2, projectile_data: Dictionary) -> void:
+	if NetworkSession.is_steam_match_active() and not OnlineMatch.is_playing_set():
+		return
+
 	var owner_slot: int = 0
 	if owner != null:
 		owner_slot = int(owner.get("player_slot"))
@@ -74,6 +92,9 @@ func request_shot(owner: Node, spawn_position: Vector2, direction: Vector2, proj
 
 
 func build_authoritative_shot(owner_slot: int) -> Dictionary:
+	if NetworkSession.is_steam_match_active() and not OnlineMatch.is_playing_set():
+		return {}
+
 	var player: Player = _get_player_by_slot(owner_slot)
 	if player == null:
 		return {}
@@ -145,6 +166,7 @@ func _configure_steam_players() -> void:
 	if remote_player != null:
 		remote_player.configure_remote_control(remote_slot)
 		remote_player.remove_from_group(GameSettings.LOCAL_PLAYERS_GROUP)
+	_apply_online_player_colors()
 
 
 func _configure_local_player(player: Player, slot: int, move_left: StringName, move_right: StringName, jump: StringName, shoot: StringName, allow_shoot: bool) -> void:
@@ -182,11 +204,6 @@ func respawn_players() -> void:
 	_set_spawn_positions()
 	_player_1.velocity = Vector2.ZERO
 	_player_2.velocity = Vector2.ZERO
-
-
-func on_match_over(winner_slot: int) -> void:
-	_score_label.text = "Player %d wins!" % winner_slot
-	_score_label.show()
 
 
 func _set_spawn_positions() -> void:
@@ -253,14 +270,7 @@ func _update_score_display() -> void:
 		return
 
 	if NetworkSession.is_steam_match_active() and _game_sync != null:
-		var round_sync: Variant = _game_sync.get_module(GameSettings.MODULE_ROUND)
-		if round_sync != null and round_sync.has_method("get_scores"):
-			var scores: Dictionary = round_sync.get_scores()
-			_score_label.text = "%d - %d" % [
-				scores.get(GameSettings.PLAYER_ONE_SLOT, 0),
-				scores.get(GameSettings.PLAYER_TWO_SLOT, 0),
-			]
-		_score_label.show()
+		_score_label.hide()
 	elif not NetworkSession.is_steam_match_active():
 		_score_label.text = "%d - %d" % [
 			_offline_score.get(GameSettings.PLAYER_ONE_SLOT, 0),
@@ -275,3 +285,42 @@ func _get_player_by_slot(slot: int) -> Player:
 	if slot == GameSettings.PLAYER_TWO_SLOT:
 		return _player_2
 	return null
+
+
+func _on_online_phase_changed(next_phase: StringName) -> void:
+	if next_phase == GameSettings.MATCH_PHASE_PLAYING_SET:
+		_prepare_online_round()
+	elif next_phase == GameSettings.MATCH_PHASE_KILL_BANNER or next_phase == GameSettings.MATCH_PHASE_FINAL:
+		_set_player_controls_enabled(false)
+
+
+func _on_online_state_changed() -> void:
+	_apply_online_player_colors()
+
+
+func _prepare_online_round() -> void:
+	_clear_projectiles()
+	_heal_players()
+	respawn_players()
+	_set_player_controls_enabled(true)
+	_apply_online_player_colors()
+
+
+func _set_player_controls_enabled(enabled: bool) -> void:
+	_player_1.set_controls_enabled(enabled)
+	_player_2.set_controls_enabled(enabled)
+
+
+func _heal_players() -> void:
+	_player_1.health_component.heal(_player_1.health_component.max_health)
+	_player_2.health_component.heal(_player_2.health_component.max_health)
+
+
+func _clear_projectiles() -> void:
+	for child in _projectiles.get_children():
+		child.queue_free()
+
+
+func _apply_online_player_colors() -> void:
+	_player_1.set_player_color(OnlineMatch.get_player_color_id(GameSettings.PLAYER_ONE_SLOT))
+	_player_2.set_player_color(OnlineMatch.get_player_color_id(GameSettings.PLAYER_TWO_SLOT))

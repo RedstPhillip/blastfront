@@ -5,7 +5,6 @@ const PLAYER_SYNC_SCRIPT := preload("res://scenes/network/player_sync.gd")
 const PROJECTILE_SYNC_SCRIPT := preload("res://scenes/network/projectile_sync.gd")
 const COMBAT_SYNC_SCRIPT := preload("res://scenes/network/combat_sync.gd")
 const BLOCK_SYNC_SCRIPT := preload("res://scenes/network/block_sync.gd")
-const ROUND_SYNC_SCRIPT := preload("res://scenes/network/round_sync.gd")
 
 var game: Node = null
 var tick: int = 0
@@ -34,7 +33,6 @@ func setup(game_world: Node) -> void:
 	register_module(PROJECTILE_SYNC_SCRIPT.new() as SyncModule)
 	register_module(COMBAT_SYNC_SCRIPT.new() as SyncModule)
 	register_module(BLOCK_SYNC_SCRIPT.new() as SyncModule)
-	register_module(ROUND_SYNC_SCRIPT.new() as SyncModule)
 
 
 func _exit_tree() -> void:
@@ -162,9 +160,10 @@ func _apply_world_snapshot(payload: Dictionary) -> void:
 	if not (modules_data is Dictionary):
 		return
 
-	for module_name in modules_data.keys():
-		var module: SyncModule = _modules_by_name.get(str(module_name), null) as SyncModule
-		var module_data: Variant = modules_data[module_name]
+	for raw_module_name in modules_data.keys():
+		var module_name: String = str(raw_module_name)
+		var module: SyncModule = _modules_by_name.get(module_name, null) as SyncModule
+		var module_data: Variant = modules_data[raw_module_name]
 		if module != null and (module_data is Dictionary):
 			module.apply_snapshot(module_data)
 

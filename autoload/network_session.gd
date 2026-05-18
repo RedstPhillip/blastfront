@@ -1,7 +1,9 @@
 extends Node
 
 signal status_changed(message: String)
-signal match_started
+signal lobby_ready
+signal lobby_left
+signal peer_changed
 signal packet_received(packet: Dictionary, sender_id: int)
 
 var mode: StringName = GameSettings.NETWORK_MODE_OFFLINE
@@ -76,6 +78,7 @@ func join_invited_round(target_lobby_id: int) -> void:
 
 
 func leave_round() -> void:
+	var had_lobby: bool = lobby_id != 0 or remote_steam_id != 0 or _match_active
 	if _can_use_steam():
 		if remote_steam_id != 0:
 			Steam.closeP2PSessionWithUser(remote_steam_id)
@@ -86,6 +89,9 @@ func leave_round() -> void:
 	lobby_members.clear()
 	remote_steam_id = 0
 	_match_active = false
+	if had_lobby:
+		peer_changed.emit()
+		lobby_left.emit()
 
 
 func is_steam_match_active() -> bool:
@@ -101,6 +107,10 @@ func is_host() -> bool:
 
 func is_client() -> bool:
 	return is_steam_match_active() and mode == GameSettings.NETWORK_MODE_CLIENT
+
+
+func get_remote_slot() -> int:
+	return GameSettings.PLAYER_TWO_SLOT if local_player_slot == GameSettings.PLAYER_ONE_SLOT else GameSettings.PLAYER_ONE_SLOT
 
 
 func send_reliable(packet: Dictionary, channel: int = GameSettings.NETWORK_CHANNEL_EVENTS) -> void:
@@ -162,7 +172,7 @@ func _on_lobby_created(connect: int, created_lobby_id: int) -> void:
 	Steam.setLobbyData(lobby_id, "name", "%s's Blastfront Round" % SteamService.steam_name)
 
 	_refresh_lobby_members()
-	_start_match("Hosting invite round")
+	_activate_lobby("Hosting invite round")
 	Steam.activateGameOverlayInviteDialog(lobby_id)
 
 
@@ -179,10 +189,10 @@ func _on_lobby_joined(joined_lobby_id: int, _permissions: int, _locked: bool, re
 	if mode == GameSettings.NETWORK_MODE_CLIENT:
 		local_player_slot = GameSettings.PLAYER_TWO_SLOT
 		remote_steam_id = Steam.getLobbyOwner(lobby_id)
-		_start_match("Joined invited round")
+		_activate_lobby("Joined invited round")
 		_send_handshake()
 	else:
-		_start_match("Hosting invite round")
+		_activate_lobby("Hosting invite round")
 
 
 func _on_lobby_chat_update(changed_lobby_id: int, changed_id: int, _making_change_id: int, _chat_state: int) -> void:
@@ -198,9 +208,11 @@ func _on_lobby_chat_update(changed_lobby_id: int, changed_id: int, _making_chang
 		remote_steam_id = changed_id
 		_send_handshake()
 		_set_status("Friend connected: %s" % Steam.getFriendPersonaName(changed_id))
+		peer_changed.emit()
 	elif changed_id == remote_steam_id:
 		remote_steam_id = 0
 		_set_status("Friend left the round")
+		peer_changed.emit()
 
 
 func _on_p2p_session_request(remote_id) -> void:
@@ -212,6 +224,7 @@ func _on_p2p_session_request(remote_id) -> void:
 		Steam.acceptP2PSessionWithUser(requester_id)
 		remote_steam_id = requester_id
 		_send_handshake()
+		peer_changed.emit()
 
 
 func _on_p2p_session_connect_fail(remote_id, session_error: int = -1) -> void:
@@ -315,14 +328,14 @@ func _send_packet(target_steam_id: int, packet: Dictionary, send_type: int, chan
 	Steam.sendP2PPacket(target_steam_id, var_to_bytes(packet), send_type, channel)
 
 
-func _start_match(message: String) -> void:
+func _activate_lobby(message: String) -> void:
 	if _match_active:
 		_set_status(message)
 		return
 
 	_match_active = true
 	_set_status(message)
-	match_started.emit()
+	lobby_ready.emit()
 
 
 func _is_lobby_member(steam_id: int) -> bool:

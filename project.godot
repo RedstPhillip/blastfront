@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Blastfront"
-run/main_scene="uid://bww728qimvqnl"
+run/main_scene="res://Main.tscn"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 config/icon="res://icon.svg"
 
@@ -19,6 +19,7 @@ config/icon="res://icon.svg"
 
 SteamService="*res://autoload/steam_service.gd"
 NetworkSession="*res://autoload/network_session.gd"
+OnlineMatch="*res://autoload/online_match.gd"
 
 [display]
 

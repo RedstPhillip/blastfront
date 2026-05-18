@@ -16,8 +16,17 @@ const PLAYER_TWO_SPAWN: Vector2 = Vector2(1100.0, 116.0)
 const PLAYER_ONE_START_FACING: float = 1.0
 const PLAYER_TWO_START_FACING: float = -1.0
 const MATCH_WINS_NEEDED: int = 2
-const ROUND_STATE_PLAYING: String = "playing"
-const ROUND_STATE_FINISHED: String = "finished"
+const ONLINE_SET_KILLS_TO_WIN: int = 2
+const ONLINE_MATCH_SET_WINS_TO_WIN: int = 7
+const ONLINE_KILL_BANNER_SECONDS: float = 2.0
+const ONLINE_INTERMISSION_SECONDS: float = 60.0
+const ONLINE_DEFAULT_LOCAL_COLOR: StringName = &"blue"
+const ONLINE_DEFAULT_REMOTE_COLOR: StringName = &"red"
+const MATCH_PHASE_LOCKER: StringName = &"locker"
+const MATCH_PHASE_PLAYING_SET: StringName = &"playing_set"
+const MATCH_PHASE_KILL_BANNER: StringName = &"kill_banner"
+const MATCH_PHASE_INTERMISSION: StringName = &"intermission"
+const MATCH_PHASE_FINAL: StringName = &"final"
 const CAMERA_FOLLOW_SPEED: float = 5.0
 const CAMERA_Y: float = 360.0
 const DEFAULT_MAP_BOUNDS: Rect2 = Rect2(0.0, 0.0, 2262.0, 720.0)
@@ -51,23 +60,23 @@ const MODULE_BLOCK: StringName = &"block"
 const MODULE_COMBAT: StringName = &"combat"
 const MODULE_PLAYER: StringName = &"player"
 const MODULE_PROJECTILE: StringName = &"projectile"
-const MODULE_ROUND: StringName = &"round"
 
 const PACKET_BLOCK_STARTED: StringName = &"block_started"
 const PACKET_BLOCK_ENDED: StringName = &"block_ended"
 const PACKET_BLOCK_STATE: StringName = &"block_state"
 const PACKET_HEALTH_CHANGED: StringName = &"health_changed"
-const PACKET_MATCH_OVER: StringName = &"match_over"
 const PACKET_PLAYER_HIT: StringName = &"player_hit"
 const PACKET_PLAYER_KILLED: StringName = &"player_killed"
 const PACKET_PLAYER_SNAPSHOT: StringName = &"player_snapshot"
 const PACKET_PROJECTILE_DESPAWNED: StringName = &"projectile_despawned"
 const PACKET_PROJECTILE_SNAPSHOT: StringName = &"projectile_snapshot"
 const PACKET_PROJECTILE_SPAWNED: StringName = &"projectile_spawned"
-const PACKET_ROUND_STATE_CHANGED: StringName = &"round_state_changed"
-const PACKET_SCORE_CHANGED: StringName = &"score_changed"
 const PACKET_SHOT_REQUEST: StringName = &"shot_request"
 const PACKET_WORLD_SNAPSHOT: StringName = &"world_snapshot"
+const PACKET_ONLINE_MATCH_STATE: StringName = &"online_match_state"
+const PACKET_ONLINE_PLAYER_COLOR: StringName = &"online_player_color"
+const PACKET_ONLINE_LOCKER_READY: StringName = &"online_locker_ready"
+const PACKET_ONLINE_INTERMISSION_READY: StringName = &"online_intermission_ready"
 
 const CONTROL_LOCAL: StringName = &"local"
 const CONTROL_REMOTE: StringName = &"remote"
@@ -205,6 +214,17 @@ const HEALTH_BAR_LOW_COLOR: Color = Color8(220, 50, 50, 230)
 const HEALTH_BAR_BORDER_COLOR: Color = Color8(0, 0, 0, 120)
 const HEALTH_BAR_BORDER_WIDTH: float = 1.0
 
+const PLAYER_COLOR_RED: StringName = &"red"
+const PLAYER_COLOR_BLUE: StringName = &"blue"
+const PLAYER_COLOR_GREEN: StringName = &"green"
+const PLAYER_COLOR_YELLOW: StringName = &"yellow"
+const PLAYER_COLOR_ORANGE: StringName = &"orange"
+const PLAYER_COLOR_PURPLE: StringName = &"purple"
+const PLAYER_COLOR_CYAN: StringName = &"cyan"
+const PLAYER_COLOR_PINK: StringName = &"pink"
+const PLAYER_COLOR_WHITE: StringName = &"white"
+const PLAYER_COLOR_CHARCOAL: StringName = &"charcoal"
+
 
 static func game_config() -> Dictionary:
 	return {
@@ -229,6 +249,91 @@ static func default_block_state() -> Dictionary:
 		PLAYER_ONE_SLOT: false,
 		PLAYER_TWO_SLOT: false,
 	}
+
+
+static func default_ready_state() -> Dictionary:
+	return {
+		PLAYER_ONE_SLOT: false,
+		PLAYER_TWO_SLOT: false,
+	}
+
+
+static func default_player_colors() -> Dictionary:
+	return {
+		PLAYER_ONE_SLOT: ONLINE_DEFAULT_LOCAL_COLOR,
+		PLAYER_TWO_SLOT: ONLINE_DEFAULT_REMOTE_COLOR,
+	}
+
+
+static func player_color_ids() -> Array[StringName]:
+	return [
+		PLAYER_COLOR_RED,
+		PLAYER_COLOR_BLUE,
+		PLAYER_COLOR_GREEN,
+		PLAYER_COLOR_YELLOW,
+		PLAYER_COLOR_ORANGE,
+		PLAYER_COLOR_PURPLE,
+		PLAYER_COLOR_CYAN,
+		PLAYER_COLOR_PINK,
+		PLAYER_COLOR_WHITE,
+		PLAYER_COLOR_CHARCOAL,
+	]
+
+
+static func is_valid_player_color(color_id: StringName) -> bool:
+	return player_color_ids().has(color_id)
+
+
+static func player_color_value(color_id: StringName) -> Color:
+	match color_id:
+		PLAYER_COLOR_RED:
+			return Color8(235, 80, 80, 255)
+		PLAYER_COLOR_BLUE:
+			return Color8(80, 170, 255, 255)
+		PLAYER_COLOR_GREEN:
+			return Color8(80, 210, 125, 255)
+		PLAYER_COLOR_YELLOW:
+			return Color8(245, 220, 80, 255)
+		PLAYER_COLOR_ORANGE:
+			return Color8(245, 145, 55, 255)
+		PLAYER_COLOR_PURPLE:
+			return Color8(170, 100, 245, 255)
+		PLAYER_COLOR_CYAN:
+			return Color8(70, 220, 220, 255)
+		PLAYER_COLOR_PINK:
+			return Color8(245, 115, 190, 255)
+		PLAYER_COLOR_WHITE:
+			return Color8(235, 235, 235, 255)
+		PLAYER_COLOR_CHARCOAL:
+			return Color8(55, 62, 72, 255)
+		_:
+			return player_color_value(ONLINE_DEFAULT_LOCAL_COLOR)
+
+
+static func player_color_display_name(color_id: StringName) -> String:
+	match color_id:
+		PLAYER_COLOR_RED:
+			return "Red"
+		PLAYER_COLOR_BLUE:
+			return "Blue"
+		PLAYER_COLOR_GREEN:
+			return "Green"
+		PLAYER_COLOR_YELLOW:
+			return "Yellow"
+		PLAYER_COLOR_ORANGE:
+			return "Orange"
+		PLAYER_COLOR_PURPLE:
+			return "Purple"
+		PLAYER_COLOR_CYAN:
+			return "Cyan"
+		PLAYER_COLOR_PINK:
+			return "Pink"
+		PLAYER_COLOR_WHITE:
+			return "White"
+		PLAYER_COLOR_CHARCOAL:
+			return "Charcoal"
+		_:
+			return "Blue"
 
 
 static func player_slots() -> Array[int]:

@@ -15,6 +15,8 @@ func get_packet_types() -> Array[StringName]:
 func apply_hit(target_slot: int, source_slot: int, projectile_id: int, damage: int = GameSettings.PROJECTILE_DAMAGE) -> void:
 	if game_sync == null or not game_sync.is_host():
 		return
+	if not OnlineMatch.is_playing_set():
+		return
 
 	var player: Player = _get_player(target_slot)
 	if player == null or player.health_component == null:
@@ -39,19 +41,11 @@ func apply_hit(target_slot: int, source_slot: int, projectile_id: int, damage: i
 
 
 func _handle_player_killed(target_slot: int, source_slot: int) -> void:
-	_heal_players()
-	_broadcast_health_reset()
 	game_sync.send_reliable(GameSettings.PACKET_PLAYER_KILLED, {
 		"target_slot": target_slot,
 		"source_slot": source_slot,
 	}, GameSettings.NETWORK_CHANNEL_EVENTS)
-
-	var round_sync: Variant = game_sync.get_module(GameSettings.MODULE_ROUND)
-	if round_sync != null and round_sync.has_method("add_score"):
-		round_sync.add_score(source_slot)
-
-	if game != null and game.has_method("respawn_players"):
-		game.respawn_players()
+	OnlineMatch.record_kill(source_slot)
 
 
 func handle_packet(packet: Dictionary) -> void:
@@ -62,9 +56,7 @@ func handle_packet(packet: Dictionary) -> void:
 		var health: int = int(payload.get("health", 0))
 		_set_player_health(slot, health)
 	elif packet_type == GameSettings.PACKET_PLAYER_KILLED:
-		_heal_players()
-		if game != null and game.has_method("respawn_players"):
-			game.respawn_players()
+		pass
 
 
 func build_snapshot() -> Dictionary:

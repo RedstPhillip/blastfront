@@ -46,6 +46,8 @@ var move_right_action: StringName = GameSettings.INPUT_P1_MOVE_RIGHT
 var jump_action: StringName = GameSettings.INPUT_P1_JUMP
 var shoot_action: StringName = GameSettings.INPUT_P1_SHOOT
 var shooting_enabled: bool = true
+var movement_enabled: bool = true
+var player_color_id: StringName = &""
 
 var foot_pos_l: Vector2
 var foot_pos_r: Vector2
@@ -72,6 +74,7 @@ var _step_t_l: float = 1.0
 var _step_from_r: Vector2 = Vector2.ZERO
 var _step_to_r: Vector2 = Vector2.ZERO
 var _step_t_r: float = 1.0
+var _can_shoot_when_controls_enabled: bool = true
 
 @onready var _body_sprite: Sprite2D = $Sprite2D
 @onready var _glove: Sprite2D = $ArmRenderer/Glove
@@ -113,7 +116,8 @@ func configure_local_control(slot: int, move_left: StringName, move_right: Strin
 	move_right_action = move_right
 	jump_action = jump
 	shoot_action = shoot
-	shooting_enabled = allow_shoot
+	_can_shoot_when_controls_enabled = allow_shoot
+	shooting_enabled = movement_enabled and _can_shoot_when_controls_enabled
 	_apply_control_mode()
 	_apply_player_palette()
 
@@ -121,12 +125,25 @@ func configure_local_control(slot: int, move_left: StringName, move_right: Strin
 func configure_remote_control(slot: int) -> void:
 	player_slot = slot
 	control_mode = GameSettings.CONTROL_REMOTE
+	_can_shoot_when_controls_enabled = false
 	shooting_enabled = false
 	_network_target_position = global_position
 	_network_target_velocity = Vector2.ZERO
 	_network_aim_world_position = global_position + Vector2.LEFT * GameSettings.PLAYER_REMOTE_AIM_DISTANCE
 	_has_network_target = false
 	_apply_control_mode()
+	_apply_player_palette()
+
+
+func set_controls_enabled(enabled: bool) -> void:
+	movement_enabled = enabled
+	shooting_enabled = enabled and _can_shoot_when_controls_enabled
+
+
+func set_player_color(color_id: StringName) -> void:
+	if not GameSettings.is_valid_player_color(color_id):
+		return
+	player_color_id = color_id
 	_apply_player_palette()
 
 
@@ -158,19 +175,19 @@ func apply_remote_snapshot(snapshot: Dictionary) -> void:
 
 
 func get_move_direction() -> float:
-	if control_mode != GameSettings.CONTROL_LOCAL:
+	if control_mode != GameSettings.CONTROL_LOCAL or not movement_enabled:
 		return 0.0
 	return clampf(Input.get_action_strength(move_right_action) - Input.get_action_strength(move_left_action), -1.0, 1.0)
 
 
 func is_jump_pressed() -> bool:
-	if control_mode != GameSettings.CONTROL_LOCAL:
+	if control_mode != GameSettings.CONTROL_LOCAL or not movement_enabled:
 		return false
 	return Input.is_action_just_pressed(jump_action)
 
 
 func is_jump_held() -> bool:
-	if control_mode != GameSettings.CONTROL_LOCAL:
+	if control_mode != GameSettings.CONTROL_LOCAL or not movement_enabled:
 		return false
 	return Input.is_action_pressed(jump_action)
 
@@ -457,7 +474,8 @@ func _arc(a: Vector2, b: Vector2, t: float, h: float) -> Vector2:
 
 
 func _apply_player_palette() -> void:
-	var limb_color := GameSettings.PLAYER_BLUE_LIMB_COLOR if _is_blue_player() else GameSettings.PLAYER_RED_LIMB_COLOR
+	var effective_color_id: StringName = _get_effective_color_id()
+	var limb_color: Color = GameSettings.player_color_value(effective_color_id)
 	if _leg_renderer != null:
 		_leg_renderer.col_leg = limb_color
 	if _arm_renderer != null:
@@ -474,18 +492,41 @@ func _update_body_sprite_direction() -> void:
 	if facing_dir == 0.0:
 		facing_dir = 1.0
 	var facing_left := facing_dir < 0.0
-	var next_texture: Texture2D
-	if _is_blue_player():
-		next_texture = BLUE_BODY_TEXTURE_MIRRORED if facing_left else BLUE_BODY_TEXTURE
-	else:
-		next_texture = RED_BODY_TEXTURE_MIRRORED if facing_left else RED_BODY_TEXTURE
+	var effective_color_id: StringName = _get_effective_color_id()
+	var next_texture: Texture2D = _get_body_texture(effective_color_id, facing_left)
 	if _body_sprite.texture != next_texture:
 		_body_sprite.texture = next_texture
+	_body_sprite.modulate = Color.WHITE if _has_body_texture(effective_color_id, facing_left) else GameSettings.player_color_value(effective_color_id)
 	_body_sprite.flip_h = false
 
 
-func _is_blue_player() -> bool:
-	return player_slot != 2
+func _get_effective_color_id() -> StringName:
+	if GameSettings.is_valid_player_color(player_color_id):
+		return player_color_id
+	if player_slot == GameSettings.PLAYER_TWO_SLOT:
+		return GameSettings.ONLINE_DEFAULT_REMOTE_COLOR
+	return GameSettings.ONLINE_DEFAULT_LOCAL_COLOR
+
+
+func _get_body_texture(color_id: StringName, facing_left: bool) -> Texture2D:
+	if _has_body_texture(color_id, facing_left):
+		var texture_path: String = _get_body_texture_path(color_id, facing_left)
+		var texture: Texture2D = load(texture_path) as Texture2D
+		if texture != null:
+			return texture
+
+	if color_id == GameSettings.PLAYER_COLOR_RED:
+		return RED_BODY_TEXTURE_MIRRORED if facing_left else RED_BODY_TEXTURE
+	return BLUE_BODY_TEXTURE_MIRRORED if facing_left else BLUE_BODY_TEXTURE
+
+
+func _has_body_texture(color_id: StringName, facing_left: bool) -> bool:
+	return ResourceLoader.exists(_get_body_texture_path(color_id, facing_left))
+
+
+func _get_body_texture_path(color_id: StringName, facing_left: bool) -> String:
+	var mirrored_suffix: String = "_mirrored" if facing_left else ""
+	return "res://assets/Player/%s_ball%s.png" % [str(color_id), mirrored_suffix]
 
 
 func _begin_step(is_left: bool, target: Vector2) -> void:
