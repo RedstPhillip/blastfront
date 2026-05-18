@@ -1,24 +1,21 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene format=3 uid="uid://de3qq3a0jaex4"]
 
-[ext_resource type="Script" path="res://scenes/menus/online_locker_room.gd" id="1_locker"]
-[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
+[ext_resource type="Script" uid="uid://b2rapcai4px57" path="res://scenes/menus/online_locker_room.gd" id="1_locker"]
+[ext_resource type="PackedScene" uid="uid://doun1m2ix5any" path="res://scenes/player/player.tscn" id="2_player"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_floor"]
-size = Vector2(600, 32)
+[sub_resource type="CircleShape2D" id="CircleShape2D_color_target"]
+radius = 30.0
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall"]
-size = Vector2(32, 280)
+[sub_resource type="CircleShape2D" id="CircleShape2D_ready_target"]
+radius = 52.0
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_ready"]
-size = Vector2(128, 130)
-
-[node name="OnlineLockerRoom" type="Node2D"]
+[node name="OnlineLockerRoom" type="Node2D" unique_id=1408052781]
 script = ExtResource("1_locker")
 
-[node name="BackgroundLayer" type="CanvasLayer" parent="."]
+[node name="BackgroundLayer" type="CanvasLayer" parent="." unique_id=2060124103]
 layer = -1
 
-[node name="BackgroundRoot" type="Control" parent="BackgroundLayer"]
+[node name="BackgroundRoot" type="Control" parent="BackgroundLayer" unique_id=1904241515]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -27,50 +24,41 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="UILayer" type="CanvasLayer" parent="."]
-
-[node name="Root" type="Control" parent="UILayer"]
-layout_mode = 3
+[node name="BackgroundPanel" type="ColorRect" parent="BackgroundLayer/BackgroundRoot" unique_id=507485814]
+layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+color = Color(0.055, 0.065, 0.078, 1)
 
-[node name="LeftPanel" type="ColorRect" parent="BackgroundLayer/BackgroundRoot"]
+[node name="SplitLine" type="ColorRect" parent="BackgroundLayer/BackgroundRoot" unique_id=144376726]
 layout_mode = 1
 anchors_preset = 13
-anchor_right = 0.5
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-color = Color(0.055, 0.065, 0.078, 1)
-
-[node name="RightPanel" type="ColorRect" parent="BackgroundLayer/BackgroundRoot"]
-layout_mode = 1
-anchors_preset = 14
-anchor_left = 0.5
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-color = Color(0.055, 0.065, 0.078, 1)
-
-[node name="SplitLine" type="ColorRect" parent="BackgroundLayer/BackgroundRoot"]
-layout_mode = 1
 anchor_left = 0.5
 anchor_right = 0.5
 anchor_bottom = 1.0
 offset_left = -2.0
 offset_right = 2.0
+grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 color = Color(0.75, 0.78, 0.84, 0.45)
 
-[node name="SteamLabel" type="Label" parent="UILayer/Root"]
+[node name="UILayer" type="CanvasLayer" parent="." unique_id=523080942]
+
+[node name="Root" type="Control" parent="UILayer" unique_id=1689946754]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="SteamLabel" type="Label" parent="UILayer/Root" unique_id=112203957]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 10
@@ -84,7 +72,7 @@ text = "Steam"
 horizontal_alignment = 1
 autowrap_mode = 3
 
-[node name="PlayerOneNameLabel" type="Label" parent="UILayer/Root"]
+[node name="PlayerOneNameLabel" type="Label" parent="UILayer/Root" unique_id=174476765]
 unique_name_in_owner = true
 layout_mode = 1
 offset_left = 36.0
@@ -94,7 +82,7 @@ offset_bottom = 104.0
 theme_override_font_sizes/font_size = 34
 text = "Player 1"
 
-[node name="PlayerTwoNameLabel" type="Label" parent="UILayer/Root"]
+[node name="PlayerTwoNameLabel" type="Label" parent="UILayer/Root" unique_id=1412307581]
 unique_name_in_owner = true
 layout_mode = 1
 offset_left = 676.0
@@ -105,121 +93,513 @@ theme_override_font_sizes/font_size = 34
 text = "Player 2"
 horizontal_alignment = 2
 
-[node name="ColorLabel" type="Label" parent="UILayer/Root"]
+[node name="InviteButton" type="Button" parent="UILayer/Root" unique_id=1759572041]
 unique_name_in_owner = true
 layout_mode = 1
 offset_left = 36.0
 offset_top = 122.0
-offset_right = 224.0
-offset_bottom = 150.0
-text = "Your color"
-
-[node name="ColorPicker" type="OptionButton" parent="UILayer/Root"]
-unique_name_in_owner = true
-layout_mode = 1
-offset_left = 36.0
-offset_top = 152.0
-offset_right = 260.0
-offset_bottom = 188.0
-
-[node name="InviteButton" type="Button" parent="UILayer/Root"]
-unique_name_in_owner = true
-layout_mode = 1
-offset_left = 282.0
-offset_top = 152.0
-offset_right = 456.0
-offset_bottom = 188.0
+offset_right = 210.0
+offset_bottom = 158.0
 text = "Invite friend"
 
-[node name="PlayerOneReadyLabel" type="Label" parent="UILayer/Root"]
+[node name="PlayerOneReadyLabel" type="Label" parent="UILayer/Root" unique_id=182971916]
 unique_name_in_owner = true
 layout_mode = 1
 offset_left = 36.0
 offset_top = 206.0
 offset_right = 500.0
 offset_bottom = 238.0
-text = "Player 1: ready zone"
+text = "Player 1: shoot ready"
 
-[node name="PlayerTwoReadyLabel" type="Label" parent="UILayer/Root"]
+[node name="PlayerTwoReadyLabel" type="Label" parent="UILayer/Root" unique_id=959265500]
 unique_name_in_owner = true
 layout_mode = 1
 offset_left = 780.0
 offset_top = 206.0
 offset_right = 1244.0
 offset_bottom = 238.0
-text = "Player 2: ready zone"
+text = "Player 2: shoot ready"
 horizontal_alignment = 2
 
-[node name="LockerWorld" type="Node2D" parent="."]
-
-[node name="LeftFloorVisual" type="Polygon2D" parent="LockerWorld"]
-color = Color(0.23, 0.25, 0.28, 1)
-polygon = PackedVector2Array(20, 634, 620, 634, 620, 672, 20, 672)
-
-[node name="RightFloorVisual" type="Polygon2D" parent="LockerWorld"]
-color = Color(0.19, 0.205, 0.23, 1)
-polygon = PackedVector2Array(660, 634, 1260, 634, 1260, 672, 660, 672)
-
-[node name="PlayerOneReadyZoneVisual" type="Polygon2D" parent="LockerWorld"]
-color = Color(0.1, 0.74, 0.46, 0.34)
-polygon = PackedVector2Array(472, 526, 600, 526, 600, 656, 472, 656)
-
-[node name="PlayerTwoReadyZoneVisual" type="Polygon2D" parent="LockerWorld"]
-color = Color(0.1, 0.74, 0.46, 0.34)
-polygon = PackedVector2Array(680, 526, 808, 526, 808, 656, 680, 656)
-
-[node name="LeftFloor" type="StaticBody2D" parent="LockerWorld"]
-position = Vector2(320, 650)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/LeftFloor"]
-shape = SubResource("RectangleShape2D_floor")
-
-[node name="RightFloor" type="StaticBody2D" parent="LockerWorld"]
-position = Vector2(960, 650)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/RightFloor"]
-shape = SubResource("RectangleShape2D_floor")
-
-[node name="LeftWall" type="StaticBody2D" parent="LockerWorld"]
-position = Vector2(24, 520)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/LeftWall"]
-shape = SubResource("RectangleShape2D_wall")
-
-[node name="MiddleWall" type="StaticBody2D" parent="LockerWorld"]
-position = Vector2(640, 520)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/MiddleWall"]
-shape = SubResource("RectangleShape2D_wall")
-
-[node name="RightWall" type="StaticBody2D" parent="LockerWorld"]
-position = Vector2(1256, 520)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/RightWall"]
-shape = SubResource("RectangleShape2D_wall")
-
-[node name="PlayerOneReadyArea" type="Area2D" parent="LockerWorld"]
+[node name="CountdownLabel" type="Label" parent="UILayer/Root" unique_id=1272721931]
 unique_name_in_owner = true
-position = Vector2(536, 591)
-collision_layer = 0
-collision_mask = 2
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -80.0
+offset_top = -90.0
+offset_right = 80.0
+offset_bottom = 90.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 132
+text = "3"
+horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerOneReadyArea"]
-shape = SubResource("RectangleShape2D_ready")
+[node name="LockerWorld" type="Node2D" parent="." unique_id=96598154]
 
-[node name="PlayerTwoReadyArea" type="Area2D" parent="LockerWorld"]
+[node name="PlayerOneTargetRing" type="Line2D" parent="LockerWorld"]
+z_index = -1
+points = PackedVector2Array(320, 245, 420, 274, 488, 353, 503, 456, 460, 551, 372, 608, 268, 608, 180, 551, 137, 456, 152, 353, 220, 274, 320, 245)
+width = 3.0
+default_color = Color(0.75, 0.78, 0.84, 0.25)
+
+[node name="PlayerTwoTargetRing" type="Line2D" parent="LockerWorld"]
+z_index = -1
+points = PackedVector2Array(960, 245, 1060, 274, 1128, 353, 1143, 456, 1100, 551, 1012, 608, 908, 608, 820, 551, 777, 456, 792, 353, 860, 274, 960, 245)
+width = 3.0
+default_color = Color(0.75, 0.78, 0.84, 0.25)
+
+[node name="PlayerOneColorTargets" type="Node2D" parent="LockerWorld" unique_id=1559991775]
+
+[node name="P1ColorRed" type="StaticBody2D" parent="LockerWorld/PlayerOneColorTargets" unique_id=2042552379]
+position = Vector2(420, 274)
+metadata/locker_target_type = "color"
+metadata/slot = 1
+metadata/color_id = "red"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorRed" unique_id=1046207276]
+shape = SubResource("CircleShape2D_color_target")
+
+[node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorRed" unique_id=1941029704]
+color = Color(0.921569, 0.313726, 0.313726, 1)
+polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
+
+[node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorRed" unique_id=1060775971]
+visible = false
+points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+width = 5.0
+default_color = Color(1, 0.05, 0.05, 1)
+
+[node name="P1ColorBlue" type="StaticBody2D" parent="LockerWorld/PlayerOneColorTargets" unique_id=741723306]
+position = Vector2(488, 353)
+metadata/locker_target_type = "color"
+metadata/slot = 1
+metadata/color_id = "blue"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorBlue" unique_id=2016062887]
+shape = SubResource("CircleShape2D_color_target")
+
+[node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorBlue" unique_id=625730452]
+color = Color(0.313726, 0.666667, 1, 1)
+polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
+
+[node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorBlue" unique_id=1752061505]
+visible = false
+points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+width = 5.0
+default_color = Color(1, 0.05, 0.05, 1)
+
+[node name="P1ColorGreen" type="StaticBody2D" parent="LockerWorld/PlayerOneColorTargets"]
+position = Vector2(503, 456)
+metadata/locker_target_type = "color"
+metadata/slot = 1
+metadata/color_id = "green"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorGreen"]
+shape = SubResource("CircleShape2D_color_target")
+
+[node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorGreen"]
+color = Color(0.313726, 0.823529, 0.490196, 1)
+polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
+
+[node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorGreen"]
+visible = false
+points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+width = 5.0
+default_color = Color(1, 0.05, 0.05, 1)
+
+[node name="P1ColorYellow" type="StaticBody2D" parent="LockerWorld/PlayerOneColorTargets" unique_id=519046758]
+position = Vector2(460, 551)
+metadata/locker_target_type = "color"
+metadata/slot = 1
+metadata/color_id = "yellow"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorYellow" unique_id=1629900503]
+shape = SubResource("CircleShape2D_color_target")
+
+[node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorYellow" unique_id=578052055]
+color = Color(0.960784, 0.862745, 0.313726, 1)
+polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
+
+[node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorYellow" unique_id=1544135930]
+visible = false
+points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+width = 5.0
+default_color = Color(1, 0.05, 0.05, 1)
+
+[node name="P1ColorOrange" type="StaticBody2D" parent="LockerWorld/PlayerOneColorTargets" unique_id=634997066]
+position = Vector2(372, 608)
+metadata/locker_target_type = "color"
+metadata/slot = 1
+metadata/color_id = "orange"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorOrange" unique_id=209918512]
+shape = SubResource("CircleShape2D_color_target")
+
+[node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorOrange" unique_id=1075688844]
+color = Color(0.960784, 0.568627, 0.215686, 1)
+polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
+
+[node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorOrange" unique_id=1109641239]
+visible = false
+points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+width = 5.0
+default_color = Color(1, 0.05, 0.05, 1)
+
+[node name="P1ColorPurple" type="StaticBody2D" parent="LockerWorld/PlayerOneColorTargets" unique_id=655301938]
+position = Vector2(268, 608)
+metadata/locker_target_type = "color"
+metadata/slot = 1
+metadata/color_id = "purple"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorPurple" unique_id=1131389315]
+shape = SubResource("CircleShape2D_color_target")
+
+[node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorPurple" unique_id=795230958]
+color = Color(0.666667, 0.392157, 0.960784, 1)
+polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
+
+[node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorPurple" unique_id=332398126]
+visible = false
+points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+width = 5.0
+default_color = Color(1, 0.05, 0.05, 1)
+
+[node name="P1ColorCyan" type="StaticBody2D" parent="LockerWorld/PlayerOneColorTargets" unique_id=525793253]
+position = Vector2(180, 551)
+metadata/locker_target_type = "color"
+metadata/slot = 1
+metadata/color_id = "cyan"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorCyan" unique_id=2074700050]
+shape = SubResource("CircleShape2D_color_target")
+
+[node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorCyan" unique_id=1562782575]
+color = Color(0.27451, 0.862745, 0.862745, 1)
+polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
+
+[node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorCyan" unique_id=187424585]
+visible = false
+points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+width = 5.0
+default_color = Color(1, 0.05, 0.05, 1)
+
+[node name="P1ColorPink" type="StaticBody2D" parent="LockerWorld/PlayerOneColorTargets" unique_id=1590664779]
+position = Vector2(137, 456)
+metadata/locker_target_type = "color"
+metadata/slot = 1
+metadata/color_id = "pink"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorPink" unique_id=1533641705]
+shape = SubResource("CircleShape2D_color_target")
+
+[node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorPink" unique_id=1167802059]
+color = Color(0.960784, 0.45098, 0.745098, 1)
+polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
+
+[node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorPink" unique_id=104921474]
+visible = false
+points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+width = 5.0
+default_color = Color(1, 0.05, 0.05, 1)
+
+[node name="P1ColorWhite" type="StaticBody2D" parent="LockerWorld/PlayerOneColorTargets" unique_id=1109386402]
+position = Vector2(152, 353)
+metadata/locker_target_type = "color"
+metadata/slot = 1
+metadata/color_id = "white"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorWhite" unique_id=913365591]
+shape = SubResource("CircleShape2D_color_target")
+
+[node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorWhite" unique_id=904079154]
+color = Color(0.921569, 0.921569, 0.921569, 1)
+polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
+
+[node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorWhite" unique_id=458681335]
+visible = false
+points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+width = 5.0
+default_color = Color(1, 0.05, 0.05, 1)
+
+[node name="P1ColorCharcoal" type="StaticBody2D" parent="LockerWorld/PlayerOneColorTargets"]
+position = Vector2(220, 274)
+metadata/locker_target_type = "color"
+metadata/slot = 1
+metadata/color_id = "charcoal"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorCharcoal"]
+shape = SubResource("CircleShape2D_color_target")
+
+[node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorCharcoal"]
+color = Color(0.215686, 0.243137, 0.282353, 1)
+polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
+
+[node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorCharcoal"]
+visible = false
+points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+width = 5.0
+default_color = Color(1, 0.05, 0.05, 1)
+
+[node name="PlayerTwoColorTargets" type="Node2D" parent="LockerWorld" unique_id=1548826220]
+
+[node name="P2ColorRed" type="StaticBody2D" parent="LockerWorld/PlayerTwoColorTargets" unique_id=261469548]
+position = Vector2(1060, 274)
+metadata/locker_target_type = "color"
+metadata/slot = 2
+metadata/color_id = "red"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorRed" unique_id=115722061]
+shape = SubResource("CircleShape2D_color_target")
+
+[node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorRed" unique_id=90901684]
+color = Color(0.921569, 0.313726, 0.313726, 1)
+polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
+
+[node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorRed" unique_id=1162926085]
+visible = false
+points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+width = 5.0
+default_color = Color(1, 0.05, 0.05, 1)
+
+[node name="P2ColorBlue" type="StaticBody2D" parent="LockerWorld/PlayerTwoColorTargets" unique_id=765248214]
+position = Vector2(1128, 353)
+metadata/locker_target_type = "color"
+metadata/slot = 2
+metadata/color_id = "blue"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorBlue" unique_id=20634183]
+shape = SubResource("CircleShape2D_color_target")
+
+[node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorBlue" unique_id=985187018]
+color = Color(0.313726, 0.666667, 1, 1)
+polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
+
+[node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorBlue" unique_id=875050414]
+visible = false
+points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+width = 5.0
+default_color = Color(1, 0.05, 0.05, 1)
+
+[node name="P2ColorGreen" type="StaticBody2D" parent="LockerWorld/PlayerTwoColorTargets"]
+position = Vector2(1143, 456)
+metadata/locker_target_type = "color"
+metadata/slot = 2
+metadata/color_id = "green"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorGreen"]
+shape = SubResource("CircleShape2D_color_target")
+
+[node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorGreen"]
+color = Color(0.313726, 0.823529, 0.490196, 1)
+polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
+
+[node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorGreen"]
+visible = false
+points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+width = 5.0
+default_color = Color(1, 0.05, 0.05, 1)
+
+[node name="P2ColorYellow" type="StaticBody2D" parent="LockerWorld/PlayerTwoColorTargets" unique_id=2053305210]
+position = Vector2(1100, 551)
+metadata/locker_target_type = "color"
+metadata/slot = 2
+metadata/color_id = "yellow"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorYellow" unique_id=723440482]
+shape = SubResource("CircleShape2D_color_target")
+
+[node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorYellow" unique_id=1099230981]
+color = Color(0.960784, 0.862745, 0.313726, 1)
+polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
+
+[node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorYellow" unique_id=1130168923]
+visible = false
+points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+width = 5.0
+default_color = Color(1, 0.05, 0.05, 1)
+
+[node name="P2ColorOrange" type="StaticBody2D" parent="LockerWorld/PlayerTwoColorTargets" unique_id=196040059]
+position = Vector2(1012, 608)
+metadata/locker_target_type = "color"
+metadata/slot = 2
+metadata/color_id = "orange"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorOrange" unique_id=1876658327]
+shape = SubResource("CircleShape2D_color_target")
+
+[node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorOrange" unique_id=1881302933]
+color = Color(0.960784, 0.568627, 0.215686, 1)
+polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
+
+[node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorOrange" unique_id=1443220218]
+visible = false
+points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+width = 5.0
+default_color = Color(1, 0.05, 0.05, 1)
+
+[node name="P2ColorPurple" type="StaticBody2D" parent="LockerWorld/PlayerTwoColorTargets" unique_id=1653449273]
+position = Vector2(908, 608)
+metadata/locker_target_type = "color"
+metadata/slot = 2
+metadata/color_id = "purple"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorPurple" unique_id=812506921]
+shape = SubResource("CircleShape2D_color_target")
+
+[node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorPurple" unique_id=641685634]
+color = Color(0.666667, 0.392157, 0.960784, 1)
+polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
+
+[node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorPurple" unique_id=22695071]
+visible = false
+points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+width = 5.0
+default_color = Color(1, 0.05, 0.05, 1)
+
+[node name="P2ColorCyan" type="StaticBody2D" parent="LockerWorld/PlayerTwoColorTargets" unique_id=1115465415]
+position = Vector2(820, 551)
+metadata/locker_target_type = "color"
+metadata/slot = 2
+metadata/color_id = "cyan"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorCyan" unique_id=534843636]
+shape = SubResource("CircleShape2D_color_target")
+
+[node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorCyan" unique_id=825566041]
+color = Color(0.27451, 0.862745, 0.862745, 1)
+polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
+
+[node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorCyan" unique_id=869053635]
+visible = false
+points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+width = 5.0
+default_color = Color(1, 0.05, 0.05, 1)
+
+[node name="P2ColorPink" type="StaticBody2D" parent="LockerWorld/PlayerTwoColorTargets" unique_id=1339017762]
+position = Vector2(777, 456)
+metadata/locker_target_type = "color"
+metadata/slot = 2
+metadata/color_id = "pink"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorPink" unique_id=246645163]
+shape = SubResource("CircleShape2D_color_target")
+
+[node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorPink" unique_id=1890335395]
+color = Color(0.960784, 0.45098, 0.745098, 1)
+polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
+
+[node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorPink" unique_id=1613903399]
+visible = false
+points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+width = 5.0
+default_color = Color(1, 0.05, 0.05, 1)
+
+[node name="P2ColorWhite" type="StaticBody2D" parent="LockerWorld/PlayerTwoColorTargets" unique_id=1998977220]
+position = Vector2(792, 353)
+metadata/locker_target_type = "color"
+metadata/slot = 2
+metadata/color_id = "white"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorWhite" unique_id=1275654751]
+shape = SubResource("CircleShape2D_color_target")
+
+[node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorWhite" unique_id=2144584284]
+color = Color(0.921569, 0.921569, 0.921569, 1)
+polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
+
+[node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorWhite" unique_id=1093637332]
+visible = false
+points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+width = 5.0
+default_color = Color(1, 0.05, 0.05, 1)
+
+[node name="P2ColorCharcoal" type="StaticBody2D" parent="LockerWorld/PlayerTwoColorTargets"]
+position = Vector2(860, 274)
+metadata/locker_target_type = "color"
+metadata/slot = 2
+metadata/color_id = "charcoal"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorCharcoal"]
+shape = SubResource("CircleShape2D_color_target")
+
+[node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorCharcoal"]
+color = Color(0.215686, 0.243137, 0.282353, 1)
+polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
+
+[node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorCharcoal"]
+visible = false
+points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+width = 5.0
+default_color = Color(1, 0.05, 0.05, 1)
+
+[node name="PlayerOneReadyTarget" type="StaticBody2D" parent="LockerWorld" unique_id=29533236]
 unique_name_in_owner = true
-position = Vector2(744, 591)
-collision_layer = 0
-collision_mask = 2
+position = Vector2(320, 245)
+metadata/locker_target_type = "ready"
+metadata/slot = 1
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerTwoReadyArea"]
-shape = SubResource("RectangleShape2D_ready")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerOneReadyTarget" unique_id=1159334663]
+shape = SubResource("CircleShape2D_ready_target")
 
-[node name="PlayerOne" parent="LockerWorld" instance=ExtResource("2_player")]
+[node name="Outline" type="Polygon2D" parent="LockerWorld/PlayerOneReadyTarget" unique_id=2099246277]
+color = Color(0.1, 0.74, 0.46, 1)
+polygon = PackedVector2Array(54, 0, 38.18, 38.18, 0, 54, -38.18, 38.18, -54, 0, -38.18, -38.18, 0, -54, 38.18, -38.18)
+
+[node name="Empty" type="Polygon2D" parent="LockerWorld/PlayerOneReadyTarget" unique_id=563153346]
+color = Color(0.055, 0.065, 0.078, 1)
+polygon = PackedVector2Array(42, 0, 29.7, 29.7, 0, 42, -29.7, 29.7, -42, 0, -29.7, -29.7, 0, -42, 29.7, -29.7)
+
+[node name="Fill" type="Polygon2D" parent="LockerWorld/PlayerOneReadyTarget" unique_id=1588201579]
+visible = false
+color = Color(0.1, 0.74, 0.46, 1)
+polygon = PackedVector2Array(42, 0, 29.7, 29.7, 0, 42, -29.7, 29.7, -42, 0, -29.7, -29.7, 0, -42, 29.7, -29.7)
+
+[node name="Check" type="Line2D" parent="LockerWorld/PlayerOneReadyTarget" unique_id=2002819052]
+visible = false
+points = PackedVector2Array(-18, 0, -5, 14, 22, -20)
+width = 6.0
+
+[node name="PlayerTwoReadyTarget" type="StaticBody2D" parent="LockerWorld" unique_id=265295740]
 unique_name_in_owner = true
-position = Vector2(150, 595)
+position = Vector2(960, 245)
+metadata/locker_target_type = "ready"
+metadata/slot = 2
 
-[node name="PlayerTwo" parent="LockerWorld" instance=ExtResource("2_player")]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerTwoReadyTarget" unique_id=1758197067]
+shape = SubResource("CircleShape2D_ready_target")
+
+[node name="Outline" type="Polygon2D" parent="LockerWorld/PlayerTwoReadyTarget" unique_id=294822637]
+color = Color(0.1, 0.74, 0.46, 1)
+polygon = PackedVector2Array(54, 0, 38.18, 38.18, 0, 54, -38.18, 38.18, -54, 0, -38.18, -38.18, 0, -54, 38.18, -38.18)
+
+[node name="Empty" type="Polygon2D" parent="LockerWorld/PlayerTwoReadyTarget" unique_id=75305270]
+color = Color(0.055, 0.065, 0.078, 1)
+polygon = PackedVector2Array(42, 0, 29.7, 29.7, 0, 42, -29.7, 29.7, -42, 0, -29.7, -29.7, 0, -42, 29.7, -29.7)
+
+[node name="Fill" type="Polygon2D" parent="LockerWorld/PlayerTwoReadyTarget" unique_id=775891438]
+visible = false
+color = Color(0.1, 0.74, 0.46, 1)
+polygon = PackedVector2Array(42, 0, 29.7, 29.7, 0, 42, -29.7, 29.7, -42, 0, -29.7, -29.7, 0, -42, 29.7, -29.7)
+
+[node name="Check" type="Line2D" parent="LockerWorld/PlayerTwoReadyTarget" unique_id=604064802]
+visible = false
+points = PackedVector2Array(-18, 0, -5, 14, 22, -20)
+width = 6.0
+
+[node name="Projectiles" type="Node2D" parent="LockerWorld" unique_id=1921989237]
 unique_name_in_owner = true
-position = Vector2(1130, 595)
+
+[node name="PlayerOne" parent="LockerWorld" unique_id=267782559 instance=ExtResource("2_player")]
+unique_name_in_owner = true
+position = Vector2(320, 430)
+
+[node name="PlayerTwo" parent="LockerWorld" unique_id=454680897 instance=ExtResource("2_player")]
+unique_name_in_owner = true
+position = Vector2(960, 430)

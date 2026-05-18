@@ -22,6 +22,7 @@ const ONLINE_SET_KILLS_TO_WIN: int = 2
 const ONLINE_MATCH_SET_WINS_TO_WIN: int = 7
 const ONLINE_KILL_BANNER_SECONDS: float = 2.0
 const ONLINE_INTERMISSION_SECONDS: float = 60.0
+const ONLINE_LOCKER_COUNTDOWN_SECONDS: float = 3.0
 const ONLINE_DEFAULT_LOCAL_COLOR: StringName = &"blue"
 const ONLINE_DEFAULT_REMOTE_COLOR: StringName = &"red"
 const MATCH_PHASE_LOCKER: StringName = &"locker"

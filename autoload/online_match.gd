@@ -13,10 +13,12 @@ var match_points: Dictionary = GameSettings.default_score()
 var last_winner_slot: int = 0
 var final_winner_slot: int = 0
 var intermission_remaining: float = GameSettings.ONLINE_INTERMISSION_SECONDS
+var locker_countdown_remaining: float = -1.0
 
 var _kill_banner_remaining: float = 0.0
 var _phase_after_banner: StringName = GameSettings.MATCH_PHASE_PLAYING_SET
 var _last_countdown_second: int = -1
+var _last_locker_countdown_second: int = -1
 
 
 func _ready() -> void:
@@ -33,7 +35,9 @@ func _process(delta: float) -> void:
 	if not _has_authority():
 		return
 
-	if phase == GameSettings.MATCH_PHASE_KILL_BANNER:
+	if phase == GameSettings.MATCH_PHASE_LOCKER:
+		_process_locker_countdown(delta)
+	elif phase == GameSettings.MATCH_PHASE_KILL_BANNER:
 		_kill_banner_remaining = maxf(_kill_banner_remaining - delta, 0.0)
 		if _kill_banner_remaining <= 0.0:
 			_finish_kill_banner()
@@ -57,6 +61,8 @@ func enter_locker(reset_scores: bool = true) -> void:
 	final_winner_slot = 0
 	_kill_banner_remaining = 0.0
 	intermission_remaining = GameSettings.ONLINE_INTERMISSION_SECONDS
+	locker_countdown_remaining = -1.0
+	_last_locker_countdown_second = -1
 	_set_phase(GameSettings.MATCH_PHASE_LOCKER, true)
 
 
@@ -70,6 +76,8 @@ func start_next_set() -> void:
 	last_winner_slot = 0
 	_kill_banner_remaining = 0.0
 	intermission_remaining = GameSettings.ONLINE_INTERMISSION_SECONDS
+	locker_countdown_remaining = -1.0
+	_last_locker_countdown_second = -1
 	_set_phase(GameSettings.MATCH_PHASE_PLAYING_SET, true)
 
 
@@ -107,9 +115,11 @@ func set_player_color(slot: int, color_id: StringName) -> void:
 		return
 	if not GameSettings.is_valid_player_color(color_id):
 		return
+	if is_color_taken_by_other(slot, color_id):
+		return
 
-	_apply_player_color(slot, color_id)
 	if _has_authority():
+		_apply_player_color(slot, color_id)
 		_broadcast_state()
 	else:
 		_send_request(GameSettings.PACKET_ONLINE_PLAYER_COLOR, {
@@ -128,11 +138,9 @@ func set_locker_ready(slot: int, is_ready: bool) -> void:
 
 	if _has_authority():
 		locker_ready[slot] = is_ready
-		if _both_ready(locker_ready):
-			start_next_set()
-		else:
-			_broadcast_state()
-			state_changed.emit()
+		_update_locker_countdown_state()
+		_broadcast_state()
+		state_changed.emit()
 	else:
 		locker_ready[slot] = is_ready
 		state_changed.emit()
@@ -168,10 +176,22 @@ func set_intermission_ready(slot: int, is_ready: bool) -> void:
 
 func get_player_color_id(slot: int) -> StringName:
 	if player_colors.has(slot):
-		return StringName(str(player_colors[slot]))
+		var stored_color_id: StringName = StringName(str(player_colors[slot]))
+		if GameSettings.is_valid_player_color(stored_color_id):
+			return stored_color_id
 	if slot == GameSettings.PLAYER_TWO_SLOT:
 		return GameSettings.ONLINE_DEFAULT_REMOTE_COLOR
 	return GameSettings.ONLINE_DEFAULT_LOCAL_COLOR
+
+
+func is_color_taken_by_other(slot: int, color_id: StringName) -> bool:
+	if not _is_player_slot(slot):
+		return false
+
+	var other_slot: int = GameSettings.PLAYER_TWO_SLOT
+	if slot == GameSettings.PLAYER_TWO_SLOT:
+		other_slot = GameSettings.PLAYER_ONE_SLOT
+	return get_player_color_id(other_slot) == color_id
 
 
 func get_player_color(slot: int) -> Color:
@@ -197,12 +217,43 @@ func build_state() -> Dictionary:
 		"last_winner_slot": last_winner_slot,
 		"final_winner_slot": final_winner_slot,
 		"intermission_remaining": intermission_remaining,
+		"locker_countdown_remaining": locker_countdown_remaining,
 	}
 
 
 func _reset_match_scores() -> void:
 	set_kills = GameSettings.default_score()
 	match_points = GameSettings.default_score()
+
+
+func _process_locker_countdown(delta: float) -> void:
+	if locker_countdown_remaining < 0.0:
+		return
+	if not _both_ready(locker_ready):
+		locker_countdown_remaining = -1.0
+		_last_locker_countdown_second = -1
+		_broadcast_state()
+		state_changed.emit()
+		return
+
+	locker_countdown_remaining = maxf(locker_countdown_remaining - delta, 0.0)
+	var next_countdown_second: int = int(ceil(locker_countdown_remaining))
+	if next_countdown_second != _last_locker_countdown_second:
+		_last_locker_countdown_second = next_countdown_second
+		_broadcast_state()
+		state_changed.emit()
+	if locker_countdown_remaining <= 0.0:
+		start_next_set()
+
+
+func _update_locker_countdown_state() -> void:
+	if _both_ready(locker_ready):
+		if locker_countdown_remaining < 0.0:
+			locker_countdown_remaining = GameSettings.ONLINE_LOCKER_COUNTDOWN_SECONDS
+			_last_locker_countdown_second = int(ceil(locker_countdown_remaining))
+	else:
+		locker_countdown_remaining = -1.0
+		_last_locker_countdown_second = -1
 
 
 func _finish_kill_banner() -> void:
@@ -242,6 +293,7 @@ func _apply_state(state: Dictionary) -> void:
 	last_winner_slot = int(state.get("last_winner_slot", last_winner_slot))
 	final_winner_slot = int(state.get("final_winner_slot", final_winner_slot))
 	intermission_remaining = float(state.get("intermission_remaining", intermission_remaining))
+	locker_countdown_remaining = float(state.get("locker_countdown_remaining", locker_countdown_remaining))
 
 	var next_phase: StringName = StringName(str(state.get("phase", str(phase))))
 	var previous_phase: StringName = phase
@@ -303,9 +355,7 @@ func _on_packet_received(packet: Dictionary, _sender_id: int) -> void:
 	elif packet_type == GameSettings.PACKET_ONLINE_PLAYER_COLOR and _has_authority():
 		var color_slot: int = _slot_from_packet(packet)
 		var color_id: StringName = StringName(str(payload.get("color_id", "")))
-		if GameSettings.is_valid_player_color(color_id):
-			_apply_player_color(color_slot, color_id)
-			_broadcast_state()
+		set_player_color(color_slot, color_id)
 	elif packet_type == GameSettings.PACKET_ONLINE_LOCKER_READY and _has_authority():
 		set_locker_ready(_slot_from_packet(packet), payload.get("ready", false) == true)
 	elif packet_type == GameSettings.PACKET_ONLINE_INTERMISSION_READY and _has_authority():
