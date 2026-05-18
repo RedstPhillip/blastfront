@@ -207,10 +207,17 @@ func respawn_players() -> void:
 
 
 func _set_spawn_positions() -> void:
-	_player_1.global_position = GameSettings.PLAYER_ONE_SPAWN
+	_player_1.global_position = _get_spawn_position(GameSettings.PLAYER_ONE_SPAWN_MARKER, GameSettings.PLAYER_ONE_SPAWN)
 	_player_1.last_dir = GameSettings.PLAYER_ONE_START_FACING
-	_player_2.global_position = GameSettings.PLAYER_TWO_SPAWN
+	_player_2.global_position = _get_spawn_position(GameSettings.PLAYER_TWO_SPAWN_MARKER, GameSettings.PLAYER_TWO_SPAWN)
 	_player_2.last_dir = GameSettings.PLAYER_TWO_START_FACING
+
+
+func _get_spawn_position(marker_name: StringName, fallback_position: Vector2) -> Vector2:
+	var marker: Node = find_child(str(marker_name), true, false)
+	if marker is Node2D:
+		return (marker as Node2D).global_position
+	return fallback_position
 
 
 func _apply_camera_bounds() -> void:

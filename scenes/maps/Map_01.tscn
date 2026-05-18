@@ -27,6 +27,12 @@ shader_parameter/speed = 0.5
 [node name="MapBounds" type="Node" parent="." unique_id=1458459777]
 script = ExtResource("1_mapbounds")
 
+[node name="Spawn1" type="Marker2D" parent="."]
+position = Vector2(200, 116)
+
+[node name="Spawn2" type="Marker2D" parent="."]
+position = Vector2(1100, 116)
+
 [node name="PointLight2D" type="PointLight2D" parent="." unique_id=1078306765]
 position = Vector2(640, 0)
 scale = Vector2(67.917, 38.682)

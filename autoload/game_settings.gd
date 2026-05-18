@@ -10,6 +10,8 @@ const GAME_WORLD_GROUP: StringName = &"game_world"
 const PLAYERS_GROUP: StringName = &"players"
 const LOCAL_PLAYERS_GROUP: StringName = &"local_players"
 const MAP_BOUNDS_GROUP: StringName = &"map_bounds"
+const PLAYER_ONE_SPAWN_MARKER: StringName = &"Spawn1"
+const PLAYER_TWO_SPAWN_MARKER: StringName = &"Spawn2"
 
 const PLAYER_ONE_SPAWN: Vector2 = Vector2(200.0, 116.0)
 const PLAYER_TWO_SPAWN: Vector2 = Vector2(1100.0, 116.0)
@@ -77,6 +79,7 @@ const PACKET_ONLINE_MATCH_STATE: StringName = &"online_match_state"
 const PACKET_ONLINE_PLAYER_COLOR: StringName = &"online_player_color"
 const PACKET_ONLINE_LOCKER_READY: StringName = &"online_locker_ready"
 const PACKET_ONLINE_INTERMISSION_READY: StringName = &"online_intermission_ready"
+const PACKET_ONLINE_LOCKER_PLAYER_STATE: StringName = &"online_locker_player_state"
 
 const CONTROL_LOCAL: StringName = &"local"
 const CONTROL_REMOTE: StringName = &"remote"

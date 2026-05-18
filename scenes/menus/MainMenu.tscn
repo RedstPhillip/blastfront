@@ -1,8 +1,8 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://1wh2s1fp4f2v"]
 
-[ext_resource type="Script" path="res://scenes/menus/main_menu.gd" id="1_main"]
+[ext_resource type="Script" uid="uid://bsmcscopxdc18" path="res://scenes/menus/main_menu.gd" id="1_main"]
 
-[node name="MainMenu" type="Control"]
+[node name="MainMenu" type="Control" unique_id=1486785947]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,7 +11,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_main")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Background" type="ColorRect" parent="." unique_id=1998658163]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -20,7 +20,7 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.035, 0.04, 0.052, 1)
 
-[node name="Center" type="CenterContainer" parent="."]
+[node name="Center" type="CenterContainer" parent="." unique_id=1096847417]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -28,50 +28,50 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Panel" type="PanelContainer" parent="Center"]
+[node name="Panel" type="PanelContainer" parent="Center" unique_id=1181873967]
 custom_minimum_size = Vector2(460, 0)
 layout_mode = 2
 
-[node name="VBox" type="VBoxContainer" parent="Center/Panel"]
+[node name="VBox" type="VBoxContainer" parent="Center/Panel" unique_id=2047377991]
 layout_mode = 2
 theme_override_constants/separation = 14
 
-[node name="TitleLabel" type="Label" parent="Center/Panel/VBox"]
+[node name="TitleLabel" type="Label" parent="Center/Panel/VBox" unique_id=510208179]
 layout_mode = 2
 theme_override_font_sizes/font_size = 54
 text = "Blastfront"
 horizontal_alignment = 1
 
-[node name="SteamLabel" type="Label" parent="Center/Panel/VBox"]
+[node name="SteamLabel" type="Label" parent="Center/Panel/VBox" unique_id=946946387]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Steam"
 horizontal_alignment = 1
 autowrap_mode = 3
 
-[node name="StatusLabel" type="Label" parent="Center/Panel/VBox"]
+[node name="StatusLabel" type="Label" parent="Center/Panel/VBox" unique_id=2008673831]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Status"
 horizontal_alignment = 1
 autowrap_mode = 3
 
-[node name="SandboxButton" type="Button" parent="Center/Panel/VBox"]
+[node name="SandboxButton" type="Button" parent="Center/Panel/VBox" unique_id=241197402]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Sandbox"
 
-[node name="OnlineButton" type="Button" parent="Center/Panel/VBox"]
+[node name="OnlineButton" type="Button" parent="Center/Panel/VBox" unique_id=2022959356]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Online"
 
-[node name="SettingsButton" type="Button" parent="Center/Panel/VBox"]
+[node name="SettingsButton" type="Button" parent="Center/Panel/VBox" unique_id=1107405096]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Settings"
 
-[node name="ExitButton" type="Button" parent="Center/Panel/VBox"]
+[node name="ExitButton" type="Button" parent="Center/Panel/VBox" unique_id=1940981692]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Exit"

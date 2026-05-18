@@ -92,6 +92,12 @@ polygon = PackedVector2Array(1560, 720, 1560, 536, 1490, 536, 1440, 560, 1390, 5
 [node name="MapBounds" type="Node" parent="." unique_id=1628206641]
 script = ExtResource("1_mapbounds")
 
+[node name="Spawn1" type="Marker2D" parent="." unique_id=831908945]
+position = Vector2(200, 480)
+
+[node name="Spawn2" type="Marker2D" parent="." unique_id=365786691]
+position = Vector2(2000, 480)
+
 [node name="PointLight2D" type="PointLight2D" parent="." unique_id=1750659926]
 position = Vector2(1140, 0)
 scale = Vector2(67.917, 38.682)

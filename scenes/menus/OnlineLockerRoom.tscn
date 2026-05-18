@@ -15,6 +15,18 @@ size = Vector2(128, 130)
 [node name="OnlineLockerRoom" type="Node2D"]
 script = ExtResource("1_locker")
 
+[node name="BackgroundLayer" type="CanvasLayer" parent="."]
+layer = -1
+
+[node name="BackgroundRoot" type="Control" parent="BackgroundLayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
 [node name="UILayer" type="CanvasLayer" parent="."]
 
 [node name="Root" type="Control" parent="UILayer"]
@@ -24,17 +36,19 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 
-[node name="LeftPanel" type="ColorRect" parent="UILayer/Root"]
+[node name="LeftPanel" type="ColorRect" parent="BackgroundLayer/BackgroundRoot"]
 layout_mode = 1
 anchors_preset = 13
 anchor_right = 0.5
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 color = Color(0.055, 0.065, 0.078, 1)
 
-[node name="RightPanel" type="ColorRect" parent="UILayer/Root"]
+[node name="RightPanel" type="ColorRect" parent="BackgroundLayer/BackgroundRoot"]
 layout_mode = 1
 anchors_preset = 14
 anchor_left = 0.5
@@ -42,9 +56,10 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.043, 0.046, 0.058, 1)
+mouse_filter = 2
+color = Color(0.055, 0.065, 0.078, 1)
 
-[node name="SplitLine" type="ColorRect" parent="UILayer/Root"]
+[node name="SplitLine" type="ColorRect" parent="BackgroundLayer/BackgroundRoot"]
 layout_mode = 1
 anchor_left = 0.5
 anchor_right = 0.5
@@ -52,6 +67,7 @@ anchor_bottom = 1.0
 offset_left = -2.0
 offset_right = 2.0
 grow_vertical = 2
+mouse_filter = 2
 color = Color(0.75, 0.78, 0.84, 0.45)
 
 [node name="SteamLabel" type="Label" parent="UILayer/Root"]
@@ -68,7 +84,7 @@ text = "Steam"
 horizontal_alignment = 1
 autowrap_mode = 3
 
-[node name="LocalNameLabel" type="Label" parent="UILayer/Root"]
+[node name="PlayerOneNameLabel" type="Label" parent="UILayer/Root"]
 unique_name_in_owner = true
 layout_mode = 1
 offset_left = 36.0
@@ -76,9 +92,9 @@ offset_top = 62.0
 offset_right = 604.0
 offset_bottom = 104.0
 theme_override_font_sizes/font_size = 34
-text = "You"
+text = "Player 1"
 
-[node name="RemoteNameLabel" type="Label" parent="UILayer/Root"]
+[node name="PlayerTwoNameLabel" type="Label" parent="UILayer/Root"]
 unique_name_in_owner = true
 layout_mode = 1
 offset_left = 676.0
@@ -86,16 +102,17 @@ offset_top = 62.0
 offset_right = 1244.0
 offset_bottom = 104.0
 theme_override_font_sizes/font_size = 34
-text = "Waiting for friend"
+text = "Player 2"
 horizontal_alignment = 2
 
 [node name="ColorLabel" type="Label" parent="UILayer/Root"]
+unique_name_in_owner = true
 layout_mode = 1
 offset_left = 36.0
 offset_top = 122.0
 offset_right = 224.0
 offset_bottom = 150.0
-text = "Color"
+text = "Your color"
 
 [node name="ColorPicker" type="OptionButton" parent="UILayer/Root"]
 unique_name_in_owner = true
@@ -114,61 +131,53 @@ offset_right = 456.0
 offset_bottom = 188.0
 text = "Invite friend"
 
-[node name="LocalReadyLabel" type="Label" parent="UILayer/Root"]
+[node name="PlayerOneReadyLabel" type="Label" parent="UILayer/Root"]
 unique_name_in_owner = true
 layout_mode = 1
 offset_left = 36.0
 offset_top = 206.0
 offset_right = 500.0
 offset_bottom = 238.0
-text = "You: walk into the ready area"
+text = "Player 1: ready zone"
 
-[node name="RemoteReadyLabel" type="Label" parent="UILayer/Root"]
+[node name="PlayerTwoReadyLabel" type="Label" parent="UILayer/Root"]
 unique_name_in_owner = true
 layout_mode = 1
 offset_left = 780.0
 offset_top = 206.0
 offset_right = 1244.0
 offset_bottom = 238.0
-text = "Friend: waiting"
+text = "Player 2: ready zone"
 horizontal_alignment = 2
-
-[node name="ReadyAreaHint" type="Label" parent="UILayer/Root"]
-layout_mode = 1
-offset_left = 420.0
-offset_top = 505.0
-offset_right = 628.0
-offset_bottom = 534.0
-text = "READY"
-horizontal_alignment = 1
-
-[node name="RemoteLockerHint" type="Label" parent="UILayer/Root"]
-layout_mode = 1
-offset_left = 742.0
-offset_top = 505.0
-offset_right = 1114.0
-offset_bottom = 534.0
-text = "Friend locker"
-horizontal_alignment = 1
 
 [node name="LockerWorld" type="Node2D" parent="."]
 
-[node name="LocalFloorVisual" type="Polygon2D" parent="LockerWorld"]
+[node name="LeftFloorVisual" type="Polygon2D" parent="LockerWorld"]
 color = Color(0.23, 0.25, 0.28, 1)
 polygon = PackedVector2Array(20, 634, 620, 634, 620, 672, 20, 672)
 
-[node name="RemoteFloorVisual" type="Polygon2D" parent="LockerWorld"]
+[node name="RightFloorVisual" type="Polygon2D" parent="LockerWorld"]
 color = Color(0.19, 0.205, 0.23, 1)
-polygon = PackedVector2Array(700, 634, 1260, 634, 1260, 672, 700, 672)
+polygon = PackedVector2Array(660, 634, 1260, 634, 1260, 672, 660, 672)
 
-[node name="ReadyZoneVisual" type="Polygon2D" parent="LockerWorld"]
+[node name="PlayerOneReadyZoneVisual" type="Polygon2D" parent="LockerWorld"]
 color = Color(0.1, 0.74, 0.46, 0.34)
 polygon = PackedVector2Array(472, 526, 600, 526, 600, 656, 472, 656)
 
-[node name="LocalFloor" type="StaticBody2D" parent="LockerWorld"]
+[node name="PlayerTwoReadyZoneVisual" type="Polygon2D" parent="LockerWorld"]
+color = Color(0.1, 0.74, 0.46, 0.34)
+polygon = PackedVector2Array(680, 526, 808, 526, 808, 656, 680, 656)
+
+[node name="LeftFloor" type="StaticBody2D" parent="LockerWorld"]
 position = Vector2(320, 650)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/LocalFloor"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/LeftFloor"]
+shape = SubResource("RectangleShape2D_floor")
+
+[node name="RightFloor" type="StaticBody2D" parent="LockerWorld"]
+position = Vector2(960, 650)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/RightFloor"]
 shape = SubResource("RectangleShape2D_floor")
 
 [node name="LeftWall" type="StaticBody2D" parent="LockerWorld"]
@@ -178,24 +187,39 @@ position = Vector2(24, 520)
 shape = SubResource("RectangleShape2D_wall")
 
 [node name="MiddleWall" type="StaticBody2D" parent="LockerWorld"]
-position = Vector2(620, 520)
+position = Vector2(640, 520)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/MiddleWall"]
 shape = SubResource("RectangleShape2D_wall")
 
-[node name="ReadyArea" type="Area2D" parent="LockerWorld"]
+[node name="RightWall" type="StaticBody2D" parent="LockerWorld"]
+position = Vector2(1256, 520)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/RightWall"]
+shape = SubResource("RectangleShape2D_wall")
+
+[node name="PlayerOneReadyArea" type="Area2D" parent="LockerWorld"]
 unique_name_in_owner = true
 position = Vector2(536, 591)
 collision_layer = 0
 collision_mask = 2
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/ReadyArea"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerOneReadyArea"]
 shape = SubResource("RectangleShape2D_ready")
 
-[node name="LocalPlayer" parent="LockerWorld" instance=ExtResource("2_player")]
+[node name="PlayerTwoReadyArea" type="Area2D" parent="LockerWorld"]
+unique_name_in_owner = true
+position = Vector2(744, 591)
+collision_layer = 0
+collision_mask = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerTwoReadyArea"]
+shape = SubResource("RectangleShape2D_ready")
+
+[node name="PlayerOne" parent="LockerWorld" instance=ExtResource("2_player")]
 unique_name_in_owner = true
 position = Vector2(150, 595)
 
-[node name="RemotePreview" parent="LockerWorld" instance=ExtResource("2_player")]
+[node name="PlayerTwo" parent="LockerWorld" instance=ExtResource("2_player")]
 unique_name_in_owner = true
-position = Vector2(980, 595)
+position = Vector2(1130, 595)

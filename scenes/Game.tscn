@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://cx2qaf03xmg8r" path="res://scenes/game.gd" id="1_ibkli"]
 [ext_resource type="PackedScene" uid="uid://doun1m2ix5any" path="res://scenes/player/player.tscn" id="3_78awf"]
 [ext_resource type="Script" uid="uid://c6obeimu6hwap" path="res://scenes/map_border.gd" id="4_78awf"]
-[ext_resource type="PackedScene" path="res://scenes/maps/Map_03.tscn" id="5_78awf"]
+[ext_resource type="PackedScene" uid="uid://lpjfvx4lrgjo" path="res://scenes/maps/Map_03.tscn" id="5_78awf"]
 [ext_resource type="PackedScene" path="res://scenes/ui/MatchOverlay.tscn" id="6_overlay"]
 
 [node name="Game" type="Node2D" unique_id=679544362]
@@ -19,17 +19,17 @@ position = Vector2(1100, 116)
 
 [node name="Projectiles" type="Node2D" parent="." unique_id=640378572]
 
-[node name="HUD" type="CanvasLayer" parent="."]
+[node name="HUD" type="CanvasLayer" parent="." unique_id=597088379]
 
-[node name="ScoreLabel" type="Label" parent="HUD"]
+[node name="ScoreLabel" type="Label" parent="HUD" unique_id=1044658750]
 offset_left = 16.0
 offset_top = 16.0
 theme_override_font_sizes/font_size = 48
 text = "0 - 0"
 
-[node name="MatchOverlay" parent="HUD" instance=ExtResource("6_overlay")]
+[node name="MatchOverlay" parent="HUD" unique_id=534016440 instance=ExtResource("6_overlay")]
 
 [node name="MapBorder" type="Node2D" parent="." unique_id=1943801248]
 script = ExtResource("4_78awf")
 
-[node name="Camera2D" type="Camera2D" parent="."]
+[node name="Camera2D" type="Camera2D" parent="." unique_id=849909806]
