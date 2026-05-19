@@ -62,6 +62,61 @@ corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_help_panel"]
+content_margin_left = 30.0
+content_margin_top = 26.0
+content_margin_right = 30.0
+content_margin_bottom = 28.0
+bg_color = Color(0.035, 0.06, 0.075, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.62, 0.94, 1, 0.9)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+shadow_color = Color(0, 0, 0, 0.56)
+shadow_size = 24
+shadow_offset = Vector2(0, 10)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_help_button_normal"]
+bg_color = Color(0.9, 0.98, 1, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 1, 1, 0.95)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_help_button_hover"]
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.55, 0.95, 1, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_help_button_pressed"]
+bg_color = Color(0.12, 0.72, 0.86, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.8, 1, 1, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
 [sub_resource type="CircleShape2D" id="CircleShape2D_color_target"]
 radius = 30.0
 
@@ -218,6 +273,84 @@ theme_override_font_sizes/font_size = 132
 text = "3"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="HelpPopup" type="Control" parent="UILayer/Root"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+
+[node name="Dim" type="ColorRect" parent="UILayer/Root/HelpPopup"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0, 0, 0, 0.48)
+
+[node name="Center" type="CenterContainer" parent="UILayer/Root/HelpPopup"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+
+[node name="Panel" type="PanelContainer" parent="UILayer/Root/HelpPopup/Center"]
+custom_minimum_size = Vector2(500, 0)
+layout_mode = 2
+mouse_filter = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_help_panel")
+
+[node name="VBox" type="VBoxContainer" parent="UILayer/Root/HelpPopup/Center/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 16
+mouse_filter = 1
+
+[node name="TitleLabel" type="Label" parent="UILayer/Root/HelpPopup/Center/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.88, 0.99, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.78)
+theme_override_colors/font_outline_color = Color(0.02, 0.12, 0.16, 0.9)
+theme_override_constants/shadow_offset_x = 3
+theme_override_constants/shadow_offset_y = 3
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 36
+text = "LOCKER ROOM"
+horizontal_alignment = 1
+
+[node name="BodyLabel" type="Label" parent="UILayer/Root/HelpPopup/Center/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.96, 0.98, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.72)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 24
+text = "Shoot a color target to change your color.
+When you are ready, shoot the green target above you."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="HelpDismissButton" type="Button" parent="UILayer/Root/HelpPopup/Center/Panel/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.02, 0.07, 0.09, 1)
+theme_override_colors/font_pressed_color = Color(0.88, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(0.015, 0.055, 0.075, 1)
+theme_override_font_sizes/font_size = 22
+theme_override_styles/normal = SubResource("StyleBoxFlat_help_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_help_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_help_button_pressed")
+theme_override_styles/focus = SubResource("StyleBoxFlat_help_button_hover")
+text = "GOT IT"
 
 [node name="LockerWorld" type="Node2D" parent="." unique_id=96598154]
 

@@ -24,7 +24,7 @@ func _on_offline_pressed() -> void:
 
 
 func _on_invite_pressed() -> void:
-	NetworkSession.host_invite_round()
+	NetworkSession.host_invite_round(true)
 	_refresh("")
 
 

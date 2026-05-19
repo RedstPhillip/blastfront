@@ -14,6 +14,7 @@ var remote_steam_id: int = 0
 var status_text: String = GameSettings.STEAM_OFFLINE_NAME
 
 var _match_active: bool = false
+var _open_invite_overlay_when_lobby_ready: bool = false
 
 
 func _ready() -> void:
@@ -41,7 +42,7 @@ func start_offline() -> void:
 	_set_status("Offline local mode")
 
 
-func host_invite_round() -> void:
+func host_invite_round(open_overlay_when_ready: bool = false) -> void:
 	if not _can_use_steam():
 		_set_status(SteamService.get_status_text())
 		return
@@ -49,6 +50,7 @@ func host_invite_round() -> void:
 	leave_round()
 	mode = GameSettings.NETWORK_MODE_HOST
 	local_player_slot = GameSettings.PLAYER_ONE_SLOT
+	_open_invite_overlay_when_lobby_ready = open_overlay_when_ready
 	_set_status("Creating private Steam invite...")
 	Steam.createLobby(Steam.LOBBY_TYPE_PRIVATE, GameSettings.NETWORK_LOBBY_MAX_MEMBERS)
 
@@ -58,11 +60,15 @@ func open_invite_overlay() -> void:
 		_set_status(SteamService.get_status_text())
 		return
 	if lobby_id == 0:
-		host_invite_round()
+		_open_invite_overlay_when_lobby_ready = true
+		if mode != GameSettings.NETWORK_MODE_HOST:
+			host_invite_round(true)
+		else:
+			_set_status("Steam invite will open when the lobby is ready")
 		return
 
-	Steam.activateGameOverlayInviteDialog(lobby_id)
-	_set_status("Steam invite overlay opened")
+	_open_invite_overlay_when_lobby_ready = false
+	_show_invite_overlay()
 
 
 func join_invited_round(target_lobby_id: int) -> void:
@@ -73,6 +79,7 @@ func join_invited_round(target_lobby_id: int) -> void:
 	leave_round()
 	mode = GameSettings.NETWORK_MODE_CLIENT
 	local_player_slot = GameSettings.PLAYER_TWO_SLOT
+	_open_invite_overlay_when_lobby_ready = false
 	_set_status("Joining invited round...")
 	Steam.joinLobby(target_lobby_id)
 
@@ -89,6 +96,7 @@ func leave_round() -> void:
 	lobby_members.clear()
 	remote_steam_id = 0
 	_match_active = false
+	_open_invite_overlay_when_lobby_ready = false
 	if had_lobby:
 		peer_changed.emit()
 		lobby_left.emit()
@@ -161,6 +169,7 @@ func _on_lobby_created(connect: int, created_lobby_id: int) -> void:
 	if connect != GameSettings.STEAM_LOBBY_CREATE_OK:
 		_set_status("Could not create Steam invite. Result: %s" % connect)
 		mode = GameSettings.NETWORK_MODE_OFFLINE
+		_open_invite_overlay_when_lobby_ready = false
 		return
 
 	lobby_id = created_lobby_id
@@ -173,13 +182,16 @@ func _on_lobby_created(connect: int, created_lobby_id: int) -> void:
 
 	_refresh_lobby_members()
 	_activate_lobby("Hosting invite round")
-	Steam.activateGameOverlayInviteDialog(lobby_id)
+	if _open_invite_overlay_when_lobby_ready:
+		_open_invite_overlay_when_lobby_ready = false
+		_show_invite_overlay()
 
 
 func _on_lobby_joined(joined_lobby_id: int, _permissions: int, _locked: bool, response: int) -> void:
 	if response != Steam.CHAT_ROOM_ENTER_RESPONSE_SUCCESS:
 		_set_status("Could not join invite. Response: %s" % response)
 		mode = GameSettings.NETWORK_MODE_OFFLINE
+		_open_invite_overlay_when_lobby_ready = false
 		return
 
 	lobby_id = joined_lobby_id
@@ -193,6 +205,14 @@ func _on_lobby_joined(joined_lobby_id: int, _permissions: int, _locked: bool, re
 		_send_handshake()
 	else:
 		_activate_lobby("Hosting invite round")
+
+
+func _show_invite_overlay() -> void:
+	if not _can_use_steam() or lobby_id == 0:
+		return
+
+	Steam.activateGameOverlayInviteDialog(lobby_id)
+	_set_status("Steam invite overlay opened")
 
 
 func _on_lobby_chat_update(changed_lobby_id: int, changed_id: int, _making_change_id: int, _chat_state: int) -> void:

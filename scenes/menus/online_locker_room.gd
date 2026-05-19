@@ -14,6 +14,8 @@ const PLAYER_TWO_LOCKER_STATION: Vector2 = Vector2(960.0, 430.0)
 @onready var _player_two_name_label: Label = %PlayerTwoNameLabel
 @onready var _countdown_label: Label = %CountdownLabel
 @onready var _invite_button: Button = %InviteButton
+@onready var _help_popup: Control = %HelpPopup
+@onready var _help_dismiss_button: Button = %HelpDismissButton
 @onready var _player_one_ready_target: StaticBody2D = %PlayerOneReadyTarget
 @onready var _player_two_ready_target: StaticBody2D = %PlayerTwoReadyTarget
 
@@ -31,6 +33,7 @@ func _ready() -> void:
 	_configure_players()
 
 	_invite_button.pressed.connect(_on_invite_pressed)
+	_help_dismiss_button.pressed.connect(_on_help_dismiss_pressed)
 	OnlineMatch.state_changed.connect(_refresh)
 	NetworkSession.status_changed.connect(_refresh)
 	NetworkSession.peer_changed.connect(_refresh)
@@ -130,12 +133,20 @@ func _on_invite_pressed() -> void:
 	NetworkSession.open_invite_overlay()
 
 
+func _on_help_dismiss_pressed() -> void:
+	_help_popup.hide()
+	if NetworkSession.mode == GameSettings.NETWORK_MODE_HOST and NetworkSession.remote_steam_id == 0:
+		NetworkSession.open_invite_overlay()
+
+
 func spawn_projectile(projectile: Node2D, spawn_position: Vector2) -> void:
 	_projectiles.add_child(projectile)
 	projectile.global_position = spawn_position
 
 
 func request_shot(owner: Node, spawn_position: Vector2, direction: Vector2, projectile_data: Dictionary) -> void:
+	if _help_popup.visible:
+		return
 	if _is_pointer_over_invite_button():
 		return
 
