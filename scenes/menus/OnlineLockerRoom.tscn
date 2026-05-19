@@ -5,6 +5,63 @@
 [ext_resource type="PackedScene" uid="uid://doun1m2ix5any" path="res://scenes/player/player.tscn" id="2_player"]
 [ext_resource type="Texture2D" uid="uid://dy4a33ddwto2a" path="res://assets/locker-platform.png" id="3_4uiv7"]
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_invite_normal"]
+bg_color = Color(0.12, 0.72, 0.86, 0.92)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.8, 1, 1, 0.92)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+shadow_color = Color(0, 0.65, 0.9, 0.36)
+shadow_size = 14
+shadow_offset = Vector2(0, 4)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_invite_pressed"]
+bg_color = Color(0.06, 0.5, 0.7, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.55, 0.95, 1, 0.9)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+shadow_color = Color(0, 0.35, 0.52, 0.35)
+shadow_size = 8
+shadow_offset = Vector2(0, 2)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_invite_hover"]
+bg_color = Color(0.17, 0.86, 1, 0.98)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.95, 1, 1, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+shadow_color = Color(0.05, 0.75, 1, 0.5)
+shadow_size = 18
+shadow_offset = Vector2(0, 4)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_invite_disabled"]
+bg_color = Color(0.16, 0.19, 0.22, 0.62)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.5, 0.56, 0.62, 0.45)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
 [sub_resource type="CircleShape2D" id="CircleShape2D_color_target"]
 radius = 30.0
 
@@ -87,68 +144,60 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="SteamLabel" type="Label" parent="UILayer/Root" unique_id=112203957]
-unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_left = 24.0
-offset_top = 12.0
-offset_right = -24.0
-offset_bottom = 38.0
-grow_horizontal = 2
-text = "Steam"
-horizontal_alignment = 1
-autowrap_mode = 3
-
 [node name="PlayerOneNameLabel" type="Label" parent="UILayer/Root" unique_id=174476765]
 unique_name_in_owner = true
 layout_mode = 1
-offset_left = 36.0
-offset_top = 62.0
-offset_right = 604.0
-offset_bottom = 104.0
-theme_override_font_sizes/font_size = 34
-text = "Player 1"
+offset_left = 150.0
+offset_top = 26.0
+offset_right = 490.0
+offset_bottom = 76.0
+theme_override_colors/font_color = Color(0.95, 0.99, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.82)
+theme_override_colors/font_outline_color = Color(0.02, 0.07, 0.1, 0.86)
+theme_override_constants/shadow_offset_x = 3
+theme_override_constants/shadow_offset_y = 3
+theme_override_constants/outline_size = 7
+theme_override_font_sizes/font_size = 38
+text = "Waiting..."
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="PlayerTwoNameLabel" type="Label" parent="UILayer/Root" unique_id=1412307581]
 unique_name_in_owner = true
 layout_mode = 1
-offset_left = 676.0
-offset_top = 62.0
-offset_right = 1244.0
-offset_bottom = 104.0
-theme_override_font_sizes/font_size = 34
-text = "Player 2"
-horizontal_alignment = 2
+offset_left = 790.0
+offset_top = 26.0
+offset_right = 1130.0
+offset_bottom = 76.0
+theme_override_colors/font_color = Color(0.95, 0.99, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.82)
+theme_override_colors/font_outline_color = Color(0.02, 0.07, 0.1, 0.86)
+theme_override_constants/shadow_offset_x = 3
+theme_override_constants/shadow_offset_y = 3
+theme_override_constants/outline_size = 7
+theme_override_font_sizes/font_size = 38
+text = "Waiting..."
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="InviteButton" type="Button" parent="UILayer/Root" unique_id=1759572041]
 unique_name_in_owner = true
 layout_mode = 1
-offset_left = 36.0
-offset_top = 122.0
-offset_right = 210.0
-offset_bottom = 158.0
-text = "Invite friend"
-
-[node name="PlayerOneReadyLabel" type="Label" parent="UILayer/Root" unique_id=182971916]
-unique_name_in_owner = true
-layout_mode = 1
-offset_left = 36.0
-offset_top = 206.0
-offset_right = 500.0
-offset_bottom = 238.0
-text = "Player 1: shoot ready"
-
-[node name="PlayerTwoReadyLabel" type="Label" parent="UILayer/Root" unique_id=959265500]
-unique_name_in_owner = true
-layout_mode = 1
-offset_left = 780.0
-offset_top = 206.0
-offset_right = 1244.0
-offset_bottom = 238.0
-text = "Player 2: shoot ready"
-horizontal_alignment = 2
+offset_left = 502.0
+offset_top = 20.0
+offset_right = 778.0
+offset_bottom = 78.0
+theme_override_colors/font_color = Color(0.02, 0.07, 0.09, 1)
+theme_override_colors/font_pressed_color = Color(0.88, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(0.015, 0.055, 0.075, 1)
+theme_override_colors/font_disabled_color = Color(0.72, 0.78, 0.82, 0.75)
+theme_override_font_sizes/font_size = 24
+theme_override_styles/normal = SubResource("StyleBoxFlat_invite_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_invite_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_invite_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_invite_disabled")
+theme_override_styles/focus = SubResource("StyleBoxFlat_invite_hover")
+text = "INVITE FRIEND"
 
 [node name="CountdownLabel" type="Label" parent="UILayer/Root" unique_id=1272721931]
 unique_name_in_owner = true

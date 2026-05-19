@@ -10,11 +10,8 @@ const PLAYER_TWO_LOCKER_STATION: Vector2 = Vector2(960.0, 430.0)
 @onready var _player_one_color_targets: Node2D = $LockerWorld/PlayerOneColorTargets
 @onready var _player_two_color_targets: Node2D = $LockerWorld/PlayerTwoColorTargets
 @onready var _projectiles: Node2D = %Projectiles
-@onready var _steam_label: Label = %SteamLabel
 @onready var _player_one_name_label: Label = %PlayerOneNameLabel
 @onready var _player_two_name_label: Label = %PlayerTwoNameLabel
-@onready var _player_one_ready_label: Label = %PlayerOneReadyLabel
-@onready var _player_two_ready_label: Label = %PlayerTwoReadyLabel
 @onready var _countdown_label: Label = %CountdownLabel
 @onready var _invite_button: Button = %InviteButton
 @onready var _player_one_ready_target: StaticBody2D = %PlayerOneReadyTarget
@@ -115,14 +112,11 @@ func _refresh(_message: String = "") -> void:
 	_player_one.set_player_color(player_one_color_id)
 	_player_two.set_player_color(player_two_color_id)
 
-	_steam_label.text = "%s | %s" % [SteamService.get_status_text(), NetworkSession.status_text]
-	_player_one_name_label.text = _build_slot_label(GameSettings.PLAYER_ONE_SLOT, player_one_color_id)
-	_player_two_name_label.text = _build_slot_label(GameSettings.PLAYER_TWO_SLOT, player_two_color_id)
+	_player_one_name_label.text = _get_slot_name(GameSettings.PLAYER_ONE_SLOT)
+	_player_two_name_label.text = _get_slot_name(GameSettings.PLAYER_TWO_SLOT)
 
 	var player_one_ready: bool = OnlineMatch.locker_ready.get(GameSettings.PLAYER_ONE_SLOT, false) == true
 	var player_two_ready: bool = OnlineMatch.locker_ready.get(GameSettings.PLAYER_TWO_SLOT, false) == true
-	_player_one_ready_label.text = _build_ready_label(GameSettings.PLAYER_ONE_SLOT, player_one_ready)
-	_player_two_ready_label.text = _build_ready_label(GameSettings.PLAYER_TWO_SLOT, player_two_ready)
 	_invite_button.visible = NetworkSession.mode == GameSettings.NETWORK_MODE_HOST
 	_invite_button.disabled = not SteamService.steam_enabled
 	_update_ready_target_visual(_player_one_ready_target, player_one_ready)
@@ -130,18 +124,6 @@ func _refresh(_message: String = "") -> void:
 	_update_color_target_visuals(_player_one_color_targets, GameSettings.PLAYER_ONE_SLOT)
 	_update_color_target_visuals(_player_two_color_targets, GameSettings.PLAYER_TWO_SLOT)
 	_update_countdown_label()
-
-
-func _build_slot_label(slot: int, color_id: StringName) -> String:
-	return "Player %d: %s (%s)" % [
-		slot,
-		_get_slot_name(slot),
-		GameSettings.player_color_display_name(color_id),
-	]
-
-
-func _build_ready_label(slot: int, is_ready: bool) -> String:
-	return "Player %d: READY" % slot if is_ready else "Player %d: shoot ready" % slot
 
 
 func _on_invite_pressed() -> void:
@@ -154,6 +136,9 @@ func spawn_projectile(projectile: Node2D, spawn_position: Vector2) -> void:
 
 
 func request_shot(owner: Node, spawn_position: Vector2, direction: Vector2, projectile_data: Dictionary) -> void:
+	if _is_pointer_over_invite_button():
+		return
+
 	var projectile: Node2D = PROJECTILE_SCENE.instantiate() as Node2D
 	var owner_slot: int = 0
 	if owner != null:
@@ -171,6 +156,14 @@ func request_shot(owner: Node, spawn_position: Vector2, direction: Vector2, proj
 	if projectile.has_signal("despawn_requested"):
 		projectile.connect("despawn_requested", Callable(self, "_on_locker_projectile_despawn_requested"))
 	spawn_projectile(projectile, spawn_position)
+
+
+func _is_pointer_over_invite_button() -> bool:
+	if _invite_button == null or not _invite_button.visible:
+		return false
+
+	var mouse_position: Vector2 = get_viewport().get_mouse_position()
+	return _invite_button.get_global_rect().has_point(mouse_position)
 
 
 func _on_locker_projectile_despawn_requested(_projectile: Node, reason: StringName, collider) -> void:
