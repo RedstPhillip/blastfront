@@ -1,13 +1,18 @@
 [gd_scene format=3 uid="uid://de3qq3a0jaex4"]
 
 [ext_resource type="Script" uid="uid://b2rapcai4px57" path="res://scenes/menus/online_locker_room.gd" id="1_locker"]
+[ext_resource type="Texture2D" uid="uid://bbl7qo3wemm4v" path="res://assets/locker-bg2.png" id="2_j5f00"]
 [ext_resource type="PackedScene" uid="uid://doun1m2ix5any" path="res://scenes/player/player.tscn" id="2_player"]
+[ext_resource type="Texture2D" uid="uid://dy4a33ddwto2a" path="res://assets/locker-platform.png" id="3_4uiv7"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_color_target"]
 radius = 30.0
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_ready_target"]
 radius = 52.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_shot_middle_border"]
+size = Vector2(16, 720)
 
 [node name="OnlineLockerRoom" type="Node2D" unique_id=1408052781]
 script = ExtResource("1_locker")
@@ -24,7 +29,15 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
+[node name="TextureRect" type="TextureRect" parent="BackgroundLayer/BackgroundRoot" unique_id=719182832]
+layout_mode = 0
+offset_right = 1672.0
+offset_bottom = 941.0
+scale = Vector2(0.765, 0.765)
+texture = ExtResource("2_j5f00")
+
 [node name="BackgroundPanel" type="ColorRect" parent="BackgroundLayer/BackgroundRoot" unique_id=507485814]
+visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -46,6 +59,22 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 color = Color(0.75, 0.78, 0.84, 0.45)
+
+[node name="TextureRect2" type="TextureRect" parent="BackgroundLayer/BackgroundRoot" unique_id=281157823]
+layout_mode = 0
+offset_left = 220.0
+offset_top = 405.0
+offset_right = 420.0
+offset_bottom = 538.0
+texture = ExtResource("3_4uiv7")
+
+[node name="TextureRect3" type="TextureRect" parent="BackgroundLayer/BackgroundRoot" unique_id=2006794855]
+layout_mode = 0
+offset_left = 860.0
+offset_top = 405.0
+offset_right = 1060.0
+offset_bottom = 538.0
+texture = ExtResource("3_4uiv7")
 
 [node name="UILayer" type="CanvasLayer" parent="." unique_id=523080942]
 
@@ -143,13 +172,13 @@ vertical_alignment = 1
 
 [node name="LockerWorld" type="Node2D" parent="." unique_id=96598154]
 
-[node name="PlayerOneTargetRing" type="Line2D" parent="LockerWorld"]
+[node name="PlayerOneTargetRing" type="Line2D" parent="LockerWorld" unique_id=1352655823]
 z_index = -1
 points = PackedVector2Array(320, 245, 420, 274, 488, 353, 503, 456, 460, 551, 372, 608, 268, 608, 180, 551, 137, 456, 152, 353, 220, 274, 320, 245)
 width = 3.0
 default_color = Color(0.75, 0.78, 0.84, 0.25)
 
-[node name="PlayerTwoTargetRing" type="Line2D" parent="LockerWorld"]
+[node name="PlayerTwoTargetRing" type="Line2D" parent="LockerWorld" unique_id=379880001]
 z_index = -1
 points = PackedVector2Array(960, 245, 1060, 274, 1128, 353, 1143, 456, 1100, 551, 1012, 608, 908, 608, 820, 551, 777, 456, 792, 353, 860, 274, 960, 245)
 width = 3.0
@@ -166,13 +195,17 @@ metadata/color_id = "red"
 [node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorRed" unique_id=1046207276]
 shape = SubResource("CircleShape2D_color_target")
 
+[node name="ContrastBorder" type="Polygon2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorRed" unique_id=2057657625]
+z_index = -1
+polygon = PackedVector2Array(26, 0, 18.38, 18.38, 0, 26, -18.38, 18.38, -26, 0, -18.38, -18.38, 0, -26, 18.38, -18.38)
+
 [node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorRed" unique_id=1941029704]
 color = Color(0.921569, 0.313726, 0.313726, 1)
 polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
 
 [node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorRed" unique_id=1060775971]
 visible = false
-points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+points = PackedVector2Array(28.5, 0, 20.15, 20.15, 0, 28.5, -20.15, 20.15, -28.5, 0, -20.15, -20.15, 0, -28.5, 20.15, -20.15, 28.5, 0)
 width = 5.0
 default_color = Color(1, 0.05, 0.05, 1)
 
@@ -185,32 +218,40 @@ metadata/color_id = "blue"
 [node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorBlue" unique_id=2016062887]
 shape = SubResource("CircleShape2D_color_target")
 
+[node name="ContrastBorder" type="Polygon2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorBlue" unique_id=886344199]
+z_index = -1
+polygon = PackedVector2Array(26, 0, 18.38, 18.38, 0, 26, -18.38, 18.38, -26, 0, -18.38, -18.38, 0, -26, 18.38, -18.38)
+
 [node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorBlue" unique_id=625730452]
 color = Color(0.313726, 0.666667, 1, 1)
 polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
 
 [node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorBlue" unique_id=1752061505]
 visible = false
-points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+points = PackedVector2Array(28.5, 0, 20.15, 20.15, 0, 28.5, -20.15, 20.15, -28.5, 0, -20.15, -20.15, 0, -28.5, 20.15, -20.15, 28.5, 0)
 width = 5.0
 default_color = Color(1, 0.05, 0.05, 1)
 
-[node name="P1ColorGreen" type="StaticBody2D" parent="LockerWorld/PlayerOneColorTargets"]
+[node name="P1ColorGreen" type="StaticBody2D" parent="LockerWorld/PlayerOneColorTargets" unique_id=924002575]
 position = Vector2(503, 456)
 metadata/locker_target_type = "color"
 metadata/slot = 1
 metadata/color_id = "green"
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorGreen"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorGreen" unique_id=1085654492]
 shape = SubResource("CircleShape2D_color_target")
 
-[node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorGreen"]
+[node name="ContrastBorder" type="Polygon2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorGreen" unique_id=1220955419]
+z_index = -1
+polygon = PackedVector2Array(26, 0, 18.38, 18.38, 0, 26, -18.38, 18.38, -26, 0, -18.38, -18.38, 0, -26, 18.38, -18.38)
+
+[node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorGreen" unique_id=332101667]
 color = Color(0.313726, 0.823529, 0.490196, 1)
 polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
 
-[node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorGreen"]
+[node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorGreen" unique_id=1720956442]
 visible = false
-points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+points = PackedVector2Array(28.5, 0, 20.15, 20.15, 0, 28.5, -20.15, 20.15, -28.5, 0, -20.15, -20.15, 0, -28.5, 20.15, -20.15, 28.5, 0)
 width = 5.0
 default_color = Color(1, 0.05, 0.05, 1)
 
@@ -223,13 +264,17 @@ metadata/color_id = "yellow"
 [node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorYellow" unique_id=1629900503]
 shape = SubResource("CircleShape2D_color_target")
 
+[node name="ContrastBorder" type="Polygon2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorYellow" unique_id=1165890600]
+z_index = -1
+polygon = PackedVector2Array(26, 0, 18.38, 18.38, 0, 26, -18.38, 18.38, -26, 0, -18.38, -18.38, 0, -26, 18.38, -18.38)
+
 [node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorYellow" unique_id=578052055]
 color = Color(0.960784, 0.862745, 0.313726, 1)
 polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
 
 [node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorYellow" unique_id=1544135930]
 visible = false
-points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+points = PackedVector2Array(28.5, 0, 20.15, 20.15, 0, 28.5, -20.15, 20.15, -28.5, 0, -20.15, -20.15, 0, -28.5, 20.15, -20.15, 28.5, 0)
 width = 5.0
 default_color = Color(1, 0.05, 0.05, 1)
 
@@ -242,13 +287,17 @@ metadata/color_id = "orange"
 [node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorOrange" unique_id=209918512]
 shape = SubResource("CircleShape2D_color_target")
 
+[node name="ContrastBorder" type="Polygon2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorOrange" unique_id=1944301255]
+z_index = -1
+polygon = PackedVector2Array(26, 0, 18.38, 18.38, 0, 26, -18.38, 18.38, -26, 0, -18.38, -18.38, 0, -26, 18.38, -18.38)
+
 [node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorOrange" unique_id=1075688844]
 color = Color(0.960784, 0.568627, 0.215686, 1)
 polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
 
 [node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorOrange" unique_id=1109641239]
 visible = false
-points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+points = PackedVector2Array(28.5, 0, 20.15, 20.15, 0, 28.5, -20.15, 20.15, -28.5, 0, -20.15, -20.15, 0, -28.5, 20.15, -20.15, 28.5, 0)
 width = 5.0
 default_color = Color(1, 0.05, 0.05, 1)
 
@@ -261,13 +310,17 @@ metadata/color_id = "purple"
 [node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorPurple" unique_id=1131389315]
 shape = SubResource("CircleShape2D_color_target")
 
+[node name="ContrastBorder" type="Polygon2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorPurple" unique_id=1886417013]
+z_index = -1
+polygon = PackedVector2Array(26, 0, 18.38, 18.38, 0, 26, -18.38, 18.38, -26, 0, -18.38, -18.38, 0, -26, 18.38, -18.38)
+
 [node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorPurple" unique_id=795230958]
 color = Color(0.666667, 0.392157, 0.960784, 1)
 polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
 
 [node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorPurple" unique_id=332398126]
 visible = false
-points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+points = PackedVector2Array(28.5, 0, 20.15, 20.15, 0, 28.5, -20.15, 20.15, -28.5, 0, -20.15, -20.15, 0, -28.5, 20.15, -20.15, 28.5, 0)
 width = 5.0
 default_color = Color(1, 0.05, 0.05, 1)
 
@@ -280,13 +333,17 @@ metadata/color_id = "cyan"
 [node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorCyan" unique_id=2074700050]
 shape = SubResource("CircleShape2D_color_target")
 
+[node name="ContrastBorder" type="Polygon2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorCyan" unique_id=206203531]
+z_index = -1
+polygon = PackedVector2Array(26, 0, 18.38, 18.38, 0, 26, -18.38, 18.38, -26, 0, -18.38, -18.38, 0, -26, 18.38, -18.38)
+
 [node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorCyan" unique_id=1562782575]
 color = Color(0.27451, 0.862745, 0.862745, 1)
 polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
 
 [node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorCyan" unique_id=187424585]
 visible = false
-points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+points = PackedVector2Array(28.5, 0, 20.15, 20.15, 0, 28.5, -20.15, 20.15, -28.5, 0, -20.15, -20.15, 0, -28.5, 20.15, -20.15, 28.5, 0)
 width = 5.0
 default_color = Color(1, 0.05, 0.05, 1)
 
@@ -299,13 +356,17 @@ metadata/color_id = "pink"
 [node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorPink" unique_id=1533641705]
 shape = SubResource("CircleShape2D_color_target")
 
+[node name="ContrastBorder" type="Polygon2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorPink" unique_id=656562656]
+z_index = -1
+polygon = PackedVector2Array(26, 0, 18.38, 18.38, 0, 26, -18.38, 18.38, -26, 0, -18.38, -18.38, 0, -26, 18.38, -18.38)
+
 [node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorPink" unique_id=1167802059]
 color = Color(0.960784, 0.45098, 0.745098, 1)
 polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
 
 [node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorPink" unique_id=104921474]
 visible = false
-points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+points = PackedVector2Array(28.5, 0, 20.15, 20.15, 0, 28.5, -20.15, 20.15, -28.5, 0, -20.15, -20.15, 0, -28.5, 20.15, -20.15, 28.5, 0)
 width = 5.0
 default_color = Color(1, 0.05, 0.05, 1)
 
@@ -318,32 +379,40 @@ metadata/color_id = "white"
 [node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorWhite" unique_id=913365591]
 shape = SubResource("CircleShape2D_color_target")
 
+[node name="ContrastBorder" type="Polygon2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorWhite" unique_id=766074740]
+z_index = -1
+polygon = PackedVector2Array(26, 0, 18.38, 18.38, 0, 26, -18.38, 18.38, -26, 0, -18.38, -18.38, 0, -26, 18.38, -18.38)
+
 [node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorWhite" unique_id=904079154]
 color = Color(0.921569, 0.921569, 0.921569, 1)
 polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
 
 [node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorWhite" unique_id=458681335]
 visible = false
-points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+points = PackedVector2Array(28.5, 0, 20.15, 20.15, 0, 28.5, -20.15, 20.15, -28.5, 0, -20.15, -20.15, 0, -28.5, 20.15, -20.15, 28.5, 0)
 width = 5.0
 default_color = Color(1, 0.05, 0.05, 1)
 
-[node name="P1ColorCharcoal" type="StaticBody2D" parent="LockerWorld/PlayerOneColorTargets"]
+[node name="P1ColorCharcoal" type="StaticBody2D" parent="LockerWorld/PlayerOneColorTargets" unique_id=1842095605]
 position = Vector2(220, 274)
 metadata/locker_target_type = "color"
 metadata/slot = 1
 metadata/color_id = "charcoal"
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorCharcoal"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorCharcoal" unique_id=543012337]
 shape = SubResource("CircleShape2D_color_target")
 
-[node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorCharcoal"]
+[node name="ContrastBorder" type="Polygon2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorCharcoal" unique_id=886277764]
+z_index = -1
+polygon = PackedVector2Array(26, 0, 18.38, 18.38, 0, 26, -18.38, 18.38, -26, 0, -18.38, -18.38, 0, -26, 18.38, -18.38)
+
+[node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorCharcoal" unique_id=1845845584]
 color = Color(0.215686, 0.243137, 0.282353, 1)
 polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
 
-[node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorCharcoal"]
+[node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerOneColorTargets/P1ColorCharcoal" unique_id=360139909]
 visible = false
-points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+points = PackedVector2Array(28.5, 0, 20.15, 20.15, 0, 28.5, -20.15, 20.15, -28.5, 0, -20.15, -20.15, 0, -28.5, 20.15, -20.15, 28.5, 0)
 width = 5.0
 default_color = Color(1, 0.05, 0.05, 1)
 
@@ -358,13 +427,17 @@ metadata/color_id = "red"
 [node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorRed" unique_id=115722061]
 shape = SubResource("CircleShape2D_color_target")
 
+[node name="ContrastBorder" type="Polygon2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorRed" unique_id=710099134]
+z_index = -1
+polygon = PackedVector2Array(26, 0, 18.38, 18.38, 0, 26, -18.38, 18.38, -26, 0, -18.38, -18.38, 0, -26, 18.38, -18.38)
+
 [node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorRed" unique_id=90901684]
 color = Color(0.921569, 0.313726, 0.313726, 1)
 polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
 
 [node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorRed" unique_id=1162926085]
 visible = false
-points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+points = PackedVector2Array(28.5, 0, 20.15, 20.15, 0, 28.5, -20.15, 20.15, -28.5, 0, -20.15, -20.15, 0, -28.5, 20.15, -20.15, 28.5, 0)
 width = 5.0
 default_color = Color(1, 0.05, 0.05, 1)
 
@@ -377,32 +450,40 @@ metadata/color_id = "blue"
 [node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorBlue" unique_id=20634183]
 shape = SubResource("CircleShape2D_color_target")
 
+[node name="ContrastBorder" type="Polygon2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorBlue" unique_id=1221717325]
+z_index = -1
+polygon = PackedVector2Array(26, 0, 18.38, 18.38, 0, 26, -18.38, 18.38, -26, 0, -18.38, -18.38, 0, -26, 18.38, -18.38)
+
 [node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorBlue" unique_id=985187018]
 color = Color(0.313726, 0.666667, 1, 1)
 polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
 
 [node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorBlue" unique_id=875050414]
 visible = false
-points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+points = PackedVector2Array(28.5, 0, 20.15, 20.15, 0, 28.5, -20.15, 20.15, -28.5, 0, -20.15, -20.15, 0, -28.5, 20.15, -20.15, 28.5, 0)
 width = 5.0
 default_color = Color(1, 0.05, 0.05, 1)
 
-[node name="P2ColorGreen" type="StaticBody2D" parent="LockerWorld/PlayerTwoColorTargets"]
+[node name="P2ColorGreen" type="StaticBody2D" parent="LockerWorld/PlayerTwoColorTargets" unique_id=2030869213]
 position = Vector2(1143, 456)
 metadata/locker_target_type = "color"
 metadata/slot = 2
 metadata/color_id = "green"
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorGreen"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorGreen" unique_id=1821458334]
 shape = SubResource("CircleShape2D_color_target")
 
-[node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorGreen"]
+[node name="ContrastBorder" type="Polygon2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorGreen" unique_id=2094329006]
+z_index = -1
+polygon = PackedVector2Array(26, 0, 18.38, 18.38, 0, 26, -18.38, 18.38, -26, 0, -18.38, -18.38, 0, -26, 18.38, -18.38)
+
+[node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorGreen" unique_id=440385555]
 color = Color(0.313726, 0.823529, 0.490196, 1)
 polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
 
-[node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorGreen"]
+[node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorGreen" unique_id=550540475]
 visible = false
-points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+points = PackedVector2Array(28.5, 0, 20.15, 20.15, 0, 28.5, -20.15, 20.15, -28.5, 0, -20.15, -20.15, 0, -28.5, 20.15, -20.15, 28.5, 0)
 width = 5.0
 default_color = Color(1, 0.05, 0.05, 1)
 
@@ -415,13 +496,17 @@ metadata/color_id = "yellow"
 [node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorYellow" unique_id=723440482]
 shape = SubResource("CircleShape2D_color_target")
 
+[node name="ContrastBorder" type="Polygon2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorYellow" unique_id=1616516243]
+z_index = -1
+polygon = PackedVector2Array(26, 0, 18.38, 18.38, 0, 26, -18.38, 18.38, -26, 0, -18.38, -18.38, 0, -26, 18.38, -18.38)
+
 [node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorYellow" unique_id=1099230981]
 color = Color(0.960784, 0.862745, 0.313726, 1)
 polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
 
 [node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorYellow" unique_id=1130168923]
 visible = false
-points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+points = PackedVector2Array(28.5, 0, 20.15, 20.15, 0, 28.5, -20.15, 20.15, -28.5, 0, -20.15, -20.15, 0, -28.5, 20.15, -20.15, 28.5, 0)
 width = 5.0
 default_color = Color(1, 0.05, 0.05, 1)
 
@@ -434,13 +519,17 @@ metadata/color_id = "orange"
 [node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorOrange" unique_id=1876658327]
 shape = SubResource("CircleShape2D_color_target")
 
+[node name="ContrastBorder" type="Polygon2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorOrange" unique_id=923007583]
+z_index = -1
+polygon = PackedVector2Array(26, 0, 18.38, 18.38, 0, 26, -18.38, 18.38, -26, 0, -18.38, -18.38, 0, -26, 18.38, -18.38)
+
 [node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorOrange" unique_id=1881302933]
 color = Color(0.960784, 0.568627, 0.215686, 1)
 polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
 
 [node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorOrange" unique_id=1443220218]
 visible = false
-points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+points = PackedVector2Array(28.5, 0, 20.15, 20.15, 0, 28.5, -20.15, 20.15, -28.5, 0, -20.15, -20.15, 0, -28.5, 20.15, -20.15, 28.5, 0)
 width = 5.0
 default_color = Color(1, 0.05, 0.05, 1)
 
@@ -453,13 +542,17 @@ metadata/color_id = "purple"
 [node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorPurple" unique_id=812506921]
 shape = SubResource("CircleShape2D_color_target")
 
+[node name="ContrastBorder" type="Polygon2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorPurple" unique_id=1677609655]
+z_index = -1
+polygon = PackedVector2Array(26, 0, 18.38, 18.38, 0, 26, -18.38, 18.38, -26, 0, -18.38, -18.38, 0, -26, 18.38, -18.38)
+
 [node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorPurple" unique_id=641685634]
 color = Color(0.666667, 0.392157, 0.960784, 1)
 polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
 
 [node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorPurple" unique_id=22695071]
 visible = false
-points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+points = PackedVector2Array(28.5, 0, 20.15, 20.15, 0, 28.5, -20.15, 20.15, -28.5, 0, -20.15, -20.15, 0, -28.5, 20.15, -20.15, 28.5, 0)
 width = 5.0
 default_color = Color(1, 0.05, 0.05, 1)
 
@@ -472,13 +565,17 @@ metadata/color_id = "cyan"
 [node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorCyan" unique_id=534843636]
 shape = SubResource("CircleShape2D_color_target")
 
+[node name="ContrastBorder" type="Polygon2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorCyan" unique_id=150561927]
+z_index = -1
+polygon = PackedVector2Array(26, 0, 18.38, 18.38, 0, 26, -18.38, 18.38, -26, 0, -18.38, -18.38, 0, -26, 18.38, -18.38)
+
 [node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorCyan" unique_id=825566041]
 color = Color(0.27451, 0.862745, 0.862745, 1)
 polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
 
 [node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorCyan" unique_id=869053635]
 visible = false
-points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+points = PackedVector2Array(28.5, 0, 20.15, 20.15, 0, 28.5, -20.15, 20.15, -28.5, 0, -20.15, -20.15, 0, -28.5, 20.15, -20.15, 28.5, 0)
 width = 5.0
 default_color = Color(1, 0.05, 0.05, 1)
 
@@ -491,13 +588,17 @@ metadata/color_id = "pink"
 [node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorPink" unique_id=246645163]
 shape = SubResource("CircleShape2D_color_target")
 
+[node name="ContrastBorder" type="Polygon2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorPink" unique_id=1195784831]
+z_index = -1
+polygon = PackedVector2Array(26, 0, 18.38, 18.38, 0, 26, -18.38, 18.38, -26, 0, -18.38, -18.38, 0, -26, 18.38, -18.38)
+
 [node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorPink" unique_id=1890335395]
 color = Color(0.960784, 0.45098, 0.745098, 1)
 polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
 
 [node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorPink" unique_id=1613903399]
 visible = false
-points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+points = PackedVector2Array(28.5, 0, 20.15, 20.15, 0, 28.5, -20.15, 20.15, -28.5, 0, -20.15, -20.15, 0, -28.5, 20.15, -20.15, 28.5, 0)
 width = 5.0
 default_color = Color(1, 0.05, 0.05, 1)
 
@@ -510,32 +611,40 @@ metadata/color_id = "white"
 [node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorWhite" unique_id=1275654751]
 shape = SubResource("CircleShape2D_color_target")
 
+[node name="ContrastBorder" type="Polygon2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorWhite" unique_id=1732016148]
+z_index = -1
+polygon = PackedVector2Array(26, 0, 18.38, 18.38, 0, 26, -18.38, 18.38, -26, 0, -18.38, -18.38, 0, -26, 18.38, -18.38)
+
 [node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorWhite" unique_id=2144584284]
 color = Color(0.921569, 0.921569, 0.921569, 1)
 polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
 
 [node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorWhite" unique_id=1093637332]
 visible = false
-points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+points = PackedVector2Array(28.5, 0, 20.15, 20.15, 0, 28.5, -20.15, 20.15, -28.5, 0, -20.15, -20.15, 0, -28.5, 20.15, -20.15, 28.5, 0)
 width = 5.0
 default_color = Color(1, 0.05, 0.05, 1)
 
-[node name="P2ColorCharcoal" type="StaticBody2D" parent="LockerWorld/PlayerTwoColorTargets"]
+[node name="P2ColorCharcoal" type="StaticBody2D" parent="LockerWorld/PlayerTwoColorTargets" unique_id=1803982668]
 position = Vector2(860, 274)
 metadata/locker_target_type = "color"
 metadata/slot = 2
 metadata/color_id = "charcoal"
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorCharcoal"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorCharcoal" unique_id=1855554048]
 shape = SubResource("CircleShape2D_color_target")
 
-[node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorCharcoal"]
+[node name="ContrastBorder" type="Polygon2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorCharcoal" unique_id=687513437]
+z_index = -1
+polygon = PackedVector2Array(26, 0, 18.38, 18.38, 0, 26, -18.38, 18.38, -26, 0, -18.38, -18.38, 0, -26, 18.38, -18.38)
+
+[node name="Circle" type="Polygon2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorCharcoal" unique_id=78235610]
 color = Color(0.215686, 0.243137, 0.282353, 1)
 polygon = PackedVector2Array(24, 0, 16.97, 16.97, 0, 24, -16.97, 16.97, -24, 0, -16.97, -16.97, 0, -24, 16.97, -16.97)
 
-[node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorCharcoal"]
+[node name="BlockedRing" type="Line2D" parent="LockerWorld/PlayerTwoColorTargets/P2ColorCharcoal" unique_id=1017028943]
 visible = false
-points = PackedVector2Array(34, 0, 24.04, 24.04, 0, 34, -24.04, 24.04, -34, 0, -24.04, -24.04, 0, -34, 24.04, -24.04, 34, 0)
+points = PackedVector2Array(28.5, 0, 20.15, 20.15, 0, 28.5, -20.15, 20.15, -28.5, 0, -20.15, -20.15, 0, -28.5, 20.15, -20.15, 28.5, 0)
 width = 5.0
 default_color = Color(1, 0.05, 0.05, 1)
 
@@ -592,6 +701,12 @@ polygon = PackedVector2Array(42, 0, 29.7, 29.7, 0, 42, -29.7, 29.7, -42, 0, -29.
 visible = false
 points = PackedVector2Array(-18, 0, -5, 14, 22, -20)
 width = 6.0
+
+[node name="ShotMiddleBorder" type="StaticBody2D" parent="LockerWorld" unique_id=56773307]
+position = Vector2(640, 360)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LockerWorld/ShotMiddleBorder" unique_id=1786331200]
+shape = SubResource("RectangleShape2D_shot_middle_border")
 
 [node name="Projectiles" type="Node2D" parent="LockerWorld" unique_id=1921989237]
 unique_name_in_owner = true
