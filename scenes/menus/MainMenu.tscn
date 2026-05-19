@@ -1,6 +1,129 @@
 [gd_scene format=3 uid="uid://1wh2s1fp4f2v"]
 
 [ext_resource type="Script" uid="uid://bsmcscopxdc18" path="res://scenes/menus/main_menu.gd" id="1_main"]
+[ext_resource type="Texture2D" uid="uid://cvysebw6foc28" path="res://assets/bg-image-5.png" id="2_bg"]
+
+[sub_resource type="Gradient" id="Gradient_menu_soft_focus"]
+offsets = PackedFloat32Array(0, 0.64, 1)
+colors = PackedColorArray(0, 0, 0, 0.02, 0, 0, 0, 0.18, 0, 0, 0, 0.5)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_menu_soft_focus"]
+gradient = SubResource("Gradient_menu_soft_focus")
+width = 1280
+height = 720
+fill = 1
+fill_from = Vector2(0.5, 0.48)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_main"]
+content_margin_left = 20.0
+content_margin_top = 8.0
+content_margin_right = 20.0
+content_margin_bottom = 8.0
+bg_color = Color(0.08, 0.68, 0.82, 0.92)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.76, 0.98, 1, 0.88)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+shadow_color = Color(0, 0, 0, 0.42)
+shadow_size = 10
+shadow_offset = Vector2(6, 8)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_main_hover"]
+content_margin_left = 20.0
+content_margin_top = 8.0
+content_margin_right = 20.0
+content_margin_bottom = 8.0
+bg_color = Color(0.12, 0.9, 1, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 1, 1, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+shadow_color = Color(0.02, 0.65, 0.86, 0.44)
+shadow_size = 14
+shadow_offset = Vector2(7, 9)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_main_pressed"]
+content_margin_left = 20.0
+content_margin_top = 8.0
+content_margin_right = 20.0
+content_margin_bottom = 8.0
+bg_color = Color(0.03, 0.34, 0.43, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.58, 0.92, 0.96, 0.9)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+shadow_color = Color(0, 0, 0, 0.4)
+shadow_size = 6
+shadow_offset = Vector2(3, 4)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_exit"]
+content_margin_left = 20.0
+content_margin_top = 8.0
+content_margin_right = 20.0
+content_margin_bottom = 8.0
+bg_color = Color(0.2, 0.08, 0.08, 0.86)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.35, 0.28, 0.66)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+shadow_color = Color(0, 0, 0, 0.34)
+shadow_size = 8
+shadow_offset = Vector2(5, 7)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_exit_hover"]
+content_margin_left = 20.0
+content_margin_top = 8.0
+content_margin_right = 20.0
+content_margin_bottom = 8.0
+bg_color = Color(0.5, 0.12, 0.1, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.68, 0.5, 0.95)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+shadow_color = Color(0.65, 0.05, 0, 0.22)
+shadow_size = 10
+shadow_offset = Vector2(5, 7)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_disabled"]
+content_margin_left = 20.0
+content_margin_top = 8.0
+content_margin_right = 20.0
+content_margin_bottom = 8.0
+bg_color = Color(0.11, 0.12, 0.125, 0.62)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.36, 0.4, 0.42, 0.42)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
 
 [node name="MainMenu" type="Control" unique_id=1486785947]
 layout_mode = 3
@@ -11,67 +134,205 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_main")
 
-[node name="Background" type="ColorRect" parent="." unique_id=1998658163]
+[node name="Background" type="TextureRect" parent="." unique_id=1998658163]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.035, 0.04, 0.052, 1)
+mouse_filter = 2
+texture = ExtResource("2_bg")
+expand_mode = 1
+stretch_mode = 6
 
-[node name="Center" type="CenterContainer" parent="." unique_id=1096847417]
+[node name="Darken" type="ColorRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.38)
 
-[node name="Panel" type="PanelContainer" parent="Center" unique_id=1181873967]
-custom_minimum_size = Vector2(460, 0)
-layout_mode = 2
+[node name="SoftFocus" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = SubResource("GradientTexture2D_menu_soft_focus")
+expand_mode = 1
+stretch_mode = 6
 
-[node name="VBox" type="VBoxContainer" parent="Center/Panel" unique_id=2047377991]
-layout_mode = 2
-theme_override_constants/separation = 14
+[node name="MenuRoot" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -255.0
+offset_right = 300.0
+offset_bottom = 265.0
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="TitleLabel" type="Label" parent="Center/Panel/VBox" unique_id=510208179]
-layout_mode = 2
-theme_override_font_sizes/font_size = 54
-text = "Blastfront"
+[node name="TitleShadowRed" type="Label" parent="MenuRoot"]
+layout_mode = 1
+offset_left = -2.0
+offset_top = 13.0
+offset_right = 602.0
+offset_bottom = 100.0
+theme_override_colors/font_color = Color(1, 0.22, 0.18, 0.48)
+theme_override_font_sizes/font_size = 76
+text = "BLASTFRONT"
 horizontal_alignment = 1
 
-[node name="SteamLabel" type="Label" parent="Center/Panel/VBox" unique_id=946946387]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Steam"
+[node name="TitleShadowCyan" type="Label" parent="MenuRoot"]
+layout_mode = 1
+offset_left = 3.0
+offset_top = 8.0
+offset_right = 607.0
+offset_bottom = 96.0
+theme_override_colors/font_color = Color(0.12, 0.92, 1, 0.5)
+theme_override_font_sizes/font_size = 76
+text = "BLASTFRONT"
 horizontal_alignment = 1
-autowrap_mode = 3
 
-[node name="StatusLabel" type="Label" parent="Center/Panel/VBox" unique_id=2008673831]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Status"
+[node name="TitleLabel" type="Label" parent="MenuRoot" unique_id=510208179]
+layout_mode = 1
+offset_top = 10.0
+offset_right = 600.0
+offset_bottom = 98.0
+theme_override_colors/font_color = Color(0.94, 0.98, 0.94, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.82)
+theme_override_colors/font_outline_color = Color(0.02, 0.04, 0.045, 0.95)
+theme_override_constants/shadow_offset_x = 3
+theme_override_constants/shadow_offset_y = 4
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 76
+text = "BLASTFRONT"
 horizontal_alignment = 1
-autowrap_mode = 3
 
-[node name="SandboxButton" type="Button" parent="Center/Panel/VBox" unique_id=241197402]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Sandbox"
+[node name="TitleSlashLeft" type="Label" parent="MenuRoot"]
+layout_mode = 1
+offset_left = 150.0
+offset_top = 91.0
+offset_right = 288.0
+offset_bottom = 125.0
+theme_override_colors/font_color = Color(0.42, 0.78, 0.76, 0.72)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.45)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 30
+text = "/////"
+horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="OnlineButton" type="Button" parent="Center/Panel/VBox" unique_id=2022959356]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Online"
+[node name="TitleSlashRight" type="Label" parent="MenuRoot"]
+layout_mode = 1
+offset_left = 312.0
+offset_top = 91.0
+offset_right = 450.0
+offset_bottom = 125.0
+theme_override_colors/font_color = Color(0.9, 0.62, 0.32, 0.72)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.45)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 30
+text = "\\\\\\\\\\"
+horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="SettingsButton" type="Button" parent="Center/Panel/VBox" unique_id=1107405096]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Settings"
+[node name="SubtitleLabel" type="Label" parent="MenuRoot"]
+layout_mode = 1
+offset_left = 110.0
+offset_top = 126.0
+offset_right = 490.0
+offset_bottom = 154.0
+theme_override_colors/font_color = Color(0.88, 0.93, 0.91, 0.82)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 18
+text = "shoot first, lock the round"
+horizontal_alignment = 1
 
-[node name="ExitButton" type="Button" parent="Center/Panel/VBox" unique_id=1940981692]
+[node name="SandboxButton" type="Button" parent="MenuRoot" unique_id=241197402]
 unique_name_in_owner = true
-layout_mode = 2
-text = "Exit"
+layout_mode = 1
+offset_left = 110.0
+offset_top = 174.0
+offset_right = 490.0
+offset_bottom = 232.0
+pivot_offset = Vector2(190, 29)
+rotation = -0.0436332
+theme_override_colors/font_color = Color(0.02, 0.06, 0.065, 1)
+theme_override_colors/font_hover_color = Color(0.015, 0.045, 0.05, 1)
+theme_override_colors/font_pressed_color = Color(0.86, 1, 1, 1)
+theme_override_font_sizes/font_size = 28
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_main")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_main_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_main_pressed")
+theme_override_styles/focus = SubResource("StyleBoxFlat_button_main_hover")
+text = "SANDBOX"
+
+[node name="OnlineButton" type="Button" parent="MenuRoot" unique_id=2022959356]
+unique_name_in_owner = true
+layout_mode = 1
+offset_left = 110.0
+offset_top = 242.0
+offset_right = 490.0
+offset_bottom = 300.0
+pivot_offset = Vector2(190, 29)
+rotation = 0.0436332
+theme_override_colors/font_color = Color(0.02, 0.06, 0.065, 1)
+theme_override_colors/font_hover_color = Color(0.015, 0.045, 0.05, 1)
+theme_override_colors/font_pressed_color = Color(0.86, 1, 1, 1)
+theme_override_colors/font_disabled_color = Color(0.6, 0.64, 0.66, 0.8)
+theme_override_font_sizes/font_size = 28
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_main")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_main_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_main_pressed")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_button_disabled")
+theme_override_styles/focus = SubResource("StyleBoxFlat_button_main_hover")
+text = "ONLINE"
+
+[node name="SettingsButton" type="Button" parent="MenuRoot" unique_id=1107405096]
+unique_name_in_owner = true
+layout_mode = 1
+offset_left = 130.0
+offset_top = 310.0
+offset_right = 470.0
+offset_bottom = 362.0
+pivot_offset = Vector2(170, 26)
+rotation = -0.0436332
+disabled = true
+theme_override_colors/font_disabled_color = Color(0.6, 0.64, 0.66, 0.8)
+theme_override_font_sizes/font_size = 24
+theme_override_styles/disabled = SubResource("StyleBoxFlat_button_disabled")
+text = "SETTINGS"
+
+[node name="ExitButton" type="Button" parent="MenuRoot" unique_id=1940981692]
+unique_name_in_owner = true
+layout_mode = 1
+offset_left = 150.0
+offset_top = 374.0
+offset_right = 450.0
+offset_bottom = 424.0
+pivot_offset = Vector2(150, 25)
+rotation = 0.0436332
+theme_override_colors/font_color = Color(1, 0.66, 0.58, 1)
+theme_override_colors/font_hover_color = Color(1, 0.84, 0.78, 1)
+theme_override_colors/font_pressed_color = Color(0.03, 0.04, 0.04, 1)
+theme_override_font_sizes/font_size = 22
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_exit")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_exit_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_exit_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_button_exit_hover")
+text = "EXIT"
