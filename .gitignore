@@ -2,6 +2,17 @@
 .godot/
 /android/
 *.tmp
+
+# Local/exported build output
+/build/
+/builds/
+
+# Local Steam test file; Steam depots should not include this.
+steam_appid.txt
+
+# Godot keeps signing credentials outside export_presets.cfg.
+export_credentials.cfg
+
 *.dll
 *.dylib
 *.so
