@@ -92,9 +92,9 @@ func _play_collision_feedback(collision: KinematicCollision2D, collider: Object)
 	if impact_direction.length_squared() <= GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED and velocity.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
 		impact_direction = -velocity.normalized()
 
-	GameJuice.spawn_burst(&"impact", collision_position, impact_direction, Color(1.0, 0.80, 0.36, 0.75))
+	GameJuice.spawn_burst(&"impact", collision_position, impact_direction, Color(0.98, 0.55, 0.18, 0.9))
 
 	var hit_player: Player = collider as Player
 	if hit_player == null:
-		GameJuice.play_sound_2d(&"impact", collision_position, -12.0, 0.08)
+		GameJuice.play_sound_2d(&"impact", collision_position, -23.0, 0.05)
 		GameJuice.shake(GameSettings.PROJECTILE_IMPACT_SHAKE_STRENGTH, GameSettings.PROJECTILE_IMPACT_SHAKE_TIME)

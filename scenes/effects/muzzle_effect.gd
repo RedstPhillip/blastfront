@@ -36,7 +36,7 @@ func _apply_settings() -> void:
 
 	var tween: Tween = create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(_flash, "modulate:a", 0.0, 0.075).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.tween_property(_flash, "scale", Vector2(1.45, 1.25), 0.075).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tween.tween_property(_core, "modulate:a", 0.0, 0.055).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.tween_property(_core, "scale", Vector2(1.25, 1.25), 0.055).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(_flash, "modulate:a", 0.0, 0.095).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(_flash, "scale", Vector2(1.65, 1.35), 0.095).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(_core, "modulate:a", 0.0, 0.070).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(_core, "scale", Vector2(1.36, 1.28), 0.070).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)

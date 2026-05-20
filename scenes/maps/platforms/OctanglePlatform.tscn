@@ -28,12 +28,6 @@ polygon = PackedVector2Array(10, 0, 7.07, 7.07, 0, 10, -7.07, 7.07, -10, 0, -7.0
 material = SubResource("ShaderMaterial_25qq4")
 polygon = PackedVector2Array(10, 0, 7.07, 7.07, 0, 10, -7.07, 7.07, -10, 0, -7.07, -7.07, -7.07, -7.07, 0, -10, 7.07, -7.07)
 
-[node name="TopEdge" type="Line2D" parent="."]
-z_index = 2
-points = PackedVector2Array(-6.8, -7.0, 0, -9.45, 6.8, -7.0)
-width = 0.42
-default_color = Color(1, 0.86, 0.52, 0.48)
-
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="." unique_id=744499577]
 polygon = PackedVector2Array(10, 0, 7.07, 7.07, 0, 10, -7.07, 7.07, -10, 0, -7.07, -7.07, -7.07, -7.07, 0, -10, 7.07, -7.07)
 

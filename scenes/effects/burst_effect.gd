@@ -30,31 +30,32 @@ func _apply_settings() -> void:
 	_reset_flash_nodes()
 	match _kind:
 		&"run_dust":
-			_configure_particles(5, 0.28, Vector2(-_direction.x, -0.12), 38.0, 92.0, 48.0, Color(0.74, 0.67, 0.52, 0.56), 0.65, 1.65)
-			_configure_specks(3, 0.22, Vector2(-_direction.x, -0.08), 24.0, 64.0, 58.0, Color(0.90, 0.82, 0.62, 0.42), 0.35, 0.95)
+			_configure_particles(7, 0.30, Vector2(-_direction.x, -0.12), 42.0, 108.0, 54.0, Color(0.74, 0.67, 0.52, 0.60), 0.75, 1.85)
+			_configure_specks(4, 0.23, Vector2(-_direction.x, -0.08), 30.0, 76.0, 62.0, Color(0.90, 0.82, 0.62, 0.46), 0.42, 1.05)
 		&"jump":
-			_configure_particles(13, 0.34, Vector2(0.0, 1.0), 58.0, 145.0, 70.0, Color(0.82, 0.78, 0.62, 0.55), 0.8, 2.15)
-			_configure_specks(6, 0.28, Vector2(0.0, 1.0), 40.0, 110.0, 82.0, Color(1.0, 0.92, 0.68, 0.45), 0.35, 1.05)
+			_configure_particles(20, 0.38, Vector2(0.0, 1.0), 72.0, 185.0, 82.0, Color(0.82, 0.78, 0.62, 0.66), 0.95, 2.65)
+			_configure_specks(10, 0.31, Vector2(0.0, 1.0), 54.0, 140.0, 94.0, Color(1.0, 0.92, 0.68, 0.58), 0.42, 1.24)
 		&"land":
-			_configure_particles(18, 0.42, Vector2.UP, 64.0, 170.0, 86.0, Color(0.72, 0.66, 0.54, 0.62), 1.0, 2.8)
-			_configure_specks(10, 0.34, Vector2.UP, 46.0, 126.0, 94.0, Color(0.96, 0.84, 0.58, 0.48), 0.42, 1.15)
+			_configure_particles(28, 0.48, Vector2.UP, 82.0, 220.0, 94.0, Color(0.72, 0.66, 0.54, 0.72), 1.15, 3.25)
+			_configure_specks(16, 0.38, Vector2.UP, 56.0, 156.0, 104.0, Color(0.96, 0.84, 0.58, 0.58), 0.46, 1.30)
 		&"hit":
-			_configure_particles(24, 0.36, _direction, 130.0, 310.0, 48.0, _tint.lerp(Color(1.0, 0.96, 0.76, 1.0), 0.35), 0.7, 1.8)
-			_configure_specks(18, 0.32, _direction, 90.0, 260.0, 62.0, Color(1.0, 0.94, 0.55, 0.75), 0.35, 0.9)
+			_configure_particles(42, 0.42, _direction, 165.0, 390.0, 64.0, _tint.lerp(Color(1.0, 0.96, 0.76, 1.0), 0.30), 0.92, 2.45)
+			_configure_specks(30, 0.36, _direction, 125.0, 340.0, 78.0, Color(1.0, 0.88, 0.28, 0.90), 0.42, 1.12)
+			_play_flash_ring(Color(1.0, 0.88, 0.30, 0.72), 5.0, 28.0, 0.22, 7.0, 0.48)
 		&"impact":
-			_configure_particles(16, 0.30, _direction, 95.0, 230.0, 56.0, Color(1.0, 0.78, 0.34, 0.72), 0.55, 1.35)
-			_configure_specks(12, 0.26, _direction, 90.0, 260.0, 68.0, Color(0.92, 0.92, 0.80, 0.64), 0.28, 0.72)
-			_play_flash_ring(Color(1.0, 0.82, 0.36, 0.55), 5.0, 18.0, 0.18, 5.5, 0.38)
+			_configure_particles(30, 0.36, _direction, 135.0, 320.0, 72.0, Color(0.96, 0.42, 0.12, 0.82), 0.80, 1.95)
+			_configure_specks(22, 0.30, _direction, 120.0, 330.0, 82.0, Color(0.18, 0.12, 0.06, 0.62), 0.38, 0.92)
+			_play_flash_ring(Color(0.98, 0.55, 0.18, 0.64), 5.0, 24.0, 0.20, 6.5, 0.44)
 		&"spawn":
 			var spawn_color: Color = _tint.lerp(Color(0.60, 0.90, 1.0, 1.0), 0.42)
-			_configure_particles(22, 0.48, Vector2.UP, 54.0, 190.0, 180.0, Color(spawn_color.r, spawn_color.g, spawn_color.b, 0.58), 0.7, 2.25)
-			_configure_specks(16, 0.40, Vector2.UP, 72.0, 235.0, 180.0, Color(1.0, 0.96, 0.70, 0.54), 0.30, 0.92)
-			_play_flash_ring(Color(spawn_color.r, spawn_color.g, spawn_color.b, 0.78), 7.0, 32.0, 0.42, 7.0, 0.42)
+			_configure_particles(32, 0.52, Vector2.UP, 66.0, 230.0, 180.0, Color(spawn_color.r, spawn_color.g, spawn_color.b, 0.70), 0.85, 2.85)
+			_configure_specks(22, 0.44, Vector2.UP, 84.0, 275.0, 180.0, Color(1.0, 0.96, 0.70, 0.64), 0.36, 1.05)
+			_play_flash_ring(Color(spawn_color.r, spawn_color.g, spawn_color.b, 0.84), 7.0, 38.0, 0.44, 8.0, 0.48)
 		&"death":
 			var death_color: Color = _tint.lerp(Color(1.0, 0.28, 0.18, 1.0), 0.48)
-			_configure_particles(34, 0.56, Vector2.UP, 92.0, 330.0, 180.0, Color(death_color.r, death_color.g, death_color.b, 0.72), 0.65, 2.5)
-			_configure_specks(24, 0.46, Vector2.UP, 105.0, 360.0, 180.0, Color(1.0, 0.88, 0.48, 0.70), 0.34, 1.05)
-			_play_flash_ring(Color(1.0, 0.38, 0.24, 0.82), 9.0, 46.0, 0.48, 10.0, 0.58)
+			_configure_particles(54, 0.62, Vector2.UP, 120.0, 430.0, 180.0, Color(death_color.r, death_color.g, death_color.b, 0.82), 0.80, 3.10)
+			_configure_specks(36, 0.52, Vector2.UP, 132.0, 450.0, 180.0, Color(1.0, 0.78, 0.32, 0.78), 0.42, 1.24)
+			_play_flash_ring(Color(1.0, 0.34, 0.18, 0.88), 9.0, 54.0, 0.50, 11.5, 0.66)
 		_:
 			_configure_particles(10, 0.30, _direction, 60.0, 150.0, 60.0, _tint, 0.6, 1.5)
 			_configure_specks(5, 0.24, _direction, 40.0, 110.0, 70.0, _tint, 0.3, 0.8)

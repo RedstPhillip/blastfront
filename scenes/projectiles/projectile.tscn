@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://bjlewoy0yf1if"]
 
 [ext_resource type="Script" uid="uid://c4q3tmes2wit2" path="res://scenes/projectiles/projectile.gd" id="1_kj3dy"]
+[ext_resource type="Texture2D" path="res://assets/particles/square_particle.png" id="2_square"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_4bqyh"]
 radius = 2.5
@@ -17,31 +18,32 @@ script = ExtResource("1_kj3dy")
 [node name="Trail" type="CPUParticles2D" parent="." unique_id=310244080]
 z_index = -1
 emitting = true
-amount = 18
-lifetime = 0.16
-randomness = 0.42
-lifetime_randomness = 0.3
+amount = 26
+texture = ExtResource("2_square")
+lifetime = 0.20
+randomness = 0.34
+lifetime_randomness = 0.25
 local_coords = false
 direction = Vector2(-1, 0)
-spread = 18.0
-gravity = Vector2(0, 120)
-initial_velocity_min = 24.0
-initial_velocity_max = 70.0
-damping_min = 60.0
-damping_max = 150.0
-scale_amount_min = 0.28
-scale_amount_max = 0.85
-color = Color(1, 0.76, 0.32, 0.32)
+spread = 14.0
+gravity = Vector2(0, 95)
+initial_velocity_min = 32.0
+initial_velocity_max = 96.0
+damping_min = 56.0
+damping_max = 135.0
+scale_amount_min = 0.38
+scale_amount_max = 1.05
+color = Color(0.08, 0.055, 0.025, 0.50)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1249259322]
 shape = SubResource("CircleShape2D_4bqyh")
 
 [node name="Outline" type="Polygon2D" parent="." unique_id=322871202]
 material = SubResource("CanvasItemMaterial_vd2qy")
-color = Color(0.12, 0.1, 0.08, 0.55)
-polygon = PackedVector2Array(9, 0, -1.25, -3.2, -5, 0, -1.25, 3.2)
+color = Color(0.012, 0.014, 0.012, 0.98)
+polygon = PackedVector2Array(11.5, 0, -2.0, -4.4, -7.2, 0, -2.0, 4.4)
 
 [node name="Polygon2D" type="Polygon2D" parent="." unique_id=1386071066]
 material = SubResource("CanvasItemMaterial_vd2qy")
-color = Color(1, 0.89, 0.34, 1)
-polygon = PackedVector2Array(8, 0, -1, -2.5, -4, 0, -1, 2.5)
+color = Color(0.98, 0.38, 0.055, 1)
+polygon = PackedVector2Array(8.4, 0, -1.2, -2.7, -4.7, 0, -1.2, 2.7)

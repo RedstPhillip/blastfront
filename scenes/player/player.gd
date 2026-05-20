@@ -626,7 +626,7 @@ func _update_surface_feedback(delta: float, grounded: bool, speed_ratio: float) 
 			GameJuice.spawn_burst(&"run_dust", global_position + Vector2(0.0, hover_dist - 2.0), move_direction, Color(0.76, 0.68, 0.50, 0.5))
 			_run_dust_timer = GameSettings.PLAYER_RUN_DUST_INTERVAL
 		if _step_sound_timer <= 0.0:
-			GameJuice.play_sound_2d(&"step", global_position, -18.0 + speed_ratio * 2.0, 0.10)
+			GameJuice.play_sound_2d(&"step", global_position, -29.0 + speed_ratio * 2.0, 0.12)
 			_step_sound_timer = GameSettings.PLAYER_STEP_SOUND_INTERVAL
 	else:
 		_run_dust_timer = minf(_run_dust_timer, GameSettings.PLAYER_RUN_DUST_INTERVAL)

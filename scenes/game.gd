@@ -261,7 +261,7 @@ func _get_camera_target_x() -> float:
 
 func _get_camera_target_zoom() -> float:
 	if NetworkSession.is_steam_match_active():
-		return GameSettings.CAMERA_ONLINE_ZOOM
+		return maxf(GameSettings.CAMERA_ONLINE_ZOOM, _get_vertical_safe_zoom())
 
 	if not _has_player_two():
 		return GameSettings.CAMERA_MAX_ZOOM
@@ -273,6 +273,12 @@ func _get_camera_target_zoom() -> float:
 	)
 	var target_zoom: float = get_viewport_rect().size.x / desired_world_width
 	return clampf(target_zoom, GameSettings.CAMERA_MIN_ZOOM, GameSettings.CAMERA_MAX_ZOOM)
+
+
+func _get_vertical_safe_zoom() -> float:
+	if _camera_bounds.size.y <= 0.0:
+		return GameSettings.CAMERA_MAX_ZOOM
+	return get_viewport_rect().size.y / _camera_bounds.size.y
 
 
 func _get_map_center_x() -> float:
