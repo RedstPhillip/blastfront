@@ -75,6 +75,16 @@ var _step_from_r: Vector2 = Vector2.ZERO
 var _step_to_r: Vector2 = Vector2.ZERO
 var _step_t_r: float = 1.0
 var _can_shoot_when_controls_enabled: bool = true
+var _body_base_scale: Vector2 = Vector2.ONE
+var _body_motion_scale: Vector2 = Vector2.ONE
+var _body_punch_scale: Vector2 = Vector2.ONE
+var _hit_flash_timer: float = 0.0
+var _hit_feedback_guard_timer: float = 0.0
+var _run_dust_timer: float = 0.0
+var _step_sound_timer: float = 0.0
+var _last_feedback_grounded: bool = false
+var _last_feedback_velocity_y: float = 0.0
+var _idle_visual_time: float = 0.0
 
 @onready var _body_sprite: Sprite2D = $Sprite2D
 @onready var _glove: Sprite2D = $ArmRenderer/Glove
@@ -91,12 +101,23 @@ var _arm_renderer: Node = null
 func _ready() -> void:
 	_leg_renderer = get_node_or_null("LegRenderer")
 	_arm_renderer = get_node_or_null("ArmRenderer")
+	_body_base_scale = _body_sprite.scale
 	_update_ground_rays()
 	_initialize_feet()
 	_network_target_position = global_position
 	_network_aim_world_position = global_position + Vector2.LEFT * GameSettings.PLAYER_REMOTE_AIM_DISTANCE
 	_apply_control_mode()
 	_apply_player_palette()
+	_last_feedback_grounded = update_grounded()
+	_last_feedback_velocity_y = velocity.y
+	if not health_component.health_changed.is_connected(_on_health_changed):
+		health_component.health_changed.connect(_on_health_changed)
+	if not health_component.health_depleted.is_connected(_on_health_depleted):
+		health_component.health_depleted.connect(_on_health_depleted)
+
+
+func _process(delta: float) -> void:
+	_update_feedback_visuals(delta)
 
 
 func _physics_process(delta: float) -> void:
@@ -145,6 +166,10 @@ func set_player_color(color_id: StringName) -> void:
 		return
 	player_color_id = color_id
 	_apply_player_palette()
+
+
+func get_visual_tint() -> Color:
+	return GameSettings.player_color_value(_get_effective_color_id())
 
 
 func apply_remote_snapshot(snapshot: Dictionary) -> void:
@@ -277,12 +302,14 @@ func wall_jump() -> void:
 	_wall_coyote_timer = 0.0
 	consume_jump_buffer()
 	_coyote_timer = 0.0
+	_emit_jump_feedback(Vector2(dir, 0.35))
 
 
 func jump() -> void:
 	velocity.y = -jump_velocity
 	_coyote_timer = 0.0
 	consume_jump_buffer()
+	_emit_jump_feedback(Vector2.DOWN)
 
 
 func apply_horizontal_movement(delta: float, max_speed: float, acceleration: float, friction: float) -> float:
@@ -327,6 +354,7 @@ func maintain_hover_height(delta: float) -> void:
 func update_visual_movement(delta: float) -> void:
 	var speed_ratio := clampf(absf(velocity.x) / maxf(speed, 1.0), 0.0, 1.0)
 	var grounded: bool = update_grounded()
+	_update_surface_feedback(delta, grounded, speed_ratio)
 	if grounded:
 		var look := velocity.x * look_ahead
 		var floor_y := global_position.y + hover_dist
@@ -416,6 +444,27 @@ func update_visual_movement(delta: float) -> void:
 	_update_body_sprite_direction()
 
 
+func apply_hit_feedback(source_position: Vector2, damage: int = GameSettings.PROJECTILE_DAMAGE) -> void:
+	var away_from_source: Vector2 = global_position - source_position
+	if away_from_source.length_squared() <= GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
+		away_from_source = Vector2(-last_dir, -0.25)
+	var hit_direction: Vector2 = away_from_source.normalized()
+	var tint: Color = GameSettings.player_color_value(_get_effective_color_id())
+	var damage_ratio: float = clampf(float(damage) / maxf(float(GameSettings.PROJECTILE_DAMAGE), 1.0), 0.75, 1.8)
+
+	_hit_flash_timer = GameSettings.PLAYER_HIT_FLASH_TIME
+	_hit_feedback_guard_timer = 0.09
+	_body_punch_scale = Vector2(1.18, 0.84)
+
+	if control_mode == GameSettings.CONTROL_LOCAL and movement_enabled:
+		velocity.x += hit_direction.x * GameSettings.PLAYER_HIT_KNOCKBACK_X * damage_ratio
+		velocity.y -= GameSettings.PLAYER_HIT_KNOCKBACK_Y * damage_ratio
+
+	GameJuice.spawn_burst(&"hit", global_position, hit_direction, tint)
+	GameJuice.play_sound_2d(&"hit", global_position, -5.0, 0.08)
+	GameJuice.shake(GameSettings.PLAYER_HIT_SHAKE_STRENGTH * damage_ratio, GameSettings.PLAYER_HIT_SHAKE_TIME)
+
+
 func _update_movement_timers(delta: float) -> void:
 	if is_jump_pressed():
 		_jump_buffer_timer = jump_buffer_time
@@ -496,7 +545,7 @@ func _update_body_sprite_direction() -> void:
 	var next_texture: Texture2D = _get_body_texture(effective_color_id, facing_left)
 	if _body_sprite.texture != next_texture:
 		_body_sprite.texture = next_texture
-	_body_sprite.modulate = Color.WHITE if _has_body_texture(effective_color_id, facing_left) else GameSettings.player_color_value(effective_color_id)
+	_body_sprite.modulate = _get_body_sprite_base_modulate(effective_color_id, facing_left)
 	_body_sprite.flip_h = false
 
 
@@ -529,6 +578,10 @@ func _get_body_texture_path(color_id: StringName, facing_left: bool) -> String:
 	return "res://assets/Player/%s_ball%s.png" % [str(color_id), mirrored_suffix]
 
 
+func _get_body_sprite_base_modulate(color_id: StringName, facing_left: bool) -> Color:
+	return Color.WHITE if _has_body_texture(color_id, facing_left) else GameSettings.player_color_value(color_id)
+
+
 func _begin_step(is_left: bool, target: Vector2) -> void:
 	if is_left:
 		_step_from_l = foot_pos_l
@@ -542,3 +595,102 @@ func _begin_step(is_left: bool, target: Vector2) -> void:
 		_step_t_r = 0.0
 		_last_stepped = 1
 		_last_step_time_r = _step_clock
+
+
+func _emit_jump_feedback(direction: Vector2) -> void:
+	var dust_position: Vector2 = global_position + Vector2(0.0, hover_dist - 4.0)
+	_body_punch_scale = Vector2(0.82, 1.16)
+	GameJuice.spawn_burst(&"jump", dust_position, direction, Color(0.86, 0.78, 0.56, 0.65))
+	GameJuice.play_sound_2d(&"jump", global_position, -9.0, 0.07)
+
+
+func _update_surface_feedback(delta: float, grounded: bool, speed_ratio: float) -> void:
+	if grounded and not _last_feedback_grounded:
+		var land_speed: float = maxf(_last_feedback_velocity_y, 0.0)
+		if land_speed >= GameSettings.PLAYER_LAND_EFFECT_MIN_SPEED:
+			var land_ratio: float = clampf(
+				land_speed / GameSettings.PLAYER_HEAVY_LAND_EFFECT_SPEED,
+				0.35,
+				1.35
+			)
+			_body_punch_scale = Vector2(1.12 + land_ratio * 0.07, 0.90 - land_ratio * 0.05)
+			GameJuice.spawn_burst(&"land", global_position + Vector2(0.0, hover_dist - 3.0), Vector2.UP, Color(0.78, 0.70, 0.54, 0.7))
+			GameJuice.play_sound_2d(&"land", global_position, -10.0 + land_ratio * 2.0, 0.06)
+			GameJuice.shake(1.8 * land_ratio, 0.065)
+
+	if grounded and speed_ratio > 0.34 and absf(velocity.x) > GameSettings.PLAYER_VISUAL_SPEED_THRESHOLD:
+		_run_dust_timer -= delta
+		_step_sound_timer -= delta
+		if _run_dust_timer <= 0.0:
+			var move_direction: Vector2 = Vector2(signf(velocity.x), 0.0)
+			GameJuice.spawn_burst(&"run_dust", global_position + Vector2(0.0, hover_dist - 2.0), move_direction, Color(0.76, 0.68, 0.50, 0.5))
+			_run_dust_timer = GameSettings.PLAYER_RUN_DUST_INTERVAL
+		if _step_sound_timer <= 0.0:
+			GameJuice.play_sound_2d(&"step", global_position, -18.0 + speed_ratio * 2.0, 0.10)
+			_step_sound_timer = GameSettings.PLAYER_STEP_SOUND_INTERVAL
+	else:
+		_run_dust_timer = minf(_run_dust_timer, GameSettings.PLAYER_RUN_DUST_INTERVAL)
+		_step_sound_timer = minf(_step_sound_timer, GameSettings.PLAYER_STEP_SOUND_INTERVAL)
+
+	_last_feedback_grounded = grounded
+	_last_feedback_velocity_y = velocity.y
+
+
+func _update_feedback_visuals(delta: float) -> void:
+	if _body_sprite == null:
+		return
+
+	_hit_flash_timer = maxf(_hit_flash_timer - delta, 0.0)
+	_hit_feedback_guard_timer = maxf(_hit_feedback_guard_timer - delta, 0.0)
+
+	var horizontal_ratio: float = clampf(absf(velocity.x) / maxf(speed, 1.0), 0.0, 1.0)
+	var target_scale: Vector2 = Vector2(1.0 + horizontal_ratio * 0.035, 1.0 - horizontal_ratio * 0.02)
+	if _last_feedback_grounded and horizontal_ratio < 0.08:
+		_idle_visual_time += delta
+		var idle_pulse: float = sin(_idle_visual_time * 2.4) * 0.012
+		target_scale = Vector2(1.0 + idle_pulse, 1.0 - idle_pulse)
+	elif not _last_feedback_grounded:
+		var vertical_ratio: float = clampf(absf(velocity.y) / maxf(max_fall_speed, 1.0), 0.0, 1.0)
+		target_scale = Vector2(1.0 - vertical_ratio * 0.045, 1.0 + vertical_ratio * 0.075)
+	else:
+		_idle_visual_time = 0.0
+
+	_body_motion_scale = _body_motion_scale.lerp(target_scale, clampf(delta * GameSettings.PLAYER_BODY_SCALE_LERP_SPEED, 0.0, 1.0))
+	_body_punch_scale = _body_punch_scale.lerp(Vector2.ONE, clampf(delta * GameSettings.PLAYER_BODY_PUNCH_RETURN_SPEED, 0.0, 1.0))
+
+	var combined_scale: Vector2 = Vector2(
+		_body_motion_scale.x * _body_punch_scale.x,
+		_body_motion_scale.y * _body_punch_scale.y
+	)
+	_body_sprite.scale = Vector2(
+		_body_base_scale.x * combined_scale.x,
+		_body_base_scale.y * combined_scale.y
+	)
+
+	var facing_dir: float = signf(last_dir)
+	if facing_dir == 0.0:
+		facing_dir = 1.0
+	var facing_left: bool = facing_dir < 0.0
+	var color_id: StringName = _get_effective_color_id()
+	var base_modulate: Color = _get_body_sprite_base_modulate(color_id, facing_left)
+	if _hit_flash_timer > 0.0:
+		var hit_ratio: float = clampf(_hit_flash_timer / GameSettings.PLAYER_HIT_FLASH_TIME, 0.0, 1.0)
+		_body_sprite.modulate = base_modulate.lerp(Color(1.0, 0.94, 0.70, 1.0), hit_ratio)
+	else:
+		_body_sprite.modulate = base_modulate
+
+
+func _on_health_changed(old_health: int, new_health: int) -> void:
+	if new_health >= old_health or _hit_feedback_guard_timer > 0.0:
+		return
+	var fallback_source: Vector2 = global_position - Vector2(last_dir * 64.0, 0.0)
+	apply_hit_feedback(fallback_source, old_health - new_health)
+
+
+func _on_health_depleted() -> void:
+	var tint: Color = GameSettings.player_color_value(_get_effective_color_id())
+	_hit_flash_timer = GameSettings.PLAYER_HIT_FLASH_TIME
+	_body_punch_scale = Vector2(1.28, 0.72)
+	GameJuice.spawn_burst(&"death", global_position, Vector2.UP, tint)
+	GameJuice.play_sound_2d(&"death", global_position, -4.5, 0.06)
+	GameJuice.shake(GameSettings.PLAYER_DEATH_SHAKE_STRENGTH, GameSettings.PLAYER_DEATH_SHAKE_TIME)

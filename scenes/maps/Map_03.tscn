@@ -7,6 +7,7 @@
 [ext_resource type="PackedScene" uid="uid://d8fo7sfpor56" path="res://scenes/maps/platforms/OctanglePlatform.tscn" id="4_kpb4k"]
 [ext_resource type="PackedScene" uid="uid://ccva00o58sb32" path="res://scenes/maps/platforms/LongPlatform.tscn" id="5_4w2pl"]
 [ext_resource type="PackedScene" uid="uid://dol6a502uukfn" path="res://scenes/maps/platforms/SmallPlatform.tscn" id="7_23d8d"]
+[ext_resource type="PackedScene" path="res://scenes/effects/AmbientAtmosphere.tscn" id="8_atmo"]
 
 [sub_resource type="Gradient" id="Gradient_og561"]
 offsets = PackedFloat32Array(0.16346154, 0.71794873)
@@ -112,6 +113,9 @@ offset_bottom = 1888.0
 scale = Vector2(0.39, 0.39)
 texture = ExtResource("2_23d8d")
 
+[node name="AmbientAtmosphere" parent="." instance=ExtResource("8_atmo")]
+position = Vector2(1140, 350)
+
 [node name="StaticBody2D" type="StaticBody2D" parent="." unique_id=252369944]
 
 [node name="Polygon2D" type="Polygon2D" parent="StaticBody2D" unique_id=270262714]
@@ -127,6 +131,13 @@ polygon = PackedVector2Array(64, 720, 64, 536, 144, 536, 192, 560, 504, 560, 560
 [node name="LightOccluder2D" type="LightOccluder2D" parent="StaticBody2D" unique_id=1284494552]
 position = Vector2(484, 8)
 occluder = SubResource("OccluderPolygon2D_leycp")
+
+[node name="TopEdge" type="Line2D" parent="StaticBody2D"]
+z_index = 3
+position = Vector2(484, 24)
+points = PackedVector2Array(64, 536, 144, 536, 192, 560, 504, 560, 560, 608)
+width = 3.0
+default_color = Color(0.74, 0.76, 0.45, 0.62)
 
 [node name="RectPlatform" parent="." unique_id=1842410348 instance=ExtResource("3_yugup")]
 position = Vector2(1140, 680)
@@ -146,6 +157,13 @@ occluder = SubResource("OccluderPolygon2D_23d8d")
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="StaticBody2D2" unique_id=279067375]
 position = Vector2(1076, 16)
 polygon = PackedVector2Array(656, 704, 656, 528, 576, 528, 528, 552, 216, 552, 160, 600, 160, 704)
+
+[node name="TopEdge" type="Line2D" parent="StaticBody2D2"]
+z_index = 3
+position = Vector2(1076, 16)
+points = PackedVector2Array(656, 528, 576, 528, 528, 552, 216, 552, 160, 600)
+width = 3.0
+default_color = Color(0.74, 0.76, 0.45, 0.62)
 
 [node name="OctanglePlatform" parent="." unique_id=556789199 instance=ExtResource("4_kpb4k")]
 position = Vector2(1140, 488)
@@ -187,6 +205,13 @@ polygon = PackedVector2Array(632, 400, 648, 400, 664, 376, 664, 312, 688, 280, 6
 position = Vector2(500, -24)
 occluder = SubResource("OccluderPolygon2D_iok3r")
 
+[node name="TopEdge" type="Line2D" parent="StaticBody2D3"]
+z_index = 3
+position = Vector2(500, -24)
+points = PackedVector2Array(592, 208, 688, 208, 688, 280, 664, 312)
+width = 2.6
+default_color = Color(0.74, 0.76, 0.45, 0.52)
+
 [node name="LongPlatform3" parent="." unique_id=1168953314 instance=ExtResource("5_4w2pl")]
 position = Vector2(1516, 464)
 scale = Vector2(8, 8)
@@ -220,6 +245,12 @@ polygon = PackedVector2Array(-400, 720, -400, 536, -330, 536, -280, 560, -230, 5
 [node name="LightOccluder2D" type="LightOccluder2D" parent="StaticBody2D4" unique_id=1154846527]
 occluder = SubResource("OccluderPolygon2D_farleft")
 
+[node name="TopEdge" type="Line2D" parent="StaticBody2D4"]
+z_index = 3
+points = PackedVector2Array(-400, 536, -330, 536, -280, 560, -230, 560)
+width = 3.0
+default_color = Color(0.74, 0.76, 0.45, 0.62)
+
 [node name="StaticBody2D5" type="StaticBody2D" parent="." unique_id=1532392800]
 position = Vector2(500, 0)
 
@@ -232,6 +263,12 @@ polygon = PackedVector2Array(1560, 720, 1560, 536, 1490, 536, 1440, 560, 1390, 5
 
 [node name="LightOccluder2D" type="LightOccluder2D" parent="StaticBody2D5" unique_id=1510497244]
 occluder = SubResource("OccluderPolygon2D_farright")
+
+[node name="TopEdge" type="Line2D" parent="StaticBody2D5"]
+z_index = 3
+points = PackedVector2Array(1560, 536, 1490, 536, 1440, 560, 1390, 560)
+width = 3.0
+default_color = Color(0.74, 0.76, 0.45, 0.62)
 
 [node name="LongPlatform5" parent="." unique_id=1875034294 instance=ExtResource("5_4w2pl")]
 position = Vector2(364, 464)

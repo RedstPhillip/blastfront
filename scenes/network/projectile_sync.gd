@@ -227,6 +227,11 @@ func _on_projectile_despawn_requested(projectile: Node, reason: StringName, coll
 
 	var hit_player: Player = collider as Player
 	if hit_player != null and int(hit_player.player_slot) != int(projectile.get("owner_slot")):
+		var projectile_position: Vector2 = hit_player.global_position
+		var projectile_node: Node2D = projectile as Node2D
+		if projectile_node != null:
+			projectile_position = projectile_node.global_position
+		hit_player.apply_hit_feedback(projectile_position, GameSettings.PROJECTILE_DAMAGE)
 		var combat_sync: Variant = game_sync.get_module(GameSettings.MODULE_COMBAT)
 		if combat_sync != null and combat_sync.has_method("apply_hit"):
 			combat_sync.call("apply_hit", int(hit_player.player_slot), int(projectile.get("owner_slot")), net_id)

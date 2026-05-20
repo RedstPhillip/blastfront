@@ -16,9 +16,22 @@ polygon = PackedVector2Array(10, -2, 10, 0, 8, 2, -8, 2, -10, 0, -10, -2, 0, -2)
 
 [node name="LongPlatform" type="StaticBody2D" unique_id=1441916880]
 
+[node name="Shadow" type="Polygon2D" parent="."]
+z_index = -2
+position = Vector2(0, 1.1)
+scale = Vector2(1.05, 1.18)
+color = Color(0.015, 0.025, 0.027, 0.42)
+polygon = PackedVector2Array(10, -2, 10, 0, 8, 2, -8, 2, -10, 0, -10, -2, 0, -2)
+
 [node name="Polygon2D" type="Polygon2D" parent="." unique_id=441828369]
 material = SubResource("ShaderMaterial_tcbjq")
 polygon = PackedVector2Array(10, -2, 10, 0, 8, 2, -8, 2, -10, 0, -10, -2, 0, -2)
+
+[node name="TopEdge" type="Line2D" parent="."]
+z_index = 2
+points = PackedVector2Array(-8.6, -1.62, 8.6, -1.62)
+width = 0.32
+default_color = Color(1, 0.86, 0.52, 0.50)
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="." unique_id=619440234]
 polygon = PackedVector2Array(10, -2, 10, 0, 8, 2, -8, 2, -10, 0, -10, -2, 0, -2)

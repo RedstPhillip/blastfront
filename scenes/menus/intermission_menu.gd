@@ -15,6 +15,7 @@ func _ready() -> void:
 	_local_slot = NetworkSession.local_player_slot
 	_remote_slot = NetworkSession.get_remote_slot()
 	_ready_button.pressed.connect(_on_ready_pressed)
+	GameJuice.attach_button_feedback(self)
 	OnlineMatch.state_changed.connect(_refresh)
 	OnlineMatch.countdown_changed.connect(_on_countdown_changed)
 	_refresh()

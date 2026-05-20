@@ -11,6 +11,7 @@ signal offline_requested
 func _ready() -> void:
 	_offline_button.pressed.connect(_on_offline_pressed)
 	_invite_button.pressed.connect(_on_invite_pressed)
+	GameJuice.attach_button_feedback(self)
 
 	SteamService.status_changed.connect(_refresh)
 	NetworkSession.status_changed.connect(_refresh)

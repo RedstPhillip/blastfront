@@ -5,6 +5,8 @@ extends Control
 @onready var _banner_panel: PanelContainer = %BannerPanel
 @onready var _banner_label: Label = %BannerLabel
 
+var _last_banner_text: String = ""
+
 
 func _ready() -> void:
 	OnlineMatch.state_changed.connect(_refresh)
@@ -51,4 +53,18 @@ func _show_winner_banner(winner_slot: int) -> void:
 	var winner_name: String = OnlineMatch.get_player_color_name(winner_slot).to_upper()
 	_banner_label.text = "%s WON" % winner_name
 	_banner_label.add_theme_color_override("font_color", OnlineMatch.get_player_color(winner_slot))
+	if not _banner_panel.visible or _last_banner_text != _banner_label.text:
+		_play_banner_animation()
+	_last_banner_text = _banner_label.text
 	_banner_panel.show()
+
+
+func _play_banner_animation() -> void:
+	_banner_panel.pivot_offset = _banner_panel.size * GameSettings.HALF
+	_banner_panel.scale = Vector2(0.82, 0.82)
+	_banner_panel.modulate.a = 0.0
+	GameJuice.play_sound(&"ui_click", -8.0, 0.03)
+	var tween: Tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(_banner_panel, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(_banner_panel, "modulate:a", 1.0, 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)

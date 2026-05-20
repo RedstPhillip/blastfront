@@ -1,0 +1,55 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/effects/muzzle_effect.gd" id="1_muzzle"]
+
+[node name="MuzzleEffect" type="Node2D"]
+z_index = 20
+script = ExtResource("1_muzzle")
+
+[node name="Flash" type="Polygon2D" parent="."]
+color = Color(1, 0.82, 0.32, 1)
+polygon = PackedVector2Array(0, 0, 20, -8, 48, 0, 20, 8)
+
+[node name="Core" type="Polygon2D" parent="."]
+color = Color(1, 0.96, 0.76, 1)
+polygon = PackedVector2Array(0, 0, 14, -4, 30, 0, 14, 4)
+
+[node name="Smoke" type="CPUParticles2D" parent="."]
+emitting = false
+amount = 7
+lifetime = 0.22
+one_shot = true
+explosiveness = 0.9
+randomness = 0.42
+lifetime_randomness = 0.25
+local_coords = false
+direction = Vector2(-1, 0)
+spread = 34.0
+gravity = Vector2(0, -20)
+initial_velocity_min = 25.0
+initial_velocity_max = 85.0
+damping_min = 40.0
+damping_max = 120.0
+scale_amount_min = 0.85
+scale_amount_max = 1.8
+color = Color(0.72, 0.68, 0.58, 0.34)
+
+[node name="Sparks" type="CPUParticles2D" parent="."]
+emitting = false
+amount = 9
+lifetime = 0.16
+one_shot = true
+explosiveness = 0.96
+randomness = 0.36
+lifetime_randomness = 0.18
+local_coords = false
+direction = Vector2(1, 0)
+spread = 18.0
+gravity = Vector2(0, 180)
+initial_velocity_min = 130.0
+initial_velocity_max = 290.0
+damping_min = 70.0
+damping_max = 180.0
+scale_amount_min = 0.25
+scale_amount_max = 0.72
+color = Color(1, 0.78, 0.28, 0.78)

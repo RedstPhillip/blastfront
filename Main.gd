@@ -6,7 +6,9 @@ const ONLINE_LOCKER_ROOM_SCENE := preload("res://scenes/menus/OnlineLockerRoom.t
 const INTERMISSION_MENU_SCENE := preload("res://scenes/menus/IntermissionMenu.tscn")
 
 @onready var scene_root: Node = %SceneRoot
+@onready var _transition_fade: ColorRect = %TransitionFade
 var current_scene: Node = null
+var _transition_tween: Tween = null
 
 func _ready() -> void:
 	NetworkSession.lobby_ready.connect(_on_lobby_ready)
@@ -33,6 +35,7 @@ func change_scene(scene: PackedScene) -> Node:
 
 	current_scene = scene.instantiate()
 	scene_root.add_child(current_scene)
+	_play_transition_pulse()
 	return current_scene
 
 
@@ -80,3 +83,13 @@ func _show_locker_room() -> void:
 	if current_scene != null and current_scene.name == "OnlineLockerRoom":
 		return
 	change_scene(ONLINE_LOCKER_ROOM_SCENE)
+
+
+func _play_transition_pulse() -> void:
+	if _transition_fade == null:
+		return
+	if _transition_tween != null and _transition_tween.is_valid():
+		_transition_tween.kill()
+	_transition_fade.modulate.a = 0.42
+	_transition_tween = create_tween()
+	_transition_tween.tween_property(_transition_fade, "modulate:a", 0.0, 0.22).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)

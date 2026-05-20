@@ -25,16 +25,20 @@ func _ready() -> void:
 		_configure_steam_players()
 		_create_game_sync()
 	else:
+		_remove_offline_second_player()
 		_configure_offline_players()
 		_connect_offline_health()
 
 	_set_spawn_positions()
 	_apply_camera_bounds()
 	_camera.make_current()
+	GameJuice.bind_camera(_camera)
 	_camera.global_position = Vector2(
 		_get_camera_target_x(),
 		GameSettings.CAMERA_Y
 	)
+	_camera.zoom = Vector2.ONE * _get_camera_target_zoom()
+	_spawn_initial_feedback()
 	if NetworkSession.is_steam_match_active():
 		_apply_online_player_colors()
 		if OnlineMatch.phase == GameSettings.MATCH_PHASE_PLAYING_SET:
@@ -44,6 +48,7 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
+	GameJuice.clear_camera(_camera)
 	if OnlineMatch.phase_changed.is_connected(_on_online_phase_changed):
 		OnlineMatch.phase_changed.disconnect(_on_online_phase_changed)
 	if OnlineMatch.state_changed.is_connected(_on_online_state_changed):
@@ -56,6 +61,11 @@ func _process(delta: float) -> void:
 		_camera.global_position.x,
 		target_x,
 		delta * GameSettings.CAMERA_FOLLOW_SPEED
+	)
+	var target_zoom: float = _get_camera_target_zoom()
+	_camera.zoom = _camera.zoom.lerp(
+		Vector2.ONE * target_zoom,
+		clampf(delta * GameSettings.CAMERA_ZOOM_SPEED, 0.0, 1.0)
 	)
 	_update_score_display()
 
@@ -121,7 +131,7 @@ func build_authoritative_shot(owner_slot: int) -> Dictionary:
 
 
 func _configure_offline_players() -> void:
-	_local_player = null
+	_local_player = _player_1
 	_configure_local_player(
 		_player_1,
 		GameSettings.PLAYER_ONE_SLOT,
@@ -131,15 +141,15 @@ func _configure_offline_players() -> void:
 		GameSettings.INPUT_P1_SHOOT,
 		true
 	)
-	_configure_local_player(
-		_player_2,
-		GameSettings.PLAYER_TWO_SLOT,
-		GameSettings.INPUT_P2_MOVE_LEFT,
-		GameSettings.INPUT_P2_MOVE_RIGHT,
-		GameSettings.INPUT_P2_JUMP,
-		GameSettings.INPUT_P2_SHOOT,
-		true
-	)
+
+
+func _remove_offline_second_player() -> void:
+	if _player_2 == null:
+		return
+	var removed_player: Player = _player_2
+	_player_2 = null
+	remove_child(removed_player)
+	removed_player.queue_free()
 
 
 func _configure_steam_players() -> void:
@@ -203,14 +213,18 @@ func get_projectiles_root() -> Node2D:
 func respawn_players() -> void:
 	_set_spawn_positions()
 	_player_1.velocity = Vector2.ZERO
-	_player_2.velocity = Vector2.ZERO
+	_spawn_respawn_feedback(_player_1)
+	if _has_player_two():
+		_player_2.velocity = Vector2.ZERO
+		_spawn_respawn_feedback(_player_2)
 
 
 func _set_spawn_positions() -> void:
 	_player_1.global_position = _get_spawn_position(GameSettings.PLAYER_ONE_SPAWN_MARKER, GameSettings.PLAYER_ONE_SPAWN)
 	_player_1.last_dir = GameSettings.PLAYER_ONE_START_FACING
-	_player_2.global_position = _get_spawn_position(GameSettings.PLAYER_TWO_SPAWN_MARKER, GameSettings.PLAYER_TWO_SPAWN)
-	_player_2.last_dir = GameSettings.PLAYER_TWO_START_FACING
+	if _has_player_two():
+		_player_2.global_position = _get_spawn_position(GameSettings.PLAYER_TWO_SPAWN_MARKER, GameSettings.PLAYER_TWO_SPAWN)
+		_player_2.last_dir = GameSettings.PLAYER_TWO_START_FACING
 
 
 func _get_spawn_position(marker_name: StringName, fallback_position: Vector2) -> Vector2:
@@ -239,7 +253,26 @@ func _get_camera_target_x() -> float:
 	if NetworkSession.is_steam_match_active() and _local_player != null:
 		return (_local_player.global_position.x + _get_map_center_x()) * GameSettings.HALF
 
+	if not _has_player_two():
+		return _player_1.global_position.x
+
 	return (_player_1.global_position.x + _player_2.global_position.x) * GameSettings.HALF
+
+
+func _get_camera_target_zoom() -> float:
+	if NetworkSession.is_steam_match_active():
+		return GameSettings.CAMERA_ONLINE_ZOOM
+
+	if not _has_player_two():
+		return GameSettings.CAMERA_MAX_ZOOM
+
+	var player_distance: float = absf(_player_1.global_position.x - _player_2.global_position.x)
+	var desired_world_width: float = maxf(
+		player_distance + GameSettings.CAMERA_DUEL_PADDING_X,
+		get_viewport_rect().size.x
+	)
+	var target_zoom: float = get_viewport_rect().size.x / desired_world_width
+	return clampf(target_zoom, GameSettings.CAMERA_MIN_ZOOM, GameSettings.CAMERA_MAX_ZOOM)
 
 
 func _get_map_center_x() -> float:
@@ -248,11 +281,16 @@ func _get_map_center_x() -> float:
 
 func _connect_offline_health() -> void:
 	_player_1.health_component.health_depleted.connect(_on_offline_health_depleted.bind(1))
-	_player_2.health_component.health_depleted.connect(_on_offline_health_depleted.bind(2))
+	if _has_player_two():
+		_player_2.health_component.health_depleted.connect(_on_offline_health_depleted.bind(2))
 
 
 func _on_offline_health_depleted(slot: int) -> void:
 	if _offline_match_over:
+		return
+
+	if not _has_player_two():
+		_heal_and_respawn()
 		return
 
 	var source_slot := GameSettings.PLAYER_TWO_SLOT if slot == GameSettings.PLAYER_ONE_SLOT else GameSettings.PLAYER_ONE_SLOT
@@ -269,7 +307,8 @@ func _on_offline_health_depleted(slot: int) -> void:
 func _heal_and_respawn() -> void:
 	respawn_players()
 	_player_1.health_component.heal(_player_1.health_component.max_health)
-	_player_2.health_component.heal(_player_2.health_component.max_health)
+	if _has_player_two():
+		_player_2.health_component.heal(_player_2.health_component.max_health)
 
 
 func _update_score_display() -> void:
@@ -279,6 +318,9 @@ func _update_score_display() -> void:
 	if NetworkSession.is_steam_match_active() and _game_sync != null:
 		_score_label.hide()
 	elif not NetworkSession.is_steam_match_active():
+		if not _has_player_two():
+			_score_label.hide()
+			return
 		_score_label.text = "%d - %d" % [
 			_offline_score.get(GameSettings.PLAYER_ONE_SLOT, 0),
 			_offline_score.get(GameSettings.PLAYER_TWO_SLOT, 0),
@@ -289,7 +331,7 @@ func _update_score_display() -> void:
 func _get_player_by_slot(slot: int) -> Player:
 	if slot == GameSettings.PLAYER_ONE_SLOT:
 		return _player_1
-	if slot == GameSettings.PLAYER_TWO_SLOT:
+	if slot == GameSettings.PLAYER_TWO_SLOT and _has_player_two():
 		return _player_2
 	return null
 
@@ -315,12 +357,14 @@ func _prepare_online_round() -> void:
 
 func _set_player_controls_enabled(enabled: bool) -> void:
 	_player_1.set_controls_enabled(enabled)
-	_player_2.set_controls_enabled(enabled)
+	if _has_player_two():
+		_player_2.set_controls_enabled(enabled)
 
 
 func _heal_players() -> void:
 	_player_1.health_component.heal(_player_1.health_component.max_health)
-	_player_2.health_component.heal(_player_2.health_component.max_health)
+	if _has_player_two():
+		_player_2.health_component.heal(_player_2.health_component.max_health)
 
 
 func _clear_projectiles() -> void:
@@ -330,4 +374,25 @@ func _clear_projectiles() -> void:
 
 func _apply_online_player_colors() -> void:
 	_player_1.set_player_color(OnlineMatch.get_player_color_id(GameSettings.PLAYER_ONE_SLOT))
-	_player_2.set_player_color(OnlineMatch.get_player_color_id(GameSettings.PLAYER_TWO_SLOT))
+	if _has_player_two():
+		_player_2.set_player_color(OnlineMatch.get_player_color_id(GameSettings.PLAYER_TWO_SLOT))
+
+
+func _spawn_respawn_feedback(player: Player) -> void:
+	if player == null:
+		return
+	var tint: Color = player.get_visual_tint()
+	var spawn_position: Vector2 = player.global_position + Vector2(0.0, player.hover_dist - 4.0)
+	GameJuice.spawn_burst(&"spawn", spawn_position, Vector2.UP, tint)
+	GameJuice.play_sound_2d(&"spawn", player.global_position, -10.0, 0.05)
+	GameJuice.shake(GameSettings.PLAYER_SPAWN_SHAKE_STRENGTH, GameSettings.PLAYER_SPAWN_SHAKE_TIME)
+
+
+func _spawn_initial_feedback() -> void:
+	_spawn_respawn_feedback(_player_1)
+	if _has_player_two():
+		_spawn_respawn_feedback(_player_2)
+
+
+func _has_player_two() -> bool:
+	return _player_2 != null and is_instance_valid(_player_2)

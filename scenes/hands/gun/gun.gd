@@ -14,6 +14,8 @@ const PROJECTILE_SCENE := preload("res://scenes/projectiles/projectile.tscn")
 var _aim_direction: Vector2 = Vector2.LEFT
 var _pointing_right: bool = false
 var _fire_cooldown: float = 0.0
+var _recoil_offset: float = 0.0
+var _recoil_rotation: float = 0.0
 
 @onready var _player: Player = get_parent() as Player
 @onready var _visual_root: Node2D = $VisualRoot
@@ -25,6 +27,8 @@ func _physics_process(delta: float) -> void:
 		return
 
 	_fire_cooldown = maxf(_fire_cooldown - delta, 0.0)
+	_recoil_offset = move_toward(_recoil_offset, 0.0, GameSettings.GUN_RECOIL_RETURN_SPEED * delta)
+	_recoil_rotation = lerp_angle(_recoil_rotation, 0.0, clampf(delta * 18.0, 0.0, 1.0))
 
 	var aim_position: Vector2 = _player.get_aim_world_position()
 	var aim_vector: Vector2 = aim_position - _player.global_position
@@ -40,18 +44,20 @@ func _physics_process(delta: float) -> void:
 
 
 func _shoot() -> void:
+	var direction: Vector2 = get_shot_direction()
+	var muzzle_position: Vector2 = get_muzzle_global_position()
+	_play_fire_feedback(direction, muzzle_position)
+
 	var world: Node = get_tree().get_first_node_in_group("game_world")
 	if world == null:
 		world = _player.get_parent()
 	if world != null and world.has_method("request_shot"):
-		var direction: Vector2 = get_shot_direction()
-		world.request_shot(_player, get_muzzle_global_position(), direction, _build_projectile_data(direction))
+		world.request_shot(_player, muzzle_position, direction, _build_projectile_data(direction))
 		return
 
 	if world == null or not world.has_method("spawn_projectile"):
 		return
 
-	var direction: Vector2 = get_shot_direction()
 	var projectile: Node2D = PROJECTILE_SCENE.instantiate() as Node2D
 	projectile.set("direction", direction)
 	projectile.set("muzzle_speed", projectile_speed)
@@ -59,7 +65,7 @@ func _shoot() -> void:
 	projectile.set("linear_damping", projectile_linear_damping)
 	projectile.set("max_distance", projectile_max_distance)
 	projectile.set("initial_velocity", direction * projectile_speed)
-	world.spawn_projectile(projectile, get_muzzle_global_position())
+	world.spawn_projectile(projectile, muzzle_position)
 
 
 func build_shot_data() -> Dictionary:
@@ -102,9 +108,11 @@ func _update_visual_transform() -> void:
 	if _player == null or _visual_root == null:
 		return
 
-	global_position = _player.global_position + _aim_direction * orbit_radius
-	global_rotation = _aim_direction.angle() + deg_to_rad(aim_angle_offset_degrees)
-	_visual_root.scale.y = -1.0 if _pointing_right else 1.0
+	var current_radius: float = maxf(orbit_radius - _recoil_offset, orbit_radius * 0.58)
+	global_position = _player.global_position + _aim_direction * current_radius
+	global_rotation = _aim_direction.angle() + deg_to_rad(aim_angle_offset_degrees) + _recoil_rotation
+	_visual_root.scale.x = 1.0 + _recoil_offset * 0.008
+	_visual_root.scale.y = (-1.0 if _pointing_right else 1.0) * (1.0 - _recoil_offset * 0.004)
 
 
 func _build_projectile_data(direction: Vector2) -> Dictionary:
@@ -115,3 +123,12 @@ func _build_projectile_data(direction: Vector2) -> Dictionary:
 		"max_distance": projectile_max_distance,
 		"initial_velocity": direction * projectile_speed,
 	}
+
+
+func _play_fire_feedback(direction: Vector2, muzzle_position: Vector2) -> void:
+	_recoil_offset = GameSettings.GUN_RECOIL_DISTANCE
+	var recoil_side: float = -1.0 if _pointing_right else 1.0
+	_recoil_rotation = deg_to_rad(GameSettings.GUN_RECOIL_ROTATION_DEGREES) * recoil_side
+	GameJuice.spawn_muzzle(muzzle_position, direction)
+	GameJuice.play_sound_2d(&"shoot", muzzle_position, -6.5, 0.06)
+	GameJuice.shake(GameSettings.GUN_FIRE_SHAKE_STRENGTH, GameSettings.GUN_FIRE_SHAKE_TIME)

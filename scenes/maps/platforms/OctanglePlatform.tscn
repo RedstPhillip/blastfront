@@ -17,9 +17,22 @@ polygon = PackedVector2Array(10, 0, 7.07, 7.07, 0, 10, -7.07, 7.07, -10, 0, -7.0
 [node name="OctanglePlatform" type="StaticBody2D" unique_id=556789199]
 rotation = 0.3926991
 
+[node name="Shadow" type="Polygon2D" parent="."]
+z_index = -2
+position = Vector2(0, 1.1)
+scale = Vector2(1.08, 1.08)
+color = Color(0.015, 0.025, 0.027, 0.42)
+polygon = PackedVector2Array(10, 0, 7.07, 7.07, 0, 10, -7.07, 7.07, -10, 0, -7.07, -7.07, -7.07, -7.07, 0, -10, 7.07, -7.07)
+
 [node name="Polygon2D" type="Polygon2D" parent="." unique_id=1237098651]
 material = SubResource("ShaderMaterial_25qq4")
 polygon = PackedVector2Array(10, 0, 7.07, 7.07, 0, 10, -7.07, 7.07, -10, 0, -7.07, -7.07, -7.07, -7.07, 0, -10, 7.07, -7.07)
+
+[node name="TopEdge" type="Line2D" parent="."]
+z_index = 2
+points = PackedVector2Array(-6.8, -7.0, 0, -9.45, 6.8, -7.0)
+width = 0.42
+default_color = Color(1, 0.86, 0.52, 0.48)
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="." unique_id=744499577]
 polygon = PackedVector2Array(10, 0, 7.07, 7.07, 0, 10, -7.07, 7.07, -10, 0, -7.07, -7.07, -7.07, -7.07, 0, -10, 7.07, -7.07)

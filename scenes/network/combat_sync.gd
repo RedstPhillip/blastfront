@@ -51,7 +51,12 @@ func _handle_player_killed(target_slot: int, source_slot: int) -> void:
 func handle_packet(packet: Dictionary) -> void:
 	var payload := _get_payload(packet)
 	var packet_type: StringName = StringName(str(packet.get("type", "")))
-	if packet_type == GameSettings.PACKET_HEALTH_CHANGED:
+	if packet_type == GameSettings.PACKET_PLAYER_HIT:
+		var target_slot: int = int(payload.get("target_slot", 0))
+		var source_slot: int = int(payload.get("source_slot", 0))
+		var damage: int = int(payload.get("damage", GameSettings.PROJECTILE_DAMAGE))
+		_apply_remote_hit_feedback(target_slot, source_slot, damage)
+	elif packet_type == GameSettings.PACKET_HEALTH_CHANGED:
 		var slot: int = int(payload.get("slot", 0))
 		var health: int = int(payload.get("health", 0))
 		_set_player_health(slot, health)
@@ -106,6 +111,18 @@ func _set_player_health(slot: int, health: int) -> void:
 	var player: Player = _get_player(slot)
 	if player != null and player.health_component != null:
 		player.health_component.health = health
+
+
+func _apply_remote_hit_feedback(target_slot: int, source_slot: int, damage: int) -> void:
+	var target_player: Player = _get_player(target_slot)
+	if target_player == null:
+		return
+
+	var source_position: Vector2 = target_player.global_position - Vector2(target_player.last_dir * 64.0, 0.0)
+	var source_player: Player = _get_player(source_slot)
+	if source_player != null:
+		source_position = source_player.global_position
+	target_player.apply_hit_feedback(source_position, damage)
 
 
 func _get_player(slot: int) -> Player:

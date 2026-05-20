@@ -20,6 +20,7 @@ config/icon="res://icon.svg"
 SteamService="*res://autoload/steam_service.gd"
 NetworkSession="*res://autoload/network_session.gd"
 OnlineMatch="*res://autoload/online_match.gd"
+GameJuice="*res://autoload/game_juice.gd"
 
 [display]
 

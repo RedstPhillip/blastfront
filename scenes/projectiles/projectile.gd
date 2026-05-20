@@ -63,6 +63,7 @@ func _update_rotation() -> void:
 
 func _on_collision(collision: KinematicCollision2D) -> void:
 	var collider: Object = collision.get_collider()
+	_play_collision_feedback(collision, collider)
 	if net_id == 0:
 		_apply_local_collision_damage(collider)
 	_request_despawn(&"collision", collider)
@@ -71,6 +72,7 @@ func _on_collision(collision: KinematicCollision2D) -> void:
 func _apply_local_collision_damage(collider: Object) -> void:
 	var player: Player = collider as Player
 	if player != null:
+		player.apply_hit_feedback(global_position, GameSettings.PROJECTILE_DAMAGE)
 		player.health_component.damage(GameSettings.PROJECTILE_DAMAGE)
 
 
@@ -82,3 +84,17 @@ func _request_despawn(reason: StringName, collider: Object) -> void:
 	if is_network_authority:
 		despawn_requested.emit(self, reason, collider)
 	queue_free()
+
+
+func _play_collision_feedback(collision: KinematicCollision2D, collider: Object) -> void:
+	var collision_position: Vector2 = collision.get_position()
+	var impact_direction: Vector2 = collision.get_normal()
+	if impact_direction.length_squared() <= GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED and velocity.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
+		impact_direction = -velocity.normalized()
+
+	GameJuice.spawn_burst(&"impact", collision_position, impact_direction, Color(1.0, 0.80, 0.36, 0.75))
+
+	var hit_player: Player = collider as Player
+	if hit_player == null:
+		GameJuice.play_sound_2d(&"impact", collision_position, -12.0, 0.08)
+		GameJuice.shake(GameSettings.PROJECTILE_IMPACT_SHAKE_STRENGTH, GameSettings.PROJECTILE_IMPACT_SHAKE_TIME)

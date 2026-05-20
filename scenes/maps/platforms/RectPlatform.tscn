@@ -20,10 +20,23 @@ polygon = PackedVector2Array(10, -10, 10, 10, -10, 10, -10, -10)
 
 [node name="RectPlatform" type="StaticBody2D" unique_id=1842410348]
 
+[node name="Shadow" type="Polygon2D" parent="."]
+z_index = -2
+position = Vector2(0, 1.4)
+scale = Vector2(1.06, 1.08)
+color = Color(0.015, 0.028, 0.03, 0.42)
+polygon = PackedVector2Array(10, -10, 10, 10, -10, 10, -10, -10)
+
 [node name="Polygon2D" type="Polygon2D" parent="." unique_id=1533662310]
 material = SubResource("ShaderMaterial_kayhf")
 polygon = PackedVector2Array(10, -10, 10, 10, -10, 10, -10, -10)
 uv = PackedVector2Array(10, -10, 10, 10, -10, 10, -10, -10, 37.5, 21.5, 184.5, -53.5)
+
+[node name="TopEdge" type="Line2D" parent="."]
+z_index = 2
+points = PackedVector2Array(-8.5, -9.4, 8.5, -9.4)
+width = 0.55
+default_color = Color(0.72, 0.96, 0.78, 0.48)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1554948881]
 shape = SubResource("RectangleShape2D_lcgcs")

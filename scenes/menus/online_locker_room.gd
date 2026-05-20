@@ -34,6 +34,7 @@ func _ready() -> void:
 
 	_invite_button.pressed.connect(_on_invite_pressed)
 	_help_dismiss_button.pressed.connect(_on_help_dismiss_pressed)
+	GameJuice.attach_button_feedback(self)
 	OnlineMatch.state_changed.connect(_refresh)
 	NetworkSession.status_changed.connect(_refresh)
 	NetworkSession.peer_changed.connect(_refresh)
