@@ -24,6 +24,7 @@ var _remote_slot: int = GameSettings.PLAYER_TWO_SLOT
 var _local_player: Player = null
 var _remote_player: Player = null
 var _send_timer: float = 0.0
+var _last_locker_countdown_sound_second: int = -1
 
 
 func _ready() -> void:
@@ -292,10 +293,18 @@ func _update_color_target_visual(target: StaticBody2D, is_unavailable: bool) -> 
 func _update_countdown_label() -> void:
 	if OnlineMatch.locker_countdown_remaining < 0.0:
 		_countdown_label.hide()
+		_last_locker_countdown_sound_second = -1
 		return
 
-	_countdown_label.text = "%d" % int(ceil(OnlineMatch.locker_countdown_remaining))
+	var seconds_left: int = int(ceil(OnlineMatch.locker_countdown_remaining))
+	_countdown_label.text = "%d" % seconds_left
 	_countdown_label.show()
+	if seconds_left > 0 and seconds_left != _last_locker_countdown_sound_second:
+		_last_locker_countdown_sound_second = seconds_left
+		GameJuice.play_sound(&"ui_click", -9.0, 0.025)
+		var tween: Tween = create_tween()
+		tween.tween_property(_countdown_label, "scale", Vector2(1.14, 1.14), 0.055).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tween.tween_property(_countdown_label, "scale", Vector2.ONE, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 func _get_slot_name(slot: int) -> String:

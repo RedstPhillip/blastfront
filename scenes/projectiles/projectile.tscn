@@ -18,22 +18,22 @@ script = ExtResource("1_kj3dy")
 [node name="Trail" type="CPUParticles2D" parent="." unique_id=310244080]
 z_index = -1
 emitting = true
-amount = 26
+amount = 14
 texture = ExtResource("2_square")
-lifetime = 0.20
+lifetime = 0.12
 randomness = 0.34
 lifetime_randomness = 0.25
 local_coords = false
 direction = Vector2(-1, 0)
 spread = 14.0
 gravity = Vector2(0, 95)
-initial_velocity_min = 32.0
-initial_velocity_max = 96.0
+initial_velocity_min = 24.0
+initial_velocity_max = 72.0
 damping_min = 56.0
 damping_max = 135.0
-scale_amount_min = 0.38
-scale_amount_max = 1.05
-color = Color(0.08, 0.055, 0.025, 0.50)
+scale_amount_min = 0.24
+scale_amount_max = 0.62
+color = Color(0.08, 0.055, 0.025, 0.34)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1249259322]
 shape = SubResource("CircleShape2D_4bqyh")

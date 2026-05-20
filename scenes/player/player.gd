@@ -85,6 +85,9 @@ var _step_sound_timer: float = 0.0
 var _last_feedback_grounded: bool = false
 var _last_feedback_velocity_y: float = 0.0
 var _idle_visual_time: float = 0.0
+var _is_eliminated: bool = false
+var _default_collision_layer: int = 0
+var _default_collision_mask: int = 0
 
 @onready var _body_sprite: Sprite2D = $Sprite2D
 @onready var _glove: Sprite2D = $ArmRenderer/Glove
@@ -101,6 +104,8 @@ var _arm_renderer: Node = null
 func _ready() -> void:
 	_leg_renderer = get_node_or_null("LegRenderer")
 	_arm_renderer = get_node_or_null("ArmRenderer")
+	_default_collision_layer = collision_layer
+	_default_collision_mask = collision_mask
 	_body_base_scale = _body_sprite.scale
 	_update_ground_rays()
 	_initialize_feet()
@@ -117,10 +122,14 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	if _is_eliminated:
+		return
 	_update_feedback_visuals(delta)
 
 
 func _physics_process(delta: float) -> void:
+	if _is_eliminated:
+		return
 	_update_ground_rays()
 	_step_clock += delta
 	if control_mode == GameSettings.CONTROL_REMOTE:
@@ -157,8 +166,8 @@ func configure_remote_control(slot: int) -> void:
 
 
 func set_controls_enabled(enabled: bool) -> void:
-	movement_enabled = enabled
-	shooting_enabled = enabled and _can_shoot_when_controls_enabled
+	movement_enabled = enabled and not _is_eliminated
+	shooting_enabled = movement_enabled and _can_shoot_when_controls_enabled
 
 
 func set_player_color(color_id: StringName) -> void:
@@ -170,6 +179,36 @@ func set_player_color(color_id: StringName) -> void:
 
 func get_visual_tint() -> Color:
 	return GameSettings.player_color_value(_get_effective_color_id())
+
+
+func is_eliminated() -> bool:
+	return _is_eliminated
+
+
+func set_eliminated(eliminated: bool) -> void:
+	if _is_eliminated == eliminated:
+		return
+
+	_is_eliminated = eliminated
+	visible = not eliminated
+	collision_layer = 0 if eliminated else _default_collision_layer
+	collision_mask = 0 if eliminated else _default_collision_mask
+	velocity = Vector2.ZERO
+	_hit_flash_timer = 0.0
+	_hit_feedback_guard_timer = 0.0
+
+	if eliminated:
+		movement_enabled = false
+		shooting_enabled = false
+		_has_network_target = false
+		if _state_machine != null:
+			_state_machine.process_mode = Node.PROCESS_MODE_DISABLED
+	else:
+		_apply_control_mode()
+		shooting_enabled = movement_enabled and _can_shoot_when_controls_enabled
+		_initialize_feet()
+		_last_feedback_grounded = update_grounded()
+		_last_feedback_velocity_y = velocity.y
 
 
 func apply_remote_snapshot(snapshot: Dictionary) -> void:
@@ -246,6 +285,8 @@ func _apply_control_mode() -> void:
 
 
 func _physics_process_remote(delta: float) -> void:
+	if _is_eliminated:
+		return
 	if not _has_network_target:
 		return
 
@@ -615,8 +656,8 @@ func _update_surface_feedback(delta: float, grounded: bool, speed_ratio: float) 
 			)
 			_body_punch_scale = Vector2(1.12 + land_ratio * 0.07, 0.90 - land_ratio * 0.05)
 			GameJuice.spawn_burst(&"land", global_position + Vector2(0.0, hover_dist - 3.0), Vector2.UP, Color(0.78, 0.70, 0.54, 0.7))
-			GameJuice.play_sound_2d(&"land", global_position, -10.0 + land_ratio * 2.0, 0.06)
-			GameJuice.shake(1.8 * land_ratio, 0.065)
+			GameJuice.play_sound_2d(&"land", global_position, -17.0 + land_ratio * 1.5, 0.05)
+			GameJuice.shake(0.75 * land_ratio, 0.055)
 
 	if grounded and speed_ratio > 0.34 and absf(velocity.x) > GameSettings.PLAYER_VISUAL_SPEED_THRESHOLD:
 		_run_dust_timer -= delta
@@ -688,9 +729,12 @@ func _on_health_changed(old_health: int, new_health: int) -> void:
 
 
 func _on_health_depleted() -> void:
+	if _is_eliminated:
+		return
 	var tint: Color = GameSettings.player_color_value(_get_effective_color_id())
 	_hit_flash_timer = GameSettings.PLAYER_HIT_FLASH_TIME
 	_body_punch_scale = Vector2(1.28, 0.72)
 	GameJuice.spawn_burst(&"death", global_position, Vector2.UP, tint)
 	GameJuice.play_sound_2d(&"death", global_position, -4.5, 0.06)
 	GameJuice.shake(GameSettings.PLAYER_DEATH_SHAKE_STRENGTH, GameSettings.PLAYER_DEATH_SHAKE_TIME)
+	set_eliminated(true)

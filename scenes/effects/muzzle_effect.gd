@@ -18,7 +18,7 @@ func configure(direction: Vector2, tint: Color = Color(1.0, 0.82, 0.38, 1.0)) ->
 
 func _ready() -> void:
 	_apply_settings()
-	await get_tree().create_timer(0.24).timeout
+	await get_tree().create_timer(0.18).timeout
 	queue_free()
 
 
@@ -36,7 +36,7 @@ func _apply_settings() -> void:
 
 	var tween: Tween = create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(_flash, "modulate:a", 0.0, 0.095).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.tween_property(_flash, "scale", Vector2(1.65, 1.35), 0.095).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tween.tween_property(_core, "modulate:a", 0.0, 0.070).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.tween_property(_core, "scale", Vector2(1.36, 1.28), 0.070).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(_flash, "modulate:a", 0.0, 0.070).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(_flash, "scale", Vector2(1.32, 1.18), 0.070).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(_core, "modulate:a", 0.0, 0.052).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(_core, "scale", Vector2(1.18, 1.12), 0.052).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)

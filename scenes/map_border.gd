@@ -73,6 +73,8 @@ func _get_tracked_players() -> Array[Node2D]:
 	var players: Array[Node2D] = []
 	for node in get_tree().get_nodes_in_group(GameSettings.PLAYERS_GROUP):
 		if node is Node2D:
+			if node.has_method("is_eliminated") and node.call("is_eliminated") == true:
+				continue
 			players.append(node)
 	return players
 

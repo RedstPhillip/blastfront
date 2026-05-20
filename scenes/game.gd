@@ -212,9 +212,13 @@ func get_projectiles_root() -> Node2D:
 
 func respawn_players() -> void:
 	_set_spawn_positions()
+	_player_1.set_eliminated(false)
+	_player_1.set_controls_enabled(true)
 	_player_1.velocity = Vector2.ZERO
 	_spawn_respawn_feedback(_player_1)
 	if _has_player_two():
+		_player_2.set_eliminated(false)
+		_player_2.set_controls_enabled(true)
 		_player_2.velocity = Vector2.ZERO
 		_spawn_respawn_feedback(_player_2)
 
@@ -296,10 +300,10 @@ func _on_offline_health_depleted(slot: int) -> void:
 		return
 
 	if not _has_player_two():
-		_heal_and_respawn()
+		_heal_and_respawn_after_delay()
 		return
 
-	var source_slot := GameSettings.PLAYER_TWO_SLOT if slot == GameSettings.PLAYER_ONE_SLOT else GameSettings.PLAYER_ONE_SLOT
+	var source_slot: int = GameSettings.PLAYER_TWO_SLOT if slot == GameSettings.PLAYER_ONE_SLOT else GameSettings.PLAYER_ONE_SLOT
 	_offline_score[source_slot] = _offline_score.get(source_slot, 0) + 1
 
 	if _offline_score[source_slot] >= GameSettings.MATCH_WINS_NEEDED:
@@ -307,14 +311,21 @@ func _on_offline_health_depleted(slot: int) -> void:
 		_score_label.text = "Player %d wins!" % source_slot
 		return
 
-	_heal_and_respawn()
+	_heal_and_respawn_after_delay()
 
 
 func _heal_and_respawn() -> void:
-	respawn_players()
 	_player_1.health_component.heal(_player_1.health_component.max_health)
 	if _has_player_two():
 		_player_2.health_component.heal(_player_2.health_component.max_health)
+	respawn_players()
+
+
+func _heal_and_respawn_after_delay() -> void:
+	await get_tree().create_timer(GameSettings.PLAYER_RESPAWN_DELAY).timeout
+	if not is_inside_tree():
+		return
+	_heal_and_respawn()
 
 
 func _update_score_display() -> void:

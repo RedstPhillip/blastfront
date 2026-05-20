@@ -23,6 +23,7 @@ var _camera_base_offset: Vector2 = Vector2.ZERO
 var _shake_time: float = 0.0
 var _shake_duration: float = 0.0
 var _shake_strength: float = 0.0
+var _shake_offset: Vector2 = Vector2.ZERO
 var _button_tweens: Dictionary = {}
 
 
@@ -39,12 +40,15 @@ func _process(delta: float) -> void:
 		_shake_time = maxf(_shake_time - delta, 0.0)
 		var ratio: float = _shake_time / maxf(_shake_duration, 0.001)
 		var strength: float = _shake_strength * ratio * ratio
-		_camera.offset = _camera_base_offset + Vector2(
+		var target_offset: Vector2 = Vector2(
 			_rng.randf_range(-strength, strength),
 			_rng.randf_range(-strength, strength)
 		)
+		_shake_offset = _shake_offset.lerp(target_offset, clampf(delta * 34.0, 0.0, 1.0))
+		_camera.offset = _camera_base_offset + _shake_offset
 	else:
-		_camera.offset = _camera.offset.lerp(_camera_base_offset, clampf(delta * 20.0, 0.0, 1.0))
+		_shake_offset = _shake_offset.lerp(Vector2.ZERO, clampf(delta * 18.0, 0.0, 1.0))
+		_camera.offset = _camera_base_offset + _shake_offset
 
 
 func bind_camera(camera: Camera2D) -> void:
@@ -55,6 +59,7 @@ func bind_camera(camera: Camera2D) -> void:
 	_shake_time = 0.0
 	_shake_duration = 0.0
 	_shake_strength = 0.0
+	_shake_offset = Vector2.ZERO
 
 
 func clear_camera(camera: Camera2D) -> void:
@@ -63,6 +68,7 @@ func clear_camera(camera: Camera2D) -> void:
 	if is_instance_valid(_camera):
 		_camera.offset = _camera_base_offset
 	_camera = null
+	_shake_offset = Vector2.ZERO
 
 
 func shake(strength: float, duration: float) -> void:
