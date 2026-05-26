@@ -1,0 +1,203 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scenes/menus/settings_menu.gd" id="1_settings"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_settings_panel"]
+content_margin_left = 36.0
+content_margin_top = 36.0
+content_margin_right = 36.0
+content_margin_bottom = 36.0
+bg_color = Color(0.04, 0.04, 0.04, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.25, 0.25, 0.25, 0.5)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+shadow_color = Color(0, 0, 0, 0.5)
+shadow_size = 18
+shadow_offset = Vector2(0, 8)
+
+[node name="SettingsMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_settings")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.02, 0.02, 0.02, 0.62)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="Center"]
+custom_minimum_size = Vector2(460, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_settings_panel")
+
+[node name="VBox" type="VBoxContainer" parent="Center/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="TitleLabel" type="Label" parent="Center/Panel/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "Einstellungen"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="Center/Panel/VBox"]
+layout_mode = 2
+
+[node name="Grid" type="GridContainer" parent="Center/Panel/VBox"]
+layout_mode = 2
+theme_override_constants/h_separation = 32
+theme_override_constants/v_separation = 12
+columns = 2
+
+[node name="VolumeLabel" type="Label" parent="Center/Panel/VBox/Grid"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+text = "Master Lautstärke"
+
+[node name="VolumeSlider" type="HSlider" parent="Center/Panel/VBox/Grid" unique_id=1000]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(240, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 1.0
+step = 0.05
+value = 0.75
+
+[node name="SfxLabel" type="Label" parent="Center/Panel/VBox/Grid"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+text = "Effekte Lautstärke"
+
+[node name="SfxSlider" type="HSlider" parent="Center/Panel/VBox/Grid" unique_id=1008]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(240, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 1.0
+step = 0.05
+value = 0.75
+
+[node name="UiLabel" type="Label" parent="Center/Panel/VBox/Grid"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+text = "UI Lautstärke"
+
+[node name="UiSlider" type="HSlider" parent="Center/Panel/VBox/Grid" unique_id=1009]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(240, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 1.0
+step = 0.05
+value = 0.75
+
+[node name="ShakeLabel" type="Label" parent="Center/Panel/VBox/Grid"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+text = "Bildschirmwackeln"
+
+[node name="ShakeSlider" type="HSlider" parent="Center/Panel/VBox/Grid" unique_id=1004]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(240, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 2.0
+step = 0.1
+value = 1.0
+
+[node name="ParticlesLabel" type="Label" parent="Center/Panel/VBox/Grid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Partikel Details"
+
+[node name="ParticlesButton" type="OptionButton" parent="Center/Panel/VBox/Grid" unique_id=1010]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(240, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="WindowModeLabel" type="Label" parent="Center/Panel/VBox/Grid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Anzeigemodus"
+
+[node name="WindowModeButton" type="OptionButton" parent="Center/Panel/VBox/Grid" unique_id=1005]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(240, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ResolutionLabel" type="Label" parent="Center/Panel/VBox/Grid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Auflösung"
+
+[node name="ResolutionButton" type="OptionButton" parent="Center/Panel/VBox/Grid" unique_id=1006]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(240, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VsyncLabel" type="Label" parent="Center/Panel/VBox/Grid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "VSync"
+
+[node name="VsyncCheckbox" type="CheckBox" parent="Center/Panel/VBox/Grid" unique_id=1002]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 0
+
+[node name="FpsLabel" type="Label" parent="Center/Panel/VBox/Grid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "FPS Limit"
+
+[node name="FpsButton" type="OptionButton" parent="Center/Panel/VBox/Grid" unique_id=1007]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(240, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HSeparator2" type="HSeparator" parent="Center/Panel/VBox"]
+layout_mode = 2
+
+
+
+[node name="BackButton" type="Button" parent="Center/Panel/VBox" unique_id=1003]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 40)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 20
+text = "Zurück"

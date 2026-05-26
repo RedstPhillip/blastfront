@@ -4,19 +4,24 @@ signal sandbox_requested
 signal online_requested
 signal exit_requested
 
+const SETTINGS_MENU_SCENE: PackedScene = preload("res://scenes/menus/SettingsMenu.tscn")
+
 @onready var _sandbox_button: Button = %SandboxButton
 @onready var _online_button: Button = %OnlineButton
+@onready var _settings_button: Button = %SettingsButton
 @onready var _exit_button: Button = %ExitButton
 @onready var _menu_root: Control = $MenuRoot
 
 var _button_base_scale: Dictionary = {}
 var _button_base_rotation: Dictionary = {}
 var _button_tweens: Dictionary = {}
+var _settings_instance: Node = null
 
 
 func _ready() -> void:
 	_sandbox_button.pressed.connect(_on_sandbox_pressed)
 	_online_button.pressed.connect(_on_online_pressed)
+	_settings_button.pressed.connect(_on_settings_pressed)
 	_exit_button.pressed.connect(_on_exit_pressed)
 	_wire_button_feedback()
 	_play_intro_animation()
@@ -43,6 +48,21 @@ func _on_online_pressed() -> void:
 func _on_exit_pressed() -> void:
 	GameJuice.play_sound(&"ui_click", -10.0, 0.04)
 	exit_requested.emit()
+
+
+func _on_settings_pressed() -> void:
+	GameJuice.play_sound(&"ui_click", -10.0, 0.04)
+	_menu_root.hide()
+	_settings_instance = SETTINGS_MENU_SCENE.instantiate()
+	add_child(_settings_instance)
+	_settings_instance.connect("back_pressed", Callable(self, "_on_settings_back"))
+
+
+func _on_settings_back() -> void:
+	if _settings_instance != null and is_instance_valid(_settings_instance):
+		_settings_instance.queue_free()
+		_settings_instance = null
+	_menu_root.show()
 
 
 func _refresh(_message: String) -> void:

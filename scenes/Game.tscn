@@ -5,6 +5,7 @@
 [ext_resource type="Script" uid="uid://c6obeimu6hwap" path="res://scenes/map_border.gd" id="4_78awf"]
 [ext_resource type="PackedScene" uid="uid://lpjfvx4lrgjo" path="res://scenes/maps/Map_03.tscn" id="5_78awf"]
 [ext_resource type="PackedScene" path="res://scenes/ui/MatchOverlay.tscn" id="6_overlay"]
+[ext_resource type="PackedScene" path="res://scenes/menus/PauseMenu.tscn" id="7_pause"]
 
 [node name="Game" type="Node2D" unique_id=679544362]
 script = ExtResource("1_ibkli")
@@ -28,6 +29,9 @@ theme_override_font_sizes/font_size = 48
 text = "0 - 0"
 
 [node name="MatchOverlay" parent="HUD" unique_id=534016440 instance=ExtResource("6_overlay")]
+
+[node name="PauseMenu" parent="HUD" unique_id=123456789 instance=ExtResource("7_pause")]
+visible = false
 
 [node name="MapBorder" type="Node2D" parent="." unique_id=1943801248]
 script = ExtResource("4_78awf")

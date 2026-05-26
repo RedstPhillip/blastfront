@@ -502,7 +502,7 @@ func apply_hit_feedback(source_position: Vector2, damage: int = GameSettings.PRO
 		velocity.y -= GameSettings.PLAYER_HIT_KNOCKBACK_Y * damage_ratio
 
 	GameJuice.spawn_burst(&"hit", global_position, hit_direction, tint)
-	GameJuice.play_sound_2d(&"hit", global_position, -5.0, 0.08)
+	GameJuice.play_sound_2d(&"hit", global_position, 6.5, 0.08)
 	GameJuice.shake(GameSettings.PLAYER_HIT_SHAKE_STRENGTH * damage_ratio, GameSettings.PLAYER_HIT_SHAKE_TIME)
 
 
@@ -642,7 +642,7 @@ func _emit_jump_feedback(direction: Vector2) -> void:
 	var dust_position: Vector2 = global_position + Vector2(0.0, hover_dist - 4.0)
 	_body_punch_scale = Vector2(0.82, 1.16)
 	GameJuice.spawn_burst(&"jump", dust_position, direction, Color(0.86, 0.78, 0.56, 0.65))
-	GameJuice.play_sound_2d(&"jump", global_position, -9.0, 0.07)
+	GameJuice.play_sound_2d(&"jump", global_position, 4.5, 0.07)
 
 
 func _update_surface_feedback(delta: float, grounded: bool, speed_ratio: float) -> void:
@@ -656,7 +656,7 @@ func _update_surface_feedback(delta: float, grounded: bool, speed_ratio: float) 
 			)
 			_body_punch_scale = Vector2(1.12 + land_ratio * 0.07, 0.90 - land_ratio * 0.05)
 			GameJuice.spawn_burst(&"land", global_position + Vector2(0.0, hover_dist - 3.0), Vector2.UP, Color(0.78, 0.70, 0.54, 0.7))
-			GameJuice.play_sound_2d(&"land", global_position, -17.0 + land_ratio * 1.5, 0.05)
+			GameJuice.play_sound_2d(&"land", global_position, 0.0 + land_ratio * 2.0, 0.05)
 			GameJuice.shake(0.75 * land_ratio, 0.055)
 
 	if grounded and speed_ratio > 0.34 and absf(velocity.x) > GameSettings.PLAYER_VISUAL_SPEED_THRESHOLD:
@@ -667,7 +667,7 @@ func _update_surface_feedback(delta: float, grounded: bool, speed_ratio: float) 
 			GameJuice.spawn_burst(&"run_dust", global_position + Vector2(0.0, hover_dist - 2.0), move_direction, Color(0.76, 0.68, 0.50, 0.5))
 			_run_dust_timer = GameSettings.PLAYER_RUN_DUST_INTERVAL
 		if _step_sound_timer <= 0.0:
-			GameJuice.play_sound_2d(&"step", global_position, -29.0 + speed_ratio * 2.0, 0.12)
+			GameJuice.play_sound_2d(&"step", global_position, -9.0 + speed_ratio * 3.0, 0.12)
 			_step_sound_timer = GameSettings.PLAYER_STEP_SOUND_INTERVAL
 	else:
 		_run_dust_timer = minf(_run_dust_timer, GameSettings.PLAYER_RUN_DUST_INTERVAL)
@@ -735,6 +735,6 @@ func _on_health_depleted() -> void:
 	_hit_flash_timer = GameSettings.PLAYER_HIT_FLASH_TIME
 	_body_punch_scale = Vector2(1.28, 0.72)
 	GameJuice.spawn_burst(&"death", global_position, Vector2.UP, tint)
-	GameJuice.play_sound_2d(&"death", global_position, -4.5, 0.06)
+	GameJuice.play_sound_2d(&"death", global_position, 7.0, 0.06)
 	GameJuice.shake(GameSettings.PLAYER_DEATH_SHAKE_STRENGTH, GameSettings.PLAYER_DEATH_SHAKE_TIME)
 	set_eliminated(true)

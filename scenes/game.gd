@@ -401,7 +401,7 @@ func _spawn_respawn_feedback(player: Player) -> void:
 	var tint: Color = player.get_visual_tint()
 	var spawn_position: Vector2 = player.global_position + Vector2(0.0, player.hover_dist - 4.0)
 	GameJuice.spawn_burst(&"spawn", spawn_position, Vector2.UP, tint)
-	GameJuice.play_sound_2d(&"spawn", player.global_position, -10.0, 0.05)
+	GameJuice.play_sound_2d(&"spawn", player.global_position, 3.0, 0.05)
 	GameJuice.shake(GameSettings.PLAYER_SPAWN_SHAKE_STRENGTH, GameSettings.PLAYER_SPAWN_SHAKE_TIME)
 
 

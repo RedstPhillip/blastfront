@@ -97,5 +97,5 @@ func _play_collision_feedback(collision: KinematicCollision2D, collider: Object)
 		return
 
 	GameJuice.spawn_burst(&"impact", collision_position, impact_direction, Color(0.98, 0.55, 0.18, 0.9))
-	GameJuice.play_sound_2d(&"impact", collision_position, -27.0, 0.035)
+	GameJuice.play_sound_2d(&"impact", collision_position, -7.0, 0.035)
 	GameJuice.shake(GameSettings.PROJECTILE_IMPACT_SHAKE_STRENGTH, GameSettings.PROJECTILE_IMPACT_SHAKE_TIME)

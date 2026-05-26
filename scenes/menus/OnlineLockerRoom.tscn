@@ -93,18 +93,6 @@ corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_help_button_hover"]
-bg_color = Color(1, 1, 1, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.55, 0.95, 1, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_help_button_pressed"]
 bg_color = Color(0.12, 0.72, 0.86, 1)
 border_width_left = 2
@@ -112,6 +100,18 @@ border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
 border_color = Color(0.8, 1, 1, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_help_button_hover"]
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.55, 0.95, 1, 1)
 corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
@@ -274,7 +274,7 @@ text = "3"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="HelpPopup" type="Control" parent="UILayer/Root"]
+[node name="HelpPopup" type="Control" parent="UILayer/Root" unique_id=1999931471]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -282,39 +282,34 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 0
 
-[node name="Dim" type="ColorRect" parent="UILayer/Root/HelpPopup"]
+[node name="Dim" type="ColorRect" parent="UILayer/Root/HelpPopup" unique_id=69678486]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 0
 color = Color(0, 0, 0, 0.48)
 
-[node name="Center" type="CenterContainer" parent="UILayer/Root/HelpPopup"]
+[node name="Center" type="CenterContainer" parent="UILayer/Root/HelpPopup" unique_id=1253678672]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 1
 
-[node name="Panel" type="PanelContainer" parent="UILayer/Root/HelpPopup/Center"]
+[node name="Panel" type="PanelContainer" parent="UILayer/Root/HelpPopup/Center" unique_id=1350647633]
 custom_minimum_size = Vector2(500, 0)
 layout_mode = 2
-mouse_filter = 0
 theme_override_styles/panel = SubResource("StyleBoxFlat_help_panel")
 
-[node name="VBox" type="VBoxContainer" parent="UILayer/Root/HelpPopup/Center/Panel"]
+[node name="VBox" type="VBoxContainer" parent="UILayer/Root/HelpPopup/Center/Panel" unique_id=1047426909]
 layout_mode = 2
 theme_override_constants/separation = 16
-mouse_filter = 1
 
-[node name="TitleLabel" type="Label" parent="UILayer/Root/HelpPopup/Center/Panel/VBox"]
+[node name="TitleLabel" type="Label" parent="UILayer/Root/HelpPopup/Center/Panel/VBox" unique_id=508798268]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.88, 0.99, 1, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.78)
@@ -326,7 +321,7 @@ theme_override_font_sizes/font_size = 36
 text = "LOCKER ROOM"
 horizontal_alignment = 1
 
-[node name="BodyLabel" type="Label" parent="UILayer/Root/HelpPopup/Center/Panel/VBox"]
+[node name="BodyLabel" type="Label" parent="UILayer/Root/HelpPopup/Center/Panel/VBox" unique_id=1364428785]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.96, 0.98, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.72)
@@ -338,7 +333,7 @@ When you are ready, shoot the green target above you."
 horizontal_alignment = 1
 autowrap_mode = 3
 
-[node name="HelpDismissButton" type="Button" parent="UILayer/Root/HelpPopup/Center/Panel/VBox"]
+[node name="HelpDismissButton" type="Button" parent="UILayer/Root/HelpPopup/Center/Panel/VBox" unique_id=679303969]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 46)
 layout_mode = 2
@@ -347,8 +342,8 @@ theme_override_colors/font_pressed_color = Color(0.88, 1, 1, 1)
 theme_override_colors/font_hover_color = Color(0.015, 0.055, 0.075, 1)
 theme_override_font_sizes/font_size = 22
 theme_override_styles/normal = SubResource("StyleBoxFlat_help_button_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_help_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_help_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_help_button_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_help_button_hover")
 text = "GOT IT"
 

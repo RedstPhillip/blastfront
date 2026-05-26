@@ -113,7 +113,7 @@ offset_bottom = 1888.0
 scale = Vector2(0.39, 0.39)
 texture = ExtResource("2_23d8d")
 
-[node name="AmbientAtmosphere" parent="." instance=ExtResource("8_atmo")]
+[node name="AmbientAtmosphere" parent="." unique_id=1381221742 instance=ExtResource("8_atmo")]
 position = Vector2(1140, 350)
 
 [node name="StaticBody2D" type="StaticBody2D" parent="." unique_id=252369944]

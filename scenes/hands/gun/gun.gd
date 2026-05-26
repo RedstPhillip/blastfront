@@ -130,5 +130,5 @@ func _play_fire_feedback(direction: Vector2, muzzle_position: Vector2) -> void:
 	var recoil_side: float = -1.0 if _pointing_right else 1.0
 	_recoil_rotation = deg_to_rad(GameSettings.GUN_RECOIL_ROTATION_DEGREES) * recoil_side
 	GameJuice.spawn_muzzle(muzzle_position, direction)
-	GameJuice.play_sound_2d(&"shoot", muzzle_position, -6.5, 0.06)
+	GameJuice.play_sound_2d(&"shoot", muzzle_position, -12.0, 0.06)
 	GameJuice.shake(GameSettings.GUN_FIRE_SHAKE_STRENGTH, GameSettings.GUN_FIRE_SHAKE_TIME)

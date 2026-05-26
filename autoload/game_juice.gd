@@ -4,7 +4,7 @@ const BURST_EFFECT_SCENE: PackedScene = preload("res://scenes/effects/BurstEffec
 const MUZZLE_EFFECT_SCENE: PackedScene = preload("res://scenes/effects/MuzzleEffect.tscn")
 
 const SOUND_PATHS: Dictionary = {
-	&"shoot": "res://assets/audio/shoot.wav",
+	&"shoot": "res://assets/audio/gun_shot.mp3",
 	&"hit": "res://assets/audio/hit.wav",
 	&"impact": "res://assets/audio/impact.wav",
 	&"jump": "res://assets/audio/jump.wav",
@@ -25,11 +25,36 @@ var _shake_duration: float = 0.0
 var _shake_strength: float = 0.0
 var _shake_offset: Vector2 = Vector2.ZERO
 var _button_tweens: Dictionary = {}
+var shake_multiplier: float = 1.0
+var particles_multiplier: float = 1.0
 
 
 func _ready() -> void:
 	_rng.randomize()
 	_load_sounds()
+	_initialize_audio_buses()
+
+
+func _initialize_audio_buses() -> void:
+	var master_index: int = AudioServer.get_bus_index("Master")
+	if master_index != -1:
+		AudioServer.set_bus_volume_db(master_index, linear_to_db(0.75))
+
+	var sfx_index: int = AudioServer.get_bus_index("SFX")
+	if sfx_index == -1:
+		AudioServer.add_bus()
+		sfx_index = AudioServer.get_bus_count() - 1
+		AudioServer.set_bus_name(sfx_index, "SFX")
+		AudioServer.set_bus_send(sfx_index, "Master")
+	AudioServer.set_bus_volume_db(sfx_index, linear_to_db(0.75))
+
+	var ui_index: int = AudioServer.get_bus_index("UI")
+	if ui_index == -1:
+		AudioServer.add_bus()
+		ui_index = AudioServer.get_bus_count() - 1
+		AudioServer.set_bus_name(ui_index, "UI")
+		AudioServer.set_bus_send(ui_index, "Master")
+	AudioServer.set_bus_volume_db(ui_index, linear_to_db(0.75))
 
 
 func _process(delta: float) -> void:
@@ -72,9 +97,10 @@ func clear_camera(camera: Camera2D) -> void:
 
 
 func shake(strength: float, duration: float) -> void:
-	if strength <= 0.0 or duration <= 0.0:
+	var actual_strength: float = strength * shake_multiplier
+	if actual_strength <= 0.0 or duration <= 0.0:
 		return
-	_shake_strength = maxf(_shake_strength, strength)
+	_shake_strength = maxf(_shake_strength, actual_strength)
 	_shake_duration = maxf(_shake_duration, duration)
 	_shake_time = maxf(_shake_time, duration)
 
@@ -110,6 +136,7 @@ func play_sound(sound_id: StringName, volume_db: float = 0.0, pitch_variation: f
 	player.stream = stream
 	player.volume_db = volume_db
 	player.pitch_scale = _random_pitch(pitch_variation)
+	player.bus = &"UI"
 	player.finished.connect(player.queue_free)
 	_audio_root().add_child(player)
 	player.play()
@@ -127,6 +154,7 @@ func play_sound_2d(sound_id: StringName, world_position: Vector2, volume_db: flo
 	player.pitch_scale = _random_pitch(pitch_variation)
 	player.max_distance = 1800.0
 	player.attenuation = 0.35
+	player.bus = &"SFX"
 	player.finished.connect(player.queue_free)
 	_audio_root().add_child(player)
 	player.play()

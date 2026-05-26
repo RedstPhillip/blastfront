@@ -39,13 +39,13 @@ func _apply_settings() -> void:
 			_configure_particles(14, 0.34, Vector2.UP, 56.0, 150.0, 84.0, Color(0.72, 0.66, 0.54, 0.56), 0.72, 1.92)
 			_configure_specks(7, 0.27, Vector2.UP, 38.0, 112.0, 92.0, Color(0.96, 0.84, 0.58, 0.44), 0.32, 0.86)
 		&"hit":
-			_configure_particles(22, 0.34, _direction, 120.0, 285.0, 58.0, _tint.lerp(Color(1.0, 0.96, 0.76, 1.0), 0.22), 0.62, 1.55)
-			_configure_specks(14, 0.28, _direction, 92.0, 235.0, 68.0, Color(_tint.r, _tint.g, _tint.b, 0.76), 0.32, 0.82)
-			_play_flash_ring(Color(_tint.r, _tint.g, _tint.b, 0.62), 4.0, 18.0, 0.18, 4.6, 0.34)
+			_configure_particles(16, 0.30, _direction, 80.0, 190.0, 50.0, _tint.lerp(Color(1.0, 0.96, 0.76, 1.0), 0.22), 0.45, 1.10)
+			_configure_specks(10, 0.24, _direction, 60.0, 160.0, 58.0, Color(_tint.r, _tint.g, _tint.b, 0.76), 0.22, 0.55)
+			_play_flash_ring(Color(_tint.r, _tint.g, _tint.b, 0.62), 2.5, 12.0, 0.14, 3.0, 0.34)
 		&"impact":
-			_configure_particles(14, 0.28, _direction, 96.0, 220.0, 64.0, Color(0.86, 0.28, 0.08, 0.66), 0.52, 1.20)
-			_configure_specks(8, 0.24, _direction, 86.0, 215.0, 72.0, Color(0.14, 0.10, 0.06, 0.52), 0.28, 0.66)
-			_play_flash_ring(Color(0.88, 0.36, 0.12, 0.42), 3.0, 14.0, 0.16, 3.8, 0.26)
+			_configure_particles(10, 0.24, _direction, 60.0, 140.0, 54.0, Color(0.86, 0.28, 0.08, 0.66), 0.35, 0.80)
+			_configure_specks(6, 0.20, _direction, 50.0, 130.0, 60.0, Color(0.14, 0.10, 0.06, 0.52), 0.18, 0.45)
+			_play_flash_ring(Color(0.88, 0.36, 0.12, 0.42), 2.0, 9.0, 0.12, 2.5, 0.26)
 		&"spawn":
 			var spawn_color: Color = _tint.lerp(Color(0.60, 0.90, 1.0, 1.0), 0.42)
 			_configure_particles(18, 0.42, Vector2.UP, 48.0, 168.0, 180.0, Color(spawn_color.r, spawn_color.g, spawn_color.b, 0.58), 0.62, 1.85)
@@ -62,14 +62,14 @@ func _apply_settings() -> void:
 
 	_particles.restart()
 	_specks.restart()
-	_particles.emitting = true
-	_specks.emitting = true
+	_particles.emitting = GameJuice.particles_multiplier > 0.0
+	_specks.emitting = GameJuice.particles_multiplier > 0.0
 
 
 func _configure_particles(amount: int, lifetime: float, direction: Vector2, min_velocity: float, max_velocity: float, spread: float, color: Color, min_scale: float, max_scale: float) -> void:
 	_life = maxf(_life, lifetime)
 	var particle_direction: Vector2 = direction.normalized() if direction.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED else Vector2.UP
-	_particles.amount = amount
+	_particles.amount = maxi(1, int(amount * GameJuice.particles_multiplier))
 	_particles.lifetime = lifetime
 	_particles.direction = particle_direction
 	_particles.initial_velocity_min = min_velocity
@@ -83,7 +83,7 @@ func _configure_particles(amount: int, lifetime: float, direction: Vector2, min_
 func _configure_specks(amount: int, lifetime: float, direction: Vector2, min_velocity: float, max_velocity: float, spread: float, color: Color, min_scale: float, max_scale: float) -> void:
 	_life = maxf(_life, lifetime)
 	var speck_direction: Vector2 = direction.normalized() if direction.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED else Vector2.UP
-	_specks.amount = amount
+	_specks.amount = maxi(1, int(amount * GameJuice.particles_multiplier))
 	_specks.lifetime = lifetime
 	_specks.direction = speck_direction
 	_specks.initial_velocity_min = min_velocity
