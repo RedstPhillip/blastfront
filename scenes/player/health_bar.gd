@@ -12,6 +12,7 @@ var _target_ratio: float = 1.0
 var _flash_timer: float = 0.0
 var _shake_timer: float = 0.0
 var _pulse_time: float = 0.0
+var _lag_delay_timer: float = 0.0
 
 
 func _ready() -> void:
@@ -28,7 +29,14 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_target_ratio = _health_ratio()
-	_display_ratio = move_toward(_display_ratio, _target_ratio, delta * GameSettings.HEALTH_BAR_LAG_SPEED)
+	
+	if _lag_delay_timer > 0.0:
+		_lag_delay_timer = maxf(_lag_delay_timer - delta, 0.0)
+	else:
+		_display_ratio = lerp(_display_ratio, _target_ratio, delta * 6.0)
+		if absf(_display_ratio - _target_ratio) < 0.005:
+			_display_ratio = _target_ratio
+			
 	_flash_timer = maxf(_flash_timer - delta, 0.0)
 	_shake_timer = maxf(_shake_timer - delta, 0.0)
 
@@ -45,7 +53,9 @@ func _on_health_changed(old_health: int, new_health: int) -> void:
 	if new_health < old_health:
 		_flash_timer = GameSettings.HEALTH_BAR_DAMAGE_FLASH_TIME
 		_shake_timer = GameSettings.HEALTH_BAR_DAMAGE_SHAKE_TIME
+		_lag_delay_timer = 0.45
 	else:
+		_lag_delay_timer = 0.0
 		_display_ratio = maxf(_display_ratio, _target_ratio)
 	queue_redraw()
 

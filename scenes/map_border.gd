@@ -16,6 +16,7 @@ var _bounds: Rect2 = GameSettings.DEFAULT_MAP_BOUNDS
 var _areas: Dictionary = {}
 var _last_hit_time: Dictionary = {}
 var _game_sync: GameSync = null
+var _particles: Dictionary = {}
 
 
 func _ready() -> void:
@@ -39,10 +40,50 @@ func _process(_delta: float) -> void:
 	var top_edge: float = _bounds.position.y
 	var bottom_edge: float = _bounds.position.y + _bounds.size.y
 
-	_update_vertical(GameSettings.MAP_BORDER_SIDE_LEFT, _find_player_near_vertical_edge(players, left_edge, true))
-	_update_vertical(GameSettings.MAP_BORDER_SIDE_RIGHT, _find_player_near_vertical_edge(players, right_edge, false))
-	_update_horizontal(GameSettings.MAP_BORDER_SIDE_TOP, _find_player_near_horizontal_edge(players, top_edge, true), top_edge)
-	_update_horizontal(GameSettings.MAP_BORDER_SIDE_BOTTOM, _find_player_near_horizontal_edge(players, bottom_edge, false), bottom_edge)
+	var closest_players = {
+		GameSettings.MAP_BORDER_SIDE_LEFT: null,
+		GameSettings.MAP_BORDER_SIDE_RIGHT: null,
+		GameSettings.MAP_BORDER_SIDE_TOP: null,
+		GameSettings.MAP_BORDER_SIDE_BOTTOM: null
+	}
+	var closest_distances = {
+		GameSettings.MAP_BORDER_SIDE_LEFT: INF,
+		GameSettings.MAP_BORDER_SIDE_RIGHT: INF,
+		GameSettings.MAP_BORDER_SIDE_TOP: INF,
+		GameSettings.MAP_BORDER_SIDE_BOTTOM: INF
+	}
+
+	for player in players:
+		var px = player.global_position.x
+		var py = player.global_position.y
+		
+		var d_left = px - left_edge
+		var d_right = right_edge - px
+		var d_top = py - top_edge
+		var d_bottom = bottom_edge - py
+		
+		var min_d = d_left
+		var best_side = GameSettings.MAP_BORDER_SIDE_LEFT
+		
+		if d_right < min_d:
+			min_d = d_right
+			best_side = GameSettings.MAP_BORDER_SIDE_RIGHT
+		if d_top < min_d:
+			min_d = d_top
+			best_side = GameSettings.MAP_BORDER_SIDE_TOP
+		if d_bottom < min_d:
+			min_d = d_bottom
+			best_side = GameSettings.MAP_BORDER_SIDE_BOTTOM
+			
+		if min_d > -warn_distance and min_d < warn_distance:
+			if min_d < closest_distances[best_side]:
+				closest_distances[best_side] = min_d
+				closest_players[best_side] = player
+
+	_update_vertical(GameSettings.MAP_BORDER_SIDE_LEFT, closest_players[GameSettings.MAP_BORDER_SIDE_LEFT])
+	_update_vertical(GameSettings.MAP_BORDER_SIDE_RIGHT, closest_players[GameSettings.MAP_BORDER_SIDE_RIGHT])
+	_update_horizontal(GameSettings.MAP_BORDER_SIDE_TOP, closest_players[GameSettings.MAP_BORDER_SIDE_TOP], top_edge)
+	_update_horizontal(GameSettings.MAP_BORDER_SIDE_BOTTOM, closest_players[GameSettings.MAP_BORDER_SIDE_BOTTOM], bottom_edge)
 
 
 func _create_warning_line(side: StringName) -> void:
@@ -52,6 +93,40 @@ func _create_warning_line(side: StringName) -> void:
 	line.z_index = GameSettings.MAP_BORDER_LINE_Z_INDEX
 	add_child(line)
 	_lines[side] = line
+
+	var parts := CPUParticles2D.new()
+	parts.z_index = GameSettings.MAP_BORDER_LINE_Z_INDEX - 1
+	parts.amount = 40
+	parts.lifetime = 1.2
+	parts.lifetime_randomness = 0.6
+	parts.preprocess = 0.5
+	parts.speed_scale = 1.0
+	parts.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	parts.color = Color.WHITE
+	parts.emitting = false
+	parts.visible = false
+	parts.texture = load("res://assets/particles/square_particle.png")
+	parts.spread = 180.0
+	parts.gravity = Vector2.ZERO
+	parts.initial_velocity_min = 2.0
+	parts.initial_velocity_max = 12.0
+	parts.scale_amount_min = 1.0
+	parts.scale_amount_max = 3.5
+	
+	var init_ramp := Gradient.new()
+	# Color 1: Bright yellowish-orange
+	init_ramp.set_color(0, Color(1.0, 0.92, 0.65, 0.95))
+	# Color 2: Warning orange
+	init_ramp.set_color(1, Color(line_color.r, line_color.g, line_color.b, 0.55))
+	parts.color_initial_ramp = init_ramp
+	
+	var ramp := Gradient.new()
+	ramp.set_color(0, Color.WHITE)
+	ramp.set_color(1, Color(1.0, 1.0, 1.0, 0.0))
+	parts.color_ramp = ramp
+	
+	add_child(parts)
+	_particles[side] = parts
 
 
 func _create_border_area(side: StringName) -> void:
@@ -84,32 +159,12 @@ func _hide_all_lines() -> void:
 		var color_rect: ColorRect = line as ColorRect
 		if color_rect != null:
 			color_rect.visible = false
+	for parts in _particles.values():
+		var p: CPUParticles2D = parts as CPUParticles2D
+		if p != null:
+			p.emitting = false
+			p.visible = false
 
-
-func _find_player_near_vertical_edge(players: Array[Node2D], edge_x: float, is_left_edge: bool) -> Node2D:
-	var best_player: Node2D = null
-	var best_distance: float = INF
-	for player in players:
-		var distance: float = player.global_position.x - edge_x if is_left_edge else edge_x - player.global_position.x
-		if _is_inside_warning_distance(distance, best_distance):
-			best_distance = distance
-			best_player = player
-	return best_player
-
-
-func _find_player_near_horizontal_edge(players: Array[Node2D], edge_y: float, is_top_edge: bool) -> Node2D:
-	var best_player: Node2D = null
-	var best_distance: float = INF
-	for player in players:
-		var distance: float = player.global_position.y - edge_y if is_top_edge else edge_y - player.global_position.y
-		if _is_inside_warning_distance(distance, best_distance):
-			best_distance = distance
-			best_player = player
-	return best_player
-
-
-func _is_inside_warning_distance(distance: float, best_distance: float) -> bool:
-	return distance >= 0.0 and distance < warn_distance and distance < best_distance
 
 
 func _update_vertical(side: StringName, player: Node2D) -> void:
@@ -117,6 +172,19 @@ func _update_vertical(side: StringName, player: Node2D) -> void:
 	if cr == null:
 		return
 	cr.visible = player != null
+
+	var parts: CPUParticles2D = _particles[side] as CPUParticles2D
+	if parts != null:
+		if player != null and GameJuice.particles_multiplier > 0.0:
+			var target_amount: int = int(40 * GameJuice.particles_multiplier)
+			if parts.amount != target_amount:
+				parts.amount = target_amount
+			parts.visible = true
+			parts.emitting = true
+		else:
+			parts.emitting = false
+			parts.visible = false
+
 	if player == null:
 		return
 
@@ -124,17 +192,40 @@ func _update_vertical(side: StringName, player: Node2D) -> void:
 	cr.size = Vector2(line_thickness, line_length)
 	cr.position = Vector2(map_x - line_thickness / 2.0, player.global_position.y - line_length / 2.0)
 
+	if parts != null:
+		parts.position = cr.position + cr.size / 2.0
+		parts.emission_rect_extents = Vector2(line_thickness * 1.5, line_length / 2.0)
+		parts.direction = Vector2.ZERO
+
 
 func _update_horizontal(side: StringName, player: Node2D, map_y: float) -> void:
 	var cr: ColorRect = _lines[side] as ColorRect
 	if cr == null:
 		return
 	cr.visible = player != null
+
+	var parts: CPUParticles2D = _particles[side] as CPUParticles2D
+	if parts != null:
+		if player != null and GameJuice.particles_multiplier > 0.0:
+			var target_amount: int = int(40 * GameJuice.particles_multiplier)
+			if parts.amount != target_amount:
+				parts.amount = target_amount
+			parts.visible = true
+			parts.emitting = true
+		else:
+			parts.emitting = false
+			parts.visible = false
+
 	if player == null:
 		return
 
 	cr.size = Vector2(line_length, line_thickness)
 	cr.position = Vector2(player.global_position.x - line_length / 2.0, map_y - line_thickness / 2.0)
+
+	if parts != null:
+		parts.position = cr.position + cr.size / 2.0
+		parts.emission_rect_extents = Vector2(line_length / 2.0, line_thickness * 1.5)
+		parts.direction = Vector2.ZERO
 
 
 func _update_border_areas() -> void:

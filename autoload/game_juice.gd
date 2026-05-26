@@ -265,3 +265,45 @@ func _place_effect(effect: Node2D, root_node: Node, world_position: Vector2) -> 
 		effect.position = root_2d.to_local(world_position)
 	else:
 		effect.global_position = world_position
+
+
+func spawn_damage_number(world_position: Vector2, amount: int, color: Color = Color(1.0, 0.28, 0.22, 1.0)) -> void:
+	var label := Label.new()
+	label.text = str(amount)
+	
+	label.horizontal_alignment = HorizontalAlignment.HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VerticalAlignment.VERTICAL_ALIGNMENT_CENTER
+	
+	label.add_theme_font_size_override("font_size", 22)
+	label.add_theme_color_override("font_color", color)
+	label.add_theme_color_override("font_outline_color", Color.BLACK)
+	label.add_theme_constant_override("outline_size", 6)
+	
+	var angle: float = _rng.randf_range(-0.35, 0.35)
+	label.rotation = angle
+	
+	var root: Node = _effect_root()
+	var spawn_pos: Vector2 = world_position
+	var root_2d: Node2D = root as Node2D
+	if root_2d != null:
+		spawn_pos = root_2d.to_local(world_position)
+	
+	spawn_pos += Vector2(_rng.randf_range(-16.0, 16.0), -24.0)
+	label.position = spawn_pos - Vector2(32, 16)
+	label.pivot_offset = Vector2(32, 16)
+	
+	root.add_child(label)
+	
+	var tween := create_tween()
+	tween.set_parallel(true)
+	
+	var target_pos := label.position + Vector2(_rng.randf_range(-40.0, 40.0), _rng.randf_range(-60.0, -90.0))
+	tween.tween_property(label, "position", target_pos, 0.85).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	
+	label.scale = Vector2(0.5, 0.5)
+	tween.tween_property(label, "scale", Vector2(1.4, 1.4), 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(label, "scale", Vector2(1.0, 1.0), 0.7).set_delay(0.15).set_trans(Tween.TRANS_LINEAR)
+	
+	tween.tween_property(label, "modulate:a", 0.0, 0.85).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	
+	tween.chain().tween_callback(label.queue_free)

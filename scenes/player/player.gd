@@ -504,6 +504,7 @@ func apply_hit_feedback(source_position: Vector2, damage: int = GameSettings.PRO
 	GameJuice.spawn_burst(&"hit", global_position, hit_direction, tint)
 	GameJuice.play_sound_2d(&"hit", global_position, 6.5, 0.08)
 	GameJuice.shake(GameSettings.PLAYER_HIT_SHAKE_STRENGTH * damage_ratio, GameSettings.PLAYER_HIT_SHAKE_TIME)
+	GameJuice.spawn_damage_number(global_position, damage, tint)
 
 
 func _update_movement_timers(delta: float) -> void:
