@@ -6,18 +6,27 @@ extends Control
 @onready var _local_ready_label: Label = %LocalReadyLabel
 @onready var _remote_ready_label: Label = %RemoteReadyLabel
 @onready var _ready_button: Button = %ReadyButton
+@onready var _ready_page: Control = $Center
+@onready var _extension_page: Control = $ExtensionWorkbench
+@onready var _left_page_button: Button = %LeftPageButton
+@onready var _right_page_button: Button = %RightPageButton
+@onready var _page_label: Label = %PageLabel
 
 var _local_slot: int = GameSettings.PLAYER_ONE_SLOT
 var _remote_slot: int = GameSettings.PLAYER_TWO_SLOT
+var _page_index: int = 0
 
 
 func _ready() -> void:
 	_local_slot = NetworkSession.local_player_slot
 	_remote_slot = NetworkSession.get_remote_slot()
 	_ready_button.pressed.connect(_on_ready_pressed)
+	_left_page_button.pressed.connect(_on_previous_page_pressed)
+	_right_page_button.pressed.connect(_on_next_page_pressed)
 	GameJuice.attach_button_feedback(self)
 	OnlineMatch.state_changed.connect(_refresh)
 	OnlineMatch.countdown_changed.connect(_on_countdown_changed)
+	_show_page(0)
 	_refresh()
 
 
@@ -35,6 +44,24 @@ func _on_ready_pressed() -> void:
 
 func _on_countdown_changed(_seconds_left: int) -> void:
 	_refresh()
+
+
+func _on_previous_page_pressed() -> void:
+	_show_page(1)
+
+
+func _on_next_page_pressed() -> void:
+	_show_page(0)
+
+
+func _show_page(page_index: int) -> void:
+	_page_index = clampi(page_index, 0, 1)
+	var showing_extensions: bool = _page_index == 1
+	_ready_page.visible = not showing_extensions
+	_extension_page.visible = showing_extensions
+	_left_page_button.visible = not showing_extensions
+	_right_page_button.visible = showing_extensions
+	_page_label.text = "EXTENSIONS" if showing_extensions else "READY"
 
 
 func _refresh() -> void:

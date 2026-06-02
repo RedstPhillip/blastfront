@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="WeaponExtensionDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scenes/weapons/extensions/weapon_extension_definition.gd" id="1_definition"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/extensions/visuals/cryo_rounds_visual.tscn" id="2_visual"]
+
+[resource]
+script = ExtResource("1_definition")
+extension_id = "cryo_rounds_mk1"
+display_name = "Cryo Rounds MK1"
+slot_key = "ammo"
+mark = 1
+description = "Prototype ammo that carries a future freeze effect payload."
+default_condition = 78.0
+minimum_condition_factor = 0.25
+condition_scales_attributes = true
+condition_scales_projectile_effects = true
+attribute_modifiers = {
+"damage": -1.0,
+"projectile_speed": -80.0
+}
+projectile_tags = Array[String](["freeze"])
+projectile_effects = {
+"freeze": {
+"strength": 0.36,
+"duration": 2.2
+}
+}
+visual_scene = ExtResource("2_visual")
+icon_color = Color(0.28, 0.88, 1, 1)

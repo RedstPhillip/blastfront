@@ -1,0 +1,32 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/menus/extensions/extension_inventory_card.gd" id="1_card"]
+
+[node name="ExtensionInventoryCard" type="PanelContainer"]
+custom_minimum_size = Vector2(194, 106)
+script = ExtResource("1_card")
+
+[node name="VBox" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="NameLabel" type="Label" parent="VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Extension"
+autowrap_mode = 2
+
+[node name="SlotLabel" type="Label" parent="VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.86, 0.88, 1)
+theme_override_font_sizes/font_size = 13
+text = "SLOT"
+
+[node name="ConditionLabel" type="Label" parent="VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "Condition"
+autowrap_mode = 2

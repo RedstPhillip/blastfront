@@ -97,6 +97,10 @@ func request_shot(owner: Node, spawn_position: Vector2, direction: Vector2, proj
 	projectile.set("gravity", float(projectile_data.get("gravity", projectile.get("gravity"))))
 	projectile.set("linear_damping", float(projectile_data.get("linear_damping", projectile.get("linear_damping"))))
 	projectile.set("max_distance", float(projectile_data.get("max_distance", projectile.get("max_distance"))))
+	projectile.set("damage", int(projectile_data.get("damage", projectile.get("damage"))))
+	projectile.set("extension_tags", projectile_data.get("extension_tags", []))
+	projectile.set("extension_effects", projectile_data.get("extension_effects", {}))
+	projectile.set("source_extensions", projectile_data.get("source_extensions", []))
 	projectile.set("initial_velocity", projectile_data.get("initial_velocity", direction * muzzle_speed))
 	spawn_projectile(projectile, spawn_position)
 

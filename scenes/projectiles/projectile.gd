@@ -7,6 +7,10 @@ signal despawn_requested(projectile: Node, reason: StringName, collider)
 @export var max_distance: float = GameSettings.PROJECTILE_MAX_DISTANCE
 @export var linear_damping: float = GameSettings.PROJECTILE_LINEAR_DAMPING
 @export var rotate_to_velocity: bool = GameSettings.PROJECTILE_ROTATE_TO_VELOCITY
+@export var damage: int = GameSettings.PROJECTILE_DAMAGE
+@export var extension_tags: Array[String] = []
+@export var extension_effects: Dictionary = {}
+@export var source_extensions: Array[String] = []
 
 var net_id: int = 0
 var owner_slot: int = 0
@@ -72,8 +76,8 @@ func _on_collision(collision: KinematicCollision2D) -> void:
 func _apply_local_collision_damage(collider: Object) -> void:
 	var player: Player = collider as Player
 	if player != null:
-		player.apply_hit_feedback(global_position, GameSettings.PROJECTILE_DAMAGE)
-		player.health_component.damage(GameSettings.PROJECTILE_DAMAGE)
+		player.apply_hit_feedback(global_position, damage)
+		player.health_component.damage(damage)
 
 
 func _request_despawn(reason: StringName, collider: Object) -> void:
