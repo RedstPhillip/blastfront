@@ -237,6 +237,7 @@ func _on_projectile_despawn_requested(projectile: Node, reason: StringName, coll
 		if projectile_node != null:
 			projectile_position = projectile_node.global_position
 		hit_player.apply_hit_feedback(projectile_position, projectile_damage)
+		ExtensionEffectRegistry.apply_projectile_effects(hit_player, projectile)
 		var combat_sync: Variant = game_sync.get_module(GameSettings.MODULE_COMBAT)
 		if combat_sync != null and combat_sync.has_method("apply_hit"):
 			combat_sync.call("apply_hit", int(hit_player.player_slot), int(projectile.get("owner_slot")), net_id, projectile_damage)

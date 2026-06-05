@@ -1,4 +1,5 @@
 extends CharacterBody2D
+class_name Projectile
 
 signal despawn_requested(projectile: Node, reason: StringName, collider)
 
@@ -31,13 +32,15 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	ExtensionBehaviorRegistry.update_projectile_behaviors(self, delta)
+
 	velocity.y += gravity * delta
 	if linear_damping > 0.0:
 		velocity = velocity.move_toward(Vector2.ZERO, linear_damping * delta)
 	_update_rotation()
 
-	var motion := velocity * delta
-	var collision := move_and_collide(motion)
+	var motion: Vector2 = velocity * delta
+	var collision: KinematicCollision2D = move_and_collide(motion)
 	if collision != null:
 		_on_collision(collision)
 		return
@@ -78,6 +81,7 @@ func _apply_local_collision_damage(collider: Object) -> void:
 	if player != null:
 		player.apply_hit_feedback(global_position, damage)
 		player.health_component.damage(damage)
+		ExtensionEffectRegistry.apply_projectile_effects(player, self)
 
 
 func _request_despawn(reason: StringName, collider: Object) -> void:
