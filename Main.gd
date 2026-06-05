@@ -23,6 +23,8 @@ func show_menu() -> void:
 	var menu: Node = change_scene(MAIN_MENU_SCENE)
 	if menu.has_signal("sandbox_requested"):
 		menu.connect("sandbox_requested", Callable(self, "_on_sandbox_requested"))
+	if menu.has_signal("debug_requested"):
+		menu.connect("debug_requested", Callable(self, "_on_debug_requested"))
 	if menu.has_signal("online_requested"):
 		menu.connect("online_requested", Callable(self, "_on_online_requested"))
 	if menu.has_signal("exit_requested"):
@@ -41,6 +43,11 @@ func change_scene(scene: PackedScene) -> Node:
 
 func _on_sandbox_requested() -> void:
 	NetworkSession.start_offline()
+	_start_game()
+
+
+func _on_debug_requested() -> void:
+	NetworkSession.start_debug()
 	_start_game()
 
 

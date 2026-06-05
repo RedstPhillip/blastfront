@@ -10,7 +10,7 @@ const CATEGORY_SHIELD: StringName = &"shield"
 @export var category: StringName = CATEGORY_BOOTS
 @export_range(0.0, 100.0, 0.1) var condition: float = 100.0:
 	set(value):
-		condition = ArmorCondition.clamp_condition(value)
+		condition = ItemCondition.clamp_value(value)
 @export_range(0.0, 1.0, 0.01) var minimum_condition_scale: float = 0.25
 @export var rarity: StringName = &""
 @export var icon: Texture2D = null
@@ -31,15 +31,15 @@ func get_category_display_name() -> String:
 
 
 func get_condition_scale() -> float:
-	return ArmorCondition.get_scale(condition, minimum_condition_scale)
+	return ItemCondition.get_scale(condition, minimum_condition_scale)
 
 
 func get_condition_name() -> String:
-	return ArmorCondition.get_grade_name(condition)
+	return ItemCondition.get_grade_name(condition)
 
 
 func get_condition_color() -> Color:
-	return ArmorCondition.get_grade_color(condition)
+	return ItemCondition.get_grade_color(condition)
 
 
 func get_scaled_attributes() -> Dictionary:

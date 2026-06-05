@@ -8,7 +8,7 @@ extends Resource
 static func create(definition_resource: WeaponExtensionDefinition, condition_value: float) -> WeaponExtensionItem:
 	var item: WeaponExtensionItem = WeaponExtensionItem.new()
 	item.definition = definition_resource
-	item.condition = ExtensionCondition.clamp_value(condition_value)
+	item.condition = ItemCondition.clamp_value(condition_value)
 	return item
 
 
@@ -35,15 +35,15 @@ func get_slot_display_name() -> String:
 
 
 func get_condition_tier_id() -> StringName:
-	return ExtensionCondition.get_tier_id(condition)
+	return ItemCondition.get_grade(condition)
 
 
 func get_condition_tier_name() -> String:
-	return ExtensionCondition.get_tier_name(condition)
+	return ItemCondition.get_grade_name(condition)
 
 
 func get_condition_color() -> Color:
-	return ExtensionCondition.get_tier_color(condition)
+	return ItemCondition.get_grade_color(condition)
 
 
 func get_condition_multiplier() -> float:

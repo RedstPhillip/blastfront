@@ -42,6 +42,15 @@ func start_offline() -> void:
 	_set_status("Offline local mode")
 
 
+func start_debug() -> void:
+	leave_round()
+	mode = GameSettings.NETWORK_MODE_DEBUG
+	local_player_slot = GameSettings.PLAYER_ONE_SLOT
+	remote_steam_id = 0
+	_match_active = false
+	_set_status("Debug range mode")
+
+
 func host_invite_round(open_overlay_when_ready: bool = false) -> void:
 	if not _can_use_steam():
 		_set_status(SteamService.get_status_text())
@@ -107,6 +116,10 @@ func is_steam_match_active() -> bool:
 		mode == GameSettings.NETWORK_MODE_HOST
 		or mode == GameSettings.NETWORK_MODE_CLIENT
 	)
+
+
+func is_debug() -> bool:
+	return mode == GameSettings.NETWORK_MODE_DEBUG
 
 
 func is_host() -> bool:

@@ -2,6 +2,7 @@ extends Node2D
 
 const GAME_SYNC_SCRIPT := preload("res://scenes/network/game_sync.gd")
 const PROJECTILE_SCENE := preload("res://scenes/projectiles/projectile.tscn")
+const PLAYER_SCENE := preload("res://scenes/player/player.tscn")
 
 @onready var _player_1: Player = $Player1
 @onready var _player_2: Player = $Player2
@@ -14,6 +15,8 @@ var _game_sync: GameSync = null
 var _offline_score: Dictionary = GameSettings.default_score()
 var _offline_match_over: bool = false
 var _camera_bounds: Rect2 = GameSettings.DEFAULT_MAP_BOUNDS
+var _dummy_players: Array[Player] = []
+var _debug_dummy_respawning: Dictionary = {}
 
 
 func _ready() -> void:
@@ -24,6 +27,8 @@ func _ready() -> void:
 		OnlineMatch.state_changed.connect(_on_online_state_changed)
 		_configure_steam_players()
 		_create_game_sync()
+	elif NetworkSession.is_debug():
+		_configure_debug_players()
 	else:
 		_remove_offline_second_player()
 		_configure_offline_players()
@@ -163,6 +168,84 @@ func _configure_offline_players() -> void:
 	)
 
 
+func _configure_debug_players() -> void:
+	_local_player = _player_1
+	_configure_local_player(
+		_player_1,
+		GameSettings.PLAYER_ONE_SLOT,
+		GameSettings.INPUT_P1_MOVE_LEFT,
+		GameSettings.INPUT_P1_MOVE_RIGHT,
+		GameSettings.INPUT_P1_JUMP,
+		GameSettings.INPUT_P1_SHOOT,
+		GameSettings.INPUT_P1_BLOCK,
+		true
+	)
+
+	_dummy_players.clear()
+
+	_configure_dummy_player(_player_2, GameSettings.PLAYER_TWO_SLOT)
+	_dummy_players.append(_player_2)
+
+	for i in range(GameSettings.DEBUG_DUMMY_COUNT - 1):
+		var spawn_x: float = GameSettings.PLAYER_ONE_SPAWN.x + GameSettings.DEBUG_DUMMY_SPAWN_OFFSET_X * float(i + 2)
+		var dummy: Player = _spawn_dummy_at(Vector2(spawn_x, GameSettings.DEBUG_DUMMY_SPAWN_Y))
+		if dummy != null:
+			_dummy_players.append(dummy)
+
+	_connect_debug_health()
+
+
+func _configure_dummy_player(dummy: Player, slot: int) -> void:
+	dummy.player_slot = slot
+	dummy.configure_remote_control(slot)
+	dummy.add_to_group(GameSettings.PLAYERS_GROUP)
+	dummy.remove_from_group(GameSettings.LOCAL_PLAYERS_GROUP)
+	dummy.set_eliminated(false)
+	dummy.health_component.heal(dummy.health_component.max_health)
+
+
+func _spawn_dummy_at(position: Vector2) -> Player:
+	var dummy: Player = PLAYER_SCENE.instantiate() as Player
+	if dummy == null:
+		return null
+	dummy.name = "Dummy%d" % (_dummy_players.size() + 1)
+	add_child(dummy)
+	dummy.global_position = position
+	_configure_dummy_player(dummy, GameSettings.PLAYER_TWO_SLOT + _dummy_players.size())
+	return dummy
+
+
+func _connect_debug_health() -> void:
+	for dummy in _dummy_players:
+		if dummy != null and is_instance_valid(dummy):
+			var health: HealthComponent = dummy.health_component
+			if health != null and not health.health_depleted.is_connected(_on_debug_health_depleted):
+				health.health_depleted.connect(_on_debug_health_depleted.bind(dummy))
+	if _player_1 != null and is_instance_valid(_player_1):
+		var health: HealthComponent = _player_1.health_component
+		if health != null and not health.health_depleted.is_connected(_on_debug_player_health_depleted):
+			health.health_depleted.connect(_on_debug_player_health_depleted)
+
+
+func _on_debug_health_depleted(dummy: Player) -> void:
+	var dummy_id: int = dummy.get_instance_id()
+	if _debug_dummy_respawning.get(dummy_id, false):
+		return
+	_debug_dummy_respawning[dummy_id] = true
+	await get_tree().create_timer(GameSettings.PLAYER_RESPAWN_DELAY).timeout
+	if not is_inside_tree():
+		return
+	_debug_dummy_respawning.erase(dummy_id)
+	if dummy != null and is_instance_valid(dummy):
+		dummy.health_component.heal(dummy.health_component.max_health)
+		dummy.set_eliminated(false)
+		dummy.velocity = Vector2.ZERO
+
+
+func _on_debug_player_health_depleted() -> void:
+	_heal_and_respawn_after_delay()
+
+
 func _remove_offline_second_player() -> void:
 	if _player_2 == null:
 		return
@@ -237,7 +320,12 @@ func respawn_players() -> void:
 	_player_1.set_controls_enabled(true)
 	_player_1.velocity = Vector2.ZERO
 	_spawn_respawn_feedback(_player_1)
-	if _has_player_two():
+	if NetworkSession.is_debug():
+		for dummy in _dummy_players:
+			if dummy != null and is_instance_valid(dummy):
+				dummy.set_eliminated(false)
+				dummy.velocity = Vector2.ZERO
+	elif _has_player_two():
 		_player_2.set_eliminated(false)
 		_player_2.set_controls_enabled(true)
 		_player_2.velocity = Vector2.ZERO
@@ -247,7 +335,17 @@ func respawn_players() -> void:
 func _set_spawn_positions() -> void:
 	_player_1.global_position = _get_spawn_position(GameSettings.PLAYER_ONE_SPAWN_MARKER, GameSettings.PLAYER_ONE_SPAWN)
 	_player_1.last_dir = GameSettings.PLAYER_ONE_START_FACING
-	if _has_player_two():
+	if NetworkSession.is_debug():
+		for i in range(_dummy_players.size()):
+			var dummy: Player = _dummy_players[i]
+			if dummy == null or not is_instance_valid(dummy):
+				continue
+			dummy.global_position = Vector2(
+				GameSettings.PLAYER_ONE_SPAWN.x + GameSettings.DEBUG_DUMMY_SPAWN_OFFSET_X * float(i + 1),
+				GameSettings.DEBUG_DUMMY_SPAWN_Y
+			)
+			dummy.last_dir = GameSettings.PLAYER_TWO_START_FACING
+	elif _has_player_two():
 		_player_2.global_position = _get_spawn_position(GameSettings.PLAYER_TWO_SPAWN_MARKER, GameSettings.PLAYER_TWO_SPAWN)
 		_player_2.last_dir = GameSettings.PLAYER_TWO_START_FACING
 
@@ -278,6 +376,9 @@ func _get_camera_target_x() -> float:
 	if NetworkSession.is_steam_match_active() and _local_player != null:
 		return (_local_player.global_position.x + _get_map_center_x()) * GameSettings.HALF
 
+	if NetworkSession.is_debug():
+		return _local_player.global_position.x
+
 	if not _has_player_two():
 		return _player_1.global_position.x
 
@@ -287,6 +388,9 @@ func _get_camera_target_x() -> float:
 func _get_camera_target_zoom() -> float:
 	if NetworkSession.is_steam_match_active():
 		return maxf(GameSettings.CAMERA_ONLINE_ZOOM, _get_vertical_safe_zoom())
+
+	if NetworkSession.is_debug():
+		return GameSettings.CAMERA_ONLINE_ZOOM
 
 	if not _has_player_two():
 		return GameSettings.CAMERA_MAX_ZOOM
@@ -337,7 +441,11 @@ func _on_offline_health_depleted(slot: int) -> void:
 
 func _heal_and_respawn() -> void:
 	_player_1.health_component.heal(_player_1.health_component.max_health)
-	if _has_player_two():
+	if NetworkSession.is_debug():
+		for dummy in _dummy_players:
+			if dummy != null and is_instance_valid(dummy):
+				dummy.health_component.heal(dummy.health_component.max_health)
+	elif _has_player_two():
 		_player_2.health_component.heal(_player_2.health_component.max_health)
 	respawn_players()
 
@@ -353,12 +461,14 @@ func _update_score_display() -> void:
 	if _score_label == null:
 		return
 
-	if NetworkSession.is_steam_match_active() and _game_sync != null:
-		_score_label.hide()
-	elif not NetworkSession.is_steam_match_active():
-		if not _has_player_two():
+	if NetworkSession.is_steam_match_active():
+		if _game_sync != null:
 			_score_label.hide()
-			return
+	elif NetworkSession.is_debug():
+		_score_label.hide()
+	elif not _has_player_two():
+		_score_label.hide()
+	else:
 		_score_label.text = "%d - %d" % [
 			_offline_score.get(GameSettings.PLAYER_ONE_SLOT, 0),
 			_offline_score.get(GameSettings.PLAYER_TWO_SLOT, 0),
@@ -371,6 +481,9 @@ func _get_player_by_slot(slot: int) -> Player:
 		return _player_1
 	if slot == GameSettings.PLAYER_TWO_SLOT and _has_player_two():
 		return _player_2
+	for dummy in _dummy_players:
+		if dummy != null and is_instance_valid(dummy) and dummy.player_slot == slot:
+			return dummy
 	return null
 
 
@@ -427,6 +540,9 @@ func _spawn_respawn_feedback(player: Player) -> void:
 
 
 func _spawn_initial_feedback() -> void:
+	if NetworkSession.is_debug():
+		_spawn_respawn_feedback(_player_1)
+		return
 	_spawn_respawn_feedback(_player_1)
 	if _has_player_two():
 		_spawn_respawn_feedback(_player_2)

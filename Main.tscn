@@ -8,12 +8,11 @@ script = ExtResource("1_glv2v")
 [node name="SceneRoot" type="Node" parent="." unique_id=1927336674]
 unique_name_in_owner = true
 
-[node name="TransitionLayer" type="CanvasLayer" parent="."]
+[node name="TransitionLayer" type="CanvasLayer" parent="." unique_id=1779210808]
 layer = 100
 
-[node name="TransitionFade" type="ColorRect" parent="TransitionLayer"]
+[node name="TransitionFade" type="ColorRect" parent="TransitionLayer" unique_id=85214748]
 unique_name_in_owner = true
-layout_mode = 3
 modulate = Color(1, 1, 1, 0)
 anchors_preset = 15
 anchor_right = 1.0

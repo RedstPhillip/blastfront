@@ -53,7 +53,7 @@ func get_slot() -> StringName:
 
 
 func get_condition_multiplier(condition: float) -> float:
-	return ExtensionCondition.get_condition_multiplier(condition, minimum_condition_factor)
+	return ItemCondition.get_scale(condition, minimum_condition_factor)
 
 
 func get_effective_attribute_modifiers(condition: float) -> Dictionary:
