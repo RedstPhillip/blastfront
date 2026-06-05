@@ -226,7 +226,7 @@ func _on_projectile_despawn_requested(projectile: Node, reason: StringName, coll
 		return
 
 	var hit_player: Player = collider as Player
-	if hit_player != null and int(hit_player.player_slot) != int(projectile.get("owner_slot")):
+	if hit_player != null and reason != &"blocked" and int(hit_player.player_slot) != int(projectile.get("owner_slot")):
 		var projectile_position: Vector2 = hit_player.global_position
 		var projectile_node: Node2D = projectile as Node2D
 		if projectile_node != null:

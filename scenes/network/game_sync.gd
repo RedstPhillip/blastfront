@@ -110,6 +110,12 @@ func request_shot(owner_slot: int, spawn_position: Vector2, direction: Vector2, 
 		projectile_sync.call("request_shot", owner_slot, spawn_position, direction, projectile_data)
 
 
+func request_block_state(owner_slot: int, active: bool, direction: Vector2, cooldown_ratio: float) -> void:
+	var block_sync: Variant = get_module(GameSettings.MODULE_BLOCK)
+	if block_sync != null and block_sync.has_method("request_block_state"):
+		block_sync.call("request_block_state", owner_slot, active, direction, cooldown_ratio)
+
+
 func _make_packet(packet_type: StringName, payload: Dictionary) -> Dictionary:
 	_sequence += 1
 	return {

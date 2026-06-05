@@ -38,6 +38,9 @@ const RED_BODY_TEXTURE_MIRRORED: Texture2D = preload("res://assets/Player/red_ba
 @export var air_foot_tuck_y: float = GameSettings.PLAYER_AIR_FOOT_TUCK_Y
 
 @export var remote_interpolation_speed: float = GameSettings.PLAYER_REMOTE_INTERPOLATION_SPEED
+@export var block_duration: float = GameSettings.PLAYER_BLOCK_DURATION
+@export var block_cooldown: float = GameSettings.PLAYER_BLOCK_COOLDOWN
+@export var block_cone_degrees: float = GameSettings.PLAYER_BLOCK_CONE_DEGREES
 
 var player_slot: int = 0
 var control_mode: StringName = GameSettings.CONTROL_LOCAL
@@ -45,6 +48,7 @@ var move_left_action: StringName = GameSettings.INPUT_P1_MOVE_LEFT
 var move_right_action: StringName = GameSettings.INPUT_P1_MOVE_RIGHT
 var jump_action: StringName = GameSettings.INPUT_P1_JUMP
 var shoot_action: StringName = GameSettings.INPUT_P1_SHOOT
+var block_action: StringName = GameSettings.INPUT_P1_BLOCK
 var shooting_enabled: bool = true
 var movement_enabled: bool = true
 var player_color_id: StringName = &""
@@ -88,6 +92,10 @@ var _idle_visual_time: float = 0.0
 var _is_eliminated: bool = false
 var _default_collision_layer: int = 0
 var _default_collision_mask: int = 0
+var _block_active: bool = false
+var _block_timer: float = 0.0
+var _block_cooldown_timer: float = 0.0
+var _block_direction: Vector2 = Vector2.LEFT
 
 @onready var _body_sprite: Sprite2D = $Sprite2D
 @onready var _glove: Sprite2D = $ArmRenderer/Glove
@@ -124,6 +132,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if _is_eliminated:
 		return
+	_update_block_timers(delta)
 	_update_feedback_visuals(delta)
 
 
@@ -135,17 +144,19 @@ func _physics_process(delta: float) -> void:
 	if control_mode == GameSettings.CONTROL_REMOTE:
 		_physics_process_remote(delta)
 		return
+	_update_block_input()
 	_update_movement_timers(delta)
 	update_wall_coyote(delta)
 
 
-func configure_local_control(slot: int, move_left: StringName, move_right: StringName, jump: StringName, shoot: StringName, allow_shoot: bool) -> void:
+func configure_local_control(slot: int, move_left: StringName, move_right: StringName, jump: StringName, shoot: StringName, block: StringName, allow_shoot: bool) -> void:
 	player_slot = slot
 	control_mode = GameSettings.CONTROL_LOCAL
 	move_left_action = move_left
 	move_right_action = move_right
 	jump_action = jump
 	shoot_action = shoot
+	block_action = block
 	_can_shoot_when_controls_enabled = allow_shoot
 	shooting_enabled = movement_enabled and _can_shoot_when_controls_enabled
 	_apply_control_mode()
@@ -157,6 +168,9 @@ func configure_remote_control(slot: int) -> void:
 	control_mode = GameSettings.CONTROL_REMOTE
 	_can_shoot_when_controls_enabled = false
 	shooting_enabled = false
+	_block_active = false
+	_block_timer = 0.0
+	_block_cooldown_timer = 0.0
 	_network_target_position = global_position
 	_network_target_velocity = Vector2.ZERO
 	_network_aim_world_position = global_position + Vector2.LEFT * GameSettings.PLAYER_REMOTE_AIM_DISTANCE
@@ -168,6 +182,9 @@ func configure_remote_control(slot: int) -> void:
 func set_controls_enabled(enabled: bool) -> void:
 	movement_enabled = enabled and not _is_eliminated
 	shooting_enabled = movement_enabled and _can_shoot_when_controls_enabled
+	if not movement_enabled:
+		_block_active = false
+		_block_timer = 0.0
 
 
 func set_player_color(color_id: StringName) -> void:
@@ -201,11 +218,17 @@ func set_eliminated(eliminated: bool) -> void:
 		movement_enabled = false
 		shooting_enabled = false
 		_has_network_target = false
+		_block_active = false
+		_block_timer = 0.0
+		_block_cooldown_timer = 0.0
 		if _state_machine != null:
 			_state_machine.process_mode = Node.PROCESS_MODE_DISABLED
 	else:
 		_apply_control_mode()
 		shooting_enabled = movement_enabled and _can_shoot_when_controls_enabled
+		_block_active = false
+		_block_timer = 0.0
+		_block_cooldown_timer = 0.0
 		_initialize_feet()
 		_last_feedback_grounded = update_grounded()
 		_last_feedback_velocity_y = velocity.y
@@ -216,6 +239,9 @@ func apply_remote_snapshot(snapshot: Dictionary) -> void:
 	var snapshot_velocity: Variant = snapshot.get("velocity", velocity)
 	var snapshot_aim: Variant = snapshot.get("aim", _network_aim_world_position)
 	var snapshot_facing: Variant = snapshot.get("facing", last_dir)
+	var snapshot_block_active: Variant = snapshot.get("block_active", _block_active)
+	var snapshot_block_direction: Variant = snapshot.get("block_direction", _block_direction)
+	var snapshot_block_cooldown_ratio: Variant = snapshot.get("block_cooldown_ratio", GameSettings.PLAYER_BLOCK_REMOTE_COOLDOWN_RATIO)
 	var had_network_target := _has_network_target
 
 	if snapshot_position is Vector2:
@@ -231,6 +257,8 @@ func apply_remote_snapshot(snapshot: Dictionary) -> void:
 				gun.call("set_aim_direction", aim_vector.normalized())
 	if (snapshot_facing is float or snapshot_facing is int) and absf(float(snapshot_facing)) > 0.0:
 		last_dir = signf(float(snapshot_facing))
+	if snapshot_block_active is bool:
+		apply_remote_block_state(snapshot_block_active, snapshot_block_direction, snapshot_block_cooldown_ratio)
 
 	_has_network_target = true
 	if not had_network_target:
@@ -266,6 +294,71 @@ func is_shoot_down() -> bool:
 	if control_mode != GameSettings.CONTROL_LOCAL or not shooting_enabled:
 		return false
 	return Input.is_action_pressed(shoot_action)
+
+
+func is_block_pressed() -> bool:
+	if control_mode != GameSettings.CONTROL_LOCAL or not movement_enabled:
+		return false
+	return Input.is_action_just_pressed(block_action)
+
+
+func is_blocking() -> bool:
+	return _block_active
+
+
+func is_block_cooling_down() -> bool:
+	return not _block_active and _block_cooldown_timer > 0.0
+
+
+func get_block_cooldown_ratio() -> float:
+	if _block_cooldown_timer <= 0.0 or block_cooldown <= 0.0:
+		return 1.0
+	return clampf(1.0 - (_block_cooldown_timer / block_cooldown), 0.0, 1.0)
+
+
+func get_block_direction() -> Vector2:
+	if _block_direction.length_squared() <= GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
+		var fallback_dir: float = signf(last_dir)
+		if fallback_dir == 0.0:
+			fallback_dir = 1.0
+		return Vector2(fallback_dir, 0.0)
+	return _block_direction.normalized()
+
+
+func is_blocking_projectile(projectile_position: Vector2, projectile_velocity: Vector2 = Vector2.ZERO) -> bool:
+	if not _block_active:
+		return false
+
+	var to_projectile: Vector2 = projectile_position - global_position
+	if to_projectile.length_squared() <= GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
+		to_projectile = -projectile_velocity
+	if to_projectile.length_squared() <= GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
+		return true
+
+	var block_direction: Vector2 = get_block_direction()
+	var half_angle_radians: float = deg_to_rad(block_cone_degrees * GameSettings.HALF)
+	return block_direction.dot(to_projectile.normalized()) >= cos(half_angle_radians)
+
+
+func apply_block_feedback(projectile_position: Vector2) -> void:
+	var block_direction: Vector2 = get_block_direction()
+	GameJuice.spawn_burst(&"impact", projectile_position, block_direction, Color(1.0, 1.0, 1.0, 0.86))
+	GameJuice.play_sound_2d(&"impact", projectile_position, -4.0, 0.045)
+	GameJuice.shake(GameSettings.PLAYER_BLOCK_FEEDBACK_SHAKE_STRENGTH, GameSettings.PLAYER_BLOCK_FEEDBACK_SHAKE_TIME)
+
+
+func apply_remote_block_state(active: bool, direction_variant: Variant = Vector2.ZERO, cooldown_ratio_variant: Variant = GameSettings.PLAYER_BLOCK_REMOTE_COOLDOWN_RATIO) -> void:
+	if direction_variant is Vector2:
+		var remote_block_direction: Vector2 = direction_variant
+		if remote_block_direction.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
+			_block_direction = remote_block_direction.normalized()
+
+	_block_active = active
+	_block_timer = block_duration if _block_active else 0.0
+
+	if cooldown_ratio_variant is float or cooldown_ratio_variant is int:
+		var cooldown_ratio: float = clampf(float(cooldown_ratio_variant), 0.0, 1.0)
+		_block_cooldown_timer = (1.0 - cooldown_ratio) * block_cooldown
 
 
 func get_aim_world_position() -> Vector2:
@@ -517,6 +610,61 @@ func _update_movement_timers(delta: float) -> void:
 		_coyote_timer = coyote_time
 	else:
 		_coyote_timer = maxf(_coyote_timer - delta, 0.0)
+
+
+func _update_block_input() -> void:
+	if _block_active:
+		_refresh_block_direction()
+		return
+
+	if is_block_pressed() and _block_cooldown_timer <= 0.0:
+		_begin_block()
+
+
+func _update_block_timers(delta: float) -> void:
+	if _block_active:
+		if control_mode == GameSettings.CONTROL_LOCAL:
+			_refresh_block_direction()
+		_block_timer = maxf(_block_timer - delta, 0.0)
+		if _block_timer <= 0.0:
+			_end_block()
+	else:
+		_block_cooldown_timer = maxf(_block_cooldown_timer - delta, 0.0)
+
+
+func _begin_block() -> void:
+	_refresh_block_direction()
+	_block_active = true
+	_block_timer = block_duration
+	_block_cooldown_timer = 0.0
+	_notify_block_state(true)
+
+
+func _end_block() -> void:
+	if not _block_active:
+		return
+	_block_active = false
+	_block_timer = 0.0
+	_block_cooldown_timer = block_cooldown
+	if control_mode == GameSettings.CONTROL_LOCAL:
+		_notify_block_state(false)
+
+
+func _refresh_block_direction() -> void:
+	var aim_vector: Vector2 = get_aim_world_position() - global_position
+	if aim_vector.length_squared() <= GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
+		var fallback_dir: float = signf(last_dir)
+		if fallback_dir == 0.0:
+			fallback_dir = 1.0
+		aim_vector = Vector2(fallback_dir, 0.0)
+	_block_direction = aim_vector.normalized()
+
+
+func _notify_block_state(active: bool) -> void:
+	var world: Node = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)
+	if world == null or not world.has_method("request_block_state"):
+		return
+	world.call("request_block_state", self, active, get_block_direction(), get_block_cooldown_ratio())
 
 
 func _initialize_feet() -> void:

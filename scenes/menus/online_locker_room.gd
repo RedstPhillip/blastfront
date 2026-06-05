@@ -83,6 +83,7 @@ func _configure_players() -> void:
 		GameSettings.INPUT_P1_MOVE_RIGHT,
 		GameSettings.INPUT_P1_JUMP,
 		GameSettings.INPUT_P1_SHOOT,
+		GameSettings.INPUT_P1_BLOCK,
 		true
 	)
 

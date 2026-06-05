@@ -86,6 +86,9 @@ func _build_player_snapshot(player: Player) -> Dictionary:
 		"facing": player.last_dir,
 		"grounded": player.update_grounded(),
 		"on_wall": player.is_on_wall(),
+		"block_active": player.is_blocking(),
+		"block_direction": player.get_block_direction(),
+		"block_cooldown_ratio": player.get_block_cooldown_ratio(),
 	}
 
 

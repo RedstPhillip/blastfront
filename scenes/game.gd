@@ -101,6 +101,21 @@ func request_shot(owner: Node, spawn_position: Vector2, direction: Vector2, proj
 	spawn_projectile(projectile, spawn_position)
 
 
+func request_block_state(owner: Node, active: bool, direction: Vector2, cooldown_ratio: float) -> void:
+	if not NetworkSession.is_steam_match_active() or _game_sync == null:
+		return
+	if not OnlineMatch.is_playing_set():
+		return
+
+	var owner_slot: int = 0
+	if owner != null:
+		owner_slot = int(owner.get("player_slot"))
+	if owner_slot == 0:
+		return
+
+	_game_sync.request_block_state(owner_slot, active, direction, cooldown_ratio)
+
+
 func build_authoritative_shot(owner_slot: int) -> Dictionary:
 	if NetworkSession.is_steam_match_active() and not OnlineMatch.is_playing_set():
 		return {}
@@ -139,6 +154,7 @@ func _configure_offline_players() -> void:
 		GameSettings.INPUT_P1_MOVE_RIGHT,
 		GameSettings.INPUT_P1_JUMP,
 		GameSettings.INPUT_P1_SHOOT,
+		GameSettings.INPUT_P1_BLOCK,
 		true
 	)
 
@@ -170,6 +186,7 @@ func _configure_steam_players() -> void:
 			GameSettings.INPUT_P1_MOVE_RIGHT,
 			GameSettings.INPUT_P1_JUMP,
 			GameSettings.INPUT_P1_SHOOT,
+			GameSettings.INPUT_P1_BLOCK,
 			true
 		)
 
@@ -179,9 +196,9 @@ func _configure_steam_players() -> void:
 	_apply_online_player_colors()
 
 
-func _configure_local_player(player: Player, slot: int, move_left: StringName, move_right: StringName, jump: StringName, shoot: StringName, allow_shoot: bool) -> void:
+func _configure_local_player(player: Player, slot: int, move_left: StringName, move_right: StringName, jump: StringName, shoot: StringName, block: StringName, allow_shoot: bool) -> void:
 	_configure_common_player(player, slot)
-	player.configure_local_control(slot, move_left, move_right, jump, shoot, allow_shoot)
+	player.configure_local_control(slot, move_left, move_right, jump, shoot, block, allow_shoot)
 	player.add_to_group(GameSettings.LOCAL_PLAYERS_GROUP)
 
 

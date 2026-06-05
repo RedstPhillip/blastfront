@@ -63,6 +63,13 @@ func _update_rotation() -> void:
 
 func _on_collision(collision: KinematicCollision2D) -> void:
 	var collider: Object = collision.get_collider()
+	if _is_blocked_by_player(collider):
+		var blocking_player: Player = collider as Player
+		if blocking_player != null:
+			blocking_player.apply_block_feedback(collision.get_position())
+		_request_despawn(&"blocked", collider)
+		return
+
 	_play_collision_feedback(collision, collider)
 	if net_id == 0:
 		_apply_local_collision_damage(collider)
@@ -74,6 +81,13 @@ func _apply_local_collision_damage(collider: Object) -> void:
 	if player != null:
 		player.apply_hit_feedback(global_position, GameSettings.PROJECTILE_DAMAGE)
 		player.health_component.damage(GameSettings.PROJECTILE_DAMAGE)
+
+
+func _is_blocked_by_player(collider: Object) -> bool:
+	var player: Player = collider as Player
+	if player == null:
+		return false
+	return player.is_blocking_projectile(global_position, velocity)
 
 
 func _request_despawn(reason: StringName, collider: Object) -> void:

@@ -12,6 +12,8 @@ extends Node2D
 @export var guard_follow_x: float = GameSettings.ARM_GUARD_FOLLOW_X
 @export var guard_follow_y: float = GameSettings.ARM_GUARD_FOLLOW_Y
 @export var glove_rotation_offset_degrees: float = GameSettings.ARM_GLOVE_ROTATION_OFFSET_DEGREES
+@export var block_hand_distance: float = GameSettings.ARM_BLOCK_HAND_DISTANCE
+@export var block_hand_lerp_speed: float = GameSettings.ARM_BLOCK_HAND_LERP_SPEED
 
 var _p: CharacterBody2D
 var _gun: Node2D
@@ -26,6 +28,8 @@ var _guard_shoulder: Vector2 = Vector2.ZERO
 var _guard_hand: Vector2 = Vector2.ZERO
 var _guard_elbow: Vector2 = Vector2.ZERO
 var _guard_side: float = -1.0
+var _guard_hand_world_current: Vector2 = Vector2.ZERO
+var _has_guard_hand_pose: bool = false
 
 
 func _ready() -> void:
@@ -44,8 +48,8 @@ func _ready() -> void:
 		_glove.material = glove_mat
 
 
-func _process(_delta: float) -> void:
-	_update_pose()
+func _process(delta: float) -> void:
+	_update_pose(delta)
 	queue_redraw()
 
 
@@ -57,7 +61,7 @@ func _draw() -> void:
 	_draw_arm(_guard_shoulder, _guard_elbow, _guard_hand)
 
 
-func _update_pose() -> void:
+func _update_pose(delta: float) -> void:
 	if _p == null or _gun == null:
 		if _glove != null:
 			_glove.visible = false
@@ -78,10 +82,16 @@ func _update_pose() -> void:
 	_gun_elbow = _two_bone_ik(_gun_shoulder, _gun_hand, upper_len, lower_len, _gun_side)
 
 	var guard_shoulder_world := _shoulder_world(_guard_side)
-	var guard_hand_world := _guard_hand_world(aim_dir, _guard_side)
+	var guard_hand_world: Vector2 = _get_guard_hand_target_world(aim_dir, _guard_side)
+	if not _has_guard_hand_pose:
+		_guard_hand_world_current = guard_hand_world
+		_has_guard_hand_pose = true
+	else:
+		var hand_weight: float = clampf(delta * block_hand_lerp_speed, 0.0, 1.0)
+		_guard_hand_world_current = _guard_hand_world_current.lerp(guard_hand_world, hand_weight)
 
 	_guard_shoulder = to_local(guard_shoulder_world)
-	_guard_hand = to_local(guard_hand_world)
+	_guard_hand = to_local(_guard_hand_world_current)
 	_guard_hand = _clamp_to_reach(_guard_shoulder, _guard_hand, upper_len + lower_len - GameSettings.LIMB_REACH_MARGIN)
 	_guard_elbow = _two_bone_ik(_guard_shoulder, _guard_hand, upper_len, lower_len, _guard_side)
 
@@ -95,6 +105,13 @@ func _shoulder_world(side: float) -> Vector2:
 func _guard_hand_world(aim_dir: Vector2, side: float) -> Vector2:
 	var local := Vector2(side * guard_hand_x + aim_dir.x * guard_follow_x, guard_hand_y + aim_dir.y * guard_follow_y)
 	return _p.global_position + local.rotated(_p.rotation)
+
+
+func _get_guard_hand_target_world(aim_dir: Vector2, side: float) -> Vector2:
+	var player: Player = _p as Player
+	if player != null and player.is_blocking():
+		return _p.global_position + player.get_block_direction() * block_hand_distance
+	return _guard_hand_world(aim_dir, side)
 
 
 func _update_glove() -> void:

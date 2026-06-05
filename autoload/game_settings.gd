@@ -94,10 +94,12 @@ const INPUT_P1_MOVE_LEFT: StringName = &"p1_move_left"
 const INPUT_P1_MOVE_RIGHT: StringName = &"p1_move_right"
 const INPUT_P1_JUMP: StringName = &"p1_jump"
 const INPUT_P1_SHOOT: StringName = &"p1_shoot"
+const INPUT_P1_BLOCK: StringName = &"p1_block"
 const INPUT_P2_MOVE_LEFT: StringName = &"p2_move_left"
 const INPUT_P2_MOVE_RIGHT: StringName = &"p2_move_right"
 const INPUT_P2_JUMP: StringName = &"p2_jump"
 const INPUT_P2_SHOOT: StringName = &"p2_shoot"
+const INPUT_P2_BLOCK: StringName = &"p2_block"
 
 const DEFAULT_MAX_HEALTH: int = 100
 const MIN_MAX_HEALTH: int = 1
@@ -163,6 +165,13 @@ const PLAYER_STEP_SOUND_INTERVAL: float = 0.42
 const PLAYER_LAND_EFFECT_MIN_SPEED: float = 190.0
 const PLAYER_HEAVY_LAND_EFFECT_SPEED: float = 430.0
 
+const PLAYER_BLOCK_DURATION: float = 0.35
+const PLAYER_BLOCK_COOLDOWN: float = 1.15
+const PLAYER_BLOCK_CONE_DEGREES: float = 128.0
+const PLAYER_BLOCK_REMOTE_COOLDOWN_RATIO: float = 1.0
+const PLAYER_BLOCK_FEEDBACK_SHAKE_STRENGTH: float = 1.0
+const PLAYER_BLOCK_FEEDBACK_SHAKE_TIME: float = 0.065
+
 const PLAYER_BLUE_LIMB_COLOR: Color = Color8(80, 170, 255, 255)
 const PLAYER_RED_LIMB_COLOR: Color = Color8(235, 80, 80, 255)
 const DEFAULT_LIMB_COLOR: Color = Color8(238, 130, 238, 255)
@@ -193,6 +202,16 @@ const ARM_GUARD_HAND_Y: float = 6.5
 const ARM_GUARD_FOLLOW_X: float = 4.0
 const ARM_GUARD_FOLLOW_Y: float = 5.0
 const ARM_GLOVE_ROTATION_OFFSET_DEGREES: float = 0.0
+const ARM_BLOCK_HAND_DISTANCE: float = 31.0
+const ARM_BLOCK_HAND_LERP_SPEED: float = 24.0
+
+const BLOCK_COOLDOWN_BAR_WIDTH: float = 28.0
+const BLOCK_COOLDOWN_BAR_HEIGHT: float = 3.0
+const BLOCK_COOLDOWN_BAR_OFFSET_Y: float = -33.0
+const BLOCK_COOLDOWN_BAR_BACKGROUND_COLOR: Color = Color8(40, 40, 40, 160)
+const BLOCK_COOLDOWN_BAR_FILL_COLOR: Color = Color8(255, 255, 255, 225)
+const BLOCK_COOLDOWN_BAR_BORDER_COLOR: Color = Color8(0, 0, 0, 120)
+const BLOCK_COOLDOWN_BAR_BORDER_WIDTH: float = 1.0
 
 const GUN_ORBIT_RADIUS: float = 30.0
 const GUN_AIM_ANGLE_OFFSET_DEGREES: float = 180.0
