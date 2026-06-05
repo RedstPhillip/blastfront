@@ -99,6 +99,7 @@ var _block_direction: Vector2 = Vector2.LEFT
 
 @onready var _body_sprite: Sprite2D = $Sprite2D
 @onready var _glove: Sprite2D = $ArmRenderer/Glove
+@onready var _armor_visual_root: ArmorVisualRoot = $ArmorVisualRoot
 
 var _leg_renderer: Node = null
 var _arm_renderer: Node = null
@@ -127,6 +128,14 @@ func _ready() -> void:
 		health_component.health_changed.connect(_on_health_changed)
 	if not health_component.health_depleted.is_connected(_on_health_depleted):
 		health_component.health_depleted.connect(_on_health_depleted)
+	if not ArmorInventory.loadout_changed.is_connected(_on_armor_loadout_changed):
+		ArmorInventory.loadout_changed.connect(_on_armor_loadout_changed)
+	_refresh_armor_visuals()
+
+
+func _exit_tree() -> void:
+	if ArmorInventory.loadout_changed.is_connected(_on_armor_loadout_changed):
+		ArmorInventory.loadout_changed.disconnect(_on_armor_loadout_changed)
 
 
 func _process(delta: float) -> void:
@@ -161,6 +170,7 @@ func configure_local_control(slot: int, move_left: StringName, move_right: Strin
 	shooting_enabled = movement_enabled and _can_shoot_when_controls_enabled
 	_apply_control_mode()
 	_apply_player_palette()
+	_refresh_armor_visuals()
 
 
 func configure_remote_control(slot: int) -> void:
@@ -177,6 +187,7 @@ func configure_remote_control(slot: int) -> void:
 	_has_network_target = false
 	_apply_control_mode()
 	_apply_player_palette()
+	_refresh_armor_visuals()
 
 
 func set_controls_enabled(enabled: bool) -> void:
@@ -192,6 +203,19 @@ func set_player_color(color_id: StringName) -> void:
 		return
 	player_color_id = color_id
 	_apply_player_palette()
+
+
+func _on_armor_loadout_changed() -> void:
+	_refresh_armor_visuals()
+
+
+func _refresh_armor_visuals() -> void:
+	if _armor_visual_root == null:
+		return
+	if control_mode == GameSettings.CONTROL_LOCAL:
+		_armor_visual_root.apply_loadout(ArmorInventory.loadout)
+	else:
+		_armor_visual_root.clear_all()
 
 
 func get_visual_tint() -> Color:

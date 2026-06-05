@@ -21,6 +21,7 @@ SteamService="*res://autoload/steam_service.gd"
 NetworkSession="*res://autoload/network_session.gd"
 OnlineMatch="*res://autoload/online_match.gd"
 GameJuice="*res://autoload/game_juice.gd"
+ArmorInventory="*res://autoload/armor_inventory.gd"
 
 [display]
 
