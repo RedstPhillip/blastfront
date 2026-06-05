@@ -37,11 +37,11 @@ func _on_ready_pressed() -> void:
 	_refresh()
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed(&"ui_left"):
+func _input(event: InputEvent) -> void:
+	if _is_page_left_event(event):
 		_set_loadout_visible(true)
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed(&"ui_right") or event.is_action_pressed(&"ui_cancel"):
+	elif _is_page_right_event(event):
 		if _showing_loadout:
 			_set_loadout_visible(false)
 			get_viewport().set_input_as_handled()
@@ -75,3 +75,19 @@ func _set_loadout_visible(visible: bool) -> void:
 	_showing_loadout = visible
 	_status_page.visible = not visible
 	_loadout_page.visible = visible
+
+
+func _is_page_left_event(event: InputEvent) -> bool:
+	if event.is_action_pressed(&"ui_left"):
+		return true
+	var key_event: InputEventKey = event as InputEventKey
+	return key_event != null and key_event.pressed and not key_event.echo and key_event.keycode == KEY_LEFT
+
+
+func _is_page_right_event(event: InputEvent) -> bool:
+	if event.is_action_pressed(&"ui_right") or event.is_action_pressed(&"ui_cancel"):
+		return true
+	var key_event: InputEventKey = event as InputEventKey
+	if key_event == null or not key_event.pressed or key_event.echo:
+		return false
+	return key_event.keycode == KEY_RIGHT or key_event.keycode == KEY_ESCAPE
