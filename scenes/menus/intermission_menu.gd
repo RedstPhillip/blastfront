@@ -8,6 +8,9 @@ extends Control
 @onready var _ready_button: Button = %ReadyButton
 @onready var _status_page: Control = %StatusPage
 @onready var _loadout_page: Control = %LoadoutPage
+@onready var _left_page_button: Button = %LeftPageButton
+@onready var _right_page_button: Button = %RightPageButton
+@onready var _page_label: Label = %PageLabel
 
 var _local_slot: int = GameSettings.PLAYER_ONE_SLOT
 var _remote_slot: int = GameSettings.PLAYER_TWO_SLOT
@@ -18,6 +21,8 @@ func _ready() -> void:
 	_local_slot = NetworkSession.local_player_slot
 	_remote_slot = NetworkSession.get_remote_slot()
 	_ready_button.pressed.connect(_on_ready_pressed)
+	_left_page_button.pressed.connect(_on_previous_page_pressed)
+	_right_page_button.pressed.connect(_on_next_page_pressed)
 	GameJuice.attach_button_feedback(self)
 	OnlineMatch.state_changed.connect(_refresh)
 	OnlineMatch.countdown_changed.connect(_on_countdown_changed)
@@ -51,6 +56,14 @@ func _on_countdown_changed(_seconds_left: int) -> void:
 	_refresh()
 
 
+func _on_previous_page_pressed() -> void:
+	_set_loadout_visible(true)
+
+
+func _on_next_page_pressed() -> void:
+	_set_loadout_visible(false)
+
+
 func _refresh() -> void:
 	var local_name: String = OnlineMatch.get_player_color_name(_local_slot)
 	var remote_name: String = OnlineMatch.get_player_color_name(_remote_slot)
@@ -75,6 +88,9 @@ func _set_loadout_visible(visible: bool) -> void:
 	_showing_loadout = visible
 	_status_page.visible = not visible
 	_loadout_page.visible = visible
+	_left_page_button.visible = not visible
+	_right_page_button.visible = visible
+	_page_label.text = "LOADOUT" if visible else "READY"
 
 
 func _is_page_left_event(event: InputEvent) -> bool:

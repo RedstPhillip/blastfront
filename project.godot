@@ -20,6 +20,7 @@ config/icon="res://icon.svg"
 SteamService="*res://autoload/steam_service.gd"
 NetworkSession="*res://autoload/network_session.gd"
 OnlineMatch="*res://autoload/online_match.gd"
+ExtensionInventory="*res://autoload/extension_inventory.gd"
 GameJuice="*res://autoload/game_juice.gd"
 ArmorInventory="*res://autoload/armor_inventory.gd"
 

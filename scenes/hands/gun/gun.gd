@@ -16,15 +16,25 @@ var _pointing_right: bool = false
 var _fire_cooldown: float = 0.0
 var _recoil_offset: float = 0.0
 var _recoil_rotation: float = 0.0
+var _extension_stats: Dictionary = {}
+var _extension_player_slot: int = -1
 
 @onready var _player: Player = get_parent() as Player
 @onready var _visual_root: Node2D = $VisualRoot
 @onready var _muzzle: Marker2D = $VisualRoot/Muzzle
+@onready var _extension_visuals: WeaponExtensionVisuals = $VisualRoot/ExtensionVisuals
+
+
+func _ready() -> void:
+	_connect_extension_inventory()
+	_refresh_extension_loadout()
 
 
 func _physics_process(delta: float) -> void:
 	if _player == null:
 		return
+	if _extension_player_slot != int(_player.player_slot):
+		_refresh_extension_loadout()
 
 	_fire_cooldown = maxf(_fire_cooldown - delta, 0.0)
 	_recoil_offset = move_toward(_recoil_offset, 0.0, GameSettings.GUN_RECOIL_RETURN_SPEED * delta)
@@ -40,7 +50,7 @@ func _physics_process(delta: float) -> void:
 	var wants_shot: bool = _player.is_shoot_down() if automatic_fire else _player.is_shoot_pressed()
 	if wants_shot and _fire_cooldown <= 0.0:
 		_shoot()
-		_fire_cooldown = fire_interval
+		_fire_cooldown = _get_modified_fire_interval()
 
 
 func _shoot() -> void:
@@ -58,13 +68,19 @@ func _shoot() -> void:
 	if world == null or not world.has_method("spawn_projectile"):
 		return
 
+	var projectile_data: Dictionary = _build_projectile_data(direction)
+	var muzzle_speed: float = float(projectile_data.get("muzzle_speed", projectile_speed))
 	var projectile: Node2D = PROJECTILE_SCENE.instantiate() as Node2D
 	projectile.set("direction", direction)
-	projectile.set("muzzle_speed", projectile_speed)
-	projectile.set("gravity", projectile_gravity)
-	projectile.set("linear_damping", projectile_linear_damping)
-	projectile.set("max_distance", projectile_max_distance)
-	projectile.set("initial_velocity", direction * projectile_speed)
+	projectile.set("muzzle_speed", muzzle_speed)
+	projectile.set("gravity", float(projectile_data.get("gravity", projectile_gravity)))
+	projectile.set("linear_damping", float(projectile_data.get("linear_damping", projectile_linear_damping)))
+	projectile.set("max_distance", float(projectile_data.get("max_distance", projectile_max_distance)))
+	projectile.set("damage", int(projectile_data.get("damage", GameSettings.PROJECTILE_DAMAGE)))
+	projectile.set("extension_tags", projectile_data.get("extension_tags", []))
+	projectile.set("extension_effects", projectile_data.get("extension_effects", {}))
+	projectile.set("source_extensions", projectile_data.get("source_extensions", []))
+	projectile.set("initial_velocity", projectile_data.get("initial_velocity", direction * muzzle_speed))
 	world.spawn_projectile(projectile, muzzle_position)
 
 
@@ -73,7 +89,7 @@ func build_shot_data() -> Dictionary:
 	return {
 		"spawn_position": get_muzzle_global_position(),
 		"direction": direction,
-		"fire_interval": fire_interval,
+		"fire_interval": _get_modified_fire_interval(),
 		"projectile": _build_projectile_data(direction),
 	}
 
@@ -116,12 +132,20 @@ func _update_visual_transform() -> void:
 
 
 func _build_projectile_data(direction: Vector2) -> Dictionary:
+	var muzzle_speed: float = _get_modified_float(&"projectile_speed", projectile_speed, 1.0)
+	var gravity: float = projectile_gravity + _get_extension_attribute(&"projectile_gravity")
+	var linear_damping: float = maxf(0.0, projectile_linear_damping + _get_extension_attribute(&"projectile_linear_damping"))
+	var max_distance: float = maxf(50.0, projectile_max_distance + _get_extension_attribute(&"projectile_max_distance"))
 	return {
-		"muzzle_speed": projectile_speed,
-		"gravity": projectile_gravity,
-		"linear_damping": projectile_linear_damping,
-		"max_distance": projectile_max_distance,
-		"initial_velocity": direction * projectile_speed,
+		"muzzle_speed": muzzle_speed,
+		"gravity": gravity,
+		"linear_damping": linear_damping,
+		"max_distance": max_distance,
+		"damage": _get_modified_damage(),
+		"extension_tags": _get_extension_tags(),
+		"extension_effects": _get_extension_effects(),
+		"source_extensions": _get_source_extensions(),
+		"initial_velocity": direction * muzzle_speed,
 	}
 
 
@@ -132,3 +156,101 @@ func _play_fire_feedback(direction: Vector2, muzzle_position: Vector2) -> void:
 	GameJuice.spawn_muzzle(muzzle_position, direction)
 	GameJuice.play_sound_2d(&"shoot", muzzle_position, -12.0, 0.06)
 	GameJuice.shake(GameSettings.GUN_FIRE_SHAKE_STRENGTH, GameSettings.GUN_FIRE_SHAKE_TIME)
+
+
+func _connect_extension_inventory() -> void:
+	var inventory_node: Node = get_node_or_null("/root/ExtensionInventory")
+	if inventory_node == null or not inventory_node.has_signal("loadout_changed"):
+		return
+
+	var callback: Callable = Callable(self, "_on_extension_loadout_changed")
+	if not inventory_node.is_connected("loadout_changed", callback):
+		inventory_node.connect("loadout_changed", callback)
+
+
+func _on_extension_loadout_changed(player_slot: int) -> void:
+	if _player == null:
+		return
+	if player_slot == int(_player.player_slot):
+		_refresh_extension_loadout()
+
+
+func _refresh_extension_loadout() -> void:
+	if _player == null:
+		return
+
+	_extension_player_slot = int(_player.player_slot)
+	_extension_stats = {}
+
+	var inventory_node: Node = get_node_or_null("/root/ExtensionInventory")
+	if inventory_node == null:
+		if _extension_visuals != null:
+			_extension_visuals.clear_all()
+		return
+
+	if inventory_node.has_method("build_effective_stats_for_player"):
+		var stats_variant: Variant = inventory_node.call("build_effective_stats_for_player", _extension_player_slot)
+		if stats_variant is Dictionary:
+			_extension_stats = stats_variant
+
+	if _extension_visuals != null and inventory_node.has_method("get_equipped_for_player"):
+		var equipped_variant: Variant = inventory_node.call("get_equipped_for_player", _extension_player_slot)
+		if equipped_variant is Dictionary:
+			var equipped: Dictionary = equipped_variant
+			_extension_visuals.set_extensions_by_slot(equipped)
+
+
+func _get_modified_fire_interval() -> float:
+	return maxf(0.03, fire_interval + _get_extension_attribute(&"fire_interval"))
+
+
+func _get_modified_float(attribute_name: StringName, base_value: float, minimum_value: float) -> float:
+	return maxf(minimum_value, base_value + _get_extension_attribute(attribute_name))
+
+
+func _get_modified_damage() -> int:
+	var damage_value: float = float(GameSettings.PROJECTILE_DAMAGE) + _get_extension_attribute(&"damage")
+	return maxi(1, int(roundf(damage_value)))
+
+
+func _get_extension_attribute(attribute_name: StringName) -> float:
+	var attributes_variant: Variant = _extension_stats.get("attributes", {})
+	if not (attributes_variant is Dictionary):
+		return 0.0
+
+	var attributes: Dictionary = attributes_variant
+	return float(attributes.get(attribute_name, 0.0))
+
+
+func _get_extension_tags() -> Array[String]:
+	var result: Array[String] = []
+	var tags_variant: Variant = _extension_stats.get("projectile_tags", [])
+	if not (tags_variant is Array):
+		return result
+
+	var tags: Array = tags_variant
+	for raw_tag in tags:
+		var tag: String = str(raw_tag)
+		if not result.has(tag):
+			result.append(tag)
+	return result
+
+
+func _get_extension_effects() -> Dictionary:
+	var effects_variant: Variant = _extension_stats.get("projectile_effects", {})
+	if effects_variant is Dictionary:
+		var effects: Dictionary = effects_variant
+		return effects.duplicate(true)
+	return {}
+
+
+func _get_source_extensions() -> Array[String]:
+	var result: Array[String] = []
+	var source_variant: Variant = _extension_stats.get("source_extensions", [])
+	if not (source_variant is Array):
+		return result
+
+	var source_extensions: Array = source_variant
+	for raw_extension_id in source_extensions:
+		result.append(str(raw_extension_id))
+	return result

@@ -1,0 +1,15 @@
+[gd_scene format=3]
+
+[node name="LongBarrelVisual" type="Node2D"]
+
+[node name="OuterBarrel" type="Polygon2D" parent="."]
+color = Color(0.055, 0.06, 0.065, 1)
+polygon = PackedVector2Array(-30, -5, 1, -5, 1, 5, -30, 5)
+
+[node name="InnerBarrel" type="Polygon2D" parent="."]
+color = Color(0.16, 0.18, 0.19, 1)
+polygon = PackedVector2Array(-28, -2.5, 1, -2.5, 1, 2.5, -28, 2.5)
+
+[node name="MuzzleRing" type="Polygon2D" parent="."]
+color = Color(0.025, 0.028, 0.03, 1)
+polygon = PackedVector2Array(-34, -7, -28, -7, -28, 7, -34, 7)
