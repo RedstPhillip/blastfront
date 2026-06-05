@@ -9,6 +9,7 @@ signal despawn_requested(projectile: Node, reason: StringName, collider)
 @export var linear_damping: float = GameSettings.PROJECTILE_LINEAR_DAMPING
 @export var rotate_to_velocity: bool = GameSettings.PROJECTILE_ROTATE_TO_VELOCITY
 @export var damage: int = GameSettings.PROJECTILE_DAMAGE
+@export var projectile_scale: float = 1.0
 @export var extension_tags: Array[String] = []
 @export var extension_effects: Dictionary = {}
 @export var source_extensions: Array[String] = []
@@ -28,6 +29,8 @@ func _ready() -> void:
 	direction = direction.normalized()
 
 	velocity = initial_velocity if initial_velocity.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED else direction * muzzle_speed
+	if not is_equal_approx(projectile_scale, 1.0):
+		scale *= projectile_scale
 	_update_rotation()
 
 

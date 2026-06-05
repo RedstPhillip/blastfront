@@ -97,6 +97,8 @@ var _block_timer: float = 0.0
 var _block_cooldown_timer: float = 0.0
 var _block_direction: Vector2 = Vector2.LEFT
 
+var status_effect_manager: StatusEffectManager
+
 @onready var _body_sprite: Sprite2D = $Sprite2D
 @onready var _glove: Sprite2D = $ArmRenderer/Glove
 @onready var _armor_visual_root: ArmorVisualRoot = $ArmorVisualRoot
@@ -124,6 +126,9 @@ func _ready() -> void:
 	_apply_player_palette()
 	_last_feedback_grounded = update_grounded()
 	_last_feedback_velocity_y = velocity.y
+	status_effect_manager = StatusEffectManager.new()
+	status_effect_manager.name = "StatusEffectManager"
+	add_child(status_effect_manager)
 	if not health_component.health_changed.is_connected(_on_health_changed):
 		health_component.health_changed.connect(_on_health_changed)
 	if not health_component.health_depleted.is_connected(_on_health_depleted):
@@ -253,6 +258,8 @@ func set_eliminated(eliminated: bool) -> void:
 		_block_active = false
 		_block_timer = 0.0
 		_block_cooldown_timer = 0.0
+		if status_effect_manager != null:
+			status_effect_manager.clear_all()
 		_initialize_feet()
 		_last_feedback_grounded = update_grounded()
 		_last_feedback_velocity_y = velocity.y
@@ -892,6 +899,12 @@ func _update_feedback_visuals(delta: float) -> void:
 		_body_sprite.modulate = base_modulate.lerp(Color(1.0, 0.94, 0.70, 1.0), hit_ratio)
 	else:
 		_body_sprite.modulate = base_modulate
+
+	if status_effect_manager != null and status_effect_manager.get_active_count() > 0:
+		var tint: Color = status_effect_manager.get_tint_color()
+		if tint != Color.WHITE:
+			var pulse: float = 0.35 + sin(Time.get_ticks_msec() * 0.008) * 0.12
+			_body_sprite.modulate = _body_sprite.modulate.lerp(tint, pulse)
 
 
 func _on_health_changed(old_health: int, new_health: int) -> void:

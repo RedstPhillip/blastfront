@@ -4,9 +4,10 @@ signal inventory_changed(player_slot: int)
 signal loadout_changed(player_slot: int)
 
 const EXTENSION_DEFINITION_PATHS: Array[String] = [
-	"res://scenes/weapons/extensions/red_dot_sight_mk1.tres",
-	"res://scenes/weapons/extensions/cryo_rounds_mk1.tres",
-	"res://scenes/weapons/extensions/long_barrel_mk1.tres",
+	"res://scenes/weapons/extensions/poison_rounds_mk1.tres",
+	"res://scenes/weapons/extensions/big_bullets_mk1.tres",
+	"res://scenes/weapons/extensions/reload_improver_mk1.tres",
+	"res://scenes/weapons/extensions/multi_barrel_mk1.tres",
 ]
 
 var _definitions_by_id: Dictionary = {}

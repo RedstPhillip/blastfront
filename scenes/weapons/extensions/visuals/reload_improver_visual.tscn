@@ -1,0 +1,16 @@
+[gd_scene format=3]
+
+[node name="ReloadImproverVisual" type="Node2D"]
+
+[node name="Body" type="Polygon2D" parent="."]
+color = Color(0.06, 0.06, 0.08, 1)
+polygon = PackedVector2Array(-8, -6, 8, -6, 10, -1, 8, 6, -8, 6, -10, -1)
+
+[node name="Inner" type="Polygon2D" parent="."]
+color = Color(0.85, 0.7, 0.15, 1)
+polygon = PackedVector2Array(-5, -3, 5, -3, 6, -1, 5, 3, -5, 3, -6, -1)
+
+[node name="Arrow" type="Line2D" parent="."]
+points = PackedVector2Array(0, -2, 0, 2)
+width = 1.5
+default_color = Color(1, 0.85, 0.3, 0.9)

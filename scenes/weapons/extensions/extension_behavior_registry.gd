@@ -1,11 +1,7 @@
 class_name ExtensionBehaviorRegistry
 extends Node
 
-const HOMING_BEHAVIOR_SCRIPT: Script = preload("res://scenes/weapons/extensions/behaviors/homing_behavior.gd")
-
-static var behaviors: Dictionary = {
-	&"homing": HOMING_BEHAVIOR_SCRIPT.new(),
-}
+static var behaviors: Dictionary = {}
 
 
 static func register_behavior(tag: StringName, behavior: ExtensionBehavior) -> void:

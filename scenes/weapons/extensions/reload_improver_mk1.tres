@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="WeaponExtensionDefinition" format=3]
+
+[ext_resource type="Script" uid="uid://vd1xlgf7df4b" path="res://scenes/weapons/extensions/weapon_extension_definition.gd" id="1_definition"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/extensions/visuals/reload_improver_visual.tscn" id="2_visual"]
+
+[resource]
+script = ExtResource("1_definition")
+extension_id = "reload_improver_mk1"
+display_name = "Reload Improver MK1"
+slot_key = "middle"
+description = "Reduces the time between shots for a faster effective fire rate."
+default_condition = 100.0
+minimum_condition_factor = 0.25
+attribute_modifiers = {
+"fire_interval": -0.025
+}
+visual_scene = ExtResource("2_visual")
+icon_color = Color(0.85, 0.7, 0.15, 1)

@@ -6,8 +6,6 @@ func apply(target: Player, effect_data: Dictionary, _projectile: Node = null) ->
 	if target == null:
 		return
 
-	var damage_per_hit: int = int(effect_data.get("damage_per_hit", 0))
-	if damage_per_hit <= 0:
+	if target.status_effect_manager == null:
 		return
-
-	target.health_component.damage(damage_per_hit)
+	target.status_effect_manager.apply_effect("poison", effect_data)

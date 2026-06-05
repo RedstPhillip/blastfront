@@ -54,21 +54,33 @@ func _physics_process(delta: float) -> void:
 
 
 func _shoot() -> void:
-	var direction: Vector2 = get_shot_direction()
+	var base_direction: Vector2 = get_shot_direction()
 	var muzzle_position: Vector2 = get_muzzle_global_position()
-	_play_fire_feedback(direction, muzzle_position)
+	_play_fire_feedback(base_direction, muzzle_position)
 
+	var projectile_data: Dictionary = _build_projectile_data(base_direction)
+	var shots: int = maxi(1, int(1.0 + _get_extension_attribute(&"shots_per_fire")))
+	var spread_degrees: float = _get_extension_attribute(&"shot_spread_degrees")
+
+	for i in range(shots):
+		var dir: Vector2 = base_direction
+		if shots > 1 and spread_degrees > 0.0:
+			var ratio: float = (float(i) / float(shots - 1)) - 0.5
+			dir = base_direction.rotated(deg_to_rad(spread_degrees * ratio))
+		_fire_projectile(dir, muzzle_position, projectile_data)
+
+
+func _fire_projectile(direction: Vector2, muzzle_position: Vector2, projectile_data: Dictionary) -> void:
 	var world: Node = get_tree().get_first_node_in_group("game_world")
 	if world == null:
 		world = _player.get_parent()
 	if world != null and world.has_method("request_shot"):
-		world.request_shot(_player, muzzle_position, direction, _build_projectile_data(direction))
+		world.request_shot(_player, muzzle_position, direction, projectile_data)
 		return
 
 	if world == null or not world.has_method("spawn_projectile"):
 		return
 
-	var projectile_data: Dictionary = _build_projectile_data(direction)
 	var muzzle_speed: float = float(projectile_data.get("muzzle_speed", projectile_speed))
 	var projectile: Node2D = PROJECTILE_SCENE.instantiate() as Node2D
 	projectile.set("direction", direction)
@@ -77,6 +89,7 @@ func _shoot() -> void:
 	projectile.set("linear_damping", float(projectile_data.get("linear_damping", projectile_linear_damping)))
 	projectile.set("max_distance", float(projectile_data.get("max_distance", projectile_max_distance)))
 	projectile.set("damage", int(projectile_data.get("damage", GameSettings.PROJECTILE_DAMAGE)))
+	projectile.set("projectile_scale", float(projectile_data.get("projectile_scale", 1.0)))
 	projectile.set("extension_tags", projectile_data.get("extension_tags", []))
 	projectile.set("extension_effects", projectile_data.get("extension_effects", {}))
 	projectile.set("source_extensions", projectile_data.get("source_extensions", []))
@@ -142,6 +155,7 @@ func _build_projectile_data(direction: Vector2) -> Dictionary:
 		"linear_damping": linear_damping,
 		"max_distance": max_distance,
 		"damage": _get_modified_damage(),
+		"projectile_scale": _get_modified_float(&"projectile_scale", 1.0, 0.1),
 		"extension_tags": _get_extension_tags(),
 		"extension_effects": _get_extension_effects(),
 		"source_extensions": _get_source_extensions(),

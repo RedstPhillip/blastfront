@@ -1,0 +1,16 @@
+[gd_scene format=3]
+
+[node name="BigBulletsVisual" type="Node2D"]
+
+[node name="CanisterBack" type="Polygon2D" parent="."]
+color = Color(0.05, 0.05, 0.05, 1)
+polygon = PackedVector2Array(-11, -8, 11, -8, 14, -2, 11, 8, -11, 8, -14, -2)
+
+[node name="CanisterCore" type="Polygon2D" parent="."]
+color = Color(0.9, 0.4, 0.1, 1)
+polygon = PackedVector2Array(-8, -5, 9, -5, 11, -1, 9, 5, -8, 5, -11, -1)
+
+[node name="PlusLine" type="Line2D" parent="."]
+points = PackedVector2Array(-4, 0, 4, 0)
+width = 2.5
+default_color = Color(1, 0.6, 0.2, 0.9)

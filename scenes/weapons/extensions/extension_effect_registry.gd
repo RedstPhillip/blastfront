@@ -1,11 +1,9 @@
 class_name ExtensionEffectRegistry
 extends Node
 
-const FIRE_EFFECT_SCRIPT: Script = preload("res://scenes/weapons/extensions/effects/fire_effect.gd")
 const POISON_EFFECT_SCRIPT: Script = preload("res://scenes/weapons/extensions/effects/poison_effect.gd")
 
 static var effects: Dictionary = {
-	&"fire": FIRE_EFFECT_SCRIPT.new(),
 	&"poison": POISON_EFFECT_SCRIPT.new(),
 }
 
