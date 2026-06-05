@@ -8,6 +8,7 @@ var phase: StringName = GameSettings.MATCH_PHASE_LOCKER
 var player_colors: Dictionary = GameSettings.default_player_colors()
 var locker_ready: Dictionary = GameSettings.default_ready_state()
 var intermission_ready: Dictionary = GameSettings.default_ready_state()
+var extension_loadouts: Dictionary = GameSettings.default_extension_loadouts()
 var set_kills: Dictionary = GameSettings.default_score()
 var match_points: Dictionary = GameSettings.default_score()
 var last_winner_slot: int = 0
@@ -57,6 +58,7 @@ func enter_locker(reset_scores: bool = true) -> void:
 		_reset_match_scores()
 	locker_ready = GameSettings.default_ready_state()
 	intermission_ready = GameSettings.default_ready_state()
+	extension_loadouts = GameSettings.default_extension_loadouts()
 	last_winner_slot = 0
 	final_winner_slot = 0
 	_kill_banner_remaining = 0.0
@@ -126,6 +128,40 @@ func set_player_color(slot: int, color_id: StringName) -> void:
 			"slot": slot,
 			"color_id": str(color_id),
 		})
+
+
+func set_local_extension_loadout(loadout: Dictionary) -> void:
+	set_extension_loadout(NetworkSession.local_player_slot, loadout)
+
+
+func set_extension_loadout(slot: int, loadout: Dictionary) -> void:
+	if not _is_player_slot(slot):
+		return
+
+	var loadout_copy: Dictionary = loadout.duplicate(true)
+	if _has_authority():
+		extension_loadouts[slot] = loadout_copy
+		_broadcast_state()
+		state_changed.emit()
+	else:
+		extension_loadouts[slot] = loadout_copy
+		state_changed.emit()
+		_send_request(GameSettings.PACKET_ONLINE_EXTENSION_LOADOUT, {
+			"slot": slot,
+			"loadout": loadout_copy,
+		})
+
+
+func get_extension_loadouts() -> Dictionary:
+	return extension_loadouts.duplicate(true)
+
+
+func get_extension_loadout(slot: int) -> Dictionary:
+	var loadout_variant: Variant = extension_loadouts.get(slot, {})
+	if loadout_variant is Dictionary:
+		var loadout: Dictionary = loadout_variant
+		return loadout.duplicate(true)
+	return {}
 
 
 func set_local_locker_ready(is_ready: bool) -> void:
@@ -210,6 +246,7 @@ func build_state() -> Dictionary:
 	return {
 		"phase": str(phase),
 		"player_colors": player_colors.duplicate(),
+		"extension_loadouts": extension_loadouts.duplicate(true),
 		"locker_ready": locker_ready.duplicate(),
 		"intermission_ready": intermission_ready.duplicate(),
 		"set_kills": set_kills.duplicate(),
@@ -285,6 +322,7 @@ func _apply_player_color(slot: int, color_id: StringName) -> void:
 
 func _apply_state(state: Dictionary) -> void:
 	_apply_dictionary(state.get("player_colors", {}), player_colors, true)
+	_apply_extension_loadouts(state.get("extension_loadouts", {}))
 	_apply_dictionary(state.get("locker_ready", {}), locker_ready, false)
 	_apply_dictionary(state.get("intermission_ready", {}), intermission_ready, false)
 	_apply_dictionary(state.get("set_kills", {}), set_kills, false)
@@ -319,6 +357,23 @@ func _apply_dictionary(source_variant: Variant, target: Dictionary, stores_color
 			target[slot] = source[raw_slot] == true
 		else:
 			target[slot] = int(source[raw_slot])
+
+
+func _apply_extension_loadouts(source_variant: Variant) -> void:
+	extension_loadouts = GameSettings.default_extension_loadouts()
+	if not (source_variant is Dictionary):
+		return
+
+	var source: Dictionary = source_variant
+	for raw_slot in source.keys():
+		var slot: int = int(raw_slot)
+		if not _is_player_slot(slot):
+			continue
+
+		var loadout_variant: Variant = source[raw_slot]
+		if loadout_variant is Dictionary:
+			var loadout_data: Dictionary = loadout_variant
+			extension_loadouts[slot] = loadout_data.duplicate(true)
 
 
 func _broadcast_state() -> void:
@@ -356,6 +411,11 @@ func _on_packet_received(packet: Dictionary, _sender_id: int) -> void:
 		var color_slot: int = _slot_from_packet(packet)
 		var color_id: StringName = StringName(str(payload.get("color_id", "")))
 		set_player_color(color_slot, color_id)
+	elif packet_type == GameSettings.PACKET_ONLINE_EXTENSION_LOADOUT and _has_authority():
+		var loadout_variant: Variant = payload.get("loadout", {})
+		if loadout_variant is Dictionary:
+			var loadout_data: Dictionary = loadout_variant
+			set_extension_loadout(_slot_from_packet(packet), loadout_data)
 	elif packet_type == GameSettings.PACKET_ONLINE_LOCKER_READY and _has_authority():
 		set_locker_ready(_slot_from_packet(packet), payload.get("ready", false) == true)
 	elif packet_type == GameSettings.PACKET_ONLINE_INTERMISSION_READY and _has_authority():

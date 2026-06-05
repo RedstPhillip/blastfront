@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="WeaponExtensionDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scenes/weapons/extensions/weapon_extension_definition.gd" id="1_definition"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/extensions/visuals/long_barrel_visual.tscn" id="2_visual"]
+
+[resource]
+script = ExtResource("1_definition")
+extension_id = "long_barrel_mk1"
+display_name = "Long Barrel MK1"
+slot_key = "front"
+mark = 1
+description = "A front-mounted barrel extension that improves projectile reach."
+default_condition = 64.0
+minimum_condition_factor = 0.35
+condition_scales_attributes = true
+condition_scales_projectile_effects = true
+attribute_modifiers = {
+"projectile_speed": 160.0,
+"projectile_gravity": -220.0,
+"projectile_max_distance": 240.0
+}
+projectile_tags = Array[String]([])
+projectile_effects = {}
+visual_scene = ExtResource("2_visual")
+icon_color = Color(0.74, 0.77, 0.8, 1)

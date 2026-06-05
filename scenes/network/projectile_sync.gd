@@ -206,6 +206,10 @@ func _spawn_projectile(net_id: int, owner_slot: int, spawn_position: Vector2, di
 	projectile.set("gravity", float(projectile_data.get("gravity", projectile.get("gravity"))))
 	projectile.set("linear_damping", float(projectile_data.get("linear_damping", projectile.get("linear_damping"))))
 	projectile.set("max_distance", float(projectile_data.get("max_distance", projectile.get("max_distance"))))
+	projectile.set("damage", int(projectile_data.get("damage", projectile.get("damage"))))
+	projectile.set("extension_tags", projectile_data.get("extension_tags", []))
+	projectile.set("extension_effects", projectile_data.get("extension_effects", {}))
+	projectile.set("source_extensions", projectile_data.get("source_extensions", []))
 	projectile.set("initial_velocity", projectile_data.get("initial_velocity", direction * muzzle_speed))
 
 	if not authority:
@@ -227,14 +231,16 @@ func _on_projectile_despawn_requested(projectile: Node, reason: StringName, coll
 
 	var hit_player: Player = collider as Player
 	if hit_player != null and reason != &"blocked" and int(hit_player.player_slot) != int(projectile.get("owner_slot")):
+		var projectile_damage: int = int(projectile.get("damage"))
 		var projectile_position: Vector2 = hit_player.global_position
 		var projectile_node: Node2D = projectile as Node2D
 		if projectile_node != null:
 			projectile_position = projectile_node.global_position
-		hit_player.apply_hit_feedback(projectile_position, GameSettings.PROJECTILE_DAMAGE)
+		hit_player.apply_hit_feedback(projectile_position, projectile_damage)
+		ExtensionEffectRegistry.apply_projectile_effects(hit_player, projectile)
 		var combat_sync: Variant = game_sync.get_module(GameSettings.MODULE_COMBAT)
 		if combat_sync != null and combat_sync.has_method("apply_hit"):
-			combat_sync.call("apply_hit", int(hit_player.player_slot), int(projectile.get("owner_slot")), net_id)
+			combat_sync.call("apply_hit", int(hit_player.player_slot), int(projectile.get("owner_slot")), net_id, projectile_damage)
 
 	game_sync.send_reliable(GameSettings.PACKET_PROJECTILE_DESPAWNED, {
 		"net_id": net_id,

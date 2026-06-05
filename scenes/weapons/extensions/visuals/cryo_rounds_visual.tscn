@@ -1,0 +1,16 @@
+[gd_scene format=3]
+
+[node name="CryoRoundsVisual" type="Node2D"]
+
+[node name="CanisterBack" type="Polygon2D" parent="."]
+color = Color(0.04, 0.13, 0.18, 1)
+polygon = PackedVector2Array(-10, -7, 10, -7, 13, -2, 10, 7, -10, 7, -13, -2)
+
+[node name="CanisterCore" type="Polygon2D" parent="."]
+color = Color(0.26, 0.83, 1, 1)
+polygon = PackedVector2Array(-7, -4, 8, -4, 10, -1, 8, 4, -7, 4, -10, -1)
+
+[node name="FrostLine" type="Line2D" parent="."]
+points = PackedVector2Array(-6, -1, 6, -1)
+width = 1.5
+default_color = Color(0.86, 1, 1, 0.9)
