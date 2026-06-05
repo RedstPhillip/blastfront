@@ -1,0 +1,464 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/loadout/loadout_page.gd" id="1_page"]
+[ext_resource type="PackedScene" path="res://scenes/ui/loadout/ArmorOverlaySlot.tscn" id="2_slot"]
+[ext_resource type="Texture2D" path="res://assets/hands/gun/gun.png" id="3_gun"]
+[ext_resource type="Texture2D" path="res://assets/Player/blue_ball.png" id="4_player"]
+[ext_resource type="Texture2D" path="res://assets/hands/block/shield.png" id="5_shield"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_loadout_panel"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.035, 0.06, 0.075, 0.92)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.62, 0.94, 1, 0.72)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+shadow_color = Color(0, 0, 0, 0.48)
+shadow_size = 18
+shadow_offset = Vector2(0, 8)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_loadout_center"]
+content_margin_left = 16.0
+content_margin_top = 14.0
+content_margin_right = 16.0
+content_margin_bottom = 14.0
+bg_color = Color(0.045, 0.045, 0.052, 0.94)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.9, 0.62, 0.32, 0.68)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+shadow_color = Color(0, 0, 0, 0.42)
+shadow_size = 16
+shadow_offset = Vector2(0, 7)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_loadout_well"]
+bg_color = Color(0.01, 0.018, 0.024, 0.7)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.76, 0.98, 1, 0.32)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_slot_normal"]
+bg_color = Color(0.08, 0.68, 0.82, 0.22)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.76, 0.98, 1, 0.56)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_slot_hover"]
+bg_color = Color(0.12, 0.9, 1, 0.34)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 1, 1, 0.82)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="LoadoutPage" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_page")
+
+[node name="OpaqueBackdrop" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.008, 0.012, 0.016, 0.88)
+
+[node name="RootMargin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 18
+
+[node name="MainColumns" type="HBoxContainer" parent="RootMargin"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="WeaponColumn" type="PanelContainer" parent="RootMargin/MainColumns"]
+custom_minimum_size = Vector2(430, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_loadout_panel")
+
+[node name="WeaponMargin" type="MarginContainer" parent="RootMargin/MainColumns/WeaponColumn"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 12
+
+[node name="WeaponVBox" type="VBoxContainer" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="WeaponTitle" type="Label" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.98, 0.94, 1)
+theme_override_font_sizes/font_size = 20
+text = "Weapon Extensions"
+
+[node name="WeaponPreview" type="PanelContainer" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox"]
+custom_minimum_size = Vector2(0, 174)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_loadout_well")
+
+[node name="GunStage" type="Control" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox/WeaponPreview"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="GunTexture" type="TextureRect" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox/WeaponPreview/GunStage"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -148.0
+offset_top = -48.0
+offset_right = 148.0
+offset_bottom = 48.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+modulate = Color(1, 1, 1, 0.74)
+texture = ExtResource("3_gun")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="WeaponSlotOne" type="Button" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox/WeaponPreview/GunStage"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -103.0
+offset_top = -13.0
+offset_right = -61.0
+offset_bottom = 29.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.86, 1, 1, 0.9)
+theme_override_styles/normal = SubResource("StyleBoxFlat_slot_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_slot_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_slot_hover")
+text = ""
+
+[node name="WeaponSlotTwo" type="Button" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox/WeaponPreview/GunStage"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 33.0
+offset_top = -12.0
+offset_right = 75.0
+offset_bottom = 30.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.86, 1, 1, 0.9)
+theme_override_styles/normal = SubResource("StyleBoxFlat_slot_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_slot_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_slot_hover")
+text = ""
+
+[node name="WeaponSlotThree" type="Button" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox/WeaponPreview/GunStage"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 42.0
+offset_top = 34.0
+offset_right = 84.0
+offset_bottom = 76.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.86, 1, 1, 0.9)
+theme_override_styles/normal = SubResource("StyleBoxFlat_slot_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_slot_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_slot_hover")
+text = ""
+
+[node name="WeaponInventoryTitle" type="Label" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.86, 0.91, 0.91, 0.86)
+text = "Owned Extensions"
+
+[node name="WeaponInventoryPanel" type="PanelContainer" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox"]
+custom_minimum_size = Vector2(0, 0)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_loadout_well")
+
+[node name="WeaponInventoryEmptyLabel" type="Label" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox/WeaponInventoryPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.75, 0.8, 0.8, 0.72)
+theme_override_font_sizes/font_size = 12
+text = "Weapon Extensions placeholder"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="CenterColumn" type="PanelContainer" parent="RootMargin/MainColumns"]
+custom_minimum_size = Vector2(280, 146)
+layout_mode = 2
+size_flags_horizontal = 2
+size_flags_vertical = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_loadout_center")
+
+[node name="CenterMargin" type="MarginContainer" parent="RootMargin/MainColumns/CenterColumn"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 12
+
+[node name="CenterVBox" type="VBoxContainer" parent="RootMargin/MainColumns/CenterColumn/CenterMargin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="DescriptionTitle" type="Label" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.98, 0.94, 1)
+theme_override_font_sizes/font_size = 20
+text = "Loadout"
+horizontal_alignment = 1
+
+[node name="DescriptionBody" type="Label" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 0
+theme_override_colors/font_color = Color(0.86, 0.9, 0.9, 0.84)
+theme_override_font_sizes/font_size = 13
+text = "Hover description"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="ArmorColumn" type="PanelContainer" parent="RootMargin/MainColumns"]
+custom_minimum_size = Vector2(430, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_loadout_panel")
+
+[node name="ArmorMargin" type="MarginContainer" parent="RootMargin/MainColumns/ArmorColumn"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 12
+
+[node name="ArmorVBox" type="VBoxContainer" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="ArmorTitle" type="Label" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin/ArmorVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.98, 0.94, 1)
+theme_override_font_sizes/font_size = 20
+text = "Armor"
+
+[node name="PlayerPreview" type="PanelContainer" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin/ArmorVBox"]
+custom_minimum_size = Vector2(0, 174)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_loadout_well")
+
+[node name="PlayerStage" type="Control" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin/ArmorVBox/PlayerPreview"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="CharacterRig" type="Control" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin/ArmorVBox/PlayerPreview/PlayerStage"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -54.0
+offset_top = -52.0
+offset_right = 54.0
+offset_bottom = 52.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="BackArm" type="Line2D" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin/ArmorVBox/PlayerPreview/PlayerStage/CharacterRig"]
+points = PackedVector2Array(38, 43, 28, 50, 22, 61)
+width = 2.4
+default_color = Color(0.12, 0.92, 1, 0.78)
+joint_mode = 2
+begin_cap_mode = 2
+end_cap_mode = 2
+
+[node name="BackLeg" type="Line2D" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin/ArmorVBox/PlayerPreview/PlayerStage/CharacterRig"]
+points = PackedVector2Array(44, 62, 38, 75, 36, 88)
+width = 2.4
+default_color = Color(0.12, 0.92, 1, 0.75)
+joint_mode = 2
+begin_cap_mode = 2
+end_cap_mode = 2
+
+[node name="FrontLeg" type="Line2D" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin/ArmorVBox/PlayerPreview/PlayerStage/CharacterRig"]
+points = PackedVector2Array(58, 62, 64, 75, 67, 88)
+width = 2.4
+default_color = Color(0.12, 0.92, 1, 0.9)
+joint_mode = 2
+begin_cap_mode = 2
+end_cap_mode = 2
+
+[node name="FrontArm" type="Line2D" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin/ArmorVBox/PlayerPreview/PlayerStage/CharacterRig"]
+points = PackedVector2Array(64, 43, 76, 50, 82, 61)
+width = 2.4
+default_color = Color(0.12, 0.92, 1, 0.92)
+joint_mode = 2
+begin_cap_mode = 2
+end_cap_mode = 2
+
+[node name="HandDot" type="ColorRect" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin/ArmorVBox/PlayerPreview/PlayerStage/CharacterRig"]
+layout_mode = 0
+offset_left = 80.0
+offset_top = 59.0
+offset_right = 85.0
+offset_bottom = 64.0
+color = Color(0.86, 1, 1, 0.9)
+
+[node name="BodyTexture" type="TextureRect" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin/ArmorVBox/PlayerPreview/PlayerStage/CharacterRig"]
+layout_mode = 0
+offset_left = 35.0
+offset_top = 24.0
+offset_right = 72.0
+offset_bottom = 61.0
+texture = ExtResource("4_player")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ShieldTexture" type="TextureRect" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin/ArmorVBox/PlayerPreview/PlayerStage/CharacterRig"]
+layout_mode = 0
+offset_left = 75.0
+offset_top = 39.0
+offset_right = 102.0
+offset_bottom = 79.0
+mouse_filter = 2
+modulate = Color(1, 1, 1, 0.78)
+texture = ExtResource("5_shield")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="BootsSlot" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin/ArmorVBox/PlayerPreview/PlayerStage/CharacterRig" instance=ExtResource("2_slot")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(42, 42)
+layout_mode = 0
+offset_left = 34.0
+offset_top = 72.0
+offset_right = 76.0
+offset_bottom = 114.0
+category = &"boots"
+
+[node name="VestSlot" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin/ArmorVBox/PlayerPreview/PlayerStage/CharacterRig" instance=ExtResource("2_slot")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(42, 42)
+layout_mode = 0
+offset_left = 33.0
+offset_top = 23.0
+offset_right = 75.0
+offset_bottom = 65.0
+category = &"vest"
+
+[node name="ShieldSlot" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin/ArmorVBox/PlayerPreview/PlayerStage/CharacterRig" instance=ExtResource("2_slot")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(42, 42)
+layout_mode = 0
+offset_left = 70.0
+offset_top = 38.0
+offset_right = 112.0
+offset_bottom = 80.0
+category = &"shield"
+
+[node name="ArmorInventoryTitle" type="Label" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin/ArmorVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.86, 0.91, 0.91, 0.86)
+text = "Owned Armor"
+
+[node name="ArmorInventoryPanel" type="PanelContainer" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin/ArmorVBox"]
+custom_minimum_size = Vector2(0, 0)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_loadout_well")
+
+[node name="ArmorInventoryStack" type="Control" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin/ArmorVBox/ArmorInventoryPanel"]
+layout_mode = 2
+
+[node name="ArmorInventoryGrid" type="FlowContainer" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin/ArmorVBox/ArmorInventoryPanel/ArmorInventoryStack"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+
+[node name="ArmorInventoryEmptyLabel" type="Label" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin/ArmorVBox/ArmorInventoryPanel/ArmorInventoryStack"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.75, 0.8, 0.8, 0.72)
+theme_override_font_sizes/font_size = 12
+text = "Armor inventory placeholder"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
