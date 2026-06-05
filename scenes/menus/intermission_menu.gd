@@ -6,9 +6,12 @@ extends Control
 @onready var _local_ready_label: Label = %LocalReadyLabel
 @onready var _remote_ready_label: Label = %RemoteReadyLabel
 @onready var _ready_button: Button = %ReadyButton
+@onready var _status_page: Control = %StatusPage
+@onready var _loadout_page: Control = %LoadoutPage
 
 var _local_slot: int = GameSettings.PLAYER_ONE_SLOT
 var _remote_slot: int = GameSettings.PLAYER_TWO_SLOT
+var _showing_loadout: bool = false
 
 
 func _ready() -> void:
@@ -18,6 +21,7 @@ func _ready() -> void:
 	GameJuice.attach_button_feedback(self)
 	OnlineMatch.state_changed.connect(_refresh)
 	OnlineMatch.countdown_changed.connect(_on_countdown_changed)
+	_set_loadout_visible(false)
 	_refresh()
 
 
@@ -31,6 +35,16 @@ func _exit_tree() -> void:
 func _on_ready_pressed() -> void:
 	OnlineMatch.set_local_intermission_ready(true)
 	_refresh()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed(&"ui_left"):
+		_set_loadout_visible(true)
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed(&"ui_right") or event.is_action_pressed(&"ui_cancel"):
+		if _showing_loadout:
+			_set_loadout_visible(false)
+			get_viewport().set_input_as_handled()
 
 
 func _on_countdown_changed(_seconds_left: int) -> void:
@@ -55,3 +69,9 @@ func _refresh() -> void:
 	_remote_ready_label.text = "Friend: READY" if remote_ready else "Friend: not ready"
 	_ready_button.disabled = local_ready
 	_ready_button.text = "Ready" if not local_ready else "Ready locked"
+
+
+func _set_loadout_visible(visible: bool) -> void:
+	_showing_loadout = visible
+	_status_page.visible = not visible
+	_loadout_page.visible = visible
