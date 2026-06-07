@@ -51,6 +51,21 @@ func _drop_data(_at_position: Vector2, data: Variant) -> void:
 		extension_dropped.emit(dropped_item)
 
 
+func _get_drag_data(_at_position: Vector2) -> Variant:
+	if item == null:
+		return null
+	var preview: Control = duplicate() as Control
+	if preview != null:
+		preview.modulate.a = 0.85
+		set_drag_preview(preview)
+	var dragged_item: WeaponExtensionItem = item
+	extension_cleared.emit(slot)
+	return {
+		"type": &"weapon_extension_item",
+		"item": dragged_item,
+	}
+
+
 func _refresh() -> void:
 	if item == null or item.definition == null:
 		_swatch.visible = false

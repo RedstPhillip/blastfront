@@ -8,11 +8,10 @@ var item: WeaponExtensionItem = null
 
 @onready var _background: TextureRect = %Background
 @onready var _swatch: ColorRect = %Swatch
-@onready var _name_label: Label = %NameLabel
-@onready var _meta_label: Label = %MetaLabel
 
 
 func _ready() -> void:
+	custom_minimum_size = Vector2(54, 54)
 	mouse_entered.connect(_on_mouse_entered)
 	pressed.connect(_on_pressed)
 	_refresh()
@@ -38,17 +37,13 @@ func _get_drag_data(_at_position: Vector2) -> Variant:
 
 
 func _refresh() -> void:
-	if _name_label == null or _meta_label == null:
+	if _swatch == null:
 		return
 	if item == null or item.definition == null:
-		_name_label.text = "Empty"
-		_meta_label.text = ""
 		_swatch.color = Color(0.3, 0.34, 0.38, 1.0)
 		_apply_background_gradient(Color8(70, 78, 88, 210))
 		return
 
-	_name_label.text = item.get_display_name()
-	_meta_label.text = "%s - %d%%" % [item.get_slot_display_name(), int(round(item.condition))]
 	_swatch.color = item.definition.icon_color
 	_apply_background_gradient(item.get_condition_color())
 	tooltip_text = _get_hover_text()
@@ -74,8 +69,8 @@ func _apply_background_gradient(base_color: Color) -> void:
 		Color(1.0, 1.0, 1.0, 0.18),
 	])
 	var texture: GradientTexture2D = GradientTexture2D.new()
-	texture.width = 128
-	texture.height = 86
+	texture.width = 54
+	texture.height = 54
 	texture.fill = GradientTexture2D.FILL_LINEAR
 	texture.fill_from = Vector2(0.0, 1.0)
 	texture.fill_to = Vector2(1.0, 0.0)

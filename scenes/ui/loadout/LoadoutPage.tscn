@@ -181,7 +181,7 @@ offset_right = -61.0
 offset_bottom = 29.0
 grow_horizontal = 2
 grow_vertical = 2
-slot = &"middle"
+slot = &"front"
 
 [node name="WeaponSlotTwo" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox/WeaponPreview/GunStage" unique_id=541997428 instance=ExtResource("6_weapon_slot")]
 unique_name_in_owner = true
@@ -197,7 +197,7 @@ offset_right = 23.0
 offset_bottom = -6.0
 grow_horizontal = 2
 grow_vertical = 2
-slot = &"front"
+slot = &"middle"
 
 [node name="WeaponSlotThree" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox/WeaponPreview/GunStage" unique_id=537575819 instance=ExtResource("6_weapon_slot")]
 unique_name_in_owner = true

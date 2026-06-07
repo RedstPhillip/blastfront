@@ -23,8 +23,8 @@ var _armor_slots: Dictionary = {}
 
 func _ready() -> void:
 	_weapon_slots = {
-		WeaponExtensionDefinition.SLOT_MIDDLE: _weapon_slot_one,
-		WeaponExtensionDefinition.SLOT_FRONT: _weapon_slot_two,
+		WeaponExtensionDefinition.SLOT_FRONT: _weapon_slot_one,
+		WeaponExtensionDefinition.SLOT_MIDDLE: _weapon_slot_two,
 		WeaponExtensionDefinition.SLOT_AMMO: _weapon_slot_three,
 	}
 	_armor_slots = {
