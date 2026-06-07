@@ -18,6 +18,8 @@ var _recoil_offset: float = 0.0
 var _recoil_rotation: float = 0.0
 var _extension_stats: Dictionary = {}
 var _extension_player_slot: int = -1
+var _laser_sight: Line2D = null
+var _has_laser_scope: bool = false
 
 @onready var _player: Player = get_parent() as Player
 @onready var _visual_root: Node2D = $VisualRoot
@@ -28,6 +30,28 @@ var _extension_player_slot: int = -1
 func _ready() -> void:
 	_connect_extension_inventory()
 	_refresh_extension_loadout()
+	_setup_laser_sight()
+
+
+func _setup_laser_sight() -> void:
+	_laser_sight = Line2D.new()
+	_laser_sight.points = PackedVector2Array([Vector2.ZERO, Vector2.RIGHT * 1400])
+	_laser_sight.default_color = Color(0.9, 0.2, 0.15, 0.3)
+	_laser_sight.width = 1.5
+	_laser_sight.antialiased = true
+	_laser_sight.hide()
+	if _muzzle != null:
+		_muzzle.add_child(_laser_sight)
+		_laser_sight.owner = _muzzle
+
+
+func _update_laser_sight() -> void:
+	if _laser_sight == null or not _has_laser_scope:
+		return
+	_laser_sight.show()
+	var aim_dir: Vector2 = get_shot_direction()
+	var end_pos: Vector2 = aim_dir * 1400
+	_laser_sight.set_point_position(1, end_pos)
 
 
 func _physics_process(delta: float) -> void:
@@ -46,6 +70,7 @@ func _physics_process(delta: float) -> void:
 		_set_aim_direction(aim_vector)
 
 	_update_visual_transform()
+	_update_laser_sight()
 
 	var wants_shot: bool = _player.is_shoot_down() if automatic_fire else _player.is_shoot_pressed()
 	if wants_shot and _fire_cooldown <= 0.0:
@@ -199,6 +224,9 @@ func _refresh_extension_loadout() -> void:
 
 	var inventory_node: Node = get_node_or_null("/root/ExtensionInventory")
 	if inventory_node == null:
+		_has_laser_scope = false
+		if _laser_sight != null:
+			_laser_sight.visible = false
 		if _extension_visuals != null:
 			_extension_visuals.clear_all()
 		return
@@ -213,6 +241,10 @@ func _refresh_extension_loadout() -> void:
 		if equipped_variant is Dictionary:
 			var equipped: Dictionary = equipped_variant
 			_extension_visuals.set_extensions_by_slot(equipped)
+
+	_has_laser_scope = _get_source_extensions().has("laser_scope_mk1")
+	if _laser_sight != null:
+		_laser_sight.visible = _has_laser_scope
 
 
 func _get_modified_fire_interval() -> float:
