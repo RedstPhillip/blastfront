@@ -1,0 +1,19 @@
+[gd_scene format=3]
+
+[node name="ShotgunVisual" type="Node2D"]
+
+[node name="Body" type="Polygon2D" parent="."]
+color = Color(0.08, 0.06, 0.05, 1)
+polygon = PackedVector2Array(-10, -6, 12, -6, 15, -1, 12, 6, -10, 6, -13, -1)
+
+[node name="Muzzle" type="Polygon2D" parent="."]
+color = Color(0.15, 0.12, 0.1, 1)
+polygon = PackedVector2Array(8, -4, 14, -4, 15, -1, 14, 4, 8, 4, 7, -1)
+
+[node name="Bore1" type="Polygon2D" parent="."]
+color = Color(0.55, 0.45, 0.35, 1)
+polygon = PackedVector2Array(9, -3, 11, -3, 11, -1, 9, -1)
+
+[node name="Bore2" type="Polygon2D" parent="."]
+color = Color(0.55, 0.45, 0.35, 1)
+polygon = PackedVector2Array(9, 1, 11, 1, 11, 2, 9, 2)

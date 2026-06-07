@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="WeaponExtensionDefinition" format=3]
+
+[ext_resource type="Script" uid="uid://vd1xlgf7df4b" path="res://scenes/weapons/extensions/weapon_extension_definition.gd" id="1_definition"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/extensions/visuals/kinetic_amplifier_visual.tscn" id="2_visual"]
+
+[resource]
+script = ExtResource("1_definition")
+extension_id = "kinetic_amplifier_mk1"
+display_name = "Kinetic Amplifier MK1"
+slot_key = "front"
+description = "Kinetic-boosted barrel with enhanced velocity, moderate bullet drop, and a balanced fire rate."
+default_condition = 100.0
+minimum_condition_factor = 0.25
+attribute_modifiers = {
+"projectile_speed": 500.0,
+"projectile_gravity": -1800.0,
+"fire_interval": 0.10,
+"damage": -1.0
+}
+visual_scene = ExtResource("2_visual")
+icon_color = Color(0.7, 0.35, 0.7, 1)

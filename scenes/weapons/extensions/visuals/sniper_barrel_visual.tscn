@@ -1,0 +1,16 @@
+[gd_scene format=3]
+
+[node name="SniperBarrelVisual" type="Node2D"]
+
+[node name="Body" type="Polygon2D" parent="."]
+color = Color(0.05, 0.06, 0.08, 1)
+polygon = PackedVector2Array(-16, -4, 16, -4, 18, 0, 16, 4, -16, 4, -18, 0)
+
+[node name="BarrelTip" type="Polygon2D" parent="."]
+color = Color(0.1, 0.12, 0.14, 1)
+polygon = PackedVector2Array(12, -2, 20, -2, 22, 0, 20, 2, 12, 2, 11, 0)
+
+[node name="Highlight" type="Line2D" parent="."]
+points = PackedVector2Array(-12, -1, 14, -1)
+width = 1.0
+default_color = Color(0.3, 0.55, 0.8, 0.8)

@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="WeaponExtensionDefinition" format=3]
+
+[ext_resource type="Script" uid="uid://vd1xlgf7df4b" path="res://scenes/weapons/extensions/weapon_extension_definition.gd" id="1_definition"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/extensions/visuals/shotgun_visual.tscn" id="2_visual"]
+
+[resource]
+script = ExtResource("1_definition")
+extension_id = "shotgun_mk1"
+display_name = "Shotgun MK1"
+slot_key = "front"
+description = "Wide-bore barrel firing 5 projectiles per shot with a wide spread and reduced range."
+default_condition = 100.0
+minimum_condition_factor = 0.25
+attribute_modifiers = {
+"shots_per_fire": 4.0,
+"shot_spread_degrees": 12.0,
+"damage": -5.0,
+"fire_interval": 0.06,
+"projectile_speed": -100.0,
+"projectile_max_distance": -300.0
+}
+visual_scene = ExtResource("2_visual")
+icon_color = Color(0.55, 0.45, 0.35, 1)

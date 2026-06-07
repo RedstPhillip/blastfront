@@ -1,0 +1,15 @@
+[gd_scene format=3]
+
+[node name="ExtendedBarrelVisual" type="Node2D"]
+
+[node name="Body" type="Polygon2D" parent="."]
+color = Color(0.06, 0.06, 0.08, 1)
+polygon = PackedVector2Array(-12, -4, 14, -4, 16, 0, 14, 4, -12, 4, -14, 0)
+
+[node name="Extension" type="Polygon2D" parent="."]
+color = Color(0.1, 0.1, 0.12, 1)
+polygon = PackedVector2Array(8, -3, 16, -3, 18, 0, 16, 3, 8, 3, 7, 0)
+
+[node name="Ring" type="Polygon2D" parent="."]
+color = Color(0.6, 0.6, 0.7, 1)
+polygon = PackedVector2Array(6, -4, 8, -4, 8, 4, 6, 4)

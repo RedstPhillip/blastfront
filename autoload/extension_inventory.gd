@@ -14,6 +14,12 @@ const EXTENSION_DEFINITION_PATHS: Array[String] = [
 	"res://scenes/weapons/extensions/drill_bullets_mk1.tres",
 	"res://scenes/weapons/extensions/explosive_bullet_mk1.tres",
 	"res://scenes/weapons/extensions/grenades_mk1.tres",
+	"res://scenes/weapons/extensions/shotgun_mk1.tres",
+	"res://scenes/weapons/extensions/sniper_barrel_mk1.tres",
+	"res://scenes/weapons/extensions/extended_barrel_mk1.tres",
+	"res://scenes/weapons/extensions/kinetic_amplifier_mk1.tres",
+	"res://scenes/weapons/extensions/heavy_barrel_mk1.tres",
+	"res://scenes/weapons/extensions/lighter_barrel_mk1.tres",
 ]
 
 var _definitions_by_id: Dictionary = {}
