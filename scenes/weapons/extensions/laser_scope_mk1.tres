@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="WeaponExtensionDefinition" format=3]
+
+[ext_resource type="Script" uid="uid://vd1xlgf7df4b" path="res://scenes/weapons/extensions/weapon_extension_definition.gd" id="1_definition"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/extensions/visuals/laser_scope_visual.tscn" id="2_visual"]
+
+[resource]
+script = ExtResource("1_definition")
+extension_id = "laser_scope_mk1"
+display_name = "Laser Scope MK1"
+slot_key = "middle"
+description = "Tactical scope that projects a visible laser line showing the bullet trajectory and tightens shot spread."
+default_condition = 100.0
+minimum_condition_factor = 0.25
+attribute_modifiers = {
+"shot_spread_degrees": -3.0,
+"fire_interval": 0.02
+}
+visual_scene = ExtResource("2_visual")
+icon_color = Color(0.9, 0.2, 0.15, 1)

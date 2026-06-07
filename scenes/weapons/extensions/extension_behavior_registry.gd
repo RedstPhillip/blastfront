@@ -1,7 +1,11 @@
 class_name ExtensionBehaviorRegistry
 extends Node
 
-static var behaviors: Dictionary = {}
+const HOVER_BEHAVIOR_SCRIPT: Script = preload("res://scenes/weapons/extensions/behaviors/hover_behavior.gd")
+
+static var behaviors: Dictionary = {
+	&"hover": HOVER_BEHAVIOR_SCRIPT.new(),
+}
 
 
 static func register_behavior(tag: StringName, behavior: ExtensionBehavior) -> void:

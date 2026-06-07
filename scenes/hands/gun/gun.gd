@@ -166,7 +166,8 @@ func _build_projectile_data(direction: Vector2) -> Dictionary:
 func _play_fire_feedback(direction: Vector2, muzzle_position: Vector2) -> void:
 	_recoil_offset = GameSettings.GUN_RECOIL_DISTANCE
 	var recoil_side: float = -1.0 if _pointing_right else 1.0
-	_recoil_rotation = deg_to_rad(GameSettings.GUN_RECOIL_ROTATION_DEGREES) * recoil_side
+	var recoil_degrees: float = GameSettings.GUN_RECOIL_ROTATION_DEGREES + _get_extension_attribute(&"recoil_rotation_degrees")
+	_recoil_rotation = deg_to_rad(maxf(0.0, recoil_degrees)) * recoil_side
 	GameJuice.spawn_muzzle(muzzle_position, direction)
 	GameJuice.play_sound_2d(&"shoot", muzzle_position, -12.0, 0.06)
 	GameJuice.shake(GameSettings.GUN_FIRE_SHAKE_STRENGTH, GameSettings.GUN_FIRE_SHAKE_TIME)
