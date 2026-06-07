@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="WeaponExtensionDefinition" format=3]
+
+[ext_resource type="Script" uid="uid://vd1xlgf7df4b" path="res://scenes/weapons/extensions/weapon_extension_definition.gd" id="1_definition"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/extensions/visuals/freeze_rounds_visual.tscn" id="2_visual"]
+
+[resource]
+script = ExtResource("1_definition")
+extension_id = "freeze_rounds_mk1"
+display_name = "Freeze Rounds MK1"
+slot_key = "ammo"
+description = "Cryogenic ammo that slows enemies to 40% speed for 3 seconds."
+default_condition = 78.0
+minimum_condition_factor = 0.25
+attribute_modifiers = {
+"damage": -1.0,
+"projectile_speed": -50.0
+}
+projectile_tags = Array[String](["freeze"])
+projectile_effects = {
+"freeze": {
+"duration": 3.0,
+"speed_multiplier": 0.4,
+"tint_color": Color(0.4, 0.7, 1.0, 1)
+}
+}
+visual_scene = ExtResource("2_visual")
+icon_color = Color(0.4, 0.7, 1.0, 1)

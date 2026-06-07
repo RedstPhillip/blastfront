@@ -18,6 +18,8 @@ func apply_effect(name: StringName, params: Dictionary) -> void:
 		"tick_interval": float(params.get("tick_interval", 0.0)),
 		"tick_timer": 0.0,
 		"damage_per_tick": int(params.get("damage_per_tick", 0)),
+		"stun_duration": float(params.get("stun_duration", 0.0)),
+		"speed_multiplier": float(params.get("speed_multiplier", 1.0)),
 		"tint_color": params.get("tint_color", null),
 	}
 
@@ -79,6 +81,16 @@ func get_tint_color() -> Color:
 	return Color(r / count, g / count, b / count)
 
 
+func get_slow_multiplier() -> float:
+	var result: float = 1.0
+	for instances in _active_effects.values():
+		for instance in (instances as Array):
+			var mult: float = (instance as Dictionary).get("speed_multiplier", 1.0) as float
+			if mult < result:
+				result = mult
+	return result
+
+
 func _process(delta: float) -> void:
 	var expired: Array[StringName] = []
 
@@ -109,13 +121,16 @@ func _process(delta: float) -> void:
 
 
 func _tick_instance(instance: Dictionary) -> void:
-	var damage: int = instance.get("damage_per_tick", 0) as int
-	if damage <= 0:
-		return
-
 	var parent: Node = get_parent()
 	if parent == null:
 		return
-	var health: Node = parent.get_node_or_null("HealthComponent")
-	if health != null and health.has_method("damage"):
-		health.damage(damage)
+
+	var damage: int = instance.get("damage_per_tick", 0) as int
+	if damage > 0:
+		var health: Node = parent.get_node_or_null("HealthComponent")
+		if health != null and health.has_method("damage"):
+			health.damage(damage)
+
+	var stun: float = instance.get("stun_duration", 0.0) as float
+	if stun > 0.0 and parent.has_method("apply_stun"):
+		parent.apply_stun(stun)

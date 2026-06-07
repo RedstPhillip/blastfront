@@ -8,6 +8,12 @@ const EXTENSION_DEFINITION_PATHS: Array[String] = [
 	"res://scenes/weapons/extensions/big_bullets_mk1.tres",
 	"res://scenes/weapons/extensions/reload_improver_mk1.tres",
 	"res://scenes/weapons/extensions/multi_barrel_mk1.tres",
+	"res://scenes/weapons/extensions/freeze_rounds_mk1.tres",
+	"res://scenes/weapons/extensions/shocking_rounds_mk1.tres",
+	"res://scenes/weapons/extensions/bouncy_bullets_mk1.tres",
+	"res://scenes/weapons/extensions/drill_bullets_mk1.tres",
+	"res://scenes/weapons/extensions/explosive_bullet_mk1.tres",
+	"res://scenes/weapons/extensions/grenades_mk1.tres",
 ]
 
 var _definitions_by_id: Dictionary = {}

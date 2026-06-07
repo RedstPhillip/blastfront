@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="WeaponExtensionDefinition" format=3]
+
+[ext_resource type="Script" uid="uid://vd1xlgf7df4b" path="res://scenes/weapons/extensions/weapon_extension_definition.gd" id="1_definition"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/extensions/visuals/explosive_bullet_visual.tscn" id="2_visual"]
+
+[resource]
+script = ExtResource("1_definition")
+extension_id = "explosive_bullet_mk1"
+display_name = "Explosive Bullet MK1"
+slot_key = "ammo"
+description = "Volatile ammo that explodes on impact, damaging all players within 80px."
+default_condition = 100.0
+minimum_condition_factor = 0.25
+attribute_modifiers = {
+"damage": -2.0,
+"fire_interval": 0.03
+}
+projectile_tags = Array[String](["explosive"])
+projectile_effects = {
+"explosive": {
+"radius": 80.0,
+"splash_damage": 10
+}
+}
+visual_scene = ExtResource("2_visual")
+icon_color = Color(1.0, 0.5, 0.1, 1)

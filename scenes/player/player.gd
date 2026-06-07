@@ -96,6 +96,7 @@ var _block_active: bool = false
 var _block_timer: float = 0.0
 var _block_cooldown_timer: float = 0.0
 var _block_direction: Vector2 = Vector2.LEFT
+var _stun_timer: float = 0.0
 
 var status_effect_manager: StatusEffectManager
 
@@ -147,6 +148,7 @@ func _process(delta: float) -> void:
 	if _is_eliminated:
 		return
 	_update_block_timers(delta)
+	_stun_timer = maxf(_stun_timer - delta, 0.0)
 	_update_feedback_visuals(delta)
 
 
@@ -299,6 +301,8 @@ func apply_remote_snapshot(snapshot: Dictionary) -> void:
 
 func get_move_direction() -> float:
 	if control_mode != GameSettings.CONTROL_LOCAL or not movement_enabled:
+		return 0.0
+	if _stun_timer > 0.0:
 		return 0.0
 	return clampf(Input.get_action_strength(move_right_action) - Input.get_action_strength(move_left_action), -1.0, 1.0)
 
@@ -479,6 +483,11 @@ func jump() -> void:
 
 func apply_horizontal_movement(delta: float, max_speed: float, acceleration: float, friction: float) -> float:
 	var direction := get_move_direction()
+	if status_effect_manager != null:
+		var slow: float = status_effect_manager.get_slow_multiplier()
+		max_speed *= slow
+		acceleration *= slow
+		friction *= slow
 	if direction != 0.0:
 		last_dir = signf(direction)
 		velocity.x = move_toward(velocity.x, direction * max_speed, acceleration * delta)
@@ -629,6 +638,10 @@ func apply_hit_feedback(source_position: Vector2, damage: int = GameSettings.PRO
 	GameJuice.play_sound_2d(&"hit", global_position, 6.5, 0.08)
 	GameJuice.shake(GameSettings.PLAYER_HIT_SHAKE_STRENGTH * damage_ratio, GameSettings.PLAYER_HIT_SHAKE_TIME)
 	GameJuice.spawn_damage_number(global_position, damage, tint)
+
+
+func apply_stun(duration: float) -> void:
+	_stun_timer = maxf(_stun_timer, duration)
 
 
 func _update_movement_timers(delta: float) -> void:

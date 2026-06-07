@@ -1,0 +1,16 @@
+[gd_scene format=3]
+
+[node name="ShockingRoundsVisual" type="Node2D"]
+
+[node name="CanisterBack" type="Polygon2D" parent="."]
+color = Color(0.1, 0.08, 0.02, 1)
+polygon = PackedVector2Array(-10, -7, 10, -7, 13, -2, 10, 7, -10, 7, -13, -2)
+
+[node name="CanisterCore" type="Polygon2D" parent="."]
+color = Color(1, 0.85, 0.2, 1)
+polygon = PackedVector2Array(-7, -4, 8, -4, 10, -1, 8, 4, -7, 4, -10, -1)
+
+[node name="Bolt" type="Line2D" parent="."]
+points = PackedVector2Array(-3, -2, 0, 0, 3, -1)
+width = 1.5
+default_color = Color(1, 0.95, 0.4, 0.9)

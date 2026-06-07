@@ -21,6 +21,8 @@ var direction: Vector2 = Vector2.LEFT
 var initial_velocity: Vector2 = Vector2.ZERO
 var _distance_travelled: float = 0.0
 var _despawn_requested: bool = false
+var _bounces_left: int = 0
+var _drill_left: int = 0
 
 
 func _ready() -> void:
@@ -31,6 +33,10 @@ func _ready() -> void:
 	velocity = initial_velocity if initial_velocity.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED else direction * muzzle_speed
 	if not is_equal_approx(projectile_scale, 1.0):
 		scale *= projectile_scale
+	if extension_tags.has("bouncy"):
+		_bounces_left = 2
+	if extension_tags.has("drill"):
+		_drill_left = 1
 	_update_rotation()
 
 
@@ -78,6 +84,22 @@ func _on_collision(collision: KinematicCollision2D) -> void:
 		if blocking_player != null:
 			blocking_player.apply_block_feedback(collision.get_position())
 		_request_despawn(&"blocked", collider)
+		return
+
+	var is_player: bool = collider is Player
+
+	if not is_player and _bounces_left > 0:
+		_bounces_left -= 1
+		var normal: Vector2 = collision.get_normal()
+		velocity = velocity.bounce(normal)
+		_play_collision_feedback(collision, collider)
+		return
+
+	if not is_player and _drill_left > 0:
+		_drill_left -= 1
+		var remainder: Vector2 = collision.get_remainder()
+		global_position += velocity.normalized() * maxf(remainder.length(), 5.0)
+		_play_collision_feedback(collision, collider)
 		return
 
 	_play_collision_feedback(collision, collider)

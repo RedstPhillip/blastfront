@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="WeaponExtensionDefinition" format=3]
+
+[ext_resource type="Script" uid="uid://vd1xlgf7df4b" path="res://scenes/weapons/extensions/weapon_extension_definition.gd" id="1_definition"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/extensions/visuals/grenades_visual.tscn" id="2_visual"]
+
+[resource]
+script = ExtResource("1_definition")
+extension_id = "grenades_mk1"
+display_name = "Grenades MK1"
+slot_key = "ammo"
+description = "Sticky grenades that detonate 0.5s after impact with an 80px blast radius."
+default_condition = 100.0
+minimum_condition_factor = 0.25
+attribute_modifiers = {
+"projectile_speed": -200.0,
+"fire_interval": 0.05
+}
+projectile_tags = Array[String](["grenade"])
+projectile_effects = {
+"grenade": {
+"delay": 0.5,
+"radius": 80.0,
+"damage_per_hit": 10
+}
+}
+visual_scene = ExtResource("2_visual")
+icon_color = Color(0.55, 0.8, 0.2, 1)
