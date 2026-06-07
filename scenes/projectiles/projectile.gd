@@ -98,7 +98,8 @@ func _on_collision(collision: KinematicCollision2D) -> void:
 	if not is_player and _drill_left > 0:
 		_drill_left -= 1
 		var remainder: Vector2 = collision.get_remainder()
-		global_position += velocity.normalized() * maxf(remainder.length(), 5.0)
+		var normal: Vector2 = collision.get_normal()
+		global_position += -normal * (remainder.length() + 16.0)
 		_play_collision_feedback(collision, collider)
 		return
 
