@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ArmorItemData" format=3]
+
+[ext_resource type="Script" uid="uid://njb7kuuotflf" path="res://scenes/items/armor/armor_item_data.gd" id="1_armor"]
+
+[resource]
+script = ExtResource("1_armor")
+item_id = &"scout_vest"
+display_name = "Scout Vest"
+category = &"vest"
+condition = 72.0
+minimum_condition_scale = 0.25
+rarity = &"common"
+attributes = {
+"max_health": 18.0
+}
+description = "Eine leichte Weste, die Treffer etwas besser abfedert."

@@ -5,6 +5,7 @@
 [ext_resource type="Texture2D" uid="uid://dvg5y2brav3ic" path="res://assets/hands/gun/gun.png" id="3_gun"]
 [ext_resource type="Texture2D" uid="uid://bufb1umvbprtf" path="res://assets/Player/blue_ball.png" id="4_player"]
 [ext_resource type="Texture2D" uid="uid://vwqwpnsggbu3" path="res://assets/hands/block/shield.png" id="5_shield"]
+[ext_resource type="PackedScene" path="res://scenes/ui/loadout/WeaponExtensionSlot.tscn" id="6_weapon_slot"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_loadout_panel"]
 content_margin_left = 14.0
@@ -166,7 +167,7 @@ texture = ExtResource("3_gun")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="WeaponSlotOne" type="Button" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox/WeaponPreview/GunStage" unique_id=1309372317]
+[node name="WeaponSlotOne" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox/WeaponPreview/GunStage" unique_id=1309372317 instance=ExtResource("6_weapon_slot")]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 8
@@ -180,12 +181,9 @@ offset_right = -61.0
 offset_bottom = 29.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_colors/font_color = Color(0.86, 1, 1, 0.9)
-theme_override_styles/normal = SubResource("StyleBoxFlat_slot_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_slot_hover")
-theme_override_styles/focus = SubResource("StyleBoxFlat_slot_hover")
+slot = &"middle"
 
-[node name="WeaponSlotTwo" type="Button" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox/WeaponPreview/GunStage" unique_id=541997428]
+[node name="WeaponSlotTwo" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox/WeaponPreview/GunStage" unique_id=541997428 instance=ExtResource("6_weapon_slot")]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 8
@@ -199,12 +197,9 @@ offset_right = 23.0
 offset_bottom = -6.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_colors/font_color = Color(0.86, 1, 1, 0.9)
-theme_override_styles/normal = SubResource("StyleBoxFlat_slot_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_slot_hover")
-theme_override_styles/focus = SubResource("StyleBoxFlat_slot_hover")
+slot = &"front"
 
-[node name="WeaponSlotThree" type="Button" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox/WeaponPreview/GunStage" unique_id=537575819]
+[node name="WeaponSlotThree" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox/WeaponPreview/GunStage" unique_id=537575819 instance=ExtResource("6_weapon_slot")]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 8
@@ -218,10 +213,7 @@ offset_right = 18.0
 offset_bottom = 55.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_colors/font_color = Color(0.86, 1, 1, 0.9)
-theme_override_styles/normal = SubResource("StyleBoxFlat_slot_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_slot_hover")
-theme_override_styles/focus = SubResource("StyleBoxFlat_slot_hover")
+slot = &"ammo"
 
 [node name="WeaponInventoryTitle" type="Label" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox" unique_id=677270068]
 layout_mode = 2
@@ -233,9 +225,28 @@ layout_mode = 2
 size_flags_vertical = 3
 theme_override_styles/panel = SubResource("StyleBoxFlat_loadout_well")
 
-[node name="WeaponInventoryEmptyLabel" type="Label" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox/WeaponInventoryPanel" unique_id=1234000643]
-unique_name_in_owner = true
+[node name="WeaponInventoryStack" type="Control" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox/WeaponInventoryPanel" unique_id=1374467401]
 layout_mode = 2
+
+[node name="WeaponInventoryGrid" type="FlowContainer" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox/WeaponInventoryPanel/WeaponInventoryStack" unique_id=1387484139]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+
+[node name="WeaponInventoryEmptyLabel" type="Label" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox/WeaponInventoryPanel/WeaponInventoryStack" unique_id=1234000643]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 theme_override_colors/font_color = Color(0.75, 0.8, 0.8, 0.72)
 theme_override_font_sizes/font_size = 12
 text = "Weapon Extensions placeholder"
