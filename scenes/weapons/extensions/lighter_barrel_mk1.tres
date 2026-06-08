@@ -14,7 +14,8 @@ minimum_condition_factor = 0.25
 attribute_modifiers = {
 "fire_interval": -0.03,
 "damage": -2.0,
-"projectile_speed": 50.0
+"projectile_speed": 50.0,
+"reload_time": -0.1
 }
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.7, 0.7, 0.75, 1)

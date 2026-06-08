@@ -13,7 +13,8 @@ default_condition = 78.0
 minimum_condition_factor = 0.25
 attribute_modifiers = {
 "damage": -1.0,
-"projectile_speed": -50.0
+"projectile_speed": -50.0,
+"reload_time": 0.1
 }
 projectile_tags = Array[String](["freeze"])
 projectile_effects = {

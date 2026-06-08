@@ -17,7 +17,9 @@ attribute_modifiers = {
 "damage": -5.0,
 "fire_interval": 0.06,
 "projectile_speed": -100.0,
-"projectile_max_distance": -300.0
+"projectile_max_distance": -300.0,
+"ammo_max": -1.0,
+"reload_time": 0.2
 }
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.55, 0.45, 0.35, 1)

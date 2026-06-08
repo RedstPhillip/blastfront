@@ -12,7 +12,8 @@ description = "Toxic ammo that poisons the target for 3 seconds."
 default_condition = 78.0
 minimum_condition_factor = 0.25
 attribute_modifiers = {
-"damage": -1.0
+"damage": -1.0,
+"reload_time": 0.1
 }
 projectile_tags = Array[String](["poison"])
 projectile_effects = {

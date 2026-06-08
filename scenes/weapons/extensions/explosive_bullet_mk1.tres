@@ -13,7 +13,9 @@ default_condition = 100.0
 minimum_condition_factor = 0.25
 attribute_modifiers = {
 "damage": -2.0,
-"fire_interval": 0.03
+"fire_interval": 0.03,
+"ammo_max": -1.0,
+"reload_time": 0.15
 }
 projectile_tags = Array[String](["explosive"])
 projectile_effects = {

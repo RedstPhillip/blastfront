@@ -13,7 +13,8 @@ default_condition = 100.0
 minimum_condition_factor = 0.25
 attribute_modifiers = {
 "damage": -2.0,
-"projectile_speed": -20.0
+"projectile_speed": -20.0,
+"ammo_max": -1.0
 }
 projectile_tags = Array[String](["drill"])
 projectile_effects = {}
