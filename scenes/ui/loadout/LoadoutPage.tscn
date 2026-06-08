@@ -6,6 +6,8 @@
 [ext_resource type="Texture2D" uid="uid://bufb1umvbprtf" path="res://assets/Player/blue_ball.png" id="4_player"]
 [ext_resource type="Texture2D" uid="uid://vwqwpnsggbu3" path="res://assets/hands/block/shield.png" id="5_shield"]
 [ext_resource type="PackedScene" path="res://scenes/ui/loadout/WeaponExtensionSlot.tscn" id="6_weapon_slot"]
+[ext_resource type="PackedScene" path="res://scenes/ui/loadout/RoundRewardSlot.tscn" id="7_reward_slot"]
+[ext_resource type="Script" path="res://scenes/ui/loadout/reward_inventory_drop_target.gd" id="8_drop_target"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_loadout_panel"]
 content_margin_left = 14.0
@@ -221,9 +223,12 @@ theme_override_colors/font_color = Color(0.86, 0.91, 0.91, 0.86)
 text = "Owned Extensions"
 
 [node name="WeaponInventoryPanel" type="PanelContainer" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox" unique_id=1029312349]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_styles/panel = SubResource("StyleBoxFlat_loadout_well")
+script = ExtResource("8_drop_target")
+accepted_reward_type = &"extension"
 
 [node name="WeaponInventoryStack" type="Control" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox/WeaponInventoryPanel" unique_id=1374467401]
 layout_mode = 2
@@ -255,10 +260,10 @@ vertical_alignment = 1
 autowrap_mode = 3
 
 [node name="CenterColumn" type="PanelContainer" parent="RootMargin/MainColumns" unique_id=115744726]
-custom_minimum_size = Vector2(280, 146)
+custom_minimum_size = Vector2(280, 0)
 layout_mode = 2
 size_flags_horizontal = 2
-size_flags_vertical = 0
+size_flags_vertical = 3
 theme_override_styles/panel = SubResource("StyleBoxFlat_loadout_center")
 
 [node name="CenterMargin" type="MarginContainer" parent="RootMargin/MainColumns/CenterColumn" unique_id=338568071]
@@ -282,6 +287,7 @@ horizontal_alignment = 1
 
 [node name="DescriptionBody" type="Label" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox" unique_id=1090261088]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 92)
 layout_mode = 2
 size_flags_vertical = 0
 theme_override_colors/font_color = Color(0.86, 0.9, 0.9, 0.84)
@@ -290,6 +296,59 @@ text = "Hover description"
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
+
+[node name="RewardCenter" type="CenterContainer" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="RewardVBox" type="VBoxContainer" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/RewardCenter"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="SavedRow" type="HBoxContainer" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/RewardCenter/RewardVBox"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 18
+
+[node name="SavedRewardOne" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/RewardCenter/RewardVBox/SavedRow" instance=ExtResource("7_reward_slot")]
+unique_name_in_owner = true
+layout_mode = 2
+is_saved_slot = true
+
+[node name="SavedRewardTwo" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/RewardCenter/RewardVBox/SavedRow" instance=ExtResource("7_reward_slot")]
+unique_name_in_owner = true
+layout_mode = 2
+is_saved_slot = true
+
+[node name="OfferGrid" type="GridContainer" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/RewardCenter/RewardVBox"]
+layout_mode = 2
+theme_override_constants/h_separation = 18
+theme_override_constants/v_separation = 14
+columns = 2
+
+[node name="ExtensionRewardOne" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/RewardCenter/RewardVBox/OfferGrid" instance=ExtResource("7_reward_slot")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="ArmorRewardOne" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/RewardCenter/RewardVBox/OfferGrid" instance=ExtResource("7_reward_slot")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="ExtensionRewardTwo" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/RewardCenter/RewardVBox/OfferGrid" instance=ExtResource("7_reward_slot")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="ArmorRewardTwo" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/RewardCenter/RewardVBox/OfferGrid" instance=ExtResource("7_reward_slot")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="ExtensionRewardThree" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/RewardCenter/RewardVBox/OfferGrid" instance=ExtResource("7_reward_slot")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="ArmorRewardThree" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/RewardCenter/RewardVBox/OfferGrid" instance=ExtResource("7_reward_slot")]
+unique_name_in_owner = true
+layout_mode = 2
 
 [node name="ArmorColumn" type="PanelContainer" parent="RootMargin/MainColumns" unique_id=1986048023]
 custom_minimum_size = Vector2(430, 0)
@@ -429,9 +488,12 @@ theme_override_colors/font_color = Color(0.86, 0.91, 0.91, 0.86)
 text = "Owned Armor"
 
 [node name="ArmorInventoryPanel" type="PanelContainer" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin/ArmorVBox" unique_id=568348072]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_styles/panel = SubResource("StyleBoxFlat_loadout_well")
+script = ExtResource("8_drop_target")
+accepted_reward_type = &"armor"
 
 [node name="ArmorInventoryStack" type="Control" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin/ArmorVBox/ArmorInventoryPanel" unique_id=1042857952]
 layout_mode = 2

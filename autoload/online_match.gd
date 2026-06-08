@@ -56,6 +56,9 @@ func _process(delta: float) -> void:
 func enter_locker(reset_scores: bool = true) -> void:
 	if reset_scores:
 		_reset_match_scores()
+		var reward_inventory: Node = get_node_or_null("/root/RoundRewardInventory")
+		if reward_inventory != null and reward_inventory.has_method("reset_match"):
+			reward_inventory.call("reset_match")
 	locker_ready = GameSettings.default_ready_state()
 	intermission_ready = GameSettings.default_ready_state()
 	extension_loadouts = GameSettings.default_extension_loadouts()

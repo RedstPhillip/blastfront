@@ -20,6 +20,9 @@ var _showing_loadout: bool = false
 func _ready() -> void:
 	_local_slot = NetworkSession.local_player_slot
 	_remote_slot = NetworkSession.get_remote_slot()
+	var completed_sets: int = int(OnlineMatch.match_points.get(GameSettings.PLAYER_ONE_SLOT, 0))
+	completed_sets += int(OnlineMatch.match_points.get(GameSettings.PLAYER_TWO_SLOT, 0))
+	RoundRewardInventory.prepare_for_round(completed_sets)
 	_ready_button.pressed.connect(_on_ready_pressed)
 	_left_page_button.pressed.connect(_on_previous_page_pressed)
 	_right_page_button.pressed.connect(_on_next_page_pressed)

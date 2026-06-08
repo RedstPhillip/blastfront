@@ -23,6 +23,7 @@ OnlineMatch="*res://autoload/online_match.gd"
 ExtensionInventory="*res://autoload/extension_inventory.gd"
 GameJuice="*res://autoload/game_juice.gd"
 ArmorInventory="*res://autoload/armor_inventory.gd"
+RoundRewardInventory="*res://autoload/round_reward_inventory.gd"
 
 [display]
 

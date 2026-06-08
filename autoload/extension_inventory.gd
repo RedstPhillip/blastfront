@@ -62,6 +62,21 @@ func get_inventory_for_player(player_slot: int) -> Array[WeaponExtensionItem]:
 	return result
 
 
+func add_item_for_local(item: WeaponExtensionItem) -> bool:
+	return add_item_for_player(get_local_player_slot(), item)
+
+
+func add_item_for_player(player_slot: int, item: WeaponExtensionItem) -> bool:
+	if item == null or item.definition == null or not _is_player_slot(player_slot):
+		return false
+	_ensure_player_state(player_slot)
+	var inventory: Array = _inventory_by_player.get(player_slot, [])
+	inventory.append(item)
+	_inventory_by_player[player_slot] = inventory
+	inventory_changed.emit(player_slot)
+	return true
+
+
 func get_equipped_for_local() -> Dictionary:
 	return get_equipped_for_player(get_local_player_slot())
 

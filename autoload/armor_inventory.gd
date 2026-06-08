@@ -6,6 +6,7 @@ signal loadout_changed
 const ARMOR_ITEMS_DIR: String = "res://data/armor/items"
 
 var inventory: Array[ArmorItemData] = []
+var definitions: Array[ArmorItemData] = []
 var loadout: ArmorLoadout = ArmorLoadout.new()
 
 
@@ -16,6 +17,7 @@ func _ready() -> void:
 
 func reload_definitions() -> void:
 	inventory.clear()
+	definitions.clear()
 	_load_items_from_dir(ARMOR_ITEMS_DIR)
 	inventory_changed.emit()
 
@@ -57,6 +59,10 @@ func register_item(item: ArmorItemData) -> void:
 		inventory_changed.emit()
 
 
+func get_reward_definitions() -> Array[ArmorItemData]:
+	return definitions.duplicate()
+
+
 func _load_items_from_dir(path: String) -> void:
 	var dir: DirAccess = DirAccess.open(path)
 	if dir == null:
@@ -73,7 +79,10 @@ func _load_items_from_dir(path: String) -> void:
 			var loaded_resource: Resource = ResourceLoader.load(child_path)
 			var armor_item: ArmorItemData = loaded_resource as ArmorItemData
 			if armor_item != null:
-				register_item(armor_item)
+				if not definitions.has(armor_item):
+					definitions.append(armor_item)
+				if not inventory.has(armor_item):
+					inventory.append(armor_item)
 		file_name = dir.get_next()
 	dir.list_dir_end()
 
