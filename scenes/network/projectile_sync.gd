@@ -346,7 +346,8 @@ func _apply_area_damage(origin: Vector2, owner_slot: int, radius: float, damage:
 		if distance > radius:
 			continue
 		var falloff: float = 1.0 - distance / radius
-		var final_damage: int = maxi(1, int(roundf(float(damage) * falloff)))
+		var base_damage: int = maxi(1, int(roundf(float(damage) * falloff)))
+		var final_damage: int = ResearchManager.apply_rage_to_damage(owner_slot, base_damage)
 		player.apply_hit_feedback(origin, final_damage)
 		combat_sync.call("apply_hit", target_slot, owner_slot, 0, final_damage)
 

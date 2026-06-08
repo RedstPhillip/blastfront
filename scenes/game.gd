@@ -246,6 +246,8 @@ func _connect_debug_health() -> void:
 
 
 func _on_debug_health_depleted(dummy: Player) -> void:
+	if dummy != null and dummy.health_component != null and dummy.health_component.health > 0:
+		return
 	var dummy_id: int = dummy.get_instance_id()
 	if _debug_dummy_respawning.get(dummy_id, false):
 		return
@@ -261,6 +263,8 @@ func _on_debug_health_depleted(dummy: Player) -> void:
 
 
 func _on_debug_player_health_depleted() -> void:
+	if _player_1 != null and _player_1.health_component != null and _player_1.health_component.health > 0:
+		return
 	_heal_and_respawn_after_delay()
 
 
@@ -352,6 +356,7 @@ func get_projectiles_root() -> Node2D:
 
 func respawn_players() -> void:
 	_set_spawn_positions()
+	_player_1.reset_research_round_state()
 	_player_1.set_eliminated(false)
 	_player_1.set_controls_enabled(true)
 	_player_1.velocity = Vector2.ZERO
@@ -359,9 +364,11 @@ func respawn_players() -> void:
 	if NetworkSession.is_debug():
 		for dummy in _dummy_players:
 			if dummy != null and is_instance_valid(dummy):
+				dummy.reset_research_round_state()
 				dummy.set_eliminated(false)
 				dummy.velocity = Vector2.ZERO
 	elif _has_player_two():
+		_player_2.reset_research_round_state()
 		_player_2.set_eliminated(false)
 		_player_2.set_controls_enabled(true)
 		_player_2.velocity = Vector2.ZERO
@@ -459,6 +466,10 @@ func _connect_offline_health() -> void:
 func _on_offline_health_depleted(slot: int) -> void:
 	if _offline_match_over:
 		return
+	var depleted_player: Player = _get_player_by_slot(slot)
+	if depleted_player != null and depleted_player.health_component != null:
+		if depleted_player.health_component.health > 0:
+			return
 
 	if not _has_player_two():
 		_heal_and_respawn_after_delay()

@@ -24,6 +24,7 @@ func apply(target: Player, effect_data: Dictionary, projectile: Node = null) -> 
 	detonator.delay = delay
 	detonator.radius = radius
 	detonator.damage = damage
+	detonator.owner_slot = int(projectile.get("owner_slot")) if projectile != null else 0
 	var effect_parent: Node = tree.current_scene
 	if effect_parent == null:
 		effect_parent = tree.root

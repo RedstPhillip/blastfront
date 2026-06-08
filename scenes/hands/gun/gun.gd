@@ -413,6 +413,10 @@ func _get_modified_float(attribute_name: StringName, base_value: float, minimum_
 
 func _get_modified_damage() -> int:
 	var damage_value: float = float(GameSettings.PROJECTILE_DAMAGE) + _get_extension_attribute(&"damage")
+	if _player != null and _player.health_component != null:
+		var health_ratio: float = float(_player.health_component.health) / maxf(float(_player.health_component.max_health), 1.0)
+		if health_ratio <= 0.2:
+			damage_value *= ResearchManager.get_rage_damage_multiplier(_player.player_slot)
 	return maxi(1, int(roundf(damage_value)))
 
 

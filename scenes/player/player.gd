@@ -99,6 +99,8 @@ var _block_direction: Vector2 = Vector2.LEFT
 var _stun_timer: float = 0.0
 var _status_fx_timer: float = 0.0
 var _status_fx_phase: float = 0.0
+var _passive_heal_progress: float = 0.0
+var _phoenix_used: bool = false
 
 var status_effect_manager: StatusEffectManager
 
@@ -153,6 +155,7 @@ func _process(delta: float) -> void:
 	_update_block_timers(delta)
 	_stun_timer = maxf(_stun_timer - delta, 0.0)
 	_update_status_effect_feedback(delta)
+	_update_research_healing(delta)
 	_update_feedback_visuals(delta)
 
 
@@ -209,6 +212,11 @@ func set_controls_enabled(enabled: bool) -> void:
 		_block_timer = 0.0
 
 
+func reset_research_round_state() -> void:
+	_phoenix_used = false
+	_passive_heal_progress = 0.0
+
+
 func set_player_color(color_id: StringName) -> void:
 	if not GameSettings.is_valid_player_color(color_id):
 		return
@@ -260,6 +268,8 @@ func set_eliminated(eliminated: bool) -> void:
 		if _state_machine != null:
 			_state_machine.process_mode = Node.PROCESS_MODE_DISABLED
 	else:
+		_phoenix_used = false
+		_passive_heal_progress = 0.0
 		_apply_control_mode()
 		shooting_enabled = movement_enabled and _can_shoot_when_controls_enabled
 		_block_active = false
@@ -988,6 +998,15 @@ func _on_health_changed(old_health: int, new_health: int) -> void:
 func _on_health_depleted() -> void:
 	if _is_eliminated:
 		return
+	if ResearchManager.has_phoenix(player_slot) and not _phoenix_used:
+		_phoenix_used = true
+		health_component.health = maxi(1, int(roundf(float(health_component.max_health) * 0.4)))
+		_hit_flash_timer = GameSettings.PLAYER_HIT_FLASH_TIME
+		_body_punch_scale = Vector2(1.22, 0.78)
+		GameJuice.spawn_burst(&"spawn", global_position, Vector2.UP, Color(1.0, 0.55, 0.12, 0.95))
+		GameJuice.play_sound_2d(&"spawn", global_position, 7.0, 0.04)
+		GameJuice.shake(3.4, 0.14)
+		return
 	var tint: Color = GameSettings.player_color_value(_get_effective_color_id())
 	_hit_flash_timer = GameSettings.PLAYER_HIT_FLASH_TIME
 	_body_punch_scale = Vector2(1.28, 0.72)
@@ -995,3 +1014,24 @@ func _on_health_depleted() -> void:
 	GameJuice.play_sound_2d(&"death", global_position, 7.0, 0.06)
 	GameJuice.shake(GameSettings.PLAYER_DEATH_SHAKE_STRENGTH, GameSettings.PLAYER_DEATH_SHAKE_TIME)
 	set_eliminated(true)
+
+
+func _update_research_healing(delta: float) -> void:
+	if NetworkSession.is_steam_match_active() and NetworkSession.mode != GameSettings.NETWORK_MODE_HOST:
+		return
+	var healing_cap_ratio: float = ResearchManager.get_passive_healing_cap(player_slot)
+	var healing_rate: float = ResearchManager.get_passive_healing_rate(player_slot)
+	if healing_cap_ratio <= 0.0 or healing_rate <= 0.0:
+		_passive_heal_progress = 0.0
+		return
+	var target_health: int = int(floor(float(health_component.max_health) * healing_cap_ratio))
+	var is_standing: bool = update_grounded() and absf(velocity.x) < 8.0 and absf(velocity.y) < 8.0
+	if not is_standing or health_component.health >= target_health:
+		_passive_heal_progress = 0.0
+		return
+	_passive_heal_progress += healing_rate * delta
+	var heal_amount: int = int(floor(_passive_heal_progress))
+	if heal_amount <= 0:
+		return
+	_passive_heal_progress -= float(heal_amount)
+	health_component.health = mini(health_component.health + heal_amount, target_health)

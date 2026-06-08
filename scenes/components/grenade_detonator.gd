@@ -5,6 +5,7 @@ var origin: Vector2
 var delay: float = 0.5
 var radius: float = 80.0
 var damage: int = 10
+var owner_slot: int = 0
 var _elapsed: float = 0.0
 
 
@@ -31,6 +32,10 @@ func _explode() -> void:
 			continue
 
 		var falloff: float = 1.0 - (dist / radius)
-		var final_damage: int = maxi(1, int(roundf(damage * falloff)))
+		var base_damage: int = maxi(1, int(roundf(damage * falloff)))
+		var final_damage: int = ResearchManager.apply_rage_to_damage(owner_slot, base_damage)
+		var old_health: int = player.health_component.health
 		player.health_component.damage(final_damage)
 		player.apply_hit_feedback(origin, final_damage)
+		if player.player_slot != owner_slot:
+			ResearchManager.apply_local_life_steal(owner_slot, mini(final_damage, old_health))

@@ -19,6 +19,7 @@ func apply(target: Player, effect_data: Dictionary, projectile: Node = null) -> 
 	var tree: SceneTree = target.get_tree() if target != null else projectile.get_tree()
 	if tree == null:
 		return
+	var owner_slot: int = int(projectile.get("owner_slot")) if projectile != null else 0
 
 	var players: Array[Node] = tree.get_nodes_in_group(GameSettings.PLAYERS_GROUP)
 	for node in players:
@@ -31,6 +32,11 @@ func apply(target: Player, effect_data: Dictionary, projectile: Node = null) -> 
 			continue
 
 		var falloff: float = 1.0 - (dist / radius)
-		var final_damage: int = maxi(1, int(roundf(splash_damage * falloff)))
+		var base_damage: int = maxi(1, int(roundf(splash_damage * falloff)))
+		var final_damage: int = ResearchManager.apply_rage_to_damage(owner_slot, base_damage)
+		var old_health: int = player.health_component.health
 		player.health_component.damage(final_damage)
 		player.apply_hit_feedback(origin, final_damage)
+		if player.player_slot != owner_slot:
+			var applied_damage: int = mini(final_damage, old_health)
+			ResearchManager.apply_local_life_steal(owner_slot, applied_damage)

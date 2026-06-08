@@ -123,7 +123,14 @@ func _apply_local_collision_damage(collider: Object) -> void:
 	var player: Player = collider as Player
 	if player != null:
 		player.apply_hit_feedback(global_position, damage)
+		var old_health: int = player.health_component.health
 		player.health_component.damage(damage)
+		var applied_damage: int = mini(maxi(damage, 0), old_health)
+		_apply_local_life_steal(applied_damage)
+
+
+func _apply_local_life_steal(applied_damage: int) -> void:
+	ResearchManager.apply_local_life_steal(owner_slot, applied_damage)
 
 
 func _is_blocked_by_player(collider: Object) -> bool:

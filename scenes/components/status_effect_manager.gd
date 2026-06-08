@@ -133,7 +133,13 @@ func _tick_instance(instance: Dictionary) -> void:
 	if damage > 0:
 		var health: Node = parent.get_node_or_null("HealthComponent")
 		if health != null and health.has_method("damage"):
+			var source_slot: int = int(instance.get("source_slot", 0))
+			damage = ResearchManager.apply_rage_to_damage(source_slot, damage)
+			var old_health: int = int(health.get("health"))
 			health.damage(damage)
+			var target_player: Player = parent as Player
+			if source_slot > 0 and (target_player == null or target_player.player_slot != source_slot):
+				ResearchManager.apply_local_life_steal(source_slot, mini(damage, old_health))
 
 	var stun: float = instance.get("stun_duration", 0.0) as float
 	if stun > 0.0 and parent.has_method("apply_stun"):

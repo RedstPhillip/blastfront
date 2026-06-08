@@ -26,8 +26,9 @@ func apply_hit(target_slot: int, source_slot: int, projectile_id: int, damage: i
 	var old_health: int = player.health_component.health
 	player.health_component.damage(damage)
 	var health: int = player.health_component.health
-	var applied_damage: int = maxi(old_health - health, 0)
+	var applied_damage: int = mini(maxi(damage, 0), old_health)
 	OnlineMatch.record_damage(source_slot, target_slot, applied_damage)
+	_apply_life_steal(source_slot, applied_damage)
 
 	game_sync.send_reliable(GameSettings.PACKET_PLAYER_HIT, {
 		"target_slot": target_slot,
@@ -42,6 +43,26 @@ func apply_hit(target_slot: int, source_slot: int, projectile_id: int, damage: i
 
 	if health <= 0:
 		_handle_player_killed(target_slot, source_slot)
+
+
+func _apply_life_steal(source_slot: int, applied_damage: int) -> void:
+	if applied_damage <= 0:
+		return
+	var ratio: float = ResearchManager.get_life_steal_ratio(source_slot)
+	if ratio <= 0.0:
+		return
+	var source_player: Player = _get_player(source_slot)
+	if source_player == null or source_player.health_component == null or source_player.is_eliminated():
+		return
+	var heal_amount: int = maxi(1, int(roundf(float(applied_damage) * ratio)))
+	var old_health: int = source_player.health_component.health
+	source_player.health_component.heal(heal_amount)
+	if source_player.health_component.health == old_health:
+		return
+	game_sync.send_reliable(GameSettings.PACKET_HEALTH_CHANGED, {
+		"slot": source_slot,
+		"health": source_player.health_component.health,
+	}, GameSettings.NETWORK_CHANNEL_EVENTS)
 
 
 func _handle_player_killed(target_slot: int, source_slot: int) -> void:
@@ -91,7 +112,8 @@ func _run_damage_over_time(
 		var player: Player = _get_player(target_slot)
 		if player == null or player.is_eliminated():
 			return
-		apply_hit(target_slot, source_slot, 0, damage_per_tick)
+		var modified_damage: int = ResearchManager.apply_rage_to_damage(source_slot, damage_per_tick)
+		apply_hit(target_slot, source_slot, 0, modified_damage)
 		if tick_index < tick_count - 1:
 			await get_tree().create_timer(tick_interval, false).timeout
 
