@@ -77,6 +77,8 @@ func _clear_button_chrome() -> void:
 func _on_mouse_entered() -> void:
 	_is_hovered = true
 	_refresh()
+	if item != null:
+		extension_hovered.emit(item)
 
 
 func _on_mouse_exited() -> void:

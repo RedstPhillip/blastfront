@@ -21,6 +21,8 @@ var locker_countdown_remaining: float = -1.0
 var _current_set_stats: Dictionary = {}
 var _first_hit_recorded: bool = false
 var _kill_banner_remaining: float = 0.0
+var _kill_banner_deadline_msec: int = 0
+var _kill_banner_generation: int = 0
 var _phase_after_banner: StringName = GameSettings.MATCH_PHASE_PLAYING_SET
 var _last_countdown_second: int = -1
 var _last_locker_countdown_second: int = -1
@@ -44,7 +46,7 @@ func _process(delta: float) -> void:
 		_process_locker_countdown(delta)
 	elif phase == GameSettings.MATCH_PHASE_KILL_BANNER:
 		_kill_banner_remaining = maxf(_kill_banner_remaining - delta, 0.0)
-		if _kill_banner_remaining <= 0.0:
+		if _kill_banner_remaining <= 0.0 or Time.get_ticks_msec() >= _kill_banner_deadline_msec:
 			_finish_kill_banner()
 	elif phase == GameSettings.MATCH_PHASE_INTERMISSION:
 		intermission_remaining = maxf(intermission_remaining - delta, 0.0)
@@ -78,6 +80,7 @@ func enter_locker(reset_scores: bool = true) -> void:
 	last_winner_slot = 0
 	final_winner_slot = 0
 	_kill_banner_remaining = 0.0
+	_kill_banner_deadline_msec = 0
 	intermission_remaining = GameSettings.ONLINE_INTERMISSION_SECONDS
 	locker_countdown_remaining = -1.0
 	_last_locker_countdown_second = -1
@@ -93,6 +96,7 @@ func start_next_set() -> void:
 	intermission_ready = GameSettings.default_ready_state()
 	last_winner_slot = 0
 	_kill_banner_remaining = 0.0
+	_kill_banner_deadline_msec = 0
 	intermission_remaining = GameSettings.ONLINE_INTERMISSION_SECONDS
 	locker_countdown_remaining = -1.0
 	_last_locker_countdown_second = -1
@@ -111,6 +115,9 @@ func record_kill(winner_slot: int) -> void:
 	set_kills[winner_slot] = int(set_kills.get(winner_slot, 0)) + 1
 	last_winner_slot = winner_slot
 	_kill_banner_remaining = GameSettings.ONLINE_KILL_BANNER_SECONDS
+	_kill_banner_deadline_msec = Time.get_ticks_msec() + int(roundf(GameSettings.ONLINE_KILL_BANNER_SECONDS * GameSettings.MILLISECONDS_PER_SECOND))
+	_kill_banner_generation += 1
+	var banner_generation: int = _kill_banner_generation
 
 	if int(set_kills.get(winner_slot, 0)) >= GameSettings.ONLINE_SET_KILLS_TO_WIN:
 		_award_set_coins()
@@ -124,6 +131,7 @@ func record_kill(winner_slot: int) -> void:
 		_phase_after_banner = GameSettings.MATCH_PHASE_PLAYING_SET
 
 	_set_phase(GameSettings.MATCH_PHASE_KILL_BANNER, true)
+	_finish_kill_banner_after_timeout(banner_generation)
 
 
 func record_damage(source_slot: int, target_slot: int, amount: int) -> void:
@@ -440,6 +448,8 @@ func _update_locker_countdown_state() -> void:
 
 
 func _finish_kill_banner() -> void:
+	_kill_banner_remaining = 0.0
+	_kill_banner_deadline_msec = 0
 	if _phase_after_banner == GameSettings.MATCH_PHASE_INTERMISSION:
 		intermission_ready = GameSettings.default_ready_state()
 		intermission_remaining = GameSettings.ONLINE_INTERMISSION_SECONDS
@@ -449,6 +459,17 @@ func _finish_kill_banner() -> void:
 		_set_phase(GameSettings.MATCH_PHASE_FINAL, true)
 	else:
 		_set_phase(GameSettings.MATCH_PHASE_PLAYING_SET, true)
+
+
+func _finish_kill_banner_after_timeout(banner_generation: int) -> void:
+	await get_tree().create_timer(GameSettings.ONLINE_KILL_BANNER_SECONDS, true).timeout
+	if not _has_authority():
+		return
+	if phase != GameSettings.MATCH_PHASE_KILL_BANNER:
+		return
+	if banner_generation != _kill_banner_generation:
+		return
+	_finish_kill_banner()
 
 
 func _set_phase(next_phase: StringName, should_broadcast: bool) -> void:

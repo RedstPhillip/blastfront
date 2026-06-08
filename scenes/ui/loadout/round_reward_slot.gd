@@ -188,7 +188,7 @@ func _clear_button_chrome() -> void:
 func _on_mouse_entered() -> void:
 	_is_hovered = true
 	_refresh()
-	if not reward.is_empty() and StringName(str(reward.get("type", ""))) != RoundRewardInventory.REWARD_EXTENSION:
+	if not reward.is_empty():
 		reward_hovered.emit(reward)
 
 
