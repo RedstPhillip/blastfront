@@ -156,6 +156,90 @@ func get_all_definitions() -> Array[WeaponExtensionDefinition]:
 	return result
 
 
+func get_reward_definitions() -> Array[WeaponExtensionDefinition]:
+	var result: Array[WeaponExtensionDefinition] = []
+	for definition in get_all_definitions():
+		if definition != null and definition.mark == 1:
+			result.append(definition)
+	return result
+
+
+func get_merge_cost_for_next_mark(next_mark: int) -> int:
+	match next_mark:
+		2:
+			return GameSettings.EXTENSION_MERGE_MK2_COST
+		3:
+			return GameSettings.EXTENSION_MERGE_MK3_COST
+	return 0
+
+
+func get_merge_cost_for_items(first_item: WeaponExtensionItem, second_item: WeaponExtensionItem) -> int:
+	if not can_merge_items(first_item, second_item):
+		return 0
+	return get_merge_cost_for_next_mark(first_item.mark + 1)
+
+
+func can_merge_items(first_item: WeaponExtensionItem, second_item: WeaponExtensionItem) -> bool:
+	if first_item == null or second_item == null:
+		return false
+	if first_item == second_item:
+		return false
+	if first_item.definition == null or second_item.definition == null:
+		return false
+	if first_item.get_definition_id() != second_item.get_definition_id():
+		return false
+	if first_item.mark != second_item.mark:
+		return false
+	return first_item.mark < GameSettings.EXTENSION_MAX_MARK
+
+
+func has_merge_partner_for_local(item: WeaponExtensionItem) -> bool:
+	return has_merge_partner_for_player(get_local_player_slot(), item)
+
+
+func has_merge_partner_for_player(player_slot: int, item: WeaponExtensionItem) -> bool:
+	if item == null:
+		return false
+	for candidate in get_inventory_for_player(player_slot):
+		if can_merge_items(item, candidate):
+			return true
+	return false
+
+
+func try_merge_items_for_local(first_item: WeaponExtensionItem, second_item: WeaponExtensionItem) -> WeaponExtensionItem:
+	return try_merge_items_for_player(get_local_player_slot(), first_item, second_item)
+
+
+func try_merge_items_for_player(player_slot: int, first_item: WeaponExtensionItem, second_item: WeaponExtensionItem) -> WeaponExtensionItem:
+	if not _is_player_slot(player_slot) or not can_merge_items(first_item, second_item):
+		return null
+	_ensure_player_state(player_slot)
+
+	var inventory: Array = _inventory_by_player.get(player_slot, [])
+	var first_index: int = inventory.find(first_item)
+	var second_index: int = inventory.find(second_item)
+	if first_index < 0 or second_index < 0:
+		return null
+
+	var merge_cost: int = get_merge_cost_for_items(first_item, second_item)
+	if merge_cost <= 0 or not OnlineMatch.try_spend_local_coins(merge_cost):
+		return null
+
+	var merged_condition: float = (first_item.condition + second_item.condition) * 0.5
+	var merged_item: WeaponExtensionItem = WeaponExtensionItem.create(first_item.definition, merged_condition, first_item.mark + 1)
+	inventory.remove_at(maxi(first_index, second_index))
+	inventory.remove_at(mini(first_index, second_index))
+	inventory.append(merged_item)
+	_inventory_by_player[player_slot] = inventory
+
+	var loadout_changed_for_merge: bool = _replace_consumed_equipped_items(player_slot, first_item, second_item, merged_item)
+	inventory_changed.emit(player_slot)
+	if loadout_changed_for_merge:
+		loadout_changed.emit(player_slot)
+		_publish_local_loadout_if_needed(player_slot)
+	return merged_item
+
+
 func build_effective_stats_for_player(player_slot: int) -> Dictionary:
 	_ensure_player_state(player_slot)
 
@@ -285,7 +369,25 @@ func _create_item_from_loadout_data(loadout_data: Dictionary) -> WeaponExtension
 		return null
 
 	var condition_value: float = float(loadout_data.get("condition", definition.default_condition))
-	return WeaponExtensionItem.create(definition, condition_value)
+	var mark_value: int = int(loadout_data.get("mark", definition.mark))
+	return WeaponExtensionItem.create(definition, condition_value, mark_value)
+
+
+func _replace_consumed_equipped_items(
+	player_slot: int,
+	first_item: WeaponExtensionItem,
+	second_item: WeaponExtensionItem,
+	merged_item: WeaponExtensionItem
+) -> bool:
+	var loadout: Dictionary = _get_loadout_for_player(player_slot)
+	var changed: bool = false
+	for slot in WeaponExtensionDefinition.all_slots():
+		var equipped_item: WeaponExtensionItem = loadout.get(slot, null) as WeaponExtensionItem
+		if equipped_item == first_item or equipped_item == second_item:
+			loadout[slot] = merged_item
+			changed = true
+	_equipped_by_player[player_slot] = loadout
+	return changed
 
 
 func _merge_attributes(target: Dictionary, incoming_variant: Variant) -> void:

@@ -101,7 +101,7 @@ func claim_reward(source_kind: StringName, source_index: int) -> bool:
 
 func _generate_offers() -> void:
 	offers.clear()
-	var extension_definitions: Array[WeaponExtensionDefinition] = ExtensionInventory.get_all_definitions()
+	var extension_definitions: Array[WeaponExtensionDefinition] = ExtensionInventory.get_reward_definitions()
 	var armor_definitions: Array[ArmorItemData] = ArmorInventory.get_reward_definitions()
 	_shuffle_array(extension_definitions)
 	_shuffle_array(armor_definitions)
@@ -145,9 +145,9 @@ func _calculate_price(reward_type: StringName, item_variant: Variant) -> int:
 		var extension_item: WeaponExtensionItem = item_variant as WeaponExtensionItem
 		if extension_item != null and extension_item.definition != null:
 			condition = extension_item.condition
-			var tag_count: int = extension_item.definition.projectile_tags.size()
-			var effect_count: int = extension_item.definition.projectile_effects.size()
-			power_bonus = extension_item.definition.mark - 1 + tag_count + effect_count * 2
+			var tag_count: int = extension_item.definition.get_projectile_tags_for_mark(extension_item.mark).size()
+			var effect_count: int = extension_item.definition.get_projectile_effects_for_mark(extension_item.mark).size()
+			power_bonus = extension_item.mark - 1 + tag_count + effect_count * 2
 	elif reward_type == REWARD_ARMOR:
 		var armor_item: ArmorItemData = item_variant as ArmorItemData
 		if armor_item != null:

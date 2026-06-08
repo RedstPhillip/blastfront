@@ -3,9 +3,12 @@ class_name WeaponExtensionItemCard
 
 signal extension_hovered(item: WeaponExtensionItem)
 signal extension_selected(item: WeaponExtensionItem)
+signal extension_merge_requested(source_item: WeaponExtensionItem, target_item: WeaponExtensionItem)
 
 var item: WeaponExtensionItem = null
 var _is_hovered: bool = false
+var _has_merge_partner: bool = false
+var _mark_label: Label = null
 
 @onready var _background: TextureRect = %Background
 @onready var _swatch: ColorRect = %Swatch
@@ -15,6 +18,7 @@ var _is_hovered: bool = false
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(54, 54)
+	_ensure_mark_label()
 	_clear_button_chrome()
 	mouse_entered.connect(_on_mouse_entered)
 	mouse_exited.connect(_on_mouse_exited)
@@ -28,6 +32,31 @@ func setup(extension_item: WeaponExtensionItem) -> void:
 		_refresh()
 
 
+func set_merge_partner_available(is_available: bool) -> void:
+	_has_merge_partner = is_available
+	if is_node_ready() and item != null and item.definition != null:
+		_apply_background_gradient(item.get_condition_color())
+
+
+func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
+	if item == null or not (data is Dictionary):
+		return false
+	var drop_data: Dictionary = data
+	if drop_data.get("type", &"") != &"weapon_extension_item":
+		return false
+	if drop_data.get("source", &"") != &"inventory":
+		return false
+	var dropped_item: WeaponExtensionItem = drop_data.get("item", null) as WeaponExtensionItem
+	return ExtensionInventory.can_merge_items(dropped_item, item)
+
+
+func _drop_data(_at_position: Vector2, data: Variant) -> void:
+	var drop_data: Dictionary = data
+	var dropped_item: WeaponExtensionItem = drop_data.get("item", null) as WeaponExtensionItem
+	if ExtensionInventory.can_merge_items(dropped_item, item):
+		extension_merge_requested.emit(dropped_item, item)
+
+
 func _get_drag_data(_at_position: Vector2) -> Variant:
 	if item == null:
 		return null
@@ -37,6 +66,7 @@ func _get_drag_data(_at_position: Vector2) -> Variant:
 		set_drag_preview(preview)
 	return {
 		"type": &"weapon_extension_item",
+		"source": &"inventory",
 		"item": item,
 	}
 
@@ -52,6 +82,7 @@ func _refresh() -> void:
 		_preview_frame.visible = false
 		_preview_frame.set_condition_color(Color8(70, 78, 88, 210), false)
 		_apply_background_gradient(Color8(70, 78, 88, 210))
+		_update_mark_label(0)
 		return
 
 	_swatch.color = item.definition.icon_color
@@ -60,11 +91,48 @@ func _refresh() -> void:
 	_preview_frame.visible = false
 	_preview_frame.set_condition_color(item.get_condition_color() if _visual_preview.visible else item.definition.icon_color)
 	_apply_background_gradient(item.get_condition_color())
+	_update_mark_label(item.mark)
 	tooltip_text = ""
 
 
 func _apply_background_gradient(base_color: Color) -> void:
-	_background.texture = LoadoutPreviewFrame.create_condition_texture(54, 54, base_color, 0.82, LoadoutPreviewFrame.DEFAULT_CORNER_RADIUS, _is_hovered)
+	var card_color: Color = base_color.lightened(0.22) if _has_merge_partner else base_color
+	var alpha: float = 0.96 if _has_merge_partner else 0.82
+	_background.texture = LoadoutPreviewFrame.create_condition_texture(54, 54, card_color, alpha, LoadoutPreviewFrame.DEFAULT_CORNER_RADIUS, _is_hovered)
+
+
+func _ensure_mark_label() -> void:
+	if _mark_label != null:
+		return
+	_mark_label = Label.new()
+	_mark_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_mark_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_mark_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	_mark_label.add_theme_font_size_override("font_size", 11)
+	_mark_label.add_theme_color_override("font_color", Color8(255, 225, 92, 255))
+	_mark_label.add_theme_color_override("font_shadow_color", Color8(0, 0, 0, 220))
+	_mark_label.add_theme_constant_override("shadow_offset_x", 1)
+	_mark_label.add_theme_constant_override("shadow_offset_y", 1)
+	add_child(_mark_label)
+	_mark_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_mark_label.offset_left = -38.0
+	_mark_label.offset_top = 2.0
+	_mark_label.offset_right = -3.0
+	_mark_label.offset_bottom = 18.0
+
+
+func _update_mark_label(item_mark: int) -> void:
+	_ensure_mark_label()
+	_mark_label.visible = item_mark > 0
+	_mark_label.text = _stars_for_mark(item_mark)
+
+
+func _stars_for_mark(item_mark: int) -> String:
+	var filled: int = clampi(item_mark, 1, GameSettings.EXTENSION_MAX_MARK)
+	var result: String = ""
+	for star_index in range(GameSettings.EXTENSION_MAX_MARK):
+		result += "★" if star_index < filled else "☆"
+	return result
 
 
 func _clear_button_chrome() -> void:

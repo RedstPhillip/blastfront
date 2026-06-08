@@ -9,6 +9,7 @@ signal extension_cleared(slot: StringName)
 
 var item: WeaponExtensionItem = null
 var _is_hovered: bool = false
+var _mark_label: Label = null
 
 @onready var _background: TextureRect = %Background
 @onready var _swatch: ColorRect = %Swatch
@@ -19,6 +20,7 @@ var _is_hovered: bool = false
 func _ready() -> void:
 	custom_minimum_size = Vector2(42, 42)
 	text = ""
+	_ensure_mark_label()
 	_clear_button_chrome()
 	mouse_entered.connect(_on_mouse_entered)
 	mouse_exited.connect(_on_mouse_exited)
@@ -67,6 +69,7 @@ func _get_drag_data(_at_position: Vector2) -> Variant:
 	extension_cleared.emit(slot)
 	return {
 		"type": &"weapon_extension_item",
+		"source": &"slot",
 		"item": dragged_item,
 	}
 
@@ -79,6 +82,7 @@ func _refresh() -> void:
 		_preview_frame.visible = false
 		_preview_frame.set_condition_color(Color8(46, 54, 61, 210), false)
 		_apply_background_gradient(Color8(46, 54, 61, 210), 0.46)
+		_update_mark_label(0)
 		tooltip_text = ""
 		return
 
@@ -88,6 +92,7 @@ func _refresh() -> void:
 	_preview_frame.visible = false
 	_preview_frame.set_condition_color(item.get_condition_color() if _visual_preview.visible else item.definition.icon_color)
 	_apply_background_gradient(Color8(74, 78, 82, 230), 0.64)
+	_update_mark_label(item.mark)
 	tooltip_text = ""
 
 
@@ -100,6 +105,40 @@ func _clear_button_chrome() -> void:
 	var empty_style: StyleBoxEmpty = StyleBoxEmpty.new()
 	for style_name in [&"normal", &"hover", &"pressed", &"focus", &"disabled"]:
 		add_theme_stylebox_override(style_name, empty_style)
+
+
+func _ensure_mark_label() -> void:
+	if _mark_label != null:
+		return
+	_mark_label = Label.new()
+	_mark_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_mark_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_mark_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	_mark_label.add_theme_font_size_override("font_size", 9)
+	_mark_label.add_theme_color_override("font_color", Color8(255, 225, 92, 255))
+	_mark_label.add_theme_color_override("font_shadow_color", Color8(0, 0, 0, 220))
+	_mark_label.add_theme_constant_override("shadow_offset_x", 1)
+	_mark_label.add_theme_constant_override("shadow_offset_y", 1)
+	add_child(_mark_label)
+	_mark_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_mark_label.offset_left = -32.0
+	_mark_label.offset_top = 1.0
+	_mark_label.offset_right = -2.0
+	_mark_label.offset_bottom = 14.0
+
+
+func _update_mark_label(item_mark: int) -> void:
+	_ensure_mark_label()
+	_mark_label.visible = item_mark > 0
+	_mark_label.text = _stars_for_mark(item_mark)
+
+
+func _stars_for_mark(item_mark: int) -> String:
+	var filled: int = clampi(item_mark, 1, GameSettings.EXTENSION_MAX_MARK)
+	var result: String = ""
+	for star_index in range(GameSettings.EXTENSION_MAX_MARK):
+		result += "★" if star_index < filled else "☆"
+	return result
 
 
 func _on_mouse_entered() -> void:

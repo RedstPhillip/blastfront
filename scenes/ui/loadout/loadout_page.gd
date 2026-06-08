@@ -38,6 +38,9 @@ var _armor_slots: Dictionary = {}
 var _offer_reward_slots: Array[RoundRewardSlot] = []
 var _saved_reward_slots: Array[RoundRewardSlot] = []
 var _inspecting_item: bool = false
+var _pending_merge_source: WeaponExtensionItem = null
+var _pending_merge_target: WeaponExtensionItem = null
+var _merge_dialog: ConfirmationDialog = null
 
 @onready var _description_title: Label = %DescriptionTitle
 @onready var _description_meta: Label = %DescriptionMeta
@@ -90,6 +93,7 @@ func _ready() -> void:
 	_setup_weapon_placeholders()
 	_setup_armor_slots()
 	_setup_reward_slots()
+	_setup_merge_dialog()
 	_connect_inventory_signals()
 	_refresh_weapon_inventory()
 	_refresh_weapon_slots()
@@ -197,8 +201,10 @@ func _refresh_weapon_inventory() -> void:
 		if card == null:
 			continue
 		card.setup(item)
+		card.set_merge_partner_available(ExtensionInventory.has_merge_partner_for_local(item))
 		card.extension_hovered.connect(_show_weapon_extension_description)
 		card.extension_selected.connect(_on_weapon_extension_selected)
+		card.extension_merge_requested.connect(_on_weapon_extension_merge_requested)
 		_weapon_inventory_grid.add_child(card)
 
 
@@ -271,7 +277,7 @@ func _show_weapon_extension_description(item: WeaponExtensionItem) -> void:
 	_description_title.text = item.get_display_name()
 	_description_meta.text = "%s  |  MK%d  |  %s" % [
 		item.get_slot_display_name().to_upper(),
-		item.definition.mark,
+		item.mark,
 		item.get_condition_tier_name().to_upper(),
 	]
 	_description_body.text = _short_description(item.definition.description)
@@ -635,6 +641,67 @@ func _on_weapon_extension_selected(item: WeaponExtensionItem) -> void:
 		return
 	ExtensionInventory.equip_item_for_local(item)
 	_show_weapon_extension_description(item)
+
+
+func _on_weapon_extension_merge_requested(source_item: WeaponExtensionItem, target_item: WeaponExtensionItem) -> void:
+	if not ExtensionInventory.can_merge_items(source_item, target_item):
+		_show_merge_error("Invalid merge", "Only two copies of the same extension and same MK can be merged.")
+		return
+	var next_mark: int = source_item.mark + 1
+	var merge_cost: int = ExtensionInventory.get_merge_cost_for_items(source_item, target_item)
+	if OnlineMatch.get_local_coin_balance() < merge_cost:
+		_show_merge_error("Not enough coins", "Merging into MK%d costs %d coins." % [next_mark, merge_cost])
+		return
+
+	_pending_merge_source = source_item
+	_pending_merge_target = target_item
+	_merge_dialog.title = "Merge Extensions"
+	_merge_dialog.dialog_text = "Merge two %s items into MK%d for %d coins?" % [
+		source_item.get_display_name(),
+		next_mark,
+		merge_cost,
+	]
+	_merge_dialog.ok_button_text = "Merge"
+	_merge_dialog.cancel_button_text = "Cancel"
+	_merge_dialog.popup_centered()
+
+
+func _confirm_pending_extension_merge() -> void:
+	var source_item: WeaponExtensionItem = _pending_merge_source
+	var target_item: WeaponExtensionItem = _pending_merge_target
+	_pending_merge_source = null
+	_pending_merge_target = null
+
+	var merge_cost: int = ExtensionInventory.get_merge_cost_for_items(source_item, target_item)
+	var merged_item: WeaponExtensionItem = ExtensionInventory.try_merge_items_for_local(source_item, target_item)
+	if merged_item == null:
+		_show_merge_error("Merge failed", "The merge could not be completed. Check coins and matching MK tiers.")
+		return
+
+	_refresh_shop_state()
+	_show_weapon_extension_description(merged_item)
+	_description_title.text = "Extension merged"
+	_description_meta.text = "%s  |  MK%d  |  -%d COINS" % [
+		merged_item.get_slot_display_name().to_upper(),
+		merged_item.mark,
+		merge_cost,
+	]
+
+
+func _show_merge_error(title: String, body: String) -> void:
+	_description_title.text = title
+	_description_meta.text = "MERGE"
+	_description_body.text = body
+	_set_description_condition(0.0, Color8(225, 82, 72, 255), false)
+	var current_modifiers: Dictionary = _get_current_weapon_modifiers()
+	_show_default_weapon_stats(current_modifiers)
+
+
+func _setup_merge_dialog() -> void:
+	_merge_dialog = ConfirmationDialog.new()
+	_merge_dialog.name = "ExtensionMergeDialog"
+	add_child(_merge_dialog)
+	_merge_dialog.confirmed.connect(_confirm_pending_extension_merge)
 
 
 func _on_weapon_extension_cleared(slot_key: StringName) -> void:

@@ -181,7 +181,7 @@ func get_last_set_earnings(slot: int) -> Dictionary:
 
 func try_spend_local_coins(cost: int) -> bool:
 	var slot: int = NetworkSession.local_player_slot
-	if cost <= 0 or cost > GameSettings.SHOP_MAX_PRICE:
+	if cost <= 0 or cost > _max_coin_spend():
 		return false
 	if get_coin_balance(slot) < cost:
 		return false
@@ -671,7 +671,7 @@ func _on_packet_received(packet: Dictionary, _sender_id: int) -> void:
 func _apply_coin_spend_request(slot: int, cost: int) -> void:
 	if not _is_player_slot(slot):
 		return
-	if cost <= 0 or cost > GameSettings.SHOP_MAX_PRICE:
+	if cost <= 0 or cost > _max_coin_spend():
 		return
 	if get_coin_balance(slot) < cost:
 		_broadcast_state()
@@ -679,6 +679,10 @@ func _apply_coin_spend_request(slot: int, cost: int) -> void:
 	coin_balances[slot] = get_coin_balance(slot) - cost
 	_broadcast_state()
 	state_changed.emit()
+
+
+func _max_coin_spend() -> int:
+	return maxi(GameSettings.SHOP_MAX_PRICE, GameSettings.EXTENSION_MERGE_MK3_COST)
 
 
 func _on_peer_changed() -> void:

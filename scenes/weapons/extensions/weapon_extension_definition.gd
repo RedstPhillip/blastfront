@@ -15,8 +15,14 @@ const SLOT_FRONT: StringName = &"front"
 @export var condition_scales_attributes: bool = true
 @export var condition_scales_projectile_effects: bool = true
 @export var attribute_modifiers: Dictionary = {}
+@export var mk2_attribute_modifiers: Dictionary = {}
+@export var mk3_attribute_modifiers: Dictionary = {}
 @export var projectile_tags: Array[String] = []
+@export var mk2_projectile_tags: Array[String] = []
+@export var mk3_projectile_tags: Array[String] = []
 @export var projectile_effects: Dictionary = {}
+@export var mk2_projectile_effects: Dictionary = {}
+@export var mk3_projectile_effects: Dictionary = {}
 @export var visual_scene: PackedScene = null
 @export var icon_color: Color = Color.WHITE
 
@@ -56,12 +62,13 @@ func get_condition_multiplier(condition: float) -> float:
 	return ItemCondition.get_scale(condition, minimum_condition_factor)
 
 
-func get_effective_attribute_modifiers(condition: float) -> Dictionary:
+func get_effective_attribute_modifiers(condition: float, item_mark: int = mark) -> Dictionary:
 	var result: Dictionary = {}
 	var condition_multiplier: float = get_condition_multiplier(condition)
-	for raw_key in attribute_modifiers.keys():
+	var modifiers: Dictionary = get_attribute_modifiers_for_mark(item_mark)
+	for raw_key in modifiers.keys():
 		var attribute_name: StringName = StringName(str(raw_key))
-		var raw_value: Variant = attribute_modifiers[raw_key]
+		var raw_value: Variant = modifiers[raw_key]
 		if raw_value is float or raw_value is int:
 			var numeric_value: float = float(raw_value)
 			if condition_scales_attributes:
@@ -72,19 +79,83 @@ func get_effective_attribute_modifiers(condition: float) -> Dictionary:
 	return result
 
 
-func get_effective_projectile_tags() -> Array[String]:
+func get_effective_projectile_tags(item_mark: int = mark) -> Array[String]:
 	var result: Array[String] = []
-	for tag in projectile_tags:
+	for tag in get_projectile_tags_for_mark(item_mark):
 		if not result.has(tag):
 			result.append(tag)
 	return result
 
 
-func get_effective_projectile_effects(condition: float) -> Dictionary:
-	var effects_copy: Dictionary = projectile_effects.duplicate(true)
+func get_effective_projectile_effects(condition: float, item_mark: int = mark) -> Dictionary:
+	var effects_copy: Dictionary = get_projectile_effects_for_mark(item_mark).duplicate(true)
 	if not condition_scales_projectile_effects:
 		return effects_copy
 	return _scale_dictionary_numbers(effects_copy, get_condition_multiplier(condition))
+
+
+func get_attribute_modifiers_for_mark(item_mark: int) -> Dictionary:
+	match clampi(item_mark, 1, GameSettings.EXTENSION_MAX_MARK):
+		2:
+			if not mk2_attribute_modifiers.is_empty():
+				return mk2_attribute_modifiers
+			return _build_default_attribute_modifiers(2)
+		3:
+			if not mk3_attribute_modifiers.is_empty():
+				return mk3_attribute_modifiers
+			return _build_default_attribute_modifiers(3)
+	return attribute_modifiers
+
+
+func get_projectile_tags_for_mark(item_mark: int) -> Array[String]:
+	match clampi(item_mark, 1, GameSettings.EXTENSION_MAX_MARK):
+		2:
+			if not mk2_projectile_tags.is_empty():
+				return mk2_projectile_tags
+		3:
+			if not mk3_projectile_tags.is_empty():
+				return mk3_projectile_tags
+	return projectile_tags
+
+
+func get_projectile_effects_for_mark(item_mark: int) -> Dictionary:
+	match clampi(item_mark, 1, GameSettings.EXTENSION_MAX_MARK):
+		2:
+			if not mk2_projectile_effects.is_empty():
+				return mk2_projectile_effects
+		3:
+			if not mk3_projectile_effects.is_empty():
+				return mk3_projectile_effects
+	return projectile_effects
+
+
+func _build_default_attribute_modifiers(item_mark: int) -> Dictionary:
+	var result: Dictionary = {}
+	for raw_key in attribute_modifiers.keys():
+		var key: StringName = StringName(str(raw_key))
+		var raw_value: Variant = attribute_modifiers[raw_key]
+		if raw_value is float or raw_value is int:
+			result[key] = _scale_default_attribute(key, float(raw_value), item_mark)
+		else:
+			result[key] = raw_value
+	return result
+
+
+func _scale_default_attribute(attribute: StringName, value: float, item_mark: int) -> float:
+	var benefit_factor: float = 1.35 if item_mark == 2 else 1.75
+	var drawback_factor: float = 0.85 if item_mark == 2 else 0.7
+	var lower_is_better: bool = _attribute_lower_is_better(attribute)
+	var is_benefit: bool = value < 0.0 if lower_is_better else value > 0.0
+	return value * (benefit_factor if is_benefit else drawback_factor)
+
+
+func _attribute_lower_is_better(attribute: StringName) -> bool:
+	return attribute == &"fire_interval" \
+		or attribute == &"reload_time" \
+		or attribute == &"projectile_gravity" \
+		or attribute == &"projectile_linear_damping" \
+		or attribute == &"shot_spread_degrees" \
+		or attribute == &"recoil_rotation_degrees"
 
 
 func _scale_dictionary_numbers(source: Dictionary, factor: float) -> Dictionary:

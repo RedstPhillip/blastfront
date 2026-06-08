@@ -3,12 +3,14 @@ extends Resource
 
 @export var definition: WeaponExtensionDefinition = null
 @export_range(0.0, 100.0, 0.1) var condition: float = 100.0
+@export_range(1, 3, 1) var mark: int = 1
 
 
-static func create(definition_resource: WeaponExtensionDefinition, condition_value: float) -> WeaponExtensionItem:
+static func create(definition_resource: WeaponExtensionDefinition, condition_value: float, mark_value: int = 1) -> WeaponExtensionItem:
 	var item: WeaponExtensionItem = WeaponExtensionItem.new()
 	item.definition = definition_resource
 	item.condition = ItemCondition.clamp_value(condition_value)
+	item.mark = clampi(mark_value, 1, GameSettings.EXTENSION_MAX_MARK)
 	return item
 
 
@@ -21,7 +23,11 @@ func get_definition_id() -> StringName:
 func get_display_name() -> String:
 	if definition == null:
 		return "Unknown Extension"
-	return definition.display_name
+	var base_name: String = definition.display_name
+	var suffix: String = " MK%d" % definition.mark
+	if base_name.ends_with(suffix):
+		base_name = base_name.substr(0, base_name.length() - suffix.length())
+	return "%s MK%d" % [base_name, mark]
 
 
 func get_slot() -> StringName:
@@ -59,13 +65,13 @@ func build_effective_stats() -> Dictionary:
 	return {
 		"extension_id": str(get_definition_id()),
 		"slot": str(get_slot()),
-		"mark": definition.mark,
+		"mark": mark,
 		"condition": condition,
 		"condition_tier": str(get_condition_tier_id()),
 		"condition_multiplier": get_condition_multiplier(),
-		"attributes": definition.get_effective_attribute_modifiers(condition),
-		"projectile_tags": definition.get_effective_projectile_tags(),
-		"projectile_effects": definition.get_effective_projectile_effects(condition),
+		"attributes": definition.get_effective_attribute_modifiers(condition, mark),
+		"projectile_tags": definition.get_effective_projectile_tags(mark),
+		"projectile_effects": definition.get_effective_projectile_effects(condition, mark),
 	}
 
 
@@ -73,4 +79,5 @@ func to_loadout_data() -> Dictionary:
 	return {
 		"id": str(get_definition_id()),
 		"condition": condition,
+		"mark": mark,
 	}
