@@ -128,7 +128,6 @@ func _setup_weapon_placeholders() -> void:
 		if slot_button == null:
 			continue
 		slot_button.setup(slot_key, ExtensionInventory.get_equipped_item_for_local(slot_key))
-		slot_button.extension_hovered.connect(_show_weapon_extension_description)
 		slot_button.extension_dropped.connect(_on_weapon_extension_selected)
 		slot_button.extension_cleared.connect(_on_weapon_extension_cleared)
 
@@ -197,7 +196,6 @@ func _refresh_weapon_inventory() -> void:
 		if card == null:
 			continue
 		card.setup(item)
-		card.extension_hovered.connect(_show_weapon_extension_description)
 		card.extension_selected.connect(_on_weapon_extension_selected)
 		_weapon_inventory_grid.add_child(card)
 
@@ -604,8 +602,7 @@ func _show_round_reward_description(reward: Dictionary) -> void:
 	var reward_type: StringName = StringName(str(reward.get("type", "")))
 	var item_variant: Variant = reward.get("item", null)
 	if reward_type == RoundRewardInventory.REWARD_EXTENSION:
-		var extension_item: WeaponExtensionItem = item_variant as WeaponExtensionItem
-		_show_weapon_extension_description(extension_item)
+		return
 	elif reward_type == RoundRewardInventory.REWARD_ARMOR:
 		var armor_item: ArmorItemData = item_variant as ArmorItemData
 		_show_armor_description(armor_item)

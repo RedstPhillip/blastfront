@@ -1,6 +1,8 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scenes/ui/loadout/armor_overlay_slot.gd" id="1_overlay"]
+[ext_resource type="Script" path="res://scenes/ui/loadout/armor_visual_preview.gd" id="2_preview"]
+[ext_resource type="Script" path="res://scenes/ui/loadout/loadout_preview_frame.gd" id="3_frame"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_overlay_normal"]
 bg_color = Color(0.08, 0.68, 0.82, 0.18)
@@ -45,6 +47,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 modulate = Color(1, 1, 1, 0.82)
+texture_filter = 2
 expand_mode = 1
 stretch_mode = 6
 
@@ -57,6 +60,13 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
+[node name="PreviewFrame" type="Panel" parent="Center"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("3_frame")
+
 [node name="IconRect" type="TextureRect" parent="Center"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(28, 28)
@@ -64,3 +74,10 @@ layout_mode = 2
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
+
+[node name="ArmorPreview" type="Control" parent="Center"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("2_preview")

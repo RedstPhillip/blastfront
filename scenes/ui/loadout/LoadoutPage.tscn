@@ -260,10 +260,17 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_loadout_well")
 script = ExtResource("8_drop_target")
 accepted_reward_type = &"extension"
 
-[node name="WeaponInventoryStack" type="Control" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox/WeaponInventoryPanel" unique_id=1374467401]
+[node name="WeaponInventoryPadding" type="MarginContainer" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox/WeaponInventoryPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="WeaponInventoryStack" type="Control" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox/WeaponInventoryPanel/WeaponInventoryPadding" unique_id=1374467401]
 layout_mode = 2
 
-[node name="WeaponInventoryGrid" type="FlowContainer" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox/WeaponInventoryPanel/WeaponInventoryStack" unique_id=1387484139]
+[node name="WeaponInventoryGrid" type="FlowContainer" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox/WeaponInventoryPanel/WeaponInventoryPadding/WeaponInventoryStack" unique_id=1387484139]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -274,7 +281,7 @@ grow_vertical = 2
 theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 8
 
-[node name="WeaponInventoryEmptyLabel" type="Label" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox/WeaponInventoryPanel/WeaponInventoryStack" unique_id=1234000643]
+[node name="WeaponInventoryEmptyLabel" type="Label" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox/WeaponInventoryPanel/WeaponInventoryPadding/WeaponInventoryStack" unique_id=1234000643]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -624,10 +631,17 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_loadout_well")
 script = ExtResource("8_drop_target")
 accepted_reward_type = &"armor"
 
-[node name="ArmorInventoryStack" type="Control" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin/ArmorVBox/ArmorInventoryPanel" unique_id=1042857952]
+[node name="ArmorInventoryPadding" type="MarginContainer" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin/ArmorVBox/ArmorInventoryPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="ArmorInventoryStack" type="Control" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin/ArmorVBox/ArmorInventoryPanel/ArmorInventoryPadding" unique_id=1042857952]
 layout_mode = 2
 
-[node name="ArmorInventoryGrid" type="FlowContainer" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin/ArmorVBox/ArmorInventoryPanel/ArmorInventoryStack" unique_id=1904879356]
+[node name="ArmorInventoryGrid" type="FlowContainer" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin/ArmorVBox/ArmorInventoryPanel/ArmorInventoryPadding/ArmorInventoryStack" unique_id=1904879356]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -638,7 +652,7 @@ grow_vertical = 2
 theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 8
 
-[node name="ArmorInventoryEmptyLabel" type="Label" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin/ArmorVBox/ArmorInventoryPanel/ArmorInventoryStack" unique_id=1582675109]
+[node name="ArmorInventoryEmptyLabel" type="Label" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin/ArmorVBox/ArmorInventoryPanel/ArmorInventoryPadding/ArmorInventoryStack" unique_id=1582675109]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15

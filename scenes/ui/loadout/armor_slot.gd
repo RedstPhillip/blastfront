@@ -9,9 +9,12 @@ signal armor_cleared(category: StringName)
 @export var compact: bool = false
 
 var item: ArmorItemData = null
+var _is_hovered: bool = false
 
 @onready var _background: TextureRect = %Background
 @onready var _icon_rect: TextureRect = %IconRect
+@onready var _visual_preview: ArmorVisualPreview = %ArmorPreview
+@onready var _preview_frame: LoadoutPreviewFrame = %PreviewFrame
 @onready var _title_label: Label = %TitleLabel
 @onready var _condition_label: Label = %ConditionLabel
 @onready var _margin: MarginContainer = $Margin
@@ -19,6 +22,7 @@ var item: ArmorItemData = null
 
 func _ready() -> void:
 	mouse_entered.connect(_on_mouse_entered)
+	mouse_exited.connect(_on_mouse_exited)
 	pressed.connect(_on_pressed)
 	_refresh()
 
@@ -69,46 +73,52 @@ func _refresh() -> void:
 		_margin.add_theme_constant_override("margin_right", 5)
 		_margin.add_theme_constant_override("margin_bottom", 5)
 		_icon_rect.custom_minimum_size = Vector2(28, 28)
+		_visual_preview.custom_minimum_size = Vector2(30, 30)
+		_preview_frame.custom_minimum_size = Vector2(34, 34)
 	else:
 		_icon_rect.custom_minimum_size = Vector2(34, 30)
+		_visual_preview.custom_minimum_size = Vector2(40, 34)
+		_preview_frame.custom_minimum_size = Vector2(44, 44)
 	if item == null:
 		_condition_label.text = "Empty"
 		_icon_rect.texture = null
+		_icon_rect.visible = false
+		_visual_preview.clear()
+		_visual_preview.visible = false
+		_preview_frame.set_condition_color(Color8(48, 54, 63, 225), false)
 		_apply_background_gradient(Color8(48, 54, 63, 225))
 		tooltip_text = "Drop %s armor here" % ArmorItemData.category_display_name(category)
 		return
 
 	_condition_label.text = "%s - %d%%" % [item.get_condition_name(), int(round(item.condition))]
-	_icon_rect.texture = item.icon
+	_visual_preview.visible = _visual_preview.set_armor_item(item)
+	_icon_rect.visible = not _visual_preview.visible
+	_icon_rect.texture = _get_fallback_texture(item)
+	_preview_frame.set_condition_color(item.get_condition_color())
 	_apply_background_gradient(item.get_condition_color())
 	tooltip_text = item.get_hover_text()
 
 
 func _apply_background_gradient(base_color: Color) -> void:
-	var gradient: Gradient = Gradient.new()
-	gradient.offsets = PackedFloat32Array([0.0, 0.52, 1.0])
-	gradient.colors = PackedColorArray([
-		_color_with_alpha(base_color.darkened(0.7), 0.58),
-		_color_with_alpha(base_color, 0.72),
-		Color(1.0, 1.0, 1.0, 0.18),
-	])
-	var texture: GradientTexture2D = GradientTexture2D.new()
-	texture.width = 96
-	texture.height = 96
-	texture.fill = GradientTexture2D.FILL_LINEAR
-	texture.fill_from = Vector2(0.0, 1.0)
-	texture.fill_to = Vector2(1.0, 0.0)
-	texture.gradient = gradient
-	_background.texture = texture
+	_background.texture = LoadoutPreviewFrame.create_condition_texture(96, 96, base_color, 0.72, LoadoutPreviewFrame.DEFAULT_CORNER_RADIUS, _is_hovered)
 
 
-func _color_with_alpha(color: Color, alpha: float) -> Color:
-	return Color(color.r, color.g, color.b, alpha)
+func _get_fallback_texture(armor_item: ArmorItemData) -> Texture2D:
+	if armor_item.icon != null:
+		return armor_item.icon
+	return null
 
 
 func _on_mouse_entered() -> void:
+	_is_hovered = true
+	_refresh()
 	if item != null:
 		armor_hovered.emit(item)
+
+
+func _on_mouse_exited() -> void:
+	_is_hovered = false
+	_refresh()
 
 
 func _on_pressed() -> void:

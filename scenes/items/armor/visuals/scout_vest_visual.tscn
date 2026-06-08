@@ -1,0 +1,40 @@
+[gd_scene format=3]
+
+[node name="ScoutVestVisual" type="Node2D"]
+
+[node name="OuterShell" type="Polygon2D" parent="."]
+color = Color(0.43, 0.46, 0.35, 0.92)
+polygon = PackedVector2Array(0, -18, 7, -16, 13, -12, 17, -6, 18, 0, 17, 6, 13, 12, 7, 16, 0, 18, -7, 16, -13, 12, -17, 6, -18, 0, -17, -6, -13, -12, -7, -16)
+
+[node name="HelmetTop" type="Polygon2D" parent="."]
+color = Color(0.31, 0.34, 0.27, 1)
+polygon = PackedVector2Array(-14, -4, -12, -11, -7, -15, 0, -17, 7, -15, 12, -11, 14, -4, 9, -1, 1, 0, -8, -1)
+
+[node name="VisorSlot" type="Polygon2D" parent="."]
+color = Color(0.04, 0.07, 0.07, 0.98)
+polygon = PackedVector2Array(-13, -2, 13, -2, 11, 4, 4, 5, -4, 5, -11, 4)
+
+[node name="SideGuardLeft" type="Polygon2D" parent="."]
+color = Color(0.24, 0.27, 0.22, 1)
+polygon = PackedVector2Array(-17, -1, -13, 0, -12, 8, -16, 10, -18, 5)
+
+[node name="SideGuardRight" type="Polygon2D" parent="."]
+color = Color(0.24, 0.27, 0.22, 1)
+polygon = PackedVector2Array(13, 0, 17, -1, 18, 5, 16, 10, 12, 8)
+
+[node name="ChestPlate" type="Polygon2D" parent="."]
+color = Color(0.20, 0.24, 0.21, 1)
+polygon = PackedVector2Array(-10, 5, -4, 9, 4, 9, 10, 5, 8, 13, 3, 16, -3, 16, -8, 13)
+
+[node name="CenterLatch" type="Polygon2D" parent="."]
+color = Color(0.08, 0.1, 0.09, 1)
+polygon = PackedVector2Array(-4, 10, 4, 10, 4, 15, -4, 15)
+
+[node name="TopMount" type="Polygon2D" parent="."]
+color = Color(0.19, 0.22, 0.19, 1)
+polygon = PackedVector2Array(-4, -18, 4, -18, 4, -14, -4, -14)
+
+[node name="RimLight" type="Line2D" parent="."]
+points = PackedVector2Array(-11, -10, -5, -15, 0, -17, 6, -15, 11, -10)
+width = 1.4
+default_color = Color(0.75, 0.78, 0.62, 0.5)

@@ -5,14 +5,19 @@ signal extension_hovered(item: WeaponExtensionItem)
 signal extension_selected(item: WeaponExtensionItem)
 
 var item: WeaponExtensionItem = null
+var _is_hovered: bool = false
 
 @onready var _background: TextureRect = %Background
 @onready var _swatch: ColorRect = %Swatch
+@onready var _visual_preview: WeaponExtensionVisualPreview = %VisualPreview
+@onready var _preview_frame: LoadoutPreviewFrame = %PreviewFrame
 
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(54, 54)
+	_clear_button_chrome()
 	mouse_entered.connect(_on_mouse_entered)
+	mouse_exited.connect(_on_mouse_exited)
 	pressed.connect(_on_pressed)
 	_refresh()
 
@@ -41,46 +46,42 @@ func _refresh() -> void:
 		return
 	if item == null or item.definition == null:
 		_swatch.color = Color(0.3, 0.34, 0.38, 1.0)
+		_swatch.visible = false
+		_visual_preview.clear()
+		_visual_preview.visible = false
+		_preview_frame.visible = false
+		_preview_frame.set_condition_color(Color8(70, 78, 88, 210), false)
 		_apply_background_gradient(Color8(70, 78, 88, 210))
 		return
 
 	_swatch.color = item.definition.icon_color
+	_visual_preview.visible = _visual_preview.set_extension(item)
+	_swatch.visible = false
+	_preview_frame.visible = false
+	_preview_frame.set_condition_color(item.get_condition_color() if _visual_preview.visible else item.definition.icon_color)
 	_apply_background_gradient(item.get_condition_color())
-	tooltip_text = _get_hover_text()
-
-
-func _get_hover_text() -> String:
-	if item == null or item.definition == null:
-		return ""
-	var lines: Array[String] = []
-	lines.append("%s | Mark %d | %s" % [item.get_slot_display_name(), item.definition.mark, item.get_condition_tier_name()])
-	lines.append("Condition: %d / 100" % int(round(item.condition)))
-	if not item.definition.description.is_empty():
-		lines.append(item.definition.description)
-	return "\n".join(lines)
+	tooltip_text = ""
 
 
 func _apply_background_gradient(base_color: Color) -> void:
-	var gradient: Gradient = Gradient.new()
-	gradient.offsets = PackedFloat32Array([0.0, 0.58, 1.0])
-	gradient.colors = PackedColorArray([
-		base_color.darkened(0.62),
-		Color(base_color.r, base_color.g, base_color.b, 0.82),
-		Color(1.0, 1.0, 1.0, 0.18),
-	])
-	var texture: GradientTexture2D = GradientTexture2D.new()
-	texture.width = 54
-	texture.height = 54
-	texture.fill = GradientTexture2D.FILL_LINEAR
-	texture.fill_from = Vector2(0.0, 1.0)
-	texture.fill_to = Vector2(1.0, 0.0)
-	texture.gradient = gradient
-	_background.texture = texture
+	_background.texture = LoadoutPreviewFrame.create_condition_texture(54, 54, base_color, 0.82, LoadoutPreviewFrame.DEFAULT_CORNER_RADIUS, _is_hovered)
+
+
+func _clear_button_chrome() -> void:
+	flat = true
+	var empty_style: StyleBoxEmpty = StyleBoxEmpty.new()
+	for style_name in [&"normal", &"hover", &"pressed", &"focus", &"disabled"]:
+		add_theme_stylebox_override(style_name, empty_style)
 
 
 func _on_mouse_entered() -> void:
-	if item != null:
-		extension_hovered.emit(item)
+	_is_hovered = true
+	_refresh()
+
+
+func _on_mouse_exited() -> void:
+	_is_hovered = false
+	_refresh()
 
 
 func _on_pressed() -> void:

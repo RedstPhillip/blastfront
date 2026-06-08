@@ -9,17 +9,23 @@ var source_kind: StringName = RoundRewardInventory.SOURCE_OFFER
 var source_index: int = -1
 @export var is_saved_slot: bool = false
 var reward: Dictionary = {}
+var _is_hovered: bool = false
 
 @onready var _background: TextureRect = %Background
 @onready var _icon_rect: TextureRect = %IconRect
 @onready var _swatch: ColorRect = %Swatch
 @onready var _price_label: Label = %PriceLabel
+@onready var _visual_preview: WeaponExtensionVisualPreview = %VisualPreview
+@onready var _armor_preview: ArmorVisualPreview = %ArmorPreview
+@onready var _preview_frame: LoadoutPreviewFrame = %PreviewFrame
 
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(64, 64)
 	text = ""
+	_clear_button_chrome()
 	mouse_entered.connect(_on_mouse_entered)
+	mouse_exited.connect(_on_mouse_exited)
 	pressed.connect(_on_pressed)
 	_refresh()
 
@@ -72,13 +78,19 @@ func _drop_data(_at_position: Vector2, data: Variant) -> void:
 
 
 func _refresh() -> void:
-	if _background == null or _icon_rect == null or _swatch == null or _price_label == null:
+	if _background == null or _icon_rect == null or _swatch == null or _price_label == null or _visual_preview == null or _armor_preview == null or _preview_frame == null:
 		return
 	if reward.is_empty():
 		_icon_rect.texture = null
 		_icon_rect.visible = false
 		_swatch.visible = false
 		_price_label.visible = false
+		_visual_preview.clear()
+		_visual_preview.visible = false
+		_armor_preview.clear()
+		_armor_preview.visible = false
+		_preview_frame.visible = false
+		_preview_frame.set_condition_color(Color8(35, 37, 42, 240) if is_saved_slot else Color8(32, 38, 44, 210), false)
 		var empty_color: Color = Color8(35, 37, 42, 240) if is_saved_slot else Color8(32, 38, 44, 210)
 		_apply_background_gradient(empty_color, 0.72 if is_saved_slot else 0.38)
 		tooltip_text = "Drop an item here to save it for the next round." if is_saved_slot else "Reward already claimed or saved."
@@ -89,20 +101,31 @@ func _refresh() -> void:
 	var condition_color: Color = Color8(139, 145, 154, 255)
 	_icon_rect.visible = false
 	_swatch.visible = false
+	_visual_preview.clear()
+	_visual_preview.visible = false
+	_armor_preview.clear()
+	_armor_preview.visible = false
+	_preview_frame.visible = true
 
 	if reward_type == RoundRewardInventory.REWARD_EXTENSION:
 		var extension_item: WeaponExtensionItem = item_variant as WeaponExtensionItem
 		if extension_item != null and extension_item.definition != null:
 			condition_color = extension_item.get_condition_color()
 			_swatch.color = extension_item.definition.icon_color
-			_swatch.visible = true
-			tooltip_text = _extension_tooltip(extension_item)
+			_visual_preview.visible = _visual_preview.set_extension(extension_item)
+			_swatch.visible = false
+			_preview_frame.visible = false
+			_preview_frame.set_condition_color(condition_color if _visual_preview.visible else extension_item.definition.icon_color)
+			tooltip_text = ""
 	elif reward_type == RoundRewardInventory.REWARD_ARMOR:
 		var armor_item: ArmorItemData = item_variant as ArmorItemData
 		if armor_item != null:
 			condition_color = armor_item.get_condition_color()
-			_icon_rect.texture = armor_item.icon if armor_item.icon != null else _create_icon_texture(condition_color)
-			_icon_rect.visible = true
+			_armor_preview.visible = _armor_preview.set_armor_item(armor_item)
+			_icon_rect.texture = _get_armor_fallback_texture(armor_item)
+			_icon_rect.visible = not _armor_preview.visible
+			_preview_frame.visible = true
+			_preview_frame.set_condition_color(condition_color)
 			tooltip_text = armor_item.get_hover_text()
 
 	_apply_background_gradient(condition_color, 0.82)
@@ -123,35 +146,12 @@ func _refresh_price(update_tooltip: bool) -> void:
 		Color8(255, 219, 92, 255) if can_afford else Color8(245, 105, 92, 255)
 	)
 	_price_label.visible = true
-	if update_tooltip:
+	if update_tooltip and not tooltip_text.is_empty():
 		tooltip_text += "\nPrice: %d coins" % price
 
 
-func _extension_tooltip(item: WeaponExtensionItem) -> String:
-	var lines: Array[String] = []
-	lines.append("%s | %s" % [item.get_display_name(), item.get_condition_tier_name()])
-	lines.append("%s | Condition: %d / 100" % [item.get_slot_display_name(), int(round(item.condition))])
-	if item.definition != null and not item.definition.description.is_empty():
-		lines.append(item.definition.description)
-	return "\n".join(lines)
-
-
 func _apply_background_gradient(base_color: Color, alpha: float) -> void:
-	var gradient: Gradient = Gradient.new()
-	gradient.offsets = PackedFloat32Array([0.0, 0.62, 1.0])
-	gradient.colors = PackedColorArray([
-		Color(base_color.r * 0.28, base_color.g * 0.28, base_color.b * 0.28, alpha),
-		Color(base_color.r, base_color.g, base_color.b, alpha),
-		Color(1.0, 1.0, 1.0, 0.18),
-	])
-	var texture: GradientTexture2D = GradientTexture2D.new()
-	texture.width = 64
-	texture.height = 64
-	texture.fill = GradientTexture2D.FILL_LINEAR
-	texture.fill_from = Vector2(0.0, 1.0)
-	texture.fill_to = Vector2(1.0, 0.0)
-	texture.gradient = gradient
-	_background.texture = texture
+	_background.texture = LoadoutPreviewFrame.create_condition_texture(64, 64, base_color, alpha, LoadoutPreviewFrame.DEFAULT_CORNER_RADIUS, _is_hovered)
 
 
 func _create_icon_texture(base_color: Color) -> Texture2D:
@@ -172,9 +172,29 @@ func _create_icon_texture(base_color: Color) -> Texture2D:
 	return texture
 
 
+func _get_armor_fallback_texture(armor_item: ArmorItemData) -> Texture2D:
+	if armor_item.icon != null:
+		return armor_item.icon
+	return _create_icon_texture(armor_item.get_condition_color())
+
+
+func _clear_button_chrome() -> void:
+	flat = true
+	var empty_style: StyleBoxEmpty = StyleBoxEmpty.new()
+	for style_name in [&"normal", &"hover", &"pressed", &"focus", &"disabled"]:
+		add_theme_stylebox_override(style_name, empty_style)
+
+
 func _on_mouse_entered() -> void:
-	if not reward.is_empty():
+	_is_hovered = true
+	_refresh()
+	if not reward.is_empty() and StringName(str(reward.get("type", ""))) != RoundRewardInventory.REWARD_EXTENSION:
 		reward_hovered.emit(reward)
+
+
+func _on_mouse_exited() -> void:
+	_is_hovered = false
+	_refresh()
 
 
 func _on_pressed() -> void:
