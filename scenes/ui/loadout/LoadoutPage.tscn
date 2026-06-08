@@ -303,7 +303,7 @@ size_flags_vertical = 3
 
 [node name="RewardVBox" type="VBoxContainer" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/RewardCenter"]
 layout_mode = 2
-theme_override_constants/separation = 20
+theme_override_constants/separation = 32
 
 [node name="SavedRow" type="HBoxContainer" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/RewardCenter/RewardVBox"]
 layout_mode = 2

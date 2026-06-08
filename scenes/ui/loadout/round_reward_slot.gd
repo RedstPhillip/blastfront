@@ -16,7 +16,7 @@ var reward: Dictionary = {}
 
 
 func _ready() -> void:
-	custom_minimum_size = Vector2(58, 58) if is_saved_slot else Vector2(64, 64)
+	custom_minimum_size = Vector2(64, 64)
 	text = ""
 	mouse_entered.connect(_on_mouse_entered)
 	pressed.connect(_on_pressed)
@@ -28,7 +28,7 @@ func setup(slot_source_kind: StringName, slot_index: int, saved_slot: bool) -> v
 	source_index = slot_index
 	is_saved_slot = saved_slot
 	if is_node_ready():
-		custom_minimum_size = Vector2(58, 58) if is_saved_slot else Vector2(64, 64)
+		custom_minimum_size = Vector2(64, 64)
 		_refresh()
 
 
@@ -72,8 +72,8 @@ func _refresh() -> void:
 		_icon_rect.texture = null
 		_icon_rect.visible = false
 		_swatch.visible = false
-		var empty_color: Color = Color8(68, 70, 76, 225) if is_saved_slot else Color8(32, 38, 44, 210)
-		_apply_background_gradient(empty_color, 0.58 if is_saved_slot else 0.38)
+		var empty_color: Color = Color8(35, 37, 42, 240) if is_saved_slot else Color8(32, 38, 44, 210)
+		_apply_background_gradient(empty_color, 0.72 if is_saved_slot else 0.38)
 		tooltip_text = "Drop an item here to save it for the next round." if is_saved_slot else "Reward already claimed or saved."
 		return
 
