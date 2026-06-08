@@ -48,6 +48,16 @@ func get_saved_reward(index: int) -> Dictionary:
 	return saved_rewards[index]
 
 
+func get_reward_price(source_kind: StringName, source_index: int) -> int:
+	var reward: Dictionary = _get_reward(source_kind, source_index)
+	return int(reward.get("price", 0))
+
+
+func can_afford_reward(source_kind: StringName, source_index: int) -> bool:
+	var price: int = get_reward_price(source_kind, source_index)
+	return price > 0 and OnlineMatch.get_local_coin_balance() >= price
+
+
 func move_to_saved(source_kind: StringName, source_index: int, target_index: int) -> bool:
 	if target_index < 0 or target_index >= saved_rewards.size():
 		return false
@@ -65,6 +75,9 @@ func move_to_saved(source_kind: StringName, source_index: int, target_index: int
 func claim_reward(source_kind: StringName, source_index: int) -> bool:
 	var reward: Dictionary = _get_reward(source_kind, source_index)
 	if reward.is_empty():
+		return false
+	var price: int = int(reward.get("price", 0))
+	if price <= 0 or not OnlineMatch.try_spend_local_coins(price):
 		return false
 
 	var reward_type: StringName = StringName(str(reward.get("type", "")))
@@ -106,6 +119,7 @@ func _create_extension_reward(definitions: Array[WeaponExtensionDefinition], ind
 	return {
 		"type": REWARD_EXTENSION,
 		"item": item,
+		"price": _calculate_price(REWARD_EXTENSION, item),
 	}
 
 
@@ -120,7 +134,46 @@ func _create_armor_reward(definitions: Array[ArmorItemData], index: int) -> Dict
 	return {
 		"type": REWARD_ARMOR,
 		"item": item,
+		"price": _calculate_price(REWARD_ARMOR, item),
 	}
+
+
+func _calculate_price(reward_type: StringName, item_variant: Variant) -> int:
+	var condition: float = 0.0
+	var power_bonus: int = 0
+	if reward_type == REWARD_EXTENSION:
+		var extension_item: WeaponExtensionItem = item_variant as WeaponExtensionItem
+		if extension_item != null and extension_item.definition != null:
+			condition = extension_item.condition
+			var tag_count: int = extension_item.definition.projectile_tags.size()
+			var effect_count: int = extension_item.definition.projectile_effects.size()
+			power_bonus = extension_item.definition.mark - 1 + tag_count + effect_count * 2
+	elif reward_type == REWARD_ARMOR:
+		var armor_item: ArmorItemData = item_variant as ArmorItemData
+		if armor_item != null:
+			condition = armor_item.condition
+			power_bonus = _armor_power_bonus(armor_item)
+
+	var condition_price: int = 8
+	if condition >= 90.0:
+		condition_price = 22
+	elif condition >= 75.0:
+		condition_price = 18
+	elif condition >= 55.0:
+		condition_price = 14
+	elif condition >= 35.0:
+		condition_price = 11
+	power_bonus = clampi(power_bonus, 0, 4)
+	return clampi(condition_price + power_bonus, GameSettings.SHOP_MIN_PRICE, GameSettings.SHOP_MAX_PRICE)
+
+
+func _armor_power_bonus(item: ArmorItemData) -> int:
+	var attributes: Dictionary = item.get_scaled_attributes()
+	var bonus: float = 0.0
+	bonus = maxf(bonus, absf(float(attributes.get(&"max_health", 0.0))) / 8.0)
+	bonus = maxf(bonus, absf(float(attributes.get(&"move_speed", 0.0))) / 12.0)
+	bonus = maxf(bonus, absf(float(attributes.get(&"block_strength", 0.0))) / 8.0)
+	return clampi(int(roundf(bonus)), 0, 4)
 
 
 func _get_reward(source_kind: StringName, source_index: int) -> Dictionary:

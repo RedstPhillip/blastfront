@@ -11,11 +11,15 @@ var intermission_ready: Dictionary = GameSettings.default_ready_state()
 var extension_loadouts: Dictionary = GameSettings.default_extension_loadouts()
 var set_kills: Dictionary = GameSettings.default_score()
 var match_points: Dictionary = GameSettings.default_score()
+var coin_balances: Dictionary = GameSettings.default_score()
+var last_set_earnings: Dictionary = {}
 var last_winner_slot: int = 0
 var final_winner_slot: int = 0
 var intermission_remaining: float = GameSettings.ONLINE_INTERMISSION_SECONDS
 var locker_countdown_remaining: float = -1.0
 
+var _current_set_stats: Dictionary = {}
+var _first_hit_recorded: bool = false
 var _kill_banner_remaining: float = 0.0
 var _phase_after_banner: StringName = GameSettings.MATCH_PHASE_PLAYING_SET
 var _last_countdown_second: int = -1
@@ -51,14 +55,23 @@ func _process(delta: float) -> void:
 			_broadcast_state()
 		if _both_ready(intermission_ready) or intermission_remaining <= 0.0:
 			start_next_set()
+	elif phase == GameSettings.MATCH_PHASE_PLAYING_SET:
+		_record_survival_time(delta)
 
 
 func enter_locker(reset_scores: bool = true) -> void:
 	if reset_scores:
 		_reset_match_scores()
+		_reset_match_economy()
 		var reward_inventory: Node = get_node_or_null("/root/RoundRewardInventory")
 		if reward_inventory != null and reward_inventory.has_method("reset_match"):
 			reward_inventory.call("reset_match")
+		var extension_inventory: Node = get_node_or_null("/root/ExtensionInventory")
+		if extension_inventory != null and extension_inventory.has_method("reset_match"):
+			extension_inventory.call("reset_match")
+		var armor_inventory: Node = get_node_or_null("/root/ArmorInventory")
+		if armor_inventory != null and armor_inventory.has_method("reset_match"):
+			armor_inventory.call("reset_match")
 	locker_ready = GameSettings.default_ready_state()
 	intermission_ready = GameSettings.default_ready_state()
 	extension_loadouts = GameSettings.default_extension_loadouts()
@@ -83,6 +96,7 @@ func start_next_set() -> void:
 	intermission_remaining = GameSettings.ONLINE_INTERMISSION_SECONDS
 	locker_countdown_remaining = -1.0
 	_last_locker_countdown_second = -1
+	_reset_current_set_stats()
 	_set_phase(GameSettings.MATCH_PHASE_PLAYING_SET, true)
 
 
@@ -99,6 +113,7 @@ func record_kill(winner_slot: int) -> void:
 	_kill_banner_remaining = GameSettings.ONLINE_KILL_BANNER_SECONDS
 
 	if int(set_kills.get(winner_slot, 0)) >= GameSettings.ONLINE_SET_KILLS_TO_WIN:
+		_award_set_coins()
 		match_points[winner_slot] = int(match_points.get(winner_slot, 0)) + 1
 		if int(match_points.get(winner_slot, 0)) >= GameSettings.ONLINE_MATCH_SET_WINS_TO_WIN:
 			final_winner_slot = winner_slot
@@ -109,6 +124,68 @@ func record_kill(winner_slot: int) -> void:
 		_phase_after_banner = GameSettings.MATCH_PHASE_PLAYING_SET
 
 	_set_phase(GameSettings.MATCH_PHASE_KILL_BANNER, true)
+
+
+func record_damage(source_slot: int, target_slot: int, amount: int) -> void:
+	if not _has_authority() or phase != GameSettings.MATCH_PHASE_PLAYING_SET:
+		return
+	if not _is_player_slot(source_slot) or not _is_player_slot(target_slot):
+		return
+	if source_slot == target_slot or amount <= 0:
+		return
+
+	var stats: Dictionary = _get_current_stats(source_slot)
+	stats["damage"] = int(stats.get("damage", 0)) + amount
+	if not _first_hit_recorded:
+		_first_hit_recorded = true
+		stats["first_hit"] = true
+	_current_set_stats[source_slot] = stats
+
+
+func record_block(blocking_slot: int, blocked_damage: int) -> void:
+	if not _has_authority() or phase != GameSettings.MATCH_PHASE_PLAYING_SET:
+		return
+	if not _is_player_slot(blocking_slot) or blocked_damage <= 0:
+		return
+
+	var stats: Dictionary = _get_current_stats(blocking_slot)
+	stats["blocked_damage"] = int(stats.get("blocked_damage", 0)) + blocked_damage
+	_current_set_stats[blocking_slot] = stats
+
+
+func get_coin_balance(slot: int) -> int:
+	return int(coin_balances.get(slot, 0))
+
+
+func get_local_coin_balance() -> int:
+	return get_coin_balance(NetworkSession.local_player_slot)
+
+
+func get_last_set_earnings(slot: int) -> Dictionary:
+	var earnings_variant: Variant = last_set_earnings.get(slot, {})
+	if earnings_variant is Dictionary:
+		var earnings: Dictionary = earnings_variant
+		return earnings.duplicate()
+	return {}
+
+
+func try_spend_local_coins(cost: int) -> bool:
+	var slot: int = NetworkSession.local_player_slot
+	if cost <= 0 or cost > GameSettings.SHOP_MAX_PRICE:
+		return false
+	if get_coin_balance(slot) < cost:
+		return false
+
+	coin_balances[slot] = get_coin_balance(slot) - cost
+	state_changed.emit()
+	if _has_authority():
+		_broadcast_state()
+	else:
+		_send_request(GameSettings.PACKET_ONLINE_COIN_SPEND, {
+			"slot": slot,
+			"cost": cost,
+		})
+	return true
 
 
 func set_local_color(color_id: StringName) -> void:
@@ -254,6 +331,8 @@ func build_state() -> Dictionary:
 		"intermission_ready": intermission_ready.duplicate(),
 		"set_kills": set_kills.duplicate(),
 		"match_points": match_points.duplicate(),
+		"coin_balances": coin_balances.duplicate(),
+		"last_set_earnings": last_set_earnings.duplicate(true),
 		"last_winner_slot": last_winner_slot,
 		"final_winner_slot": final_winner_slot,
 		"intermission_remaining": intermission_remaining,
@@ -264,6 +343,70 @@ func build_state() -> Dictionary:
 func _reset_match_scores() -> void:
 	set_kills = GameSettings.default_score()
 	match_points = GameSettings.default_score()
+
+
+func _reset_match_economy() -> void:
+	coin_balances = GameSettings.default_score()
+	last_set_earnings = {}
+	_reset_current_set_stats()
+
+
+func _reset_current_set_stats() -> void:
+	_current_set_stats = {}
+	for slot in GameSettings.player_slots():
+		_current_set_stats[slot] = {
+			"damage": 0,
+			"survival_seconds": 0.0,
+			"blocked_damage": 0,
+			"first_hit": false,
+		}
+	_first_hit_recorded = false
+
+
+func _get_current_stats(slot: int) -> Dictionary:
+	var stats_variant: Variant = _current_set_stats.get(slot, {})
+	if stats_variant is Dictionary:
+		var stats: Dictionary = stats_variant
+		return stats
+	return {}
+
+
+func _record_survival_time(delta: float) -> void:
+	for slot in GameSettings.player_slots():
+		var stats: Dictionary = _get_current_stats(slot)
+		stats["survival_seconds"] = float(stats.get("survival_seconds", 0.0)) + delta
+		_current_set_stats[slot] = stats
+
+
+func _award_set_coins() -> void:
+	last_set_earnings = {}
+	for slot in GameSettings.player_slots():
+		var stats: Dictionary = _get_current_stats(slot)
+		var damage: int = int(stats.get("damage", 0))
+		var survival_seconds: float = float(stats.get("survival_seconds", 0.0))
+		var blocked_damage: int = int(stats.get("blocked_damage", 0))
+		var first_hit: bool = stats.get("first_hit", false) == true
+		var damage_coins: int = int(damage / GameSettings.COIN_DAMAGE_STEP)
+		var survival_coins: int = int(floor(survival_seconds / GameSettings.COIN_SURVIVAL_STEP_SECONDS))
+		var block_steps: int = int(blocked_damage / GameSettings.COIN_BLOCK_DAMAGE_STEP)
+		var block_coins: int = block_steps * GameSettings.COIN_BLOCK_REWARD
+		var first_hit_coins: int = GameSettings.COIN_FIRST_HIT_REWARD if first_hit else 0
+		var uncapped_total: int = damage_coins + survival_coins + block_coins + first_hit_coins
+		var earned: int = mini(uncapped_total, GameSettings.COIN_SET_REWARD_CAP)
+		coin_balances[slot] = get_coin_balance(slot) + earned
+		last_set_earnings[slot] = {
+			"damage": damage,
+			"damage_coins": damage_coins,
+			"survival_seconds": int(floor(survival_seconds)),
+			"survival_coins": survival_coins,
+			"blocked_damage": blocked_damage,
+			"block_coins": block_coins,
+			"first_hit": first_hit,
+			"first_hit_coins": first_hit_coins,
+			"earned": earned,
+			"capped": uncapped_total > earned,
+			"balance": get_coin_balance(slot),
+		}
 
 
 func _process_locker_countdown(delta: float) -> void:
@@ -330,6 +473,8 @@ func _apply_state(state: Dictionary) -> void:
 	_apply_dictionary(state.get("intermission_ready", {}), intermission_ready, false)
 	_apply_dictionary(state.get("set_kills", {}), set_kills, false)
 	_apply_dictionary(state.get("match_points", {}), match_points, false)
+	_apply_dictionary(state.get("coin_balances", {}), coin_balances, false)
+	_apply_nested_dictionary(state.get("last_set_earnings", {}), last_set_earnings)
 
 	last_winner_slot = int(state.get("last_winner_slot", last_winner_slot))
 	final_winner_slot = int(state.get("final_winner_slot", final_winner_slot))
@@ -379,6 +524,21 @@ func _apply_extension_loadouts(source_variant: Variant) -> void:
 			extension_loadouts[slot] = loadout_data.duplicate(true)
 
 
+func _apply_nested_dictionary(source_variant: Variant, target: Dictionary) -> void:
+	target.clear()
+	if not (source_variant is Dictionary):
+		return
+	var source: Dictionary = source_variant
+	for raw_slot in source.keys():
+		var slot: int = int(raw_slot)
+		if not _is_player_slot(slot):
+			continue
+		var value_variant: Variant = source[raw_slot]
+		if value_variant is Dictionary:
+			var value: Dictionary = value_variant
+			target[slot] = value.duplicate(true)
+
+
 func _broadcast_state() -> void:
 	if not _has_authority():
 		return
@@ -423,6 +583,21 @@ func _on_packet_received(packet: Dictionary, _sender_id: int) -> void:
 		set_locker_ready(_slot_from_packet(packet), payload.get("ready", false) == true)
 	elif packet_type == GameSettings.PACKET_ONLINE_INTERMISSION_READY and _has_authority():
 		set_intermission_ready(_slot_from_packet(packet), payload.get("ready", false) == true)
+	elif packet_type == GameSettings.PACKET_ONLINE_COIN_SPEND and _has_authority():
+		_apply_coin_spend_request(_slot_from_packet(packet), int(payload.get("cost", 0)))
+
+
+func _apply_coin_spend_request(slot: int, cost: int) -> void:
+	if not _is_player_slot(slot):
+		return
+	if cost <= 0 or cost > GameSettings.SHOP_MAX_PRICE:
+		return
+	if get_coin_balance(slot) < cost:
+		_broadcast_state()
+		return
+	coin_balances[slot] = get_coin_balance(slot) - cost
+	_broadcast_state()
+	state_changed.emit()
 
 
 func _on_peer_changed() -> void:

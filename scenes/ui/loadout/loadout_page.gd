@@ -60,6 +60,7 @@ var _inspecting_item: bool = false
 @onready var _boots_slot: ArmorOverlaySlot = %BootsSlot
 @onready var _vest_slot: ArmorOverlaySlot = %VestSlot
 @onready var _shield_slot: ArmorOverlaySlot = %ShieldSlot
+@onready var _coin_balance_label: Label = %CoinBalanceLabel
 
 
 func _ready() -> void:
@@ -117,6 +118,8 @@ func _exit_tree() -> void:
 		ExtensionInventory.loadout_changed.disconnect(_on_extension_loadout_changed)
 	if RoundRewardInventory.rewards_changed.is_connected(_refresh_round_rewards):
 		RoundRewardInventory.rewards_changed.disconnect(_refresh_round_rewards)
+	if OnlineMatch.state_changed.is_connected(_refresh_shop_state):
+		OnlineMatch.state_changed.disconnect(_refresh_shop_state)
 
 
 func _setup_weapon_placeholders() -> void:
@@ -173,6 +176,8 @@ func _connect_inventory_signals() -> void:
 		ExtensionInventory.loadout_changed.connect(_on_extension_loadout_changed)
 	if not RoundRewardInventory.rewards_changed.is_connected(_refresh_round_rewards):
 		RoundRewardInventory.rewards_changed.connect(_refresh_round_rewards)
+	if not OnlineMatch.state_changed.is_connected(_refresh_shop_state):
+		OnlineMatch.state_changed.connect(_refresh_shop_state)
 
 
 func _refresh_weapon_inventory() -> void:
@@ -237,6 +242,15 @@ func _refresh_round_rewards() -> void:
 		_offer_reward_slots[offer_index].set_reward(RoundRewardInventory.get_offer(offer_index))
 	for saved_index in range(_saved_reward_slots.size()):
 		_saved_reward_slots[saved_index].set_reward(RoundRewardInventory.get_saved_reward(saved_index))
+	_refresh_shop_state()
+
+
+func _refresh_shop_state() -> void:
+	_coin_balance_label.text = "%d COINS" % OnlineMatch.get_local_coin_balance()
+	for offer_slot in _offer_reward_slots:
+		offer_slot.refresh_affordability()
+	for saved_slot in _saved_reward_slots:
+		saved_slot.refresh_affordability()
 
 
 func _show_default_description() -> void:
@@ -595,6 +609,8 @@ func _show_round_reward_description(reward: Dictionary) -> void:
 	elif reward_type == RoundRewardInventory.REWARD_ARMOR:
 		var armor_item: ArmorItemData = item_variant as ArmorItemData
 		_show_armor_description(armor_item)
+	var price: int = int(reward.get("price", 0))
+	_description_meta.text += "  |  %d COINS" % price
 
 
 func _on_armor_selected(item: ArmorItemData) -> void:
@@ -642,9 +658,18 @@ func _on_extension_loadout_changed(player_slot: int) -> void:
 
 
 func _on_round_reward_claimed(source_kind: StringName, source_index: int) -> void:
+	var price: int = RoundRewardInventory.get_reward_price(source_kind, source_index)
+	if not RoundRewardInventory.can_afford_reward(source_kind, source_index):
+		_description_title.text = "Not enough coins"
+		_description_meta.text = "SHOP  |  %d COINS REQUIRED" % price
+		_description_body.text = "Earn coins through damage, survival, blocking and the first hit of a set."
+		_set_description_condition(0.0, Color8(225, 82, 72, 255), false)
+		var current_modifiers: Dictionary = _get_current_weapon_modifiers()
+		_show_default_weapon_stats(current_modifiers)
+		return
 	if RoundRewardInventory.claim_reward(source_kind, source_index):
-		_description_title.text = "Item collected"
-		_description_meta.text = "INVENTORY UPDATED"
+		_description_title.text = "Item purchased"
+		_description_meta.text = "INVENTORY UPDATED  |  -%d COINS" % price
 		_description_body.text = "The item was added to your inventory and is ready to equip."
 		_set_description_condition(0.0, Color8(72, 190, 111, 255), false)
 		var current_modifiers: Dictionary = _get_current_weapon_modifiers()

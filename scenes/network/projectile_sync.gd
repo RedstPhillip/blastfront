@@ -231,6 +231,8 @@ func _on_projectile_despawn_requested(projectile: Node, reason: StringName, coll
 		return
 
 	var hit_player: Player = collider as Player
+	if hit_player != null and reason == &"blocked" and int(hit_player.player_slot) != int(projectile.get("owner_slot")):
+		OnlineMatch.record_block(int(hit_player.player_slot), int(projectile.get("damage")))
 	if hit_player != null and reason != &"blocked" and int(hit_player.player_slot) != int(projectile.get("owner_slot")):
 		var projectile_damage: int = int(projectile.get("damage"))
 		var projectile_position: Vector2 = hit_player.global_position

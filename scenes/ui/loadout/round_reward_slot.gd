@@ -13,6 +13,7 @@ var reward: Dictionary = {}
 @onready var _background: TextureRect = %Background
 @onready var _icon_rect: TextureRect = %IconRect
 @onready var _swatch: ColorRect = %Swatch
+@onready var _price_label: Label = %PriceLabel
 
 
 func _ready() -> void:
@@ -36,6 +37,11 @@ func set_reward(next_reward: Dictionary) -> void:
 	reward = next_reward
 	if is_node_ready():
 		_refresh()
+
+
+func refresh_affordability() -> void:
+	if is_node_ready():
+		_refresh_price(false)
 
 
 func _get_drag_data(_at_position: Vector2) -> Variant:
@@ -66,12 +72,13 @@ func _drop_data(_at_position: Vector2, data: Variant) -> void:
 
 
 func _refresh() -> void:
-	if _background == null or _icon_rect == null or _swatch == null:
+	if _background == null or _icon_rect == null or _swatch == null or _price_label == null:
 		return
 	if reward.is_empty():
 		_icon_rect.texture = null
 		_icon_rect.visible = false
 		_swatch.visible = false
+		_price_label.visible = false
 		var empty_color: Color = Color8(35, 37, 42, 240) if is_saved_slot else Color8(32, 38, 44, 210)
 		_apply_background_gradient(empty_color, 0.72 if is_saved_slot else 0.38)
 		tooltip_text = "Drop an item here to save it for the next round." if is_saved_slot else "Reward already claimed or saved."
@@ -99,6 +106,25 @@ func _refresh() -> void:
 			tooltip_text = armor_item.get_hover_text()
 
 	_apply_background_gradient(condition_color, 0.82)
+	_refresh_price(true)
+
+
+func _refresh_price(update_tooltip: bool) -> void:
+	if _price_label == null:
+		return
+	if reward.is_empty():
+		_price_label.visible = false
+		return
+	var price: int = int(reward.get("price", 0))
+	var can_afford: bool = OnlineMatch.get_local_coin_balance() >= price
+	_price_label.text = "%d C" % price
+	_price_label.add_theme_color_override(
+		"font_color",
+		Color8(255, 219, 92, 255) if can_afford else Color8(245, 105, 92, 255)
+	)
+	_price_label.visible = true
+	if update_tooltip:
+		tooltip_text += "\nPrice: %d coins" % price
 
 
 func _extension_tooltip(item: WeaponExtensionItem) -> String:

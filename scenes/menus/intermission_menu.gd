@@ -11,6 +11,17 @@ extends Control
 @onready var _left_page_button: Button = %LeftPageButton
 @onready var _right_page_button: Button = %RightPageButton
 @onready var _page_label: Label = %PageLabel
+@onready var _damage_earnings_label: Label = %DamageEarningsLabel
+@onready var _damage_coins_label: Label = %DamageCoinsLabel
+@onready var _survival_earnings_label: Label = %SurvivalEarningsLabel
+@onready var _survival_coins_label: Label = %SurvivalCoinsLabel
+@onready var _blocking_earnings_label: Label = %BlockingEarningsLabel
+@onready var _blocking_coins_label: Label = %BlockingCoinsLabel
+@onready var _first_hit_earnings_label: Label = %FirstHitEarningsLabel
+@onready var _first_hit_coins_label: Label = %FirstHitCoinsLabel
+@onready var _earned_total_label: Label = %EarnedTotalLabel
+@onready var _coin_balance_label: Label = %CoinBalanceLabel
+@onready var _reward_cap_label: Label = %RewardCapLabel
 
 var _local_slot: int = GameSettings.PLAYER_ONE_SLOT
 var _remote_slot: int = GameSettings.PLAYER_TWO_SLOT
@@ -85,6 +96,26 @@ func _refresh() -> void:
 	_remote_ready_label.text = "Friend: READY" if remote_ready else "Friend: not ready"
 	_ready_button.disabled = local_ready
 	_ready_button.text = "Ready" if not local_ready else "Ready locked"
+	_refresh_earnings()
+
+
+func _refresh_earnings() -> void:
+	var earnings: Dictionary = OnlineMatch.get_last_set_earnings(_local_slot)
+	var damage: int = int(earnings.get("damage", 0))
+	var survival_seconds: int = int(earnings.get("survival_seconds", 0))
+	var blocked_damage: int = int(earnings.get("blocked_damage", 0))
+	var first_hit: bool = earnings.get("first_hit", false) == true
+	_damage_earnings_label.text = "%d damage" % damage
+	_damage_coins_label.text = "+%d" % int(earnings.get("damage_coins", 0))
+	_survival_earnings_label.text = "%ds alive" % survival_seconds
+	_survival_coins_label.text = "+%d" % int(earnings.get("survival_coins", 0))
+	_blocking_earnings_label.text = "%d blocked" % blocked_damage
+	_blocking_coins_label.text = "+%d" % int(earnings.get("block_coins", 0))
+	_first_hit_earnings_label.text = "First hit" if first_hit else "No first hit"
+	_first_hit_coins_label.text = "+%d" % int(earnings.get("first_hit_coins", 0))
+	_earned_total_label.text = "EARNED  +%d" % int(earnings.get("earned", 0))
+	_coin_balance_label.text = "BALANCE  %d COINS" % OnlineMatch.get_local_coin_balance()
+	_reward_cap_label.visible = earnings.get("capped", false) == true
 
 
 func _set_loadout_visible(visible: bool) -> void:

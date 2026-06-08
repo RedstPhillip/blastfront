@@ -22,14 +22,17 @@ func apply_hit(target_slot: int, source_slot: int, projectile_id: int, damage: i
 	if player == null or player.health_component == null:
 		return
 
+	var old_health: int = player.health_component.health
 	player.health_component.damage(damage)
 	var health: int = player.health_component.health
+	var applied_damage: int = maxi(old_health - health, 0)
+	OnlineMatch.record_damage(source_slot, target_slot, applied_damage)
 
 	game_sync.send_reliable(GameSettings.PACKET_PLAYER_HIT, {
 		"target_slot": target_slot,
 		"source_slot": source_slot,
 		"projectile_id": projectile_id,
-		"damage": damage,
+		"damage": applied_damage,
 	}, GameSettings.NETWORK_CHANNEL_EVENTS)
 	game_sync.send_reliable(GameSettings.PACKET_HEALTH_CHANGED, {
 		"slot": target_slot,

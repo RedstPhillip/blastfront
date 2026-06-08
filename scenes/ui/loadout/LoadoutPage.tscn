@@ -307,8 +307,26 @@ theme_override_constants/margin_bottom = 12
 layout_mode = 2
 theme_override_constants/separation = 8
 
+[node name="ShopHeader" type="HBoxContainer" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox"]
+layout_mode = 2
+
+[node name="ShopTitle" type="Label" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/ShopHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.94, 0.98, 0.94, 1)
+theme_override_font_sizes/font_size = 18
+text = "ROUND SHOP"
+
+[node name="CoinBalanceLabel" type="Label" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/ShopHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.82, 0.28, 1)
+theme_override_font_sizes/font_size = 18
+text = "0 COINS"
+horizontal_alignment = 2
+
 [node name="InfoCard" type="PanelContainer" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox"]
-custom_minimum_size = Vector2(272, 272)
+custom_minimum_size = Vector2(272, 246)
 layout_mode = 2
 size_flags_vertical = 0
 clip_contents = true

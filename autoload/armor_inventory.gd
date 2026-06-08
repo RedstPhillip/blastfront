@@ -19,7 +19,14 @@ func reload_definitions() -> void:
 	inventory.clear()
 	definitions.clear()
 	_load_items_from_dir(ARMOR_ITEMS_DIR)
+	if not GameSettings.DEBUG_UNLOCK_ALL_ITEMS:
+		inventory.clear()
 	inventory_changed.emit()
+
+
+func reset_match() -> void:
+	loadout.clear()
+	reload_definitions()
 
 
 func equip_item(item: ArmorItemData) -> bool:

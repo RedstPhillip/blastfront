@@ -77,6 +77,16 @@ func add_item_for_player(player_slot: int, item: WeaponExtensionItem) -> bool:
 	return true
 
 
+func reset_match() -> void:
+	_inventory_by_player.clear()
+	_equipped_by_player.clear()
+	_ensure_player_state(GameSettings.PLAYER_ONE_SLOT)
+	_ensure_player_state(GameSettings.PLAYER_TWO_SLOT)
+	for player_slot in GameSettings.player_slots():
+		inventory_changed.emit(player_slot)
+		loadout_changed.emit(player_slot)
+
+
 func get_equipped_for_local() -> Dictionary:
 	return get_equipped_for_player(get_local_player_slot())
 
@@ -246,6 +256,8 @@ func _ensure_player_state(player_slot: int) -> void:
 
 func _build_demo_inventory() -> Array[WeaponExtensionItem]:
 	var result: Array[WeaponExtensionItem] = []
+	if not GameSettings.DEBUG_UNLOCK_ALL_ITEMS:
+		return result
 	for definition in get_all_definitions():
 		result.append(WeaponExtensionItem.create(definition, definition.default_condition))
 	return result
