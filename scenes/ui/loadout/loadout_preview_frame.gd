@@ -5,6 +5,8 @@ const EMPTY_COLOR: Color = Color8(58, 66, 74, 220)
 const DEFAULT_CORNER_RADIUS: int = 8
 const CONDITION_TEXTURE_SCALE: int = 4
 
+static var _condition_texture_cache: Dictionary = {}
+
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -40,6 +42,11 @@ func set_condition_color(base_color: Color, filled: bool = true) -> void:
 
 
 static func create_condition_texture(width: int, height: int, base_color: Color, alpha: float, corner_radius: int = DEFAULT_CORNER_RADIUS, highlighted: bool = false) -> Texture2D:
+	var cache_key: String = "%d:%d:%08x:%0.3f:%d:%s" % [width, height, base_color.to_rgba32(), alpha, corner_radius, str(highlighted)]
+	var cached_texture: Texture2D = _condition_texture_cache.get(cache_key, null) as Texture2D
+	if cached_texture != null:
+		return cached_texture
+
 	var texture_width: int = width * CONDITION_TEXTURE_SCALE
 	var texture_height: int = height * CONDITION_TEXTURE_SCALE
 	var scaled_radius: float = float(corner_radius * CONDITION_TEXTURE_SCALE)
@@ -92,7 +99,9 @@ static func create_condition_texture(width: int, height: int, base_color: Color,
 			if not inside_inner:
 				color = color.lerp(border_color, 0.94 if highlighted else 0.86)
 			image.set_pixel(x, y, color)
-	return ImageTexture.create_from_image(image)
+	var texture: Texture2D = ImageTexture.create_from_image(image)
+	_condition_texture_cache[cache_key] = texture
+	return texture
 
 
 static func _is_inside_rounded_rect(point: Vector2, rect_size: Vector2, radius: float) -> bool:

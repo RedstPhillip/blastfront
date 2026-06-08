@@ -117,14 +117,20 @@ func _get_fallback_texture(armor_item: ArmorItemData) -> Texture2D:
 
 func _on_mouse_entered() -> void:
 	_is_hovered = true
-	_refresh()
+	if item == null:
+		_apply_background_gradient(Color8(46, 54, 61, 210), 0.46)
+	else:
+		_apply_background_gradient(Color8(74, 78, 82, 230), 0.64)
 	if item != null:
 		armor_hovered.emit(item)
 
 
 func _on_mouse_exited() -> void:
 	_is_hovered = false
-	_refresh()
+	if item == null:
+		_apply_background_gradient(Color8(46, 54, 61, 210), 0.46)
+	else:
+		_apply_background_gradient(Color8(74, 78, 82, 230), 0.64)
 
 
 func _on_pressed() -> void:

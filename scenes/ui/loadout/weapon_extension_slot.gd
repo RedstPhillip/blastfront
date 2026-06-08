@@ -104,14 +104,18 @@ func _clear_button_chrome() -> void:
 
 func _on_mouse_entered() -> void:
 	_is_hovered = true
-	_refresh()
-	if item != null:
-		extension_hovered.emit(item)
+	if item == null or item.definition == null:
+		_apply_background_gradient(Color8(46, 54, 61, 210), 0.46)
+	else:
+		_apply_background_gradient(Color8(74, 78, 82, 230), 0.64)
 
 
 func _on_mouse_exited() -> void:
 	_is_hovered = false
-	_refresh()
+	if item == null or item.definition == null:
+		_apply_background_gradient(Color8(46, 54, 61, 210), 0.46)
+	else:
+		_apply_background_gradient(Color8(74, 78, 82, 230), 0.64)
 
 
 func _on_pressed() -> void:

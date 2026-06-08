@@ -76,14 +76,14 @@ func _clear_button_chrome() -> void:
 
 func _on_mouse_entered() -> void:
 	_is_hovered = true
-	_refresh()
-	if item != null:
-		extension_hovered.emit(item)
+	if item != null and item.definition != null:
+		_apply_background_gradient(item.get_condition_color())
 
 
 func _on_mouse_exited() -> void:
 	_is_hovered = false
-	_refresh()
+	if item != null and item.definition != null:
+		_apply_background_gradient(item.get_condition_color())
 
 
 func _on_pressed() -> void:

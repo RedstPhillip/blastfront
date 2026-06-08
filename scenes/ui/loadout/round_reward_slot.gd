@@ -187,16 +187,34 @@ func _clear_button_chrome() -> void:
 
 func _on_mouse_entered() -> void:
 	_is_hovered = true
-	_refresh()
-	if not reward.is_empty():
+	_refresh_background_only()
+	if not reward.is_empty() and StringName(str(reward.get("type", ""))) != RoundRewardInventory.REWARD_EXTENSION:
 		reward_hovered.emit(reward)
 
 
 func _on_mouse_exited() -> void:
 	_is_hovered = false
-	_refresh()
+	_refresh_background_only()
 
 
 func _on_pressed() -> void:
 	if not reward.is_empty():
 		reward_claimed.emit(source_kind, source_index)
+
+
+func _refresh_background_only() -> void:
+	if reward.is_empty():
+		var empty_color: Color = Color8(35, 37, 42, 240) if is_saved_slot else Color8(32, 38, 44, 210)
+		_apply_background_gradient(empty_color, 0.72 if is_saved_slot else 0.38)
+		return
+
+	var reward_type: StringName = StringName(str(reward.get("type", "")))
+	var item_variant: Variant = reward.get("item", null)
+	if reward_type == RoundRewardInventory.REWARD_EXTENSION:
+		var extension_item: WeaponExtensionItem = item_variant as WeaponExtensionItem
+		_apply_background_gradient(extension_item.get_condition_color() if extension_item != null else Color8(139, 145, 154, 255), 0.82)
+	elif reward_type == RoundRewardInventory.REWARD_ARMOR:
+		var armor_item: ArmorItemData = item_variant as ArmorItemData
+		_apply_background_gradient(armor_item.get_condition_color() if armor_item != null else Color8(139, 145, 154, 255), 0.82)
+	else:
+		_apply_background_gradient(Color8(139, 145, 154, 255), 0.82)
