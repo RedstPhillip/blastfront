@@ -21,6 +21,7 @@ var _is_hovered: bool = false
 
 
 func _ready() -> void:
+	_clear_button_chrome()
 	mouse_entered.connect(_on_mouse_entered)
 	mouse_exited.connect(_on_mouse_exited)
 	pressed.connect(_on_pressed)
@@ -107,6 +108,13 @@ func _get_fallback_texture(armor_item: ArmorItemData) -> Texture2D:
 	if armor_item.icon != null:
 		return armor_item.icon
 	return null
+
+
+func _clear_button_chrome() -> void:
+	flat = true
+	var empty_style: StyleBoxEmpty = StyleBoxEmpty.new()
+	for style_name in [&"normal", &"hover", &"pressed", &"focus", &"disabled"]:
+		add_theme_stylebox_override(style_name, empty_style)
 
 
 func _on_mouse_entered() -> void:

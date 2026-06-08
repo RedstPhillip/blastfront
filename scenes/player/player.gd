@@ -780,7 +780,7 @@ func _apply_player_palette() -> void:
 	if _arm_renderer != null:
 		_arm_renderer.col_arm = limb_color
 	if _glove != null:
-		_glove.modulate = limb_color
+		_glove.self_modulate = limb_color
 	_update_body_sprite_direction()
 
 

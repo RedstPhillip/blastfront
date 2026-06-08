@@ -2,7 +2,6 @@
 
 [ext_resource type="Texture2D" uid="uid://bufb1umvbprtf" path="res://assets/Player/blue_ball.png" id="1_4flbx"]
 [ext_resource type="Script" uid="uid://b7k42ms07y2wq" path="res://scenes/player/player.gd" id="1_onrkg"]
-[ext_resource type="Texture2D" uid="uid://vwqwpnsggbu3" path="res://assets/hands/block/shield.png" id="2_e47rc"]
 [ext_resource type="Script" uid="uid://8hfnbsqidpdh" path="res://scenes/player/leg_renderer.gd" id="3_gmlin"]
 [ext_resource type="PackedScene" uid="uid://dhc5lavdjobne" path="res://scenes/hands/gun/gun.tscn" id="4_lvxji"]
 [ext_resource type="Script" uid="uid://cuvffbg0gxhcr" path="res://scenes/hands/hands_renderer.gd" id="5_u0tt0"]
@@ -52,8 +51,6 @@ script = ExtResource("5_u0tt0")
 
 [node name="Glove" type="Sprite2D" parent="ArmRenderer" unique_id=745453030]
 z_index = 1
-scale = Vector2(0.18, 0.18)
-texture = ExtResource("2_e47rc")
 
 [node name="RayL" type="RayCast2D" parent="." unique_id=1267503647]
 position = Vector2(-12, 8)

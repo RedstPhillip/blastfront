@@ -18,6 +18,8 @@ extends Node2D
 var _p: CharacterBody2D
 var _gun: Node2D
 var _glove: Sprite2D
+var _shield_visual_root: Node2D
+var _shield_visual_instance: Node = null
 
 var _gun_shoulder: Vector2 = Vector2.ZERO
 var _gun_hand: Vector2 = Vector2.ZERO
@@ -37,6 +39,7 @@ func _ready() -> void:
 	if _p != null:
 		_gun = _p.get_node_or_null("Gun") as Node2D
 	_glove = get_node_or_null("Glove") as Sprite2D
+	_shield_visual_root = get_node_or_null("Glove/ShieldVisualRoot") as Node2D
 
 	var mat := CanvasItemMaterial.new()
 	mat.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
@@ -46,6 +49,29 @@ func _ready() -> void:
 		var glove_mat := CanvasItemMaterial.new()
 		glove_mat.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
 		_glove.material = glove_mat
+
+
+func set_shield_visual_scene(visual_scene: PackedScene) -> void:
+	_clear_shield_visual()
+	if _glove == null:
+		return
+	if _shield_visual_root == null:
+		_shield_visual_root = Node2D.new()
+		_shield_visual_root.name = "ShieldVisualRoot"
+		_glove.add_child(_shield_visual_root)
+	if visual_scene == null:
+		_glove.texture = null
+		return
+
+	_glove.texture = null
+	_shield_visual_instance = visual_scene.instantiate()
+	_shield_visual_root.add_child(_shield_visual_instance)
+
+
+func clear_shield_visual_scene() -> void:
+	_clear_shield_visual()
+	if _glove != null:
+		_glove.texture = null
 
 
 func _process(delta: float) -> void:
@@ -122,6 +148,15 @@ func _update_glove() -> void:
 	_glove.position = _guard_hand
 	var body_to_guard := _guard_hand - to_local(_p.global_position)
 	_glove.rotation = body_to_guard.angle() + deg_to_rad(glove_rotation_offset_degrees)
+	if _shield_visual_root != null:
+		_shield_visual_root.scale = Vector2.ONE
+		_shield_visual_root.rotation = PI if _guard_hand.x < 0.0 else 0.0
+
+
+func _clear_shield_visual() -> void:
+	if _shield_visual_instance != null and is_instance_valid(_shield_visual_instance):
+		_shield_visual_instance.queue_free()
+	_shield_visual_instance = null
 
 
 func _clamp_to_reach(shoulder: Vector2, hand: Vector2, max_dist: float) -> Vector2:

@@ -7,11 +7,13 @@ class_name ArmorVisualRoot
 
 var _equipped_boots: ArmorItemData = null
 var _leg_renderer: Node = null
+var _arm_renderer: Node = null
 const BOOT_FLOOR_OFFSET: Vector2 = Vector2(0.0, -2.0)
 
 
 func _ready() -> void:
 	_leg_renderer = get_parent().get_node_or_null("LegRenderer")
+	_arm_renderer = get_parent().get_node_or_null("ArmRenderer")
 	_boots_anchor.position = Vector2.ZERO
 
 
@@ -25,7 +27,7 @@ func apply_loadout(loadout: ArmorLoadout) -> void:
 		return
 	_apply_boots(loadout.get_equipped_item(ArmorItemData.CATEGORY_BOOTS))
 	_apply_item_to_anchor(_vest_anchor, loadout.get_equipped_item(ArmorItemData.CATEGORY_VEST))
-	_apply_item_to_anchor(_shield_anchor, loadout.get_equipped_item(ArmorItemData.CATEGORY_SHIELD))
+	_apply_shield(loadout.get_equipped_item(ArmorItemData.CATEGORY_SHIELD))
 
 
 func apply_item(item: ArmorItemData) -> void:
@@ -34,6 +36,8 @@ func apply_item(item: ArmorItemData) -> void:
 	var anchor: Node2D = _get_anchor(item.category)
 	if item.category == ArmorItemData.CATEGORY_BOOTS:
 		_apply_boots(item)
+	elif item.category == ArmorItemData.CATEGORY_SHIELD:
+		_apply_shield(item)
 	elif anchor != null:
 		_apply_item_to_anchor(anchor, item)
 
@@ -43,6 +47,7 @@ func clear_all() -> void:
 	_clear_anchor(_boots_anchor)
 	_clear_anchor(_vest_anchor)
 	_clear_anchor(_shield_anchor)
+	_clear_hand_shield()
 
 
 func _get_anchor(category_id: StringName) -> Node2D:
@@ -136,6 +141,21 @@ func _update_boot_positions() -> void:
 
 	left_boot.position = foot_positions[0] + BOOT_FLOOR_OFFSET
 	right_boot.position = foot_positions[1] + BOOT_FLOOR_OFFSET
+
+
+func _apply_shield(item: ArmorItemData) -> void:
+	_clear_anchor(_shield_anchor)
+	if _arm_renderer == null:
+		return
+	if item != null and item.visual_scene != null and _arm_renderer.has_method("set_shield_visual_scene"):
+		_arm_renderer.call("set_shield_visual_scene", item.visual_scene)
+	else:
+		_clear_hand_shield()
+
+
+func _clear_hand_shield() -> void:
+	if _arm_renderer != null and _arm_renderer.has_method("clear_shield_visual_scene"):
+		_arm_renderer.call("clear_shield_visual_scene")
 
 
 func _clear_anchor(anchor: Node2D) -> void:
