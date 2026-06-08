@@ -134,14 +134,14 @@ func _ready() -> void:
 		health_component.health_changed.connect(_on_health_changed)
 	if not health_component.health_depleted.is_connected(_on_health_depleted):
 		health_component.health_depleted.connect(_on_health_depleted)
-	if not ArmorInventory.loadout_changed.is_connected(_on_armor_loadout_changed):
-		ArmorInventory.loadout_changed.connect(_on_armor_loadout_changed)
+	if not ArmorInventory.player_loadout_changed.is_connected(_on_armor_loadout_changed):
+		ArmorInventory.player_loadout_changed.connect(_on_armor_loadout_changed)
 	_refresh_armor_visuals()
 
 
 func _exit_tree() -> void:
-	if ArmorInventory.loadout_changed.is_connected(_on_armor_loadout_changed):
-		ArmorInventory.loadout_changed.disconnect(_on_armor_loadout_changed)
+	if ArmorInventory.player_loadout_changed.is_connected(_on_armor_loadout_changed):
+		ArmorInventory.player_loadout_changed.disconnect(_on_armor_loadout_changed)
 
 
 func _process(delta: float) -> void:
@@ -212,17 +212,18 @@ func set_player_color(color_id: StringName) -> void:
 	_apply_player_palette()
 
 
-func _on_armor_loadout_changed() -> void:
-	_refresh_armor_visuals()
+func _on_armor_loadout_changed(changed_player_slot: int = 0) -> void:
+	if changed_player_slot == 0 or changed_player_slot == player_slot:
+		_refresh_armor_visuals()
 
 
 func _refresh_armor_visuals() -> void:
 	if _armor_visual_root == null:
 		return
-	if control_mode == GameSettings.CONTROL_LOCAL:
-		_armor_visual_root.apply_loadout(ArmorInventory.loadout)
+	if ArmorInventory.has_method("get_loadout_for_player"):
+		_armor_visual_root.apply_loadout(ArmorInventory.get_loadout_for_player(player_slot))
 	else:
-		_armor_visual_root.clear_all()
+		_armor_visual_root.apply_loadout(ArmorInventory.loadout)
 
 
 func get_visual_tint() -> Color:

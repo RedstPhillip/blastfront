@@ -122,7 +122,7 @@ position = Vector2(1140, 350)
 material = SubResource("ShaderMaterial_23d8d")
 position = Vector2(484, 24)
 scale = Vector2(1, 0.9677419)
-polygon = PackedVector2Array(64, 720, 64, 536, 144, 536, 192, 560, 504, 560, 560, 608, 560, 719.2001)
+polygon = PackedVector2Array(64, 720, 64, 537.3334, 144, 537.3334, 192, 562.1334, 504, 562.1334, 560, 611.7334, 560, 719.2001)
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="StaticBody2D" unique_id=1211360383]
 position = Vector2(484, 8)

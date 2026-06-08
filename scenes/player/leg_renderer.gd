@@ -14,6 +14,8 @@ extends Node2D
 var _p: Player
 var _knee_dir_smoothed: float = 1.0
 var _last_knee_source_dir: float = 0.0
+var _rendered_foot_l: Vector2 = Vector2.ZERO
+var _rendered_foot_r: Vector2 = Vector2.ZERO
 
 func _ready() -> void:
 	_p = get_parent() as Player
@@ -27,6 +29,24 @@ func _process(_delta: float) -> void:
 func _draw() -> void:
 	if _p == null:
 		return
+
+	var points: Dictionary = get_rendered_leg_points()
+	_draw_leg(points["hip_l"] as Vector2, points["foot_l"] as Vector2, _knee_dir_smoothed)
+	_draw_leg(points["hip_r"] as Vector2, points["foot_r"] as Vector2, _knee_dir_smoothed)
+
+
+func get_rendered_foot_positions() -> Array[Vector2]:
+	return [_rendered_foot_l, _rendered_foot_r]
+
+
+func get_rendered_leg_points() -> Dictionary:
+	if _p == null:
+		return {
+			"hip_l": Vector2.ZERO,
+			"hip_r": Vector2.ZERO,
+			"foot_l": _rendered_foot_l,
+			"foot_r": _rendered_foot_r,
+		}
 
 	var hip_y: float = _p.hip_y_offset - GameSettings.LEG_HIP_OFFSET
 	var spread: float = _p.foot_spread
@@ -69,9 +89,15 @@ func _draw() -> void:
 	var max_reach: float = upper_len + lower_len - GameSettings.LIMB_REACH_MARGIN
 	foot_l = _clamp_to_reach(hip_l, foot_l, max_reach)
 	foot_r = _clamp_to_reach(hip_r, foot_r, max_reach)
+	_rendered_foot_l = foot_l
+	_rendered_foot_r = foot_r
 
-	_draw_leg(hip_l, foot_l, _knee_dir_smoothed)
-	_draw_leg(hip_r, foot_r, _knee_dir_smoothed)
+	return {
+		"hip_l": hip_l,
+		"hip_r": hip_r,
+		"foot_l": foot_l,
+		"foot_r": foot_r,
+	}
 
 func _clamp_to_reach(hip: Vector2, foot: Vector2, max_dist: float) -> Vector2:
 	var v := foot - hip

@@ -95,6 +95,7 @@ const PACKET_WORLD_SNAPSHOT: StringName = &"world_snapshot"
 const PACKET_ONLINE_MATCH_STATE: StringName = &"online_match_state"
 const PACKET_ONLINE_PLAYER_COLOR: StringName = &"online_player_color"
 const PACKET_ONLINE_EXTENSION_LOADOUT: StringName = &"online_extension_loadout"
+const PACKET_ONLINE_ARMOR_LOADOUT: StringName = &"online_armor_loadout"
 const PACKET_ONLINE_LOCKER_READY: StringName = &"online_locker_ready"
 const PACKET_ONLINE_INTERMISSION_READY: StringName = &"online_intermission_ready"
 const PACKET_ONLINE_LOCKER_PLAYER_STATE: StringName = &"online_locker_player_state"
@@ -340,6 +341,13 @@ static func default_player_colors() -> Dictionary:
 
 
 static func default_extension_loadouts() -> Dictionary:
+	return {
+		PLAYER_ONE_SLOT: {},
+		PLAYER_TWO_SLOT: {},
+	}
+
+
+static func default_armor_loadouts() -> Dictionary:
 	return {
 		PLAYER_ONE_SLOT: {},
 		PLAYER_TWO_SLOT: {},

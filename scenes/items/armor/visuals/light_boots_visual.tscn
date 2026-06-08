@@ -1,32 +1,33 @@
 [gd_scene format=3]
 
-[node name="LightBootsVisual" type="Node2D"]
+[node name="LightBootVisual" type="Node2D"]
+scale = Vector2(0.48, 0.48)
 
-[node name="OuterShell" type="Polygon2D" parent="."]
-color = Color(0.42, 0.45, 0.34, 0.9)
-polygon = PackedVector2Array(0, -18, 7, -16, 13, -12, 17, -6, 18, 0, 17, 6, 13, 12, 7, 16, 0, 18, -7, 16, -13, 12, -17, 6, -18, 0, -17, -6, -13, -12, -7, -16)
+[node name="BackSole" type="Polygon2D" parent="."]
+color = Color(0.06, 0.08, 0.07, 1)
+polygon = PackedVector2Array(-13, 3, 10, 3, 18, 9, 13, 17, -9, 17, -17, 10)
 
-[node name="Dome" type="Polygon2D" parent="."]
-color = Color(0.28, 0.31, 0.24, 1)
-polygon = PackedVector2Array(-14, -4, -12, -10, -7, -14, 0, -16, 7, -14, 12, -10, 14, -4, 10, 0, 3, 1, -4, 1, -11, 0)
+[node name="UpperBack" type="Polygon2D" parent="."]
+color = Color(0.07, 0.09, 0.08, 1)
+polygon = PackedVector2Array(-9, -18, 5, -18, 12, -10, 11, 6, 4, 13, -9, 12, -14, 4, -13, -10)
 
-[node name="Visor" type="Polygon2D" parent="."]
-color = Color(0.05, 0.08, 0.08, 0.96)
-polygon = PackedVector2Array(-14, -2, 14, -2, 12, 4, 5, 6, -5, 6, -12, 4)
+[node name="UpperPlate" type="Polygon2D" parent="."]
+color = Color(0.31, 0.34, 0.27, 1)
+polygon = PackedVector2Array(-8, -15, 4, -15, 9, -9, 8, 4, 3, 9, -7, 9, -11, 3, -10, -9)
 
-[node name="LowerBand" type="Polygon2D" parent="."]
-color = Color(0.18, 0.22, 0.2, 1)
-polygon = PackedVector2Array(-13, 5, -6, 8, 6, 8, 13, 5, 10, 12, 4, 15, -4, 15, -10, 12)
+[node name="ToeCap" type="Polygon2D" parent="."]
+color = Color(0.19, 0.22, 0.19, 1)
+polygon = PackedVector2Array(-12, 3, 9, 3, 16, 9, 12, 15, -8, 15, -15, 9)
 
-[node name="BootTreadLeft" type="Polygon2D" parent="."]
-color = Color(0.08, 0.1, 0.09, 1)
-polygon = PackedVector2Array(-10, 10, -4, 10, -4, 14, -12, 14)
+[node name="ShinStripe" type="Polygon2D" parent="."]
+color = Color(0.56, 0.61, 0.42, 0.72)
+polygon = PackedVector2Array(-8, -8, 8, -8, 8, -4, -9, -3)
 
-[node name="BootTreadRight" type="Polygon2D" parent="."]
-color = Color(0.08, 0.1, 0.09, 1)
-polygon = PackedVector2Array(4, 10, 10, 10, 12, 14, 4, 14)
+[node name="Accent" type="Polygon2D" parent="."]
+color = Color(0.35, 0.77, 0.63, 1)
+polygon = PackedVector2Array(-5, -1, 3, -1, 3, 3, -5, 3)
 
 [node name="RimLight" type="Line2D" parent="."]
-points = PackedVector2Array(-12, -9, -6, -14, 0, -16, 7, -14, 12, -9)
-width = 1.4
-default_color = Color(0.72, 0.76, 0.62, 0.55)
+points = PackedVector2Array(-8, -14, 4, -15, 9, -9, 8, 4, 3, 9, -7, 9, -11, 3)
+width = 1.2
+default_color = Color(0.75, 0.78, 0.62, 0.48)

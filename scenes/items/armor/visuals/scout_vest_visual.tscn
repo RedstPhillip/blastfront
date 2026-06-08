@@ -2,39 +2,44 @@
 
 [node name="ScoutVestVisual" type="Node2D"]
 
-[node name="OuterShell" type="Polygon2D" parent="."]
-color = Color(0.43, 0.46, 0.35, 0.92)
-polygon = PackedVector2Array(0, -18, 7, -16, 13, -12, 17, -6, 18, 0, 17, 6, 13, 12, 7, 16, 0, 18, -7, 16, -13, 12, -17, 6, -18, 0, -17, -6, -13, -12, -7, -16)
+[node name="BackPlate" type="Polygon2D" parent="."]
+color = Color(0.07, 0.09, 0.08, 1)
+polygon = PackedVector2Array(-16, -16, -6, -20, 0, -15, 6, -20, 16, -16, 21, -2, 17, 17, 6, 22, -6, 22, -17, 17, -21, -2)
 
-[node name="HelmetTop" type="Polygon2D" parent="."]
-color = Color(0.31, 0.34, 0.27, 1)
-polygon = PackedVector2Array(-14, -4, -12, -11, -7, -15, 0, -17, 7, -15, 12, -11, 14, -4, 9, -1, 1, 0, -8, -1)
+[node name="TorsoShell" type="Polygon2D" parent="."]
+color = Color(0.33, 0.36, 0.28, 1)
+polygon = PackedVector2Array(-14, -14, -6, -17, 0, -11, 6, -17, 14, -14, 18, -2, 14, 14, 5, 19, -5, 19, -14, 14, -18, -2)
 
-[node name="VisorSlot" type="Polygon2D" parent="."]
-color = Color(0.04, 0.07, 0.07, 0.98)
-polygon = PackedVector2Array(-13, -2, 13, -2, 11, 4, 4, 5, -4, 5, -11, 4)
+[node name="LeftPanel" type="Polygon2D" parent="."]
+color = Color(0.22, 0.26, 0.23, 1)
+polygon = PackedVector2Array(-13, -8, -3, -8, -3, 15, -9, 17, -14, 12, -16, -2)
 
-[node name="SideGuardLeft" type="Polygon2D" parent="."]
-color = Color(0.24, 0.27, 0.22, 1)
-polygon = PackedVector2Array(-17, -1, -13, 0, -12, 8, -16, 10, -18, 5)
+[node name="RightPanel" type="Polygon2D" parent="."]
+color = Color(0.22, 0.26, 0.23, 1)
+polygon = PackedVector2Array(3, -8, 13, -8, 16, -2, 14, 12, 9, 17, 3, 15)
 
-[node name="SideGuardRight" type="Polygon2D" parent="."]
-color = Color(0.24, 0.27, 0.22, 1)
-polygon = PackedVector2Array(13, 0, 17, -1, 18, 5, 16, 10, 12, 8)
+[node name="CenterPlate" type="Polygon2D" parent="."]
+color = Color(0.13, 0.16, 0.15, 1)
+polygon = PackedVector2Array(-5, -10, 5, -10, 9, 3, 5, 16, -5, 16, -9, 3)
 
-[node name="ChestPlate" type="Polygon2D" parent="."]
-color = Color(0.20, 0.24, 0.21, 1)
-polygon = PackedVector2Array(-10, 5, -4, 9, 4, 9, 10, 5, 8, 13, 3, 16, -3, 16, -8, 13)
+[node name="NeckCut" type="Polygon2D" parent="."]
+color = Color(0.04, 0.06, 0.06, 1)
+polygon = PackedVector2Array(-6, -17, 0, -11, 6, -17, 3, -7, -3, -7)
 
-[node name="CenterLatch" type="Polygon2D" parent="."]
+[node name="Belt" type="Polygon2D" parent="."]
 color = Color(0.08, 0.1, 0.09, 1)
-polygon = PackedVector2Array(-4, 10, 4, 10, 4, 15, -4, 15)
+polygon = PackedVector2Array(-12, 11, 12, 11, 10, 17, -10, 17)
 
-[node name="TopMount" type="Polygon2D" parent="."]
-color = Color(0.19, 0.22, 0.19, 1)
-polygon = PackedVector2Array(-4, -18, 4, -18, 4, -14, -4, -14)
+[node name="Buckle" type="Polygon2D" parent="."]
+color = Color(0.39, 0.81, 0.65, 1)
+polygon = PackedVector2Array(-3, 4, 3, 4, 3, 11, -3, 11)
 
-[node name="RimLight" type="Line2D" parent="."]
-points = PackedVector2Array(-11, -10, -5, -15, 0, -17, 6, -15, 11, -10)
+[node name="ShoulderLight" type="Line2D" parent="."]
+points = PackedVector2Array(-13, -13, -6, -16, 0, -10, 6, -16, 13, -13)
 width = 1.4
-default_color = Color(0.75, 0.78, 0.62, 0.5)
+default_color = Color(0.76, 0.79, 0.62, 0.52)
+
+[node name="PanelLight" type="Line2D" parent="."]
+points = PackedVector2Array(-9, -5, -8, 9, -4, 14, 4, 14, 8, 9, 9, -5)
+width = 1.2
+default_color = Color(0.58, 0.62, 0.46, 0.45)
