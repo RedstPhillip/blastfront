@@ -71,7 +71,11 @@ func _refresh_online_score() -> void:
 	if OnlineMatch.phase == GameSettings.MATCH_PHASE_KILL_BANNER:
 		_show_winner_banner(OnlineMatch.last_winner_slot)
 	elif OnlineMatch.phase == GameSettings.MATCH_PHASE_FINAL:
-		_show_winner_banner(OnlineMatch.final_winner_slot)
+		_show_victory_screen(
+			OnlineMatch.final_winner_slot,
+			OnlineMatch.get_player_color(OnlineMatch.final_winner_slot),
+			OnlineMatch.get_player_color_name(OnlineMatch.final_winner_slot).to_upper()
+		)
 	else:
 		_banner_panel.hide()
 
@@ -93,6 +97,13 @@ func _refresh_offline_score() -> void:
 		GameSettings.player_color_value(GameSettings.ONLINE_DEFAULT_LOCAL_COLOR),
 		GameSettings.player_color_value(GameSettings.ONLINE_DEFAULT_REMOTE_COLOR)
 	)
+
+	if _game != null and _game.has_method("is_match_over") and _game.call("is_match_over") == true:
+		var winner_slot: int = int(_game.call("get_winner_slot")) if _game.has_method("get_winner_slot") else 0
+		var winner_color: Color = GameSettings.player_color_value(
+			GameSettings.ONLINE_DEFAULT_REMOTE_COLOR if winner_slot == GameSettings.PLAYER_TWO_SLOT else GameSettings.ONLINE_DEFAULT_LOCAL_COLOR
+		)
+		_show_victory_screen(winner_slot, winner_color, "PLAYER %d" % winner_slot)
 
 
 func _apply_scoreboard(
@@ -140,11 +151,29 @@ func _show_winner_banner(winner_slot: int) -> void:
 		_banner_panel.hide()
 		return
 
+	_banner_panel.custom_minimum_size = Vector2(520, 140)
+	_banner_label.add_theme_font_size_override("font_size", 64)
 	var winner_name: String = OnlineMatch.get_player_color_name(winner_slot).to_upper()
 	_banner_label.text = "%s WINS" % winner_name
 	_banner_label.add_theme_color_override("font_color", OnlineMatch.get_player_color(winner_slot).lightened(0.12))
 	if not _banner_panel.visible or _last_banner_text != _banner_label.text:
 		_play_banner_animation()
+	_last_banner_text = _banner_label.text
+	_banner_panel.show()
+
+
+func _show_victory_screen(winner_slot: int, winner_color: Color, winner_name: String) -> void:
+	if winner_slot == 0:
+		_banner_panel.hide()
+		return
+
+	_banner_panel.custom_minimum_size = Vector2(720, 260)
+	_banner_label.add_theme_font_size_override("font_size", 76)
+	_banner_label.text = "VICTORY\n%s WINS" % winner_name
+	_banner_label.add_theme_color_override("font_color", winner_color.lightened(0.12))
+	if not _banner_panel.visible or _last_banner_text != _banner_label.text:
+		_play_banner_animation()
+		GameJuice.play_sound(&"spawn", -2.0, 0.02)
 	_last_banner_text = _banner_label.text
 	_banner_panel.show()
 

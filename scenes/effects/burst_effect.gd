@@ -10,6 +10,7 @@ var _direction: Vector2 = Vector2.UP
 var _tint: Color = Color.WHITE
 var _life: float = 0.45
 var _flash_tween: Tween = null
+var _shape_nodes: Array[Node] = []
 
 
 func configure(kind: StringName, direction: Vector2, tint: Color = Color.WHITE) -> void:
@@ -46,6 +47,20 @@ func _apply_settings() -> void:
 			_configure_particles(10, 0.24, _direction, 60.0, 140.0, 54.0, Color(0.86, 0.28, 0.08, 0.66), 0.35, 0.80)
 			_configure_specks(6, 0.20, _direction, 50.0, 130.0, 60.0, Color(0.14, 0.10, 0.06, 0.52), 0.18, 0.45)
 			_play_flash_ring(Color(0.88, 0.36, 0.12, 0.42), 2.0, 9.0, 0.12, 2.5, 0.26)
+		&"block":
+			_configure_particles(18, 0.22, _direction, 95.0, 220.0, 120.0, Color(0.72, 0.96, 1.0, 0.78), 0.28, 0.88)
+			_configure_specks(12, 0.18, _direction, 70.0, 180.0, 160.0, Color(1.0, 1.0, 1.0, 0.72), 0.18, 0.52)
+			_play_flash_ring(Color(0.72, 0.96, 1.0, 0.72), 2.8, 16.0, 0.14, 4.2, 0.42)
+		&"freeze":
+			_configure_particles(9, 0.24, _direction, 26.0, 88.0, 180.0, Color(_tint.r, _tint.g, _tint.b, 0.58), 0.22, 0.62)
+			_configure_specks(10, 0.28, Vector2.UP, 18.0, 72.0, 180.0, Color(0.82, 0.96, 1.0, 0.66), 0.16, 0.42)
+			_play_flash_ring(Color(0.42, 0.82, 1.0, 0.38), 1.4, 9.0, 0.18, 2.4, 0.22)
+			_spawn_iceflakes(5)
+		&"shock":
+			_configure_particles(13, 0.18, _direction, 70.0, 190.0, 180.0, Color(_tint.r, _tint.g, _tint.b, 0.72), 0.16, 0.48)
+			_configure_specks(14, 0.16, -_direction, 80.0, 220.0, 180.0, Color(1.0, 0.98, 0.62, 0.78), 0.12, 0.35)
+			_play_flash_ring(Color(1.0, 0.92, 0.22, 0.58), 1.2, 11.0, 0.10, 2.8, 0.38)
+			_spawn_electric_arcs(5)
 		&"spawn":
 			var spawn_color: Color = _tint.lerp(Color(0.60, 0.90, 1.0, 1.0), 0.42)
 			_configure_particles(18, 0.42, Vector2.UP, 48.0, 168.0, 180.0, Color(spawn_color.r, spawn_color.g, spawn_color.b, 0.58), 0.62, 1.85)
@@ -105,6 +120,10 @@ func _reset_flash_nodes() -> void:
 		_ring.visible = false
 		_ring.modulate = Color.WHITE
 		_ring.scale = Vector2.ONE
+	for shape_node in _shape_nodes:
+		if shape_node != null and is_instance_valid(shape_node):
+			shape_node.queue_free()
+	_shape_nodes.clear()
 
 
 func _play_flash_ring(color: Color, start_radius: float, end_radius: float, duration: float, core_radius: float, core_alpha: float) -> void:
@@ -125,3 +144,86 @@ func _play_flash_ring(color: Color, start_radius: float, end_radius: float, dura
 	_flash_tween.tween_property(_ring, "modulate:a", 0.0, duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	_flash_tween.tween_property(_core_flash, "scale", Vector2.ONE * core_radius * 1.55, duration * 0.72).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	_flash_tween.tween_property(_core_flash, "modulate:a", 0.0, duration * 0.72).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+
+func _spawn_iceflakes(count: int) -> void:
+	var flake_count: int = maxi(1, int(roundf(float(count) * GameJuice.particles_multiplier)))
+	for flake_index in range(flake_count):
+		var flake: Node2D = Node2D.new()
+		flake.z_index = 5
+		flake.position = Vector2(randf_range(-16.0, 16.0), randf_range(-18.0, 12.0))
+		flake.rotation = randf_range(0.0, TAU)
+		flake.scale = Vector2.ONE * randf_range(0.75, 1.35)
+		flake.modulate = Color(0.76, 0.94, 1.0, 0.92)
+		add_child(flake)
+		_shape_nodes.append(flake)
+
+		var radius: float = randf_range(4.0, 7.5)
+		for arm_index in range(3):
+			var arm: Line2D = Line2D.new()
+			arm.width = 1.15
+			arm.default_color = Color(0.78, 0.96, 1.0, 0.86)
+			arm.antialiased = true
+			arm.rotation = float(arm_index) * TAU / 3.0
+			arm.points = PackedVector2Array([Vector2(-radius, 0.0), Vector2(radius, 0.0)])
+			flake.add_child(arm)
+
+			for side in [-1.0, 1.0]:
+				var branch: Line2D = Line2D.new()
+				branch.width = 0.9
+				branch.default_color = Color(0.86, 0.98, 1.0, 0.74)
+				branch.antialiased = true
+				branch.rotation = arm.rotation + side * 0.72
+				branch.position = Vector2(side * radius * 0.42, 0.0).rotated(arm.rotation)
+				branch.points = PackedVector2Array([Vector2.ZERO, Vector2(side * radius * 0.28, 0.0)])
+				flake.add_child(branch)
+
+		var tween: Tween = create_tween()
+		tween.set_parallel(true)
+		tween.tween_property(flake, "position", flake.position + Vector2(randf_range(-8.0, 8.0), randf_range(-22.0, -8.0)), 0.42).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tween.tween_property(flake, "rotation", flake.rotation + randf_range(-1.4, 1.4), 0.42).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tween.tween_property(flake, "modulate:a", 0.0, 0.42).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+
+
+func _spawn_electric_arcs(count: int) -> void:
+	var arc_count: int = maxi(1, int(roundf(float(count) * GameJuice.particles_multiplier)))
+	for arc_index in range(arc_count):
+		var arc: Line2D = Line2D.new()
+		arc.z_index = 6
+		arc.width = randf_range(1.5, 2.4)
+		arc.default_color = Color(1.0, 0.94, 0.22, 0.94)
+		arc.antialiased = true
+		arc.points = _build_electric_arc_points(randf_range(15.0, 25.0), randi_range(4, 6))
+		arc.rotation = randf_range(0.0, TAU)
+		arc.position = Vector2(randf_range(-6.0, 6.0), randf_range(-10.0, 10.0))
+		add_child(arc)
+		_shape_nodes.append(arc)
+
+		var glow: Line2D = arc.duplicate() as Line2D
+		if glow != null:
+			glow.z_index = 5
+			glow.width = arc.width + 2.6
+			glow.default_color = Color(0.55, 0.95, 1.0, 0.32)
+			add_child(glow)
+			_shape_nodes.append(glow)
+
+		var tween: Tween = create_tween()
+		tween.set_parallel(true)
+		tween.tween_property(arc, "scale", Vector2.ONE * randf_range(1.18, 1.55), 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tween.tween_property(arc, "modulate:a", 0.0, 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		if glow != null:
+			tween.tween_property(glow, "scale", Vector2.ONE * randf_range(1.18, 1.55), 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+			tween.tween_property(glow, "modulate:a", 0.0, 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+
+
+func _build_electric_arc_points(length: float, segment_count: int) -> PackedVector2Array:
+	var points: PackedVector2Array = PackedVector2Array()
+	var half_length: float = length * 0.5
+	for point_index in range(segment_count + 1):
+		var ratio: float = float(point_index) / float(segment_count)
+		var x: float = lerpf(-half_length, half_length, ratio)
+		var y: float = randf_range(-5.0, 5.0)
+		if point_index == 0 or point_index == segment_count:
+			y = 0.0
+		points.append(Vector2(x, y))
+	return points

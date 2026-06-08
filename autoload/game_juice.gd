@@ -7,6 +7,7 @@ const SOUND_PATHS: Dictionary = {
 	&"shoot": "res://assets/audio/gun_shot.mp3",
 	&"hit": "res://assets/audio/hit.wav",
 	&"impact": "res://assets/audio/impact.wav",
+	&"block": "res://assets/audio/block.wav",
 	&"jump": "res://assets/audio/jump.wav",
 	&"land": "res://assets/audio/land.wav",
 	&"step": "res://assets/audio/step.wav",

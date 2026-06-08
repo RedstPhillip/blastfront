@@ -244,7 +244,7 @@ func _spawn_projectile(net_id: int, owner_slot: int, spawn_position: Vector2, di
 	projectile.set("initial_velocity", projectile_data.get("initial_velocity", direction * muzzle_speed))
 
 	if not authority:
-		projectile.set("collision_mask", GameSettings.PROJECTILE_REMOTE_COLLISION_MASK)
+		projectile.set("collision_mask", _remote_projectile_collision_mask(projectile_data))
 
 	if net_id != 0:
 		_projectiles[net_id] = projectile
@@ -254,6 +254,15 @@ func _spawn_projectile(net_id: int, owner_slot: int, spawn_position: Vector2, di
 
 	game.spawn_projectile(projectile, spawn_position)
 	return projectile
+
+
+func _remote_projectile_collision_mask(projectile_data: Dictionary) -> int:
+	var tags_variant: Variant = projectile_data.get("extension_tags", [])
+	if tags_variant is Array:
+		var tags: Array = tags_variant
+		if tags.has("bouncy"):
+			return 1
+	return GameSettings.PROJECTILE_REMOTE_COLLISION_MASK
 
 
 func _on_projectile_despawn_requested(projectile: Node, reason: StringName, collider, net_id: int) -> void:

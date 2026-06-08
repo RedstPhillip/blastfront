@@ -332,6 +332,20 @@ func get_score_for_slot(slot: int) -> int:
 	return int(_offline_score.get(slot, 0))
 
 
+func is_match_over() -> bool:
+	return _offline_match_over
+
+
+func get_winner_slot() -> int:
+	if not _offline_match_over:
+		return 0
+	if int(_offline_score.get(GameSettings.PLAYER_ONE_SLOT, 0)) >= GameSettings.MATCH_WINS_NEEDED:
+		return GameSettings.PLAYER_ONE_SLOT
+	if int(_offline_score.get(GameSettings.PLAYER_TWO_SLOT, 0)) >= GameSettings.MATCH_WINS_NEEDED:
+		return GameSettings.PLAYER_TWO_SLOT
+	return 0
+
+
 func get_projectiles_root() -> Node2D:
 	return _projectiles
 
@@ -455,6 +469,8 @@ func _on_offline_health_depleted(slot: int) -> void:
 
 	if _offline_score[source_slot] >= GameSettings.MATCH_WINS_NEEDED:
 		_offline_match_over = true
+		_clear_projectiles()
+		_set_player_controls_enabled(false)
 		return
 
 	_heal_and_respawn_after_delay()
@@ -492,7 +508,10 @@ func _get_player_by_slot(slot: int) -> Player:
 func _on_online_phase_changed(next_phase: StringName) -> void:
 	if next_phase == GameSettings.MATCH_PHASE_PLAYING_SET:
 		_prepare_online_round()
-	elif next_phase == GameSettings.MATCH_PHASE_KILL_BANNER or next_phase == GameSettings.MATCH_PHASE_FINAL:
+	elif next_phase == GameSettings.MATCH_PHASE_KILL_BANNER:
+		_set_player_controls_enabled(false)
+	elif next_phase == GameSettings.MATCH_PHASE_FINAL:
+		_clear_projectiles()
 		_set_player_controls_enabled(false)
 
 

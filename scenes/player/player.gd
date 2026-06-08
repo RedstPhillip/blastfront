@@ -97,6 +97,8 @@ var _block_timer: float = 0.0
 var _block_cooldown_timer: float = 0.0
 var _block_direction: Vector2 = Vector2.LEFT
 var _stun_timer: float = 0.0
+var _status_fx_timer: float = 0.0
+var _status_fx_phase: float = 0.0
 
 var status_effect_manager: StatusEffectManager
 
@@ -130,6 +132,7 @@ func _ready() -> void:
 	status_effect_manager = StatusEffectManager.new()
 	status_effect_manager.name = "StatusEffectManager"
 	add_child(status_effect_manager)
+	status_effect_manager.effect_added.connect(_on_status_effect_added)
 	if not health_component.health_changed.is_connected(_on_health_changed):
 		health_component.health_changed.connect(_on_health_changed)
 	if not health_component.health_depleted.is_connected(_on_health_depleted):
@@ -149,6 +152,7 @@ func _process(delta: float) -> void:
 		return
 	_update_block_timers(delta)
 	_stun_timer = maxf(_stun_timer - delta, 0.0)
+	_update_status_effect_feedback(delta)
 	_update_feedback_visuals(delta)
 
 
@@ -394,8 +398,8 @@ func is_blocking_projectile(projectile_position: Vector2, projectile_velocity: V
 
 func apply_block_feedback(projectile_position: Vector2) -> void:
 	var block_direction: Vector2 = get_block_direction()
-	GameJuice.spawn_burst(&"impact", projectile_position, block_direction, Color(1.0, 1.0, 1.0, 0.86))
-	GameJuice.play_sound_2d(&"impact", projectile_position, -4.0, 0.045)
+	GameJuice.spawn_burst(&"block", projectile_position, block_direction, Color(0.72, 0.96, 1.0, 0.92))
+	GameJuice.play_sound_2d(&"block", projectile_position, -2.0, 0.055)
 	GameJuice.shake(GameSettings.PLAYER_BLOCK_FEEDBACK_SHAKE_STRENGTH, GameSettings.PLAYER_BLOCK_FEEDBACK_SHAKE_TIME)
 
 
@@ -664,6 +668,38 @@ func apply_hit_feedback(source_position: Vector2, damage: int = GameSettings.PRO
 
 func apply_stun(duration: float) -> void:
 	_stun_timer = maxf(_stun_timer, duration)
+	_spawn_status_feedback(&"shock", global_position, Vector2.UP)
+
+
+func _on_status_effect_added(effect_name: StringName) -> void:
+	_spawn_status_feedback(effect_name, global_position, Vector2.UP)
+
+
+func _update_status_effect_feedback(delta: float) -> void:
+	if status_effect_manager == null or status_effect_manager.get_active_count() <= 0:
+		_status_fx_timer = 0.0
+		return
+
+	_status_fx_phase += delta * 11.0
+	_status_fx_timer -= delta
+	if _status_fx_timer > 0.0:
+		return
+
+	_status_fx_timer = 0.16
+	var active_names: Array[StringName] = status_effect_manager.get_active_effect_names()
+	for effect_name in active_names:
+		var offset: Vector2 = Vector2(cos(_status_fx_phase), sin(_status_fx_phase * 1.37)) * 18.0
+		_spawn_status_feedback(effect_name, global_position + offset, offset.normalized())
+
+
+func _spawn_status_feedback(effect_name: StringName, world_position: Vector2, direction: Vector2) -> void:
+	match effect_name:
+		&"freeze":
+			GameJuice.spawn_burst(&"freeze", world_position, direction, Color(0.35, 0.78, 1.0, 0.86))
+		&"shock":
+			GameJuice.spawn_burst(&"shock", world_position, direction, Color(1.0, 0.9, 0.22, 0.9))
+		&"poison":
+			GameJuice.spawn_burst(&"hit", world_position, direction, Color(0.42, 1.0, 0.42, 0.72))
 
 
 func _update_movement_timers(delta: float) -> void:

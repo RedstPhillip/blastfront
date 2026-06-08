@@ -53,7 +53,7 @@ func _setup_laser_sight() -> void:
 func _update_laser_sight() -> void:
 	if _laser_sight == null:
 		return
-	if not _has_laser_scope or _muzzle == null:
+	if not _can_show_laser_sight():
 		_laser_sight.hide()
 		return
 	_laser_sight.show()
@@ -117,6 +117,16 @@ func _build_laser_trajectory() -> PackedVector2Array:
 				points.append(local_position)
 			break
 	return points
+
+
+func _can_show_laser_sight() -> bool:
+	if not _has_laser_scope or _muzzle == null or _player == null:
+		return false
+	if _player.control_mode != GameSettings.CONTROL_LOCAL:
+		return false
+	if NetworkSession.is_steam_match_active() and int(_player.player_slot) != NetworkSession.local_player_slot:
+		return false
+	return true
 
 
 func _reset_ammo() -> void:
@@ -388,7 +398,7 @@ func _refresh_extension_loadout() -> void:
 
 	_has_laser_scope = _get_source_extensions().has("laser_scope_mk1")
 	if _laser_sight != null:
-		_laser_sight.visible = _has_laser_scope
+		_laser_sight.visible = _can_show_laser_sight()
 
 	_reset_ammo()
 
