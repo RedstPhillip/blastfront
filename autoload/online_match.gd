@@ -10,6 +10,7 @@ var locker_ready: Dictionary = GameSettings.default_ready_state()
 var intermission_ready: Dictionary = GameSettings.default_ready_state()
 var extension_loadouts: Dictionary = GameSettings.default_extension_loadouts()
 var armor_loadouts: Dictionary = GameSettings.default_armor_loadouts()
+var research_profiles: Dictionary = {}
 var set_kills: Dictionary = GameSettings.default_score()
 var match_points: Dictionary = GameSettings.default_score()
 var coin_balances: Dictionary = GameSettings.default_score()
@@ -79,6 +80,7 @@ func enter_locker(reset_scores: bool = true) -> void:
 	intermission_ready = GameSettings.default_ready_state()
 	extension_loadouts = GameSettings.default_extension_loadouts()
 	armor_loadouts = GameSettings.default_armor_loadouts()
+	research_profiles = {}
 	last_winner_slot = 0
 	final_winner_slot = 0
 	_kill_banner_remaining = 0.0
@@ -87,6 +89,7 @@ func enter_locker(reset_scores: bool = true) -> void:
 	locker_countdown_remaining = -1.0
 	_last_locker_countdown_second = -1
 	_set_phase(GameSettings.MATCH_PHASE_LOCKER, true)
+	call_deferred("_request_local_research_profile")
 
 
 func start_next_set() -> void:
@@ -198,6 +201,22 @@ func try_spend_local_coins(cost: int) -> bool:
 	return true
 
 
+func add_local_coins(amount: int) -> bool:
+	var slot: int = NetworkSession.local_player_slot
+	if amount <= 0 or amount > GameSettings.SHOP_MAX_PRICE:
+		return false
+	coin_balances[slot] = get_coin_balance(slot) + amount
+	state_changed.emit()
+	if _has_authority():
+		_broadcast_state()
+	else:
+		_send_request(GameSettings.PACKET_ONLINE_COIN_ADD, {
+			"slot": slot,
+			"amount": amount,
+		})
+	return true
+
+
 func set_local_color(color_id: StringName) -> void:
 	set_player_color(NetworkSession.local_player_slot, color_id)
 
@@ -288,6 +307,31 @@ func get_armor_loadout(slot: int) -> Dictionary:
 	return {}
 
 
+func set_local_research_profile(profile: Dictionary) -> void:
+	set_research_profile(NetworkSession.local_player_slot, profile)
+
+
+func set_research_profile(slot: int, profile: Dictionary) -> void:
+	if not _is_player_slot(slot):
+		return
+	var profile_copy: Dictionary = profile.duplicate(true)
+	research_profiles[slot] = profile_copy
+	_apply_research_profiles_to_manager()
+	if _has_authority():
+		_broadcast_state()
+		state_changed.emit()
+	else:
+		state_changed.emit()
+		_send_request(GameSettings.PACKET_ONLINE_RESEARCH_PROFILE, {
+			"slot": slot,
+			"profile": profile_copy,
+		})
+
+
+func get_research_profiles() -> Dictionary:
+	return research_profiles.duplicate(true)
+
+
 func set_local_locker_ready(is_ready: bool) -> void:
 	set_locker_ready(NetworkSession.local_player_slot, is_ready)
 
@@ -372,6 +416,7 @@ func build_state() -> Dictionary:
 		"player_colors": player_colors.duplicate(),
 		"extension_loadouts": extension_loadouts.duplicate(true),
 		"armor_loadouts": armor_loadouts.duplicate(true),
+		"research_profiles": research_profiles.duplicate(true),
 		"locker_ready": locker_ready.duplicate(),
 		"intermission_ready": intermission_ready.duplicate(),
 		"set_kills": set_kills.duplicate(),
@@ -437,7 +482,10 @@ func _award_set_coins() -> void:
 		var block_coins: int = block_steps * GameSettings.COIN_BLOCK_REWARD
 		var first_hit_coins: int = GameSettings.COIN_FIRST_HIT_REWARD if first_hit else 0
 		var uncapped_total: int = damage_coins + survival_coins + block_coins + first_hit_coins
-		var earned: int = mini(uncapped_total, GameSettings.COIN_SET_REWARD_CAP)
+		var base_earned: int = mini(uncapped_total, GameSettings.COIN_SET_REWARD_CAP)
+		var coin_multiplier: float = ResearchManager.get_coin_multiplier(slot)
+		var earned: int = int(roundf(float(base_earned) * coin_multiplier))
+		var interest_bonus: int = earned - base_earned
 		coin_balances[slot] = get_coin_balance(slot) + earned
 		last_set_earnings[slot] = {
 			"damage": damage,
@@ -449,7 +497,9 @@ func _award_set_coins() -> void:
 			"first_hit": first_hit,
 			"first_hit_coins": first_hit_coins,
 			"earned": earned,
-			"capped": uncapped_total > earned,
+			"base_earned": base_earned,
+			"interest_bonus": interest_bonus,
+			"capped": uncapped_total > base_earned,
 			"balance": get_coin_balance(slot),
 		}
 
@@ -528,6 +578,7 @@ func _apply_state(state: Dictionary) -> void:
 	_apply_dictionary(state.get("player_colors", {}), player_colors, true)
 	_apply_extension_loadouts(state.get("extension_loadouts", {}))
 	_apply_armor_loadouts(state.get("armor_loadouts", {}))
+	_apply_research_profiles(state.get("research_profiles", {}))
 	_apply_dictionary(state.get("locker_ready", {}), locker_ready, false)
 	_apply_dictionary(state.get("intermission_ready", {}), intermission_ready, false)
 	_apply_dictionary(state.get("set_kills", {}), set_kills, false)
@@ -600,6 +651,37 @@ func _apply_armor_loadouts(source_variant: Variant) -> void:
 			armor_loadouts[slot] = loadout_data.duplicate(true)
 
 
+func _apply_research_profiles(source_variant: Variant) -> void:
+	research_profiles.clear()
+	if source_variant is Dictionary:
+		var source: Dictionary = source_variant
+		for raw_slot in source.keys():
+			var slot: int = int(raw_slot)
+			if not _is_player_slot(slot):
+				continue
+			var profile_variant: Variant = source[raw_slot]
+			if profile_variant is Dictionary:
+				var profile: Dictionary = profile_variant
+				research_profiles[slot] = profile.duplicate(true)
+	_apply_research_profiles_to_manager()
+
+
+func _apply_research_profiles_to_manager() -> void:
+	var research_manager: Node = get_node_or_null("/root/ResearchManager")
+	if research_manager != null and research_manager.has_method("apply_online_profiles"):
+		research_manager.call("apply_online_profiles", research_profiles)
+
+
+func _request_local_research_profile() -> void:
+	var research_manager: Node = get_node_or_null("/root/ResearchManager")
+	if research_manager == null or not research_manager.has_method("get_local_profile"):
+		return
+	var profile_variant: Variant = research_manager.call("get_local_profile")
+	if profile_variant is Dictionary:
+		var profile: Dictionary = profile_variant
+		set_local_research_profile(profile)
+
+
 func _apply_nested_dictionary(source_variant: Variant, target: Dictionary) -> void:
 	target.clear()
 	if not (source_variant is Dictionary):
@@ -666,6 +748,13 @@ func _on_packet_received(packet: Dictionary, _sender_id: int) -> void:
 		set_intermission_ready(_slot_from_packet(packet), payload.get("ready", false) == true)
 	elif packet_type == GameSettings.PACKET_ONLINE_COIN_SPEND and _has_authority():
 		_apply_coin_spend_request(_slot_from_packet(packet), int(payload.get("cost", 0)))
+	elif packet_type == GameSettings.PACKET_ONLINE_RESEARCH_PROFILE and _has_authority():
+		var profile_variant: Variant = payload.get("profile", {})
+		if profile_variant is Dictionary:
+			var profile: Dictionary = profile_variant
+			set_research_profile(_slot_from_packet(packet), profile)
+	elif packet_type == GameSettings.PACKET_ONLINE_COIN_ADD and _has_authority():
+		_apply_coin_add_request(_slot_from_packet(packet), int(payload.get("amount", 0)))
 
 
 func _apply_coin_spend_request(slot: int, cost: int) -> void:
@@ -677,6 +766,16 @@ func _apply_coin_spend_request(slot: int, cost: int) -> void:
 		_broadcast_state()
 		return
 	coin_balances[slot] = get_coin_balance(slot) - cost
+	_broadcast_state()
+	state_changed.emit()
+
+
+func _apply_coin_add_request(slot: int, amount: int) -> void:
+	if not _is_player_slot(slot):
+		return
+	if amount <= 0 or amount > GameSettings.SHOP_MAX_PRICE:
+		return
+	coin_balances[slot] = get_coin_balance(slot) + amount
 	_broadcast_state()
 	state_changed.emit()
 

@@ -8,6 +8,7 @@ extends Control
 @onready var _ready_button: Button = %ReadyButton
 @onready var _status_page: Control = %StatusPage
 @onready var _loadout_page: Control = %LoadoutPage
+@onready var _research_page: Control = %ResearchPage
 @onready var _left_page_button: Button = %LeftPageButton
 @onready var _right_page_button: Button = %RightPageButton
 @onready var _page_label: Label = %PageLabel
@@ -25,7 +26,7 @@ extends Control
 
 var _local_slot: int = GameSettings.PLAYER_ONE_SLOT
 var _remote_slot: int = GameSettings.PLAYER_TWO_SLOT
-var _showing_loadout: bool = false
+var _page_index: int = 0
 
 
 func _ready() -> void:
@@ -40,7 +41,7 @@ func _ready() -> void:
 	GameJuice.attach_button_feedback(self)
 	OnlineMatch.state_changed.connect(_refresh)
 	OnlineMatch.countdown_changed.connect(_on_countdown_changed)
-	_set_loadout_visible(false)
+	_set_page(0)
 	_refresh()
 
 
@@ -58,12 +59,16 @@ func _on_ready_pressed() -> void:
 
 func _input(event: InputEvent) -> void:
 	if _is_page_left_event(event):
-		_set_loadout_visible(true)
-		get_viewport().set_input_as_handled()
-	elif _is_page_right_event(event):
-		if _showing_loadout:
-			_set_loadout_visible(false)
+		if _page_index > -1:
+			_set_page(_page_index - 1)
 			get_viewport().set_input_as_handled()
+	elif _is_page_right_event(event):
+		if _page_index < 1:
+			_set_page(_page_index + 1)
+			get_viewport().set_input_as_handled()
+	elif _is_page_cancel_event(event) and _page_index != 0:
+		_set_page(0)
+		get_viewport().set_input_as_handled()
 
 
 func _on_countdown_changed(_seconds_left: int) -> void:
@@ -71,11 +76,11 @@ func _on_countdown_changed(_seconds_left: int) -> void:
 
 
 func _on_previous_page_pressed() -> void:
-	_set_loadout_visible(true)
+	_set_page(_page_index - 1)
 
 
 func _on_next_page_pressed() -> void:
-	_set_loadout_visible(false)
+	_set_page(_page_index + 1)
 
 
 func _refresh() -> void:
@@ -118,13 +123,20 @@ func _refresh_earnings() -> void:
 	_reward_cap_label.visible = earnings.get("capped", false) == true
 
 
-func _set_loadout_visible(visible: bool) -> void:
-	_showing_loadout = visible
-	_status_page.visible = not visible
-	_loadout_page.visible = visible
-	_left_page_button.visible = not visible
-	_right_page_button.visible = visible
-	_page_label.text = "LOADOUT" if visible else "READY"
+func _set_page(next_page: int) -> void:
+	_page_index = clampi(next_page, -1, 1)
+	_loadout_page.visible = _page_index == -1
+	_status_page.visible = _page_index == 0
+	_research_page.visible = _page_index == 1
+	_left_page_button.visible = _page_index > -1
+	_right_page_button.visible = _page_index < 1
+	match _page_index:
+		-1:
+			_page_label.text = "LOADOUT"
+		1:
+			_page_label.text = "RESEARCH"
+		_:
+			_page_label.text = "READY"
 
 
 func _is_page_left_event(event: InputEvent) -> bool:
@@ -135,9 +147,16 @@ func _is_page_left_event(event: InputEvent) -> bool:
 
 
 func _is_page_right_event(event: InputEvent) -> bool:
-	if event.is_action_pressed(&"ui_right") or event.is_action_pressed(&"ui_cancel"):
+	if event.is_action_pressed(&"ui_right"):
 		return true
 	var key_event: InputEventKey = event as InputEventKey
 	if key_event == null or not key_event.pressed or key_event.echo:
 		return false
-	return key_event.keycode == KEY_RIGHT or key_event.keycode == KEY_ESCAPE
+	return key_event.keycode == KEY_RIGHT
+
+
+func _is_page_cancel_event(event: InputEvent) -> bool:
+	if event.is_action_pressed(&"ui_cancel"):
+		return true
+	var key_event: InputEventKey = event as InputEventKey
+	return key_event != null and key_event.pressed and not key_event.echo and key_event.keycode == KEY_ESCAPE

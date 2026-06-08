@@ -1,0 +1,188 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/research/research_page.gd" id="1_page"]
+[ext_resource type="Script" path="res://scenes/ui/research/research_connection_layer.gd" id="2_connections"]
+
+[sub_resource type="StyleBoxFlat" id="Style_panel"]
+bg_color = Color(0.035, 0.043, 0.055, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.2, 0.27, 0.31, 0.82)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="Style_details"]
+bg_color = Color(0.055, 0.065, 0.08, 0.97)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.38, 0.42, 0.78)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[node name="ResearchPage" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_page")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.018, 0.024, 0.034, 1)
+
+[node name="Header" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 18.0
+offset_top = 14.0
+offset_right = -18.0
+offset_bottom = 70.0
+grow_horizontal = 2
+theme_override_styles/panel = SubResource("Style_panel")
+
+[node name="HeaderMargin" type="MarginContainer" parent="Header"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_right = 18
+
+[node name="HeaderRow" type="HBoxContainer" parent="Header/HeaderMargin"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Header/HeaderMargin/HeaderRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.88, 0.94, 0.95, 1)
+theme_override_font_sizes/font_size = 28
+text = "RESEARCH TREE"
+vertical_alignment = 1
+
+[node name="PointsLabel" type="Label" parent="Header/HeaderMargin/HeaderRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.45, 0.95, 1, 1)
+theme_override_font_sizes/font_size = 20
+text = "0 RESEARCH POINTS"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="TreePanel" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 18.0
+offset_top = 82.0
+offset_right = -18.0
+offset_bottom = -112.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("Style_panel")
+
+[node name="TreeScroll" type="ScrollContainer" parent="TreePanel"]
+layout_mode = 2
+horizontal_scroll_mode = 1
+vertical_scroll_mode = 1
+
+[node name="TreeCanvas" type="Control" parent="TreePanel/TreeScroll"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(1210, 490)
+layout_mode = 2
+
+[node name="ConnectionLayer" type="Control" parent="TreePanel/TreeScroll/TreeCanvas"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_connections")
+
+[node name="EconomyLabel" type="Label" parent="TreePanel/TreeScroll/TreeCanvas"]
+offset_left = 24.0
+offset_top = 18.0
+offset_right = 135.0
+offset_bottom = 44.0
+theme_override_colors/font_color = Color(0.96, 0.75, 0.26, 1)
+theme_override_font_sizes/font_size = 17
+text = "ECONOMY"
+
+[node name="MovementLabel" type="Label" parent="TreePanel/TreeScroll/TreeCanvas"]
+offset_left = 24.0
+offset_top = 198.0
+offset_right = 145.0
+offset_bottom = 224.0
+theme_override_colors/font_color = Color(0.31, 0.75, 1, 1)
+theme_override_font_sizes/font_size = 17
+text = "MOVEMENT"
+
+[node name="MiscLabel" type="Label" parent="TreePanel/TreeScroll/TreeCanvas"]
+offset_left = 24.0
+offset_top = 328.0
+offset_right = 180.0
+offset_bottom = 354.0
+theme_override_colors/font_color = Color(0.8, 0.41, 0.96, 1)
+theme_override_font_sizes/font_size = 17
+text = "MISCELLANEOUS"
+
+[node name="DetailsPanel" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 120.0
+offset_top = -100.0
+offset_right = -120.0
+offset_bottom = -14.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_styles/panel = SubResource("Style_details")
+
+[node name="DetailsMargin" type="MarginContainer" parent="DetailsPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 8
+
+[node name="DetailsVBox" type="VBoxContainer" parent="DetailsPanel/DetailsMargin"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="DetailsTitle" type="Label" parent="DetailsPanel/DetailsMargin/DetailsVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.98, 0.98, 1)
+theme_override_font_sizes/font_size = 17
+text = "Select a research node"
+
+[node name="DetailsBody" type="Label" parent="DetailsPanel/DetailsMargin/DetailsVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.75, 0.8, 0.82, 1)
+theme_override_font_sizes/font_size = 12
+text = "Hover over an icon to inspect its effect, marks and cost."
+
+[node name="DetailsStatus" type="Label" parent="DetailsPanel/DetailsMargin/DetailsVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.45, 0.95, 1, 1)
+theme_override_font_sizes/font_size = 11
+text = "ROOT ACCESS"

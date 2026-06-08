@@ -104,6 +104,8 @@ const PACKET_ONLINE_LOCKER_READY: StringName = &"online_locker_ready"
 const PACKET_ONLINE_INTERMISSION_READY: StringName = &"online_intermission_ready"
 const PACKET_ONLINE_LOCKER_PLAYER_STATE: StringName = &"online_locker_player_state"
 const PACKET_ONLINE_COIN_SPEND: StringName = &"online_coin_spend"
+const PACKET_ONLINE_RESEARCH_PROFILE: StringName = &"online_research_profile"
+const PACKET_ONLINE_COIN_ADD: StringName = &"online_coin_add"
 
 const CONTROL_LOCAL: StringName = &"local"
 const CONTROL_REMOTE: StringName = &"remote"
