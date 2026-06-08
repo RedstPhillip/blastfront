@@ -185,8 +185,14 @@ custom_minimum_size = Vector2(520, 140)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_banner")
 
-[node name="BannerLabel" type="Label" parent="Center/BannerPanel"]
+[node name="BannerVBox" type="VBoxContainer" parent="Center/BannerPanel"]
+layout_mode = 2
+theme_override_constants/separation = 18
+alignment = 1
+
+[node name="BannerLabel" type="Label" parent="Center/BannerPanel/BannerVBox"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(680, 150)
 layout_mode = 2
 theme_override_colors/font_outline_color = Color(0, 0, 0, 0.8)
 theme_override_constants/outline_size = 6
@@ -194,3 +200,25 @@ theme_override_font_sizes/font_size = 64
 text = "BLUE WON"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="VictoryActions" type="HBoxContainer" parent="Center/BannerPanel/BannerVBox"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(520, 52)
+layout_mode = 2
+theme_override_constants/separation = 18
+alignment = 1
+
+[node name="PlayAgainButton" type="Button" parent="Center/BannerPanel/BannerVBox/VictoryActions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "PLAY AGAIN"
+
+[node name="MainMenuButton" type="Button" parent="Center/BannerPanel/BannerVBox/VictoryActions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "MAIN MENU"

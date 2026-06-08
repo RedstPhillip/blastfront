@@ -1,6 +1,7 @@
 extends Control
 
 const ROUND_SCORE_DOT_SCENE: PackedScene = preload("res://scenes/ui/RoundScoreDot.tscn")
+const GAME_SCENE: PackedScene = preload("res://scenes/Game.tscn")
 
 @onready var _left_player_panel: ArcadePlayerPanel = %LeftPlayerPanel
 @onready var _right_player_panel: ArcadePlayerPanel = %RightPlayerPanel
@@ -10,6 +11,9 @@ const ROUND_SCORE_DOT_SCENE: PackedScene = preload("res://scenes/ui/RoundScoreDo
 @onready var _right_round_dots: HBoxContainer = %RightRoundDots
 @onready var _banner_panel: PanelContainer = %BannerPanel
 @onready var _banner_label: Label = %BannerLabel
+@onready var _victory_actions: HBoxContainer = %VictoryActions
+@onready var _play_again_button: Button = %PlayAgainButton
+@onready var _main_menu_button: Button = %MainMenuButton
 
 var _game: Node = null
 var _last_banner_text: String = ""
@@ -19,6 +23,9 @@ var _round_dot_target: int = 0
 func _ready() -> void:
 	if not OnlineMatch.state_changed.is_connected(_refresh_score):
 		OnlineMatch.state_changed.connect(_refresh_score)
+	_play_again_button.pressed.connect(_on_play_again_pressed)
+	_main_menu_button.pressed.connect(_on_main_menu_pressed)
+	GameJuice.attach_button_feedback(self)
 	call_deferred("_bind_game")
 
 
@@ -152,6 +159,8 @@ func _show_winner_banner(winner_slot: int) -> void:
 		return
 
 	_banner_panel.custom_minimum_size = Vector2(520, 140)
+	_victory_actions.hide()
+	_banner_label.custom_minimum_size = Vector2(460, 100)
 	_banner_label.add_theme_font_size_override("font_size", 64)
 	var winner_name: String = OnlineMatch.get_player_color_name(winner_slot).to_upper()
 	_banner_label.text = "%s WINS" % winner_name
@@ -168,6 +177,10 @@ func _show_victory_screen(winner_slot: int, winner_color: Color, winner_name: St
 		return
 
 	_banner_panel.custom_minimum_size = Vector2(720, 260)
+	_victory_actions.show()
+	_play_again_button.disabled = NetworkSession.is_steam_match_active() and not NetworkSession.is_host()
+	_play_again_button.tooltip_text = "Only the host can restart an online match." if _play_again_button.disabled else ""
+	_banner_label.custom_minimum_size = Vector2(680, 150)
 	_banner_label.add_theme_font_size_override("font_size", 76)
 	_banner_label.text = "VICTORY\n%s WINS" % winner_name
 	_banner_label.add_theme_color_override("font_color", winner_color.lightened(0.12))
@@ -176,6 +189,32 @@ func _show_victory_screen(winner_slot: int, winner_color: Color, winner_name: St
 		GameJuice.play_sound(&"spawn", -2.0, 0.02)
 	_last_banner_text = _banner_label.text
 	_banner_panel.show()
+
+
+func _on_play_again_pressed() -> void:
+	GameJuice.play_sound(&"ui_click", -8.0, 0.03)
+	get_tree().paused = false
+	if NetworkSession.is_steam_match_active():
+		if NetworkSession.is_host():
+			OnlineMatch.enter_locker(true)
+		return
+
+	if NetworkSession.is_debug():
+		NetworkSession.start_debug()
+	else:
+		NetworkSession.start_offline()
+	var main_node: Node = get_node_or_null("/root/Main")
+	if main_node != null and main_node.has_method("change_scene"):
+		main_node.call("change_scene", GAME_SCENE)
+
+
+func _on_main_menu_pressed() -> void:
+	GameJuice.play_sound(&"ui_click", -8.0, 0.03)
+	get_tree().paused = false
+	NetworkSession.leave_round()
+	var main_node: Node = get_node_or_null("/root/Main")
+	if main_node != null and main_node.has_method("show_menu"):
+		main_node.call("show_menu")
 
 
 func _play_banner_animation() -> void:

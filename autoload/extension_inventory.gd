@@ -340,7 +340,7 @@ func _ensure_player_state(player_slot: int) -> void:
 
 func _build_demo_inventory() -> Array[WeaponExtensionItem]:
 	var result: Array[WeaponExtensionItem] = []
-	if not GameSettings.DEBUG_UNLOCK_ALL_ITEMS:
+	if not GameSettings.DEBUG_UNLOCK_ALL_ITEMS or not GameSettings.DEBUG_UNLOCK_ALL_EXTENSIONS:
 		return result
 	for definition in get_all_definitions():
 		result.append(WeaponExtensionItem.create(definition, definition.default_condition))

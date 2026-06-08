@@ -32,6 +32,7 @@ const DEFAULT_WEAPON_STATS: Array[StringName] = [
 	&"reload_time",
 	&"ammo_max",
 ]
+const EMPTY_WEAPON_INVENTORY_SLOTS: int = 12
 
 var _weapon_slots: Dictionary = {}
 var _armor_slots: Dictionary = {}
@@ -191,7 +192,8 @@ func _refresh_weapon_inventory() -> void:
 	var items: Array[WeaponExtensionItem] = ExtensionInventory.get_inventory_for_local()
 	_weapon_inventory_empty_label.visible = items.is_empty()
 	if items.is_empty():
-		_weapon_inventory_empty_label.text = "Lege WeaponExtensionDefinition-Ressourcen in ExtensionInventory an, um Extensions hier anzuzeigen."
+		_weapon_inventory_empty_label.visible = false
+		_add_empty_weapon_inventory_slots()
 		return
 
 	for item in items:
@@ -205,6 +207,15 @@ func _refresh_weapon_inventory() -> void:
 		card.extension_hovered.connect(_show_weapon_extension_description)
 		card.extension_selected.connect(_on_weapon_extension_selected)
 		card.extension_merge_requested.connect(_on_weapon_extension_merge_requested)
+		_weapon_inventory_grid.add_child(card)
+
+
+func _add_empty_weapon_inventory_slots() -> void:
+	for slot_index in range(EMPTY_WEAPON_INVENTORY_SLOTS):
+		var card: WeaponExtensionItemCard = WEAPON_EXTENSION_ITEM_CARD_SCENE.instantiate() as WeaponExtensionItemCard
+		if card == null:
+			continue
+		card.setup(null)
 		_weapon_inventory_grid.add_child(card)
 
 
@@ -281,6 +292,10 @@ func _show_weapon_extension_description(item: WeaponExtensionItem) -> void:
 		item.get_condition_tier_name().to_upper(),
 	]
 	_description_body.text = _short_description(item.definition.description)
+	if ExtensionInventory.has_merge_partner_for_local(item):
+		var merge_cost: int = ExtensionInventory.get_merge_cost_for_next_mark(item.mark + 1)
+		if merge_cost > 0:
+			_description_body.text += " Merge cost: %d coins." % merge_cost
 	_set_description_condition(item.condition, item.get_condition_color(), true)
 	var current_modifiers: Dictionary = _get_current_weapon_modifiers()
 	var preview_modifiers: Dictionary = _build_weapon_preview_modifiers(item, current_modifiers)
@@ -656,12 +671,13 @@ func _on_weapon_extension_merge_requested(source_item: WeaponExtensionItem, targ
 	_pending_merge_source = source_item
 	_pending_merge_target = target_item
 	_merge_dialog.title = "Merge Extensions"
-	_merge_dialog.dialog_text = "Merge two %s items into MK%d for %d coins?" % [
+	_merge_dialog.dialog_text = "Merge two %s items into MK%d?\n\nCost: %d coins\nBalance: %d coins" % [
 		source_item.get_display_name(),
 		next_mark,
 		merge_cost,
+		OnlineMatch.get_local_coin_balance(),
 	]
-	_merge_dialog.ok_button_text = "Merge"
+	_merge_dialog.ok_button_text = "Merge (%d C)" % merge_cost
 	_merge_dialog.cancel_button_text = "Cancel"
 	_merge_dialog.popup_centered()
 

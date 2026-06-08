@@ -86,6 +86,16 @@ func _process(_delta: float) -> void:
 	_update_horizontal(GameSettings.MAP_BORDER_SIDE_BOTTOM, closest_players[GameSettings.MAP_BORDER_SIDE_BOTTOM], bottom_edge)
 
 
+func _physics_process(_delta: float) -> void:
+	for player_node in _get_tracked_players():
+		var player: Player = player_node as Player
+		if player == null:
+			continue
+		var side: StringName = _get_overlapping_border_side(player.global_position)
+		if side != &"":
+			_try_apply_border_hit(player, side)
+
+
 func _create_warning_line(side: StringName) -> void:
 	var line := ColorRect.new()
 	line.color = line_color
@@ -256,7 +266,10 @@ func _on_border_body_entered(body: Node, side: StringName) -> void:
 	var player: Player = body as Player
 	if player == null:
 		return
+	_try_apply_border_hit(player, side)
 
+
+func _try_apply_border_hit(player: Player, side: StringName) -> void:
 	var now: float = Time.get_ticks_msec() / GameSettings.MILLISECONDS_PER_SECOND
 	var last_time: float = float(_last_hit_time.get(player, GameSettings.MAP_BORDER_INITIAL_HIT_TIME))
 	if now - last_time < hit_cooldown:
@@ -277,6 +290,29 @@ func _on_border_body_entered(body: Node, side: StringName) -> void:
 	else:
 		if player.health_component != null:
 			player.health_component.damage(damage_amount)
+
+
+func _get_overlapping_border_side(position: Vector2) -> StringName:
+	var left_edge: float = _bounds.position.x
+	var right_edge: float = _bounds.position.x + _bounds.size.x
+	var top_edge: float = _bounds.position.y
+	var bottom_edge: float = _bounds.position.y + _bounds.size.y
+	var overlap_padding: float = border_thickness * GameSettings.HALF + 18.0
+	var distances: Dictionary = {
+		GameSettings.MAP_BORDER_SIDE_LEFT: position.x - left_edge,
+		GameSettings.MAP_BORDER_SIDE_RIGHT: right_edge - position.x,
+		GameSettings.MAP_BORDER_SIDE_TOP: position.y - top_edge,
+		GameSettings.MAP_BORDER_SIDE_BOTTOM: bottom_edge - position.y,
+	}
+	var best_side: StringName = &""
+	var best_distance: float = INF
+	for raw_side in distances.keys():
+		var side: StringName = StringName(str(raw_side))
+		var distance: float = float(distances[side])
+		if distance <= overlap_padding and distance < best_distance:
+			best_distance = distance
+			best_side = side
+	return best_side
 
 
 func _get_knockback_vector(side: StringName) -> Vector2:
