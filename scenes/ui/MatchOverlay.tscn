@@ -1,21 +1,38 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scenes/ui/match_overlay.gd" id="1_overlay"]
+[ext_resource type="PackedScene" path="res://scenes/ui/ArcadePlayerPanel.tscn" id="2_player_panel"]
+[ext_resource type="Font" path="res://assets/fonts/BlastfrontHudFont.tres" id="3_hud_font"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_banner"]
-bg_color = Color(0.025, 0.034, 0.034, 0.86)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_score_panel"]
+bg_color = Color(0.018, 0.025, 0.04, 0.96)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.84, 0.94, 0.82, 0.5)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-shadow_color = Color(0, 0, 0, 0.45)
-shadow_size = 18
-shadow_offset = Vector2(0, 10)
+border_color = Color(0.82, 0.88, 1, 0.48)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
+shadow_color = Color(0, 0, 0, 0.5)
+shadow_size = 9
+shadow_offset = Vector2(0, 5)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_banner"]
+bg_color = Color(0.018, 0.025, 0.04, 0.97)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.9, 0.95, 1, 0.7)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+shadow_color = Color(0, 0, 0, 0.6)
+shadow_size = 20
+shadow_offset = Vector2(0, 11)
 
 [node name="MatchOverlay" type="Control"]
 layout_mode = 3
@@ -27,30 +44,130 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("1_overlay")
 
-[node name="TopBar" type="HBoxContainer" parent="."]
+[node name="ScoreBoard" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(300, 96)
 layout_mode = 1
 anchors_preset = 10
-anchor_right = 1.0
-offset_left = 18.0
-offset_top = 14.0
-offset_right = -18.0
-offset_bottom = 58.0
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -150.0
+offset_top = 10.0
+offset_right = 150.0
+offset_bottom = 106.0
 grow_horizontal = 2
-theme_override_constants/separation = 18
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_score_panel")
 
-[node name="MatchScoreLabel" type="Label" parent="TopBar"]
+[node name="ScoreMargin" type="MarginContainer" parent="ScoreBoard"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 8
+
+[node name="ScoreRows" type="VBoxContainer" parent="ScoreBoard/ScoreMargin"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="MainScore" type="HBoxContainer" parent="ScoreBoard/ScoreMargin/ScoreRows"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="LeftScore" type="Label" parent="ScoreBoard/ScoreMargin/ScoreRows/MainScore"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(92, 52)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.31, 0.67, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.9)
+theme_override_constants/outline_size = 5
+theme_override_fonts/font = ExtResource("3_hud_font")
+theme_override_font_sizes/font_size = 43
+text = "0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ScoreDivider" type="Label" parent="ScoreBoard/ScoreMargin/ScoreRows/MainScore"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.58)
+theme_override_fonts/font = ExtResource("3_hud_font")
+theme_override_font_sizes/font_size = 18
+text = "VS"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="RightScore" type="Label" parent="ScoreBoard/ScoreMargin/ScoreRows/MainScore"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(92, 52)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.92, 0.31, 0.31, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.9)
+theme_override_constants/outline_size = 5
+theme_override_fonts/font = ExtResource("3_hud_font")
+theme_override_font_sizes/font_size = 43
+text = "0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="RoundDots" type="HBoxContainer" parent="ScoreBoard/ScoreMargin/ScoreRows"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="LeftRoundDots" type="HBoxContainer" parent="ScoreBoard/ScoreMargin/ScoreRows/RoundDots"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 30
-text = "Blue 0 - 0 Red"
+alignment = 1
+theme_override_constants/separation = 5
 
-[node name="SetScoreLabel" type="Label" parent="TopBar"]
+[node name="DotDivider" type="Control" parent="ScoreBoard/ScoreMargin/ScoreRows/RoundDots"]
+custom_minimum_size = Vector2(40, 16)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Diamond" type="Polygon2D" parent="ScoreBoard/ScoreMargin/ScoreRows/RoundDots/DotDivider"]
+position = Vector2(20, 8)
+polygon = PackedVector2Array(0, -3, 5, 0, 0, 3, -5, 0)
+color = Color(1, 1, 1, 0.2)
+
+[node name="RightRoundDots" type="HBoxContainer" parent="ScoreBoard/ScoreMargin/ScoreRows/RoundDots"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 30
-text = "Set 0 - 0"
-horizontal_alignment = 2
+size_flags_horizontal = 3
+alignment = 1
+theme_override_constants/separation = 5
+
+[node name="LeftPlayerPanel" parent="." instance=ExtResource("2_player_panel")]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 0.0
+offset_top = -122.0
+offset_right = 410.0
+offset_bottom = 0.0
+grow_vertical = 0
+
+[node name="RightPlayerPanel" parent="." instance=ExtResource("2_player_panel")]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -410.0
+offset_top = -122.0
+offset_right = 0.0
+offset_bottom = 0.0
+grow_horizontal = 0
+grow_vertical = 0
+player_slot = 2
+right_aligned = true
 
 [node name="Center" type="CenterContainer" parent="."]
 layout_mode = 1
@@ -71,8 +188,8 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_banner")
 [node name="BannerLabel" type="Label" parent="Center/BannerPanel"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_outline_color = Color(0, 0, 0, 0.75)
-theme_override_constants/outline_size = 5
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.8)
+theme_override_constants/outline_size = 6
 theme_override_font_sizes/font_size = 64
 text = "BLUE WON"
 horizontal_alignment = 1

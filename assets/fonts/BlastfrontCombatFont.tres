@@ -1,0 +1,6 @@
+[gd_resource type="SystemFont" format=3]
+
+[resource]
+font_names = PackedStringArray("Impact", "Haettenschweiler", "Arial Black")
+font_weight = 800
+font_stretch = 88

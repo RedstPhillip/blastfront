@@ -1,41 +1,72 @@
 extends Control
 
-@onready var _match_score_label: Label = %MatchScoreLabel
-@onready var _set_score_label: Label = %SetScoreLabel
+const ROUND_SCORE_DOT_SCENE: PackedScene = preload("res://scenes/ui/RoundScoreDot.tscn")
+
+@onready var _left_player_panel: ArcadePlayerPanel = %LeftPlayerPanel
+@onready var _right_player_panel: ArcadePlayerPanel = %RightPlayerPanel
+@onready var _left_score: Label = %LeftScore
+@onready var _right_score: Label = %RightScore
+@onready var _left_round_dots: HBoxContainer = %LeftRoundDots
+@onready var _right_round_dots: HBoxContainer = %RightRoundDots
 @onready var _banner_panel: PanelContainer = %BannerPanel
 @onready var _banner_label: Label = %BannerLabel
 
+var _game: Node = null
 var _last_banner_text: String = ""
+var _round_dot_target: int = 0
 
 
 func _ready() -> void:
-	OnlineMatch.state_changed.connect(_refresh)
-	_refresh()
+	if not OnlineMatch.state_changed.is_connected(_refresh_score):
+		OnlineMatch.state_changed.connect(_refresh_score)
+	call_deferred("_bind_game")
 
 
 func _exit_tree() -> void:
-	if OnlineMatch.state_changed.is_connected(_refresh):
-		OnlineMatch.state_changed.disconnect(_refresh)
+	if OnlineMatch.state_changed.is_connected(_refresh_score):
+		OnlineMatch.state_changed.disconnect(_refresh_score)
 
 
-func _refresh() -> void:
-	if not NetworkSession.is_steam_match_active():
-		hide()
+func _process(_delta: float) -> void:
+	if _game == null or not is_instance_valid(_game):
+		_bind_game()
+	_refresh_score()
+
+
+func _bind_game() -> void:
+	_game = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)
+	if _game == null or not _game.has_method("get_player_by_slot"):
 		return
 
-	show()
-	var slot_one_name: String = OnlineMatch.get_player_color_name(GameSettings.PLAYER_ONE_SLOT)
-	var slot_two_name: String = OnlineMatch.get_player_color_name(GameSettings.PLAYER_TWO_SLOT)
-	_match_score_label.text = "%s %d - %d %s" % [
-		slot_one_name,
-		int(OnlineMatch.match_points.get(GameSettings.PLAYER_ONE_SLOT, 0)),
-		int(OnlineMatch.match_points.get(GameSettings.PLAYER_TWO_SLOT, 0)),
-		slot_two_name,
-	]
-	_set_score_label.text = "Set %d - %d" % [
-		int(OnlineMatch.set_kills.get(GameSettings.PLAYER_ONE_SLOT, 0)),
-		int(OnlineMatch.set_kills.get(GameSettings.PLAYER_TWO_SLOT, 0)),
-	]
+	var player_one: Player = _game.call("get_player_by_slot", GameSettings.PLAYER_ONE_SLOT) as Player
+	var player_two: Player = _game.call("get_player_by_slot", GameSettings.PLAYER_TWO_SLOT) as Player
+	_left_player_panel.bind_player(player_one)
+	_right_player_panel.bind_player(player_two)
+
+
+func _refresh_score() -> void:
+	if NetworkSession.is_steam_match_active():
+		_refresh_online_score()
+	else:
+		_refresh_offline_score()
+
+
+func _refresh_online_score() -> void:
+	var left_color: Color = OnlineMatch.get_player_color(GameSettings.PLAYER_ONE_SLOT)
+	var right_color: Color = OnlineMatch.get_player_color(GameSettings.PLAYER_TWO_SLOT)
+	var left_match_score: int = int(OnlineMatch.match_points.get(GameSettings.PLAYER_ONE_SLOT, 0))
+	var right_match_score: int = int(OnlineMatch.match_points.get(GameSettings.PLAYER_TWO_SLOT, 0))
+	var left_round_score: int = int(OnlineMatch.set_kills.get(GameSettings.PLAYER_ONE_SLOT, 0))
+	var right_round_score: int = int(OnlineMatch.set_kills.get(GameSettings.PLAYER_TWO_SLOT, 0))
+	_apply_scoreboard(
+		left_match_score,
+		right_match_score,
+		left_round_score,
+		right_round_score,
+		GameSettings.ONLINE_SET_KILLS_TO_WIN,
+		left_color,
+		right_color
+	)
 
 	if OnlineMatch.phase == GameSettings.MATCH_PHASE_KILL_BANNER:
 		_show_winner_banner(OnlineMatch.last_winner_slot)
@@ -45,14 +76,73 @@ func _refresh() -> void:
 		_banner_panel.hide()
 
 
+func _refresh_offline_score() -> void:
+	_banner_panel.hide()
+	var left_score: int = 0
+	var right_score: int = 0
+	if _game != null and _game.has_method("get_score_for_slot"):
+		left_score = int(_game.call("get_score_for_slot", GameSettings.PLAYER_ONE_SLOT))
+		right_score = int(_game.call("get_score_for_slot", GameSettings.PLAYER_TWO_SLOT))
+
+	_apply_scoreboard(
+		left_score,
+		right_score,
+		left_score,
+		right_score,
+		GameSettings.MATCH_WINS_NEEDED,
+		GameSettings.player_color_value(GameSettings.ONLINE_DEFAULT_LOCAL_COLOR),
+		GameSettings.player_color_value(GameSettings.ONLINE_DEFAULT_REMOTE_COLOR)
+	)
+
+
+func _apply_scoreboard(
+	left_match_score: int,
+	right_match_score: int,
+	left_round_score: int,
+	right_round_score: int,
+	round_target: int,
+	left_color: Color,
+	right_color: Color
+) -> void:
+	_left_score.text = str(left_match_score)
+	_right_score.text = str(right_match_score)
+	_left_score.add_theme_color_override("font_color", left_color.lightened(0.12))
+	_right_score.add_theme_color_override("font_color", right_color.lightened(0.12))
+
+	if round_target != _round_dot_target:
+		_rebuild_round_dots(round_target)
+	_update_round_dots(_left_round_dots, left_round_score, left_color)
+	_update_round_dots(_right_round_dots, right_round_score, right_color)
+
+
+func _rebuild_round_dots(round_target: int) -> void:
+	var dot_containers: Array[HBoxContainer] = [_left_round_dots, _right_round_dots]
+	for container in dot_containers:
+		for child in container.get_children():
+			container.remove_child(child)
+			child.queue_free()
+		for dot_index in range(maxi(round_target, 0)):
+			var dot: RoundScoreDot = ROUND_SCORE_DOT_SCENE.instantiate() as RoundScoreDot
+			if dot != null:
+				container.add_child(dot)
+	_round_dot_target = round_target
+
+
+func _update_round_dots(container: HBoxContainer, score: int, player_color: Color) -> void:
+	for dot_index in range(container.get_child_count()):
+		var dot: RoundScoreDot = container.get_child(dot_index) as RoundScoreDot
+		if dot != null:
+			dot.set_state(dot_index < score, player_color)
+
+
 func _show_winner_banner(winner_slot: int) -> void:
 	if winner_slot == 0:
 		_banner_panel.hide()
 		return
 
 	var winner_name: String = OnlineMatch.get_player_color_name(winner_slot).to_upper()
-	_banner_label.text = "%s WON" % winner_name
-	_banner_label.add_theme_color_override("font_color", OnlineMatch.get_player_color(winner_slot))
+	_banner_label.text = "%s WINS" % winner_name
+	_banner_label.add_theme_color_override("font_color", OnlineMatch.get_player_color(winner_slot).lightened(0.12))
 	if not _banner_panel.visible or _last_banner_text != _banner_label.text:
 		_play_banner_animation()
 	_last_banner_text = _banner_label.text

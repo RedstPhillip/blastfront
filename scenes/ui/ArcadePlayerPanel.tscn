@@ -1,0 +1,188 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/arcade_player_panel.gd" id="1_panel"]
+[ext_resource type="Font" path="res://assets/fonts/BlastfrontCombatFont.tres" id="2_hud_font"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bar_background"]
+bg_color = Color(0.008, 0.012, 0.02, 0.96)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0, 0, 0, 0.92)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_block_fill"]
+bg_color = Color(0.208, 0.851, 0.953, 1)
+corner_radius_top_left = 1
+corner_radius_top_right = 1
+corner_radius_bottom_right = 1
+corner_radius_bottom_left = 1
+expand_margin_left = -2.0
+expand_margin_top = -2.0
+expand_margin_right = -2.0
+expand_margin_bottom = -2.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_health_fill"]
+bg_color = Color(0.404, 0.91, 0.373, 1)
+corner_radius_top_left = 1
+corner_radius_top_right = 1
+corner_radius_bottom_right = 1
+corner_radius_bottom_left = 1
+expand_margin_left = -2.0
+expand_margin_top = -2.0
+expand_margin_right = -2.0
+expand_margin_bottom = -2.0
+
+[node name="ArcadePlayerPanel" type="Control"]
+custom_minimum_size = Vector2(410, 122)
+layout_mode = 3
+anchors_preset = 0
+offset_right = 410.0
+offset_bottom = 122.0
+mouse_filter = 2
+script = ExtResource("1_panel")
+
+[node name="Backplate" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+z_index = -2
+polygon = PackedVector2Array(0, 12, 346, 12, 410, 62, 410, 122, 0, 122)
+color = Color(0.08, 0.22, 0.38, 0.97)
+
+[node name="InnerPlate" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+z_index = -1
+polygon = PackedVector2Array(0, 20, 338, 20, 399, 67, 399, 114, 0, 114)
+color = Color(0.025, 0.075, 0.13, 0.94)
+
+[node name="AccentEdge" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+polygon = PackedVector2Array(0, 12, 346, 12, 410, 62, 410, 70, 343, 20, 0, 20)
+color = Color(0.31, 0.67, 1, 1)
+
+[node name="BottomEdge" type="ColorRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_top = 114.0
+offset_right = 410.0
+offset_bottom = 122.0
+mouse_filter = 2
+color = Color(0.31, 0.67, 1, 1)
+
+[node name="Rows" type="VBoxContainer" parent="."]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 18.0
+offset_right = 338.0
+offset_bottom = 112.0
+mouse_filter = 2
+theme_override_constants/separation = 2
+
+[node name="Header" type="HBoxContainer" parent="Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="PlayerLabel" type="Label" parent="Rows/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.5, 0.76, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.95)
+theme_override_constants/outline_size = 5
+theme_override_fonts/font = ExtResource("2_hud_font")
+theme_override_font_sizes/font_size = 21
+text = "PLAYER 1"
+
+[node name="AmmoArea" type="HBoxContainer" parent="Rows/Header"]
+custom_minimum_size = Vector2(112, 0)
+layout_mode = 2
+alignment = 2
+theme_override_constants/separation = 3
+
+[node name="AmmoStatusLabel" type="Label" parent="Rows/Header/AmmoArea"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.72, 0.28, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.95)
+theme_override_constants/outline_size = 4
+theme_override_fonts/font = ExtResource("2_hud_font")
+theme_override_font_sizes/font_size = 14
+text = "RELOAD"
+vertical_alignment = 1
+
+[node name="AmmoIcons" type="HBoxContainer" parent="Rows/Header/AmmoArea"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="BlockHeader" type="HBoxContainer" parent="Rows"]
+layout_mode = 2
+
+[node name="BlockTitle" type="Label" parent="Rows/BlockHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.8, 0.84, 0.92, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.95)
+theme_override_constants/outline_size = 3
+theme_override_fonts/font = ExtResource("2_hud_font")
+theme_override_font_sizes/font_size = 11
+text = "BLOCK"
+
+[node name="BlockStateLabel" type="Label" parent="Rows/BlockHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72, 1, 0.58, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.95)
+theme_override_constants/outline_size = 3
+theme_override_fonts/font = ExtResource("2_hud_font")
+theme_override_font_sizes/font_size = 11
+text = "READY"
+horizontal_alignment = 2
+
+[node name="BlockBar" type="ProgressBar" parent="Rows"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 11)
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_bar_background")
+theme_override_styles/fill = SubResource("StyleBoxFlat_block_fill")
+value = 100.0
+show_percentage = false
+
+[node name="HealthHeader" type="HBoxContainer" parent="Rows"]
+layout_mode = 2
+
+[node name="HealthTitle" type="Label" parent="Rows/HealthHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.8, 0.84, 0.92, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.95)
+theme_override_constants/outline_size = 3
+theme_override_fonts/font = ExtResource("2_hud_font")
+theme_override_font_sizes/font_size = 11
+text = "HEALTH"
+
+[node name="HealthValueLabel" type="Label" parent="Rows/HealthHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.95)
+theme_override_constants/outline_size = 3
+theme_override_fonts/font = ExtResource("2_hud_font")
+theme_override_font_sizes/font_size = 11
+text = "100 / 100"
+horizontal_alignment = 2
+
+[node name="HealthBar" type="ProgressBar" parent="Rows"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 19)
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_bar_background")
+theme_override_styles/fill = SubResource("StyleBoxFlat_health_fill")
+value = 100.0
+show_percentage = false

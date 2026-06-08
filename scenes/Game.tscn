@@ -22,12 +22,6 @@ position = Vector2(1100, 116)
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=597088379]
 
-[node name="ScoreLabel" type="Label" parent="HUD" unique_id=1044658750]
-offset_left = 16.0
-offset_top = 16.0
-theme_override_font_sizes/font_size = 48
-text = "0 - 0"
-
 [node name="MatchOverlay" parent="HUD" unique_id=534016440 instance=ExtResource("6_overlay")]
 
 [node name="PauseMenu" parent="HUD" unique_id=123456789 instance=ExtResource("7_pause")]

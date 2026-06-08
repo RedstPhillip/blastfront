@@ -1,0 +1,6 @@
+[gd_resource type="SystemFont" format=3]
+
+[resource]
+font_names = PackedStringArray("Bahnschrift Condensed", "Arial Narrow", "Arial Black")
+font_weight = 750
+font_stretch = 82

@@ -1,0 +1,23 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/round_score_dot.gd" id="1_dot"]
+
+[node name="RoundScoreDot" type="Control"]
+custom_minimum_size = Vector2(16, 16)
+layout_mode = 3
+anchors_preset = 0
+offset_right = 16.0
+offset_bottom = 16.0
+mouse_filter = 2
+script = ExtResource("1_dot")
+
+[node name="Outline" type="Polygon2D" parent="."]
+position = Vector2(8, 8)
+polygon = PackedVector2Array(-5.5, -2.5, -2.5, -5.5, 2.5, -5.5, 5.5, -2.5, 5.5, 2.5, 2.5, 5.5, -2.5, 5.5, -5.5, 2.5)
+color = Color(0.005, 0.006, 0.008, 1)
+
+[node name="Fill" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+position = Vector2(8, 8)
+polygon = PackedVector2Array(-3.5, -1.5, -1.5, -3.5, 1.5, -3.5, 3.5, -1.5, 3.5, 1.5, 1.5, 3.5, -1.5, 3.5, -3.5, 1.5)
+color = Color(0.16, 0.18, 0.22, 0.9)
