@@ -8,11 +8,11 @@ script = ExtResource("1_definition")
 extension_id = "lighter_barrel_mk1"
 display_name = "Lighter Barrel MK1"
 slot_key = "front"
-description = "Lightweight barrel that increases fire rate with reduced damage per shot. Fire Rate -0.03s, Damage -2, Speed +50, Reload -0.1s."
+description = "Lightweight barrel that increases fire rate with reduced damage per shot. Fire Rate -0.12s, Damage -2, Speed +50, Reload -0.1s."
 default_condition = 100.0
 minimum_condition_factor = 0.25
 attribute_modifiers = {
-"fire_interval": -0.03,
+"fire_interval": -0.12,
 "damage": -2.0,
 "projectile_speed": 50.0,
 "reload_time": -0.1

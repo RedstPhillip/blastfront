@@ -8,12 +8,12 @@ script = ExtResource("1_definition")
 extension_id = "laser_scope_mk1"
 display_name = "Laser Scope MK1"
 slot_key = "middle"
-description = "Tactical scope that projects a visible laser line showing the bullet trajectory and tightens shot spread. Spread -3\u00b0, Fire Rate +0.02s."
+description = "Tactical scope that projects a visible laser line showing the bullet trajectory and tightens shot spread. Spread -3\u00b0, Fire Rate +0.08s."
 default_condition = 100.0
 minimum_condition_factor = 0.25
 attribute_modifiers = {
 "shot_spread_degrees": -3.0,
-"fire_interval": 0.02
+"fire_interval": 0.08
 }
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.9, 0.2, 0.15, 1)

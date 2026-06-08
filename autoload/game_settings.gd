@@ -220,7 +220,7 @@ const BLOCK_COOLDOWN_BAR_BORDER_WIDTH: float = 1.0
 
 const GUN_ORBIT_RADIUS: float = 30.0
 const GUN_AIM_ANGLE_OFFSET_DEGREES: float = 180.0
-const GUN_FIRE_INTERVAL: float = 0.12
+const GUN_FIRE_INTERVAL: float = 0.5
 const GUN_AUTOMATIC_FIRE: bool = false
 const GUN_PROJECTILE_SPEED: float = 1200.0
 const GUN_PROJECTILE_GRAVITY: float = 2500.0

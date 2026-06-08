@@ -8,12 +8,12 @@ script = ExtResource("1_definition")
 extension_id = "grenades_mk1"
 display_name = "Grenades MK1"
 slot_key = "ammo"
-description = "Sticky grenades that detonate 0.5s after impact with an 80px blast radius. Speed -200, Fire Rate +0.05s, Ammo -1, Reload +0.2s."
+description = "Sticky grenades that detonate 0.5s after impact with an 80px blast radius. Speed -200, Fire Rate +0.20s, Ammo -1, Reload +0.2s."
 default_condition = 100.0
 minimum_condition_factor = 0.25
 attribute_modifiers = {
 "projectile_speed": -200.0,
-"fire_interval": 0.05,
+"fire_interval": 0.20,
 "ammo_max": -1.0,
 "reload_time": 0.2
 }

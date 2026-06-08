@@ -8,12 +8,12 @@ script = ExtResource("1_definition")
 extension_id = "explosive_bullet_mk1"
 display_name = "Explosive Bullet MK1"
 slot_key = "ammo"
-description = "Volatile ammo that explodes on impact, damaging all players within 80px. Damage -2, Fire Rate +0.03s, Ammo -1, Reload +0.15s."
+description = "Volatile ammo that explodes on impact, damaging all players within 80px. Damage -2, Fire Rate +0.12s, Ammo -1, Reload +0.15s."
 default_condition = 100.0
 minimum_condition_factor = 0.25
 attribute_modifiers = {
 "damage": -2.0,
-"fire_interval": 0.03,
+"fire_interval": 0.12,
 "ammo_max": -1.0,
 "reload_time": 0.15
 }

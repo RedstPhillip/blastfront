@@ -8,11 +8,11 @@ script = ExtResource("1_definition")
 extension_id = "reload_improver_mk1"
 display_name = "Reload Improver MK1"
 slot_key = "middle"
-description = "Reduces the time between shots and reload speed. Fire Rate -0.025s, Reload -0.15s."
+description = "Reduces the time between shots and reload speed. Fire Rate -0.10s, Reload -0.15s."
 default_condition = 100.0
 minimum_condition_factor = 0.25
 attribute_modifiers = {
-"fire_interval": -0.025,
+"fire_interval": -0.10,
 "reload_time": -0.15
 }
 visual_scene = ExtResource("2_visual")
