@@ -85,9 +85,9 @@ shadow_offset = Vector2(0, 7)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_info_card"]
 content_margin_left = 12.0
-content_margin_top = 10.0
+content_margin_top = 8.0
 content_margin_right = 12.0
-content_margin_bottom = 10.0
+content_margin_bottom = 8.0
 bg_color = Color(0.018, 0.022, 0.028, 0.92)
 border_width_left = 1
 border_width_top = 1
@@ -305,10 +305,10 @@ theme_override_constants/margin_bottom = 12
 
 [node name="CenterVBox" type="VBoxContainer" parent="RootMargin/MainColumns/CenterColumn/CenterMargin" unique_id=649677183]
 layout_mode = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 8
 
 [node name="InfoCard" type="PanelContainer" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox"]
-custom_minimum_size = Vector2(272, 360)
+custom_minimum_size = Vector2(272, 272)
 layout_mode = 2
 size_flags_vertical = 0
 clip_contents = true
@@ -316,7 +316,7 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_info_card")
 
 [node name="InfoVBox" type="VBoxContainer" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/InfoCard"]
 layout_mode = 2
-theme_override_constants/separation = 6
+theme_override_constants/separation = 4
 
 [node name="Accent" type="ColorRect" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/InfoCard/InfoVBox"]
 unique_name_in_owner = true
@@ -372,7 +372,7 @@ horizontal_alignment = 2
 
 [node name="DescriptionBody" type="Label" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/InfoCard/InfoVBox" unique_id=1090261088]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 58)
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 size_flags_vertical = 0
 theme_override_colors/font_color = Color(0.86, 0.9, 0.9, 0.84)
@@ -380,7 +380,7 @@ theme_override_font_sizes/font_size = 11
 text = "Hover description"
 clip_text = true
 autowrap_mode = 3
-max_lines_visible = 3
+max_lines_visible = 2
 
 [node name="ChangesTitle" type="Label" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/InfoCard/InfoVBox"]
 unique_name_in_owner = true
@@ -392,12 +392,12 @@ text = "ITEM CHANGES"
 
 [node name="ChangesVBox" type="VBoxContainer" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/InfoCard/InfoVBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 148)
+custom_minimum_size = Vector2(0, 108)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
 clip_contents = true
-theme_override_constants/separation = 5
+theme_override_constants/separation = 3
 
 [node name="NoChangesLabel" type="Label" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/InfoCard/InfoVBox/ChangesVBox"]
 unique_name_in_owner = true
@@ -414,7 +414,7 @@ clip_contents = true
 
 [node name="RewardVBox" type="VBoxContainer" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/RewardCenter"]
 layout_mode = 2
-theme_override_constants/separation = 32
+theme_override_constants/separation = 24
 
 [node name="SavedRow" type="HBoxContainer" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/RewardCenter/RewardVBox"]
 layout_mode = 2
@@ -434,7 +434,7 @@ is_saved_slot = true
 [node name="OfferGrid" type="GridContainer" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/RewardCenter/RewardVBox"]
 layout_mode = 2
 theme_override_constants/h_separation = 18
-theme_override_constants/v_separation = 14
+theme_override_constants/v_separation = 10
 columns = 2
 
 [node name="ExtensionRewardOne" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/RewardCenter/RewardVBox/OfferGrid" instance=ExtResource("7_reward_slot")]
