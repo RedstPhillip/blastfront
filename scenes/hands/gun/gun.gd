@@ -10,6 +10,8 @@ const PROJECTILE_SCENE := preload("res://scenes/projectiles/projectile.tscn")
 @export var projectile_gravity: float = GameSettings.GUN_PROJECTILE_GRAVITY
 @export var projectile_linear_damping: float = GameSettings.GUN_PROJECTILE_LINEAR_DAMPING
 @export var projectile_max_distance: float = GameSettings.GUN_PROJECTILE_MAX_DISTANCE
+@export var max_ammo: int = 3
+@export var reload_time: float = 1.2
 
 var _aim_direction: Vector2 = Vector2.LEFT
 var _pointing_right: bool = false
@@ -20,6 +22,10 @@ var _extension_stats: Dictionary = {}
 var _extension_player_slot: int = -1
 var _laser_sight: Line2D = null
 var _has_laser_scope: bool = false
+var _current_ammo: int = 3
+var _is_reloading: bool = false
+var _reload_timer: float = 0.0
+var _ammo_label: Label = null
 
 @onready var _player: Player = get_parent() as Player
 @onready var _visual_root: Node2D = $VisualRoot
@@ -31,6 +37,8 @@ func _ready() -> void:
 	_connect_extension_inventory()
 	_refresh_extension_loadout()
 	_setup_laser_sight()
+	_setup_ammo_display()
+	_reset_ammo()
 
 
 func _setup_laser_sight() -> void:
@@ -54,6 +62,36 @@ func _update_laser_sight() -> void:
 	_laser_sight.set_point_position(1, end_pos)
 
 
+func _setup_ammo_display() -> void:
+	_ammo_label = Label.new()
+	_ammo_label.name = "AmmoLabel"
+	_ammo_label.z_index = 3
+	_ammo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_ammo_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_ammo_label.add_theme_font_size_override("font_size", 10)
+	_ammo_label.position = Vector2(-12, -22)
+	add_child(_ammo_label)
+
+
+func _reset_ammo() -> void:
+	_current_ammo = _get_effective_max_ammo()
+	_is_reloading = false
+	_reload_timer = 0.0
+
+
+func _update_ammo_display() -> void:
+	if _ammo_label == null:
+		return
+	if _is_reloading:
+		var progress: float = 1.0 - (_reload_timer / _get_effective_reload_time())
+		var pct: int = clampi(int(progress * 100), 0, 100)
+		_ammo_label.text = "RELOAD {0}%".format([pct])
+		_ammo_label.modulate = Color(1, 0.8, 0.2, 1)
+	else:
+		_ammo_label.text = "{0}/{1}".format([_current_ammo, _get_effective_max_ammo()])
+		_ammo_label.modulate = Color(1, 1, 1, 0.9)
+
+
 func _physics_process(delta: float) -> void:
 	if _player == null:
 		return
@@ -72,10 +110,20 @@ func _physics_process(delta: float) -> void:
 	_update_visual_transform()
 	_update_laser_sight()
 
+	if _is_reloading:
+		_reload_timer -= delta
+		if _reload_timer <= 0.0:
+			_finish_reload()
+
 	var wants_shot: bool = _player.is_shoot_down() if automatic_fire else _player.is_shoot_pressed()
-	if wants_shot and _fire_cooldown <= 0.0:
+	if wants_shot and _fire_cooldown <= 0.0 and _current_ammo > 0 and not _is_reloading:
 		_shoot()
+		_current_ammo -= 1
 		_fire_cooldown = _get_modified_fire_interval()
+		if _current_ammo <= 0:
+			_start_reload()
+
+	_update_ammo_display()
 
 
 func _shoot() -> void:
@@ -198,6 +246,25 @@ func _play_fire_feedback(direction: Vector2, muzzle_position: Vector2) -> void:
 	GameJuice.shake(GameSettings.GUN_FIRE_SHAKE_STRENGTH, GameSettings.GUN_FIRE_SHAKE_TIME)
 
 
+func _start_reload() -> void:
+	_is_reloading = true
+	_reload_timer = _get_effective_reload_time()
+
+
+func _finish_reload() -> void:
+	_is_reloading = false
+	_reload_timer = 0.0
+	_current_ammo = _get_effective_max_ammo()
+
+
+func _get_effective_max_ammo() -> int:
+	return maxi(1, max_ammo + int(roundf(_get_extension_attribute(&"ammo_max"))))
+
+
+func _get_effective_reload_time() -> float:
+	return maxf(0.1, reload_time + _get_extension_attribute(&"reload_time"))
+
+
 func _connect_extension_inventory() -> void:
 	var inventory_node: Node = get_node_or_null("/root/ExtensionInventory")
 	if inventory_node == null or not inventory_node.has_signal("loadout_changed"):
@@ -245,6 +312,8 @@ func _refresh_extension_loadout() -> void:
 	_has_laser_scope = _get_source_extensions().has("laser_scope_mk1")
 	if _laser_sight != null:
 		_laser_sight.visible = _has_laser_scope
+
+	_reset_ammo()
 
 
 func _get_modified_fire_interval() -> float:
