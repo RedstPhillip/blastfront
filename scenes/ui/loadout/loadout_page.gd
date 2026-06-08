@@ -42,6 +42,7 @@ var _inspecting_item: bool = false
 var _pending_merge_source: WeaponExtensionItem = null
 var _pending_merge_target: WeaponExtensionItem = null
 var _merge_dialog: ConfirmationDialog = null
+var _saved_reward_spacer: Control = null
 
 @onready var _description_title: Label = %DescriptionTitle
 @onready var _description_meta: Label = %DescriptionMeta
@@ -65,8 +66,8 @@ var _merge_dialog: ConfirmationDialog = null
 @onready var _vest_slot: ArmorOverlaySlot = %VestSlot
 @onready var _shield_slot: ArmorOverlaySlot = %ShieldSlot
 @onready var _coin_balance_label: Label = %CoinBalanceLabel
-@onready var _saved_row: GridContainer = %SavedRow
-@onready var _recycler_drop_target: RecyclerDropTarget = %RecyclerDropTarget
+@onready var _offer_grid: GridContainer = %OfferGrid
+@onready var _recycler_drop_target: Control = %RecyclerDropTarget
 
 
 func _ready() -> void:
@@ -98,6 +99,7 @@ func _ready() -> void:
 	_setup_weapon_placeholders()
 	_setup_armor_slots()
 	_setup_reward_slots()
+	_setup_saved_reward_spacer()
 	_setup_merge_dialog()
 	_connect_inventory_signals()
 	_refresh_weapon_inventory()
@@ -192,8 +194,10 @@ func _connect_inventory_signals() -> void:
 		OnlineMatch.state_changed.connect(_refresh_shop_state)
 	if not ResearchManager.research_changed.is_connected(_refresh_research_unlocks):
 		ResearchManager.research_changed.connect(_refresh_research_unlocks)
-	if not _recycler_drop_target.reward_recycled.is_connected(_on_reward_recycled):
-		_recycler_drop_target.reward_recycled.connect(_on_reward_recycled)
+	if _recycler_drop_target.has_signal("reward_recycled"):
+		var recycle_callback: Callable = Callable(self, "_on_reward_recycled")
+		if not _recycler_drop_target.is_connected("reward_recycled", recycle_callback):
+			_recycler_drop_target.connect("reward_recycled", recycle_callback)
 
 
 func _refresh_weapon_inventory() -> void:
@@ -276,10 +280,24 @@ func _refresh_round_rewards() -> void:
 
 func _refresh_research_unlocks() -> void:
 	var saved_count: int = ResearchManager.get_blueprint_slot_count()
-	_saved_row.visible = saved_count > 0
 	for saved_index in range(_saved_reward_slots.size()):
-		_saved_reward_slots[saved_index].visible = saved_index < saved_count
-	_recycler_drop_target.refresh()
+		var saved_slot: RoundRewardSlot = _saved_reward_slots[saved_index]
+		saved_slot.visible = saved_index < saved_count
+		saved_slot.modulate = Color(0.72, 0.76, 0.78, 1.0)
+	if _saved_reward_spacer != null:
+		_saved_reward_spacer.visible = saved_count > 0 and saved_count % 2 == 1
+	if _recycler_drop_target.has_method("refresh"):
+		_recycler_drop_target.call("refresh")
+
+
+func _setup_saved_reward_spacer() -> void:
+	_saved_reward_spacer = Control.new()
+	_saved_reward_spacer.custom_minimum_size = Vector2(64, 64)
+	_saved_reward_spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_saved_reward_spacer.visible = false
+	_offer_grid.add_child(_saved_reward_spacer)
+	if not _offer_reward_slots.is_empty():
+		_offer_grid.move_child(_saved_reward_spacer, _offer_reward_slots[0].get_index())
 
 
 func _refresh_shop_state() -> void:

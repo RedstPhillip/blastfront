@@ -31,14 +31,14 @@ func _build_tree() -> void:
 	var definitions: Array[Dictionary] = ResearchManager.get_all_definitions()
 	_connection_layer.call("set_definitions", definitions)
 	for definition in definitions:
-		var node: ResearchNodeButton = RESEARCH_NODE_SCENE.instantiate() as ResearchNodeButton
+		var node: Button = RESEARCH_NODE_SCENE.instantiate() as Button
 		if node == null:
 			continue
 		var research_id: StringName = StringName(str(definition.get("id", "")))
 		node.position = definition.get("position", Vector2.ZERO)
-		node.setup(definition)
-		node.research_selected.connect(_on_research_selected)
-		node.research_hovered.connect(_show_research_details)
+		node.call("setup", definition)
+		node.connect("research_selected", _on_research_selected)
+		node.connect("research_hovered", _show_research_details)
 		_tree_canvas.add_child(node)
 		_nodes_by_id[str(research_id)] = node
 
@@ -46,9 +46,9 @@ func _build_tree() -> void:
 func _refresh() -> void:
 	_points_label.text = "%d RESEARCH POINTS" % ResearchManager.research_points
 	for node_variant in _nodes_by_id.values():
-		var node: ResearchNodeButton = node_variant as ResearchNodeButton
+		var node: Node = node_variant as Node
 		if node != null:
-			node.refresh()
+			node.call("refresh")
 	_connection_layer.queue_redraw()
 
 

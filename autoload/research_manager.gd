@@ -430,7 +430,7 @@ func _build_definitions() -> Dictionary:
 		_definition(RAGE, "Last Stand", BRANCH_MISC, "RG", "Below 20% health, deal 15%, 30% or 50% more damage.", [3, 7, 13], Vector2(470, 345), [_require(LIFE_STEAL)], true, 220),
 		_definition(PASSIVE_HEALING, "Field Regeneration", BRANCH_MISC, "HP", "While standing still, heal up to 50%, 75% or 100% health.", [4, 8, 14], Vector2(670, 345), [_require(RAGE)], true, 230),
 		_definition(PHOENIX, "Phoenix", BRANCH_MISC, "PX", "Once per set, survive lethal damage and return with 40% health.", [20], Vector2(870, 345), [_require(PASSIVE_HEALING, 3)], true, 240),
-		_definition(TIME_CONTROL, "Time Control", BRANCH_MISC, "TM", "Future research: slow the world, extend the effect, then briefly freeze time.", [8, 14, 24], Vector2(1070, 255), [_require(PHOENIX)], false, 250),
+		_definition(TIME_CONTROL, "Time Control", BRANCH_MISC, "TM", "Future research: slow the world, extend the effect, then briefly freeze time.", [60, 120, 240], Vector2(1120, 345), [], false, 999),
 		_definition(FASTER_CAPTURE, "Faster Capture", BRANCH_MISC, "FC", "Future research: capture objectives faster.", [3, 7, 12], Vector2(670, 415), [_require(RAGE)], false, 260),
 		_definition(CAPTURE_BONUS, "Capture Bonus", BRANCH_MISC, "CB", "Future research: gain better rewards from captured objectives.", [4, 8, 14], Vector2(870, 415), [_require(FASTER_CAPTURE)], false, 270),
 		_definition(CAPTURE_RADIUS, "Capture Radius", BRANCH_MISC, "CR", "Future research: increase objective capture radius.", [4, 9, 15], Vector2(1070, 415), [_require(CAPTURE_BONUS)], false, 280),

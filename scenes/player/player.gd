@@ -320,6 +320,12 @@ func apply_remote_snapshot(snapshot: Dictionary) -> void:
 		velocity = _network_target_velocity
 
 
+func get_border_check_position() -> Vector2:
+	if control_mode == GameSettings.CONTROL_REMOTE and _has_network_target:
+		return _network_target_position
+	return global_position
+
+
 func get_move_direction() -> float:
 	if control_mode != GameSettings.CONTROL_LOCAL or not movement_enabled:
 		return 0.0

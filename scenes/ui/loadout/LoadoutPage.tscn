@@ -440,41 +440,34 @@ clip_contents = true
 
 [node name="RewardVBox" type="VBoxContainer" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/RewardCenter"]
 layout_mode = 2
-theme_override_constants/separation = 24
-
-[node name="SavedRow" type="GridContainer" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/RewardCenter/RewardVBox"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 4
-theme_override_constants/h_separation = 18
-theme_override_constants/v_separation = 10
-columns = 2
-
-[node name="SavedRewardOne" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/RewardCenter/RewardVBox/SavedRow" instance=ExtResource("7_reward_slot")]
-unique_name_in_owner = true
-layout_mode = 2
-is_saved_slot = true
-
-[node name="SavedRewardTwo" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/RewardCenter/RewardVBox/SavedRow" instance=ExtResource("7_reward_slot")]
-unique_name_in_owner = true
-layout_mode = 2
-is_saved_slot = true
-
-[node name="SavedRewardThree" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/RewardCenter/RewardVBox/SavedRow" instance=ExtResource("7_reward_slot")]
-unique_name_in_owner = true
-layout_mode = 2
-is_saved_slot = true
-
-[node name="SavedRewardFour" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/RewardCenter/RewardVBox/SavedRow" instance=ExtResource("7_reward_slot")]
-unique_name_in_owner = true
-layout_mode = 2
-is_saved_slot = true
+theme_override_constants/separation = 18
 
 [node name="OfferGrid" type="GridContainer" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/RewardCenter/RewardVBox"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/h_separation = 18
-theme_override_constants/v_separation = 10
+theme_override_constants/v_separation = 14
 columns = 2
+
+[node name="SavedRewardOne" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/RewardCenter/RewardVBox/OfferGrid" instance=ExtResource("7_reward_slot")]
+unique_name_in_owner = true
+layout_mode = 2
+is_saved_slot = true
+
+[node name="SavedRewardTwo" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/RewardCenter/RewardVBox/OfferGrid" instance=ExtResource("7_reward_slot")]
+unique_name_in_owner = true
+layout_mode = 2
+is_saved_slot = true
+
+[node name="SavedRewardThree" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/RewardCenter/RewardVBox/OfferGrid" instance=ExtResource("7_reward_slot")]
+unique_name_in_owner = true
+layout_mode = 2
+is_saved_slot = true
+
+[node name="SavedRewardFour" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/RewardCenter/RewardVBox/OfferGrid" instance=ExtResource("7_reward_slot")]
+unique_name_in_owner = true
+layout_mode = 2
+is_saved_slot = true
 
 [node name="ExtensionRewardOne" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/RewardCenter/RewardVBox/OfferGrid" instance=ExtResource("7_reward_slot")]
 unique_name_in_owner = true

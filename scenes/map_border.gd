@@ -91,7 +91,10 @@ func _physics_process(_delta: float) -> void:
 		var player: Player = player_node as Player
 		if player == null:
 			continue
-		var side: StringName = _get_overlapping_border_side(player.global_position)
+		var check_position: Vector2 = player.global_position
+		if player.has_method("get_border_check_position"):
+			check_position = player.call("get_border_check_position")
+		var side: StringName = _get_overlapping_border_side(check_position)
 		if side != &"":
 			_try_apply_border_hit(player, side)
 
