@@ -335,7 +335,7 @@ clip_text = true
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.7, 0.76, 0.78, 0.92)
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 10
 text = "ITEM DETAILS"
 clip_text = true
 
@@ -365,27 +365,12 @@ horizontal_alignment = 2
 
 [node name="DescriptionBody" type="Label" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/InfoCard/InfoVBox" unique_id=1090261088]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 42)
+custom_minimum_size = Vector2(0, 58)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.86, 0.9, 0.9, 0.84)
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 11
 text = "Hover description"
 autowrap_mode = 3
-
-[node name="CurrentStatsTitle" type="Label" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/InfoCard/InfoVBox"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.62, 0.68, 0.7, 0.92)
-theme_override_font_sizes/font_size = 10
-text = "CURRENT WEAPON"
-
-[node name="CurrentStats" type="Label" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/InfoCard/InfoVBox"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 34)
-layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.93, 0.94, 0.96)
-theme_override_font_sizes/font_size = 11
-text = "DMG 10     FIRE 2.00/s\nRELOAD 1.20s     AMMO 3"
 
 [node name="ChangesTitle" type="Label" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/InfoCard/InfoVBox"]
 unique_name_in_owner = true
@@ -396,7 +381,7 @@ text = "ITEM CHANGES"
 
 [node name="ChangesVBox" type="VBoxContainer" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/InfoCard/InfoVBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 139)
+custom_minimum_size = Vector2(0, 148)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3

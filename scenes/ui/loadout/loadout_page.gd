@@ -37,6 +37,7 @@ var _weapon_slots: Dictionary = {}
 var _armor_slots: Dictionary = {}
 var _offer_reward_slots: Array[RoundRewardSlot] = []
 var _saved_reward_slots: Array[RoundRewardSlot] = []
+var _inspecting_item: bool = false
 
 @onready var _description_title: Label = %DescriptionTitle
 @onready var _description_meta: Label = %DescriptionMeta
@@ -44,8 +45,6 @@ var _saved_reward_slots: Array[RoundRewardSlot] = []
 @onready var _description_accent: ColorRect = %Accent
 @onready var _condition_bar: ProgressBar = %ConditionBar
 @onready var _condition_label: Label = %ConditionLabel
-@onready var _current_stats_title: Label = %CurrentStatsTitle
-@onready var _current_stats: Label = %CurrentStats
 @onready var _changes_title: Label = %ChangesTitle
 @onready var _changes_vbox: VBoxContainer = %ChangesVBox
 @onready var _no_changes_label: Label = %NoChangesLabel
@@ -97,6 +96,14 @@ func _ready() -> void:
 	_refresh_armor_slots()
 	_refresh_round_rewards()
 	_show_default_description()
+
+
+func _process(_delta: float) -> void:
+	if not _inspecting_item:
+		return
+	var hovered: Control = get_viewport().gui_get_hovered_control()
+	if not _is_inspectable_control(hovered):
+		_show_default_description()
 
 
 func _exit_tree() -> void:
@@ -233,12 +240,12 @@ func _refresh_round_rewards() -> void:
 
 
 func _show_default_description() -> void:
+	_inspecting_item = false
 	_description_title.text = "Loadout"
 	_description_meta.text = "ITEM DETAILS"
 	_description_body.text = "Hover over an item to inspect its type, condition and effects."
 	_set_description_condition(0.0, Color8(98, 104, 110, 255), false)
 	var current_modifiers: Dictionary = _get_current_weapon_modifiers()
-	_update_current_weapon_stats(current_modifiers)
 	_show_default_weapon_stats(current_modifiers)
 
 
@@ -246,8 +253,9 @@ func _show_weapon_extension_description(item: WeaponExtensionItem) -> void:
 	if item == null or item.definition == null:
 		_show_default_description()
 		return
+	_inspecting_item = true
 	_description_title.text = item.get_display_name()
-	_description_meta.text = "WEAPON EXTENSION  |  %s  |  MARK %d  |  %s" % [
+	_description_meta.text = "%s  |  MK%d  |  %s" % [
 		item.get_slot_display_name().to_upper(),
 		item.definition.mark,
 		item.get_condition_tier_name().to_upper(),
@@ -256,7 +264,6 @@ func _show_weapon_extension_description(item: WeaponExtensionItem) -> void:
 	_set_description_condition(item.condition, item.get_condition_color(), true)
 	var current_modifiers: Dictionary = _get_current_weapon_modifiers()
 	var preview_modifiers: Dictionary = _build_weapon_preview_modifiers(item, current_modifiers)
-	_update_current_weapon_stats(current_modifiers)
 	_show_weapon_stat_changes(current_modifiers, preview_modifiers)
 
 
@@ -264,6 +271,7 @@ func _show_armor_description(item: ArmorItemData) -> void:
 	if item == null:
 		_show_default_description()
 		return
+	_inspecting_item = true
 	_description_title.text = item.get_hover_title()
 	_description_meta.text = "ARMOR  |  %s  |  %s" % [
 		item.get_category_display_name().to_upper(),
@@ -273,7 +281,6 @@ func _show_armor_description(item: ArmorItemData) -> void:
 	_set_description_condition(item.condition, item.get_condition_color(), true)
 	var current_modifiers: Dictionary = ArmorInventory.get_scaled_attributes()
 	var preview_modifiers: Dictionary = _build_armor_preview_modifiers(item, current_modifiers)
-	_update_current_armor_stats(current_modifiers)
 	_show_armor_stat_changes(current_modifiers, preview_modifiers)
 
 
@@ -330,32 +337,6 @@ func _apply_numeric_modifiers(target: Dictionary, incoming_variant: Variant, fac
 		if value is int or value is float:
 			var key: StringName = StringName(str(raw_key))
 			target[key] = float(target.get(key, 0.0)) + float(value) * factor
-
-
-func _update_current_weapon_stats(modifiers: Dictionary) -> void:
-	var damage: float = _weapon_display_value(&"damage", modifiers)
-	var fire_rate: float = _weapon_display_value(&"fire_interval", modifiers)
-	var reload: float = _weapon_display_value(&"reload_time", modifiers)
-	var ammo: float = _weapon_display_value(&"ammo_max", modifiers)
-	_current_stats_title.text = "CURRENT WEAPON"
-	_current_stats.text = "DMG %d     FIRE %.2f/s\nRELOAD %.2fs     AMMO %d" % [
-		int(round(damage)),
-		fire_rate,
-		reload,
-		int(round(ammo)),
-	]
-
-
-func _update_current_armor_stats(modifiers: Dictionary) -> void:
-	var health: float = _armor_display_value(&"max_health", modifiers)
-	var movement: float = _armor_display_value(&"move_speed", modifiers)
-	var block: float = _armor_display_value(&"block_strength", modifiers)
-	_current_stats_title.text = "CURRENT ARMOR"
-	_current_stats.text = "HEALTH %d     MOVE %d\nBLOCK %d" % [
-		int(round(health)),
-		int(round(movement)),
-		int(round(block)),
-	]
 
 
 func _show_weapon_stat_changes(current: Dictionary, preview: Dictionary) -> void:
@@ -585,6 +566,19 @@ func _weapon_attribute_lower_is_better(attribute: StringName) -> bool:
 		or attribute == &"recoil_rotation_degrees"
 
 
+func _is_inspectable_control(control: Control) -> bool:
+	var current: Control = control
+	while current != null:
+		if current is ArmorItemCard \
+				or current is WeaponExtensionItemCard \
+				or current is ArmorOverlaySlot \
+				or current is WeaponExtensionSlot \
+				or current is RoundRewardSlot:
+			return true
+		current = current.get_parent_control()
+	return false
+
+
 func _short_description(description: String) -> String:
 	if description.is_empty():
 		return "No description available."
@@ -617,7 +611,6 @@ func _on_armor_cleared(category_id: StringName) -> void:
 	_description_body.text = "Drag a matching armor item here to equip it."
 	_set_description_condition(0.0, Color8(98, 104, 110, 255), false)
 	var current_modifiers: Dictionary = _get_current_weapon_modifiers()
-	_update_current_weapon_stats(current_modifiers)
 	_show_default_weapon_stats(current_modifiers)
 
 
@@ -635,7 +628,6 @@ func _on_weapon_extension_cleared(slot_key: StringName) -> void:
 	_description_body.text = "Drag a matching weapon extension here to equip it."
 	_set_description_condition(0.0, Color8(98, 104, 110, 255), false)
 	var current_modifiers: Dictionary = _get_current_weapon_modifiers()
-	_update_current_weapon_stats(current_modifiers)
 	_show_default_weapon_stats(current_modifiers)
 
 
@@ -656,7 +648,6 @@ func _on_round_reward_claimed(source_kind: StringName, source_index: int) -> voi
 		_description_body.text = "The item was added to your inventory and is ready to equip."
 		_set_description_condition(0.0, Color8(72, 190, 111, 255), false)
 		var current_modifiers: Dictionary = _get_current_weapon_modifiers()
-		_update_current_weapon_stats(current_modifiers)
 		_show_default_weapon_stats(current_modifiers)
 
 
