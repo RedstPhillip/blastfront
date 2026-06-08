@@ -65,27 +65,44 @@ func _update_laser_sight() -> void:
 
 
 func _build_laser_trajectory() -> PackedVector2Array:
-	const SEGMENT_COUNT: int = 28
 	var points: PackedVector2Array = PackedVector2Array([Vector2.ZERO])
 	var direction: Vector2 = get_shot_direction()
 	var speed: float = _get_modified_float(&"projectile_speed", projectile_speed, 1.0)
 	var gravity_value: float = projectile_gravity + _get_extension_attribute(&"projectile_gravity")
-	if _get_extension_tags().has("hover"):
-		gravity_value = 0.0
+	var extension_tags: Array[String] = _get_extension_tags()
+	var linear_damping_value: float = maxf(
+		0.0,
+		projectile_linear_damping + _get_extension_attribute(&"projectile_linear_damping")
+	)
 	var max_distance: float = maxf(50.0, projectile_max_distance + _get_extension_attribute(&"projectile_max_distance"))
 	var velocity: Vector2 = direction * speed
-	var step_time: float = max_distance / maxf(speed, 1.0) / float(SEGMENT_COUNT)
+	var physics_ticks: float = maxf(float(Engine.physics_ticks_per_second), 1.0)
+	var step_time: float = 1.0 / physics_ticks
 	var local_position: Vector2 = Vector2.ZERO
+	var distance_travelled: float = 0.0
 	var world_start: Vector2 = get_muzzle_global_position()
 	var space_state: PhysicsDirectSpaceState2D = get_world_2d().direct_space_state
+	var collision_mask: int = 2 if extension_tags.has("drill") else 3
+	var max_steps: int = ceili(max_distance / maxf(speed * step_time, 1.0)) + 60
 
-	for segment_index in range(SEGMENT_COUNT):
+	for step_index in range(max_steps):
+		if extension_tags.has("hover"):
+			velocity = HoverBehavior.adjust_velocity_for_ground(
+				world_start + local_position,
+				velocity,
+				gravity_value,
+				step_time,
+				space_state,
+				[_player.get_rid()]
+			)
 		velocity.y += gravity_value * step_time
+		if linear_damping_value > 0.0:
+			velocity = velocity.move_toward(Vector2.ZERO, linear_damping_value * step_time)
 		var next_position: Vector2 = local_position + velocity * step_time
 		var query: PhysicsRayQueryParameters2D = PhysicsRayQueryParameters2D.create(
 			world_start + local_position,
 			world_start + next_position,
-			1
+			collision_mask
 		)
 		query.exclude = [_player.get_rid()]
 		var hit: Dictionary = space_state.intersect_ray(query)
@@ -93,8 +110,14 @@ func _build_laser_trajectory() -> PackedVector2Array:
 			var hit_position: Vector2 = hit.get("position", world_start + next_position)
 			points.append(hit_position - world_start)
 			break
-		points.append(next_position)
+		distance_travelled += (next_position - local_position).length()
+		if step_index % 3 == 0:
+			points.append(next_position)
 		local_position = next_position
+		if distance_travelled >= max_distance:
+			if points[points.size() - 1] != local_position:
+				points.append(local_position)
+			break
 	return points
 
 

@@ -78,6 +78,7 @@ func _on_mouse_entered() -> void:
 	_is_hovered = true
 	if item != null and item.definition != null:
 		_apply_background_gradient(item.get_condition_color())
+		extension_hovered.emit(item)
 
 
 func _on_mouse_exited() -> void:

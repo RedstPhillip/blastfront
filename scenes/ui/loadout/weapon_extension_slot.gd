@@ -108,6 +108,7 @@ func _on_mouse_entered() -> void:
 		_apply_background_gradient(Color8(46, 54, 61, 210), 0.46)
 	else:
 		_apply_background_gradient(Color8(74, 78, 82, 230), 0.64)
+		extension_hovered.emit(item)
 
 
 func _on_mouse_exited() -> void:

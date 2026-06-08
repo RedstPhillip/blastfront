@@ -1,8 +1,69 @@
 class_name HoverBehavior
 extends ExtensionBehavior
 
+const HOVER_HEIGHT: float = 22.0
+const GROUND_DETECTION_DEPTH: float = 96.0
+const FLOOR_NORMAL_THRESHOLD: float = -0.5
+const HEIGHT_RESPONSE: float = 7.0
+const VERTICAL_DAMPING: float = 5.0
+const MAX_CORRECTION_SPEED: float = 420.0
+
 
 func update(projectile: Projectile, delta: float, _effect_data: Dictionary = {}) -> void:
-	if projectile == null:
+	if projectile == null or delta <= 0.0 or not projectile.is_inside_tree():
 		return
-	projectile.velocity.y -= projectile.gravity * delta
+	projectile.velocity = adjust_velocity_for_ground(
+		projectile.global_position,
+		projectile.velocity,
+		projectile.gravity,
+		delta,
+		projectile.get_world_2d().direct_space_state,
+		[projectile.get_rid()]
+	)
+
+
+static func adjust_velocity_for_ground(
+	position: Vector2,
+	current_velocity: Vector2,
+	gravity: float,
+	delta: float,
+	space_state: PhysicsDirectSpaceState2D,
+	exclude: Array[RID] = []
+) -> Vector2:
+	if delta <= 0.0 or space_state == null:
+		return current_velocity
+
+	var next_x: float = position.x + current_velocity.x * delta
+	var ray_start: Vector2 = Vector2(next_x, position.y - HOVER_HEIGHT)
+	var ray_end: Vector2 = Vector2(next_x, position.y + GROUND_DETECTION_DEPTH)
+	var query: PhysicsRayQueryParameters2D = PhysicsRayQueryParameters2D.create(ray_start, ray_end, 1)
+	query.exclude = exclude
+	var hit: Dictionary = space_state.intersect_ray(query)
+	if hit.is_empty():
+		return current_velocity
+
+	var normal_variant: Variant = hit.get("normal", Vector2.UP)
+	var ground_normal: Vector2 = normal_variant as Vector2
+	if ground_normal.y > FLOOR_NORMAL_THRESHOLD:
+		return current_velocity
+
+	var hit_position_variant: Variant = hit.get("position", ray_end)
+	var ground_position: Vector2 = hit_position_variant as Vector2
+	var target_y: float = ground_position.y - HOVER_HEIGHT
+	var predicted_y: float = position.y + (current_velocity.y + gravity * delta) * delta
+	var height_error: float = target_y - position.y
+	if predicted_y < target_y and height_error > HOVER_HEIGHT:
+		return current_velocity
+
+	var adjusted_velocity: Vector2 = current_velocity
+	var target_vertical_speed: float = clampf(
+		height_error * HEIGHT_RESPONSE,
+		-MAX_CORRECTION_SPEED,
+		MAX_CORRECTION_SPEED
+	)
+	adjusted_velocity.y = move_toward(
+		current_velocity.y,
+		target_vertical_speed - gravity * delta,
+		MAX_CORRECTION_SPEED * delta * VERTICAL_DAMPING
+	)
+	return adjusted_velocity
