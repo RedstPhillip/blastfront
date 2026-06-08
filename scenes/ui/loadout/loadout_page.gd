@@ -65,6 +65,8 @@ var _merge_dialog: ConfirmationDialog = null
 @onready var _vest_slot: ArmorOverlaySlot = %VestSlot
 @onready var _shield_slot: ArmorOverlaySlot = %ShieldSlot
 @onready var _coin_balance_label: Label = %CoinBalanceLabel
+@onready var _saved_row: GridContainer = %SavedRow
+@onready var _recycler_drop_target: RecyclerDropTarget = %RecyclerDropTarget
 
 
 func _ready() -> void:
@@ -89,6 +91,8 @@ func _ready() -> void:
 	_saved_reward_slots = [
 		%SavedRewardOne,
 		%SavedRewardTwo,
+		%SavedRewardThree,
+		%SavedRewardFour,
 	]
 
 	_setup_weapon_placeholders()
@@ -101,6 +105,7 @@ func _ready() -> void:
 	_refresh_armor_inventory()
 	_refresh_armor_slots()
 	_refresh_round_rewards()
+	_refresh_research_unlocks()
 	_show_default_description()
 
 
@@ -125,6 +130,8 @@ func _exit_tree() -> void:
 		RoundRewardInventory.rewards_changed.disconnect(_refresh_round_rewards)
 	if OnlineMatch.state_changed.is_connected(_refresh_shop_state):
 		OnlineMatch.state_changed.disconnect(_refresh_shop_state)
+	if ResearchManager.research_changed.is_connected(_refresh_research_unlocks):
+		ResearchManager.research_changed.disconnect(_refresh_research_unlocks)
 
 
 func _setup_weapon_placeholders() -> void:
@@ -183,6 +190,10 @@ func _connect_inventory_signals() -> void:
 		RoundRewardInventory.rewards_changed.connect(_refresh_round_rewards)
 	if not OnlineMatch.state_changed.is_connected(_refresh_shop_state):
 		OnlineMatch.state_changed.connect(_refresh_shop_state)
+	if not ResearchManager.research_changed.is_connected(_refresh_research_unlocks):
+		ResearchManager.research_changed.connect(_refresh_research_unlocks)
+	if not _recycler_drop_target.reward_recycled.is_connected(_on_reward_recycled):
+		_recycler_drop_target.reward_recycled.connect(_on_reward_recycled)
 
 
 func _refresh_weapon_inventory() -> void:
@@ -259,7 +270,16 @@ func _refresh_round_rewards() -> void:
 		_offer_reward_slots[offer_index].set_reward(RoundRewardInventory.get_offer(offer_index))
 	for saved_index in range(_saved_reward_slots.size()):
 		_saved_reward_slots[saved_index].set_reward(RoundRewardInventory.get_saved_reward(saved_index))
+	_refresh_research_unlocks()
 	_refresh_shop_state()
+
+
+func _refresh_research_unlocks() -> void:
+	var saved_count: int = ResearchManager.get_blueprint_slot_count()
+	_saved_row.visible = saved_count > 0
+	for saved_index in range(_saved_reward_slots.size()):
+		_saved_reward_slots[saved_index].visible = saved_index < saved_count
+	_recycler_drop_target.refresh()
 
 
 func _refresh_shop_state() -> void:
@@ -769,3 +789,12 @@ func _on_reward_dropped_to_inventory(payload: Dictionary) -> void:
 	var source_kind: StringName = StringName(str(payload.get("source_kind", "")))
 	var source_index: int = int(payload.get("source_index", -1))
 	_on_round_reward_claimed(source_kind, source_index)
+
+
+func _on_reward_recycled(refund: int) -> void:
+	_description_title.text = "Blueprint recycled"
+	_description_meta.text = "RECYCLER  |  +%d COINS" % refund
+	_description_body.text = "The blueprint was dismantled and its value returned to your balance."
+	_set_description_condition(0.0, Color8(72, 190, 111, 255), false)
+	var current_modifiers: Dictionary = _get_current_weapon_modifiers()
+	_show_default_weapon_stats(current_modifiers)

@@ -89,3 +89,10 @@ static func roll(rng: RandomNumberGenerator = null) -> float:
 	if roll_value < 0.70:
 		return gen.randf_range(35.0, 55.0)
 	return gen.randf_range(10.0, 30.0)
+
+
+static func roll_with_luck(rng: RandomNumberGenerator, luck_level: int) -> float:
+	var best_roll: float = roll(rng)
+	for extra_roll_index in range(clampi(luck_level, 0, 3)):
+		best_roll = maxf(best_roll, roll(rng))
+	return best_roll

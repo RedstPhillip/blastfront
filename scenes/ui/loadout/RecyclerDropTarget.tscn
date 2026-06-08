@@ -1,0 +1,54 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/loadout/recycler_drop_target.gd" id="1_recycler"]
+
+[sub_resource type="StyleBoxFlat" id="Style_recycler"]
+bg_color = Color(0.07, 0.13, 0.105, 0.96)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.26, 0.82, 0.52, 0.9)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
+
+[node name="RecyclerDropTarget" type="PanelContainer"]
+custom_minimum_size = Vector2(250, 48)
+layout_mode = 2
+theme_override_styles/panel = SubResource("Style_recycler")
+script = ExtResource("1_recycler")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_right = 12
+
+[node name="Row" type="HBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Icon" type="Label" parent="Margin/Row"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 1, 0.65, 1)
+theme_override_font_sizes/font_size = 24
+text = "R"
+vertical_alignment = 1
+
+[node name="Text" type="Label" parent="Margin/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.82, 0.94, 0.86, 1)
+theme_override_font_sizes/font_size = 12
+text = "DROP TO RECYCLE"
+vertical_alignment = 1
+
+[node name="RefundLabel" type="Label" parent="Margin/Row"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 1, 0.65, 1)
+theme_override_font_sizes/font_size = 12
+text = "50% REFUND"
+horizontal_alignment = 2
+vertical_alignment = 1

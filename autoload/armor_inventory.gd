@@ -96,6 +96,22 @@ func register_item(item: ArmorItemData) -> void:
 		inventory_changed.emit()
 
 
+func apply_condition_wear_for_local(amount: float) -> void:
+	if amount <= 0.0:
+		return
+	var changed: bool = false
+	for category_id in ArmorItemData.category_ids():
+		var item: ArmorItemData = loadout.get_equipped_item(category_id)
+		if item == null:
+			continue
+		item.condition = ItemCondition.clamp_value(item.condition - amount)
+		changed = true
+	if changed:
+		inventory_changed.emit()
+		loadout_changed.emit()
+		_publish_local_loadout_if_needed(get_local_player_slot())
+
+
 func get_reward_definitions() -> Array[ArmorItemData]:
 	return definitions.duplicate()
 

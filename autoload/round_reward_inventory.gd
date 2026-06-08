@@ -7,7 +7,7 @@ const REWARD_ARMOR: StringName = &"armor"
 const SOURCE_OFFER: StringName = &"offer"
 const SOURCE_SAVED: StringName = &"saved"
 const OFFER_COUNT_PER_TYPE: int = 3
-const SAVED_SLOT_COUNT: int = 2
+const MAX_SAVED_SLOT_COUNT: int = 4
 
 var offers: Array[Dictionary] = []
 var saved_rewards: Array[Dictionary] = []
@@ -18,13 +18,17 @@ var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
 func _ready() -> void:
 	_rng.randomize()
-	_clear_saved_slots()
+	_sync_saved_slots()
+	if not ResearchManager.research_changed.is_connected(_on_research_changed):
+		ResearchManager.research_changed.connect(_on_research_changed)
 
 
 func prepare_for_round(round_key: int) -> void:
 	if round_key <= 0 or round_key == _last_round_key:
 		return
 	_last_round_key = round_key
+	_apply_round_condition_wear()
+	_sync_saved_slots()
 	_generate_offers()
 	rewards_changed.emit()
 
@@ -32,7 +36,8 @@ func prepare_for_round(round_key: int) -> void:
 func reset_match() -> void:
 	_last_round_key = -1
 	offers.clear()
-	_clear_saved_slots()
+	saved_rewards.clear()
+	_sync_saved_slots()
 	rewards_changed.emit()
 
 
@@ -85,6 +90,9 @@ func claim_reward(source_kind: StringName, source_index: int) -> bool:
 	var claimed: bool = false
 	if reward_type == REWARD_EXTENSION:
 		var extension_item: WeaponExtensionItem = item_variant as WeaponExtensionItem
+		if extension_item != null and extension_item.mark == 1:
+			if _rng.randf() < ResearchManager.get_bonus_mark_chance():
+				extension_item.mark = 2
 		claimed = ExtensionInventory.add_item_for_local(extension_item)
 	elif reward_type == REWARD_ARMOR:
 		var armor_item: ArmorItemData = item_variant as ArmorItemData
@@ -97,6 +105,22 @@ func claim_reward(source_kind: StringName, source_index: int) -> bool:
 	_set_reward(source_kind, source_index, {})
 	rewards_changed.emit()
 	return true
+
+
+func recycle_reward(source_kind: StringName, source_index: int) -> int:
+	var refund_ratio: float = ResearchManager.get_recycling_refund_ratio()
+	if refund_ratio <= 0.0:
+		return 0
+	var reward: Dictionary = _get_reward(source_kind, source_index)
+	if reward.is_empty():
+		return 0
+	var price: int = int(reward.get("price", 0))
+	var refund: int = maxi(1, int(roundf(float(price) * refund_ratio)))
+	if not OnlineMatch.add_local_coins(refund):
+		return 0
+	_set_reward(source_kind, source_index, {})
+	rewards_changed.emit()
+	return refund
 
 
 func _generate_offers() -> void:
@@ -115,7 +139,8 @@ func _create_extension_reward(definitions: Array[WeaponExtensionDefinition], ind
 	if definitions.is_empty():
 		return {}
 	var definition: WeaponExtensionDefinition = definitions[index % definitions.size()]
-	var item: WeaponExtensionItem = WeaponExtensionItem.create(definition, ItemCondition.roll(_rng))
+	var condition: float = ItemCondition.roll_with_luck(_rng, ResearchManager.get_luck_level())
+	var item: WeaponExtensionItem = WeaponExtensionItem.create(definition, condition)
 	return {
 		"type": REWARD_EXTENSION,
 		"item": item,
@@ -130,7 +155,7 @@ func _create_armor_reward(definitions: Array[ArmorItemData], index: int) -> Dict
 	var item: ArmorItemData = definition.duplicate(true) as ArmorItemData
 	if item == null:
 		return {}
-	item.condition = ItemCondition.roll(_rng)
+	item.condition = ItemCondition.roll_with_luck(_rng, ResearchManager.get_luck_level())
 	return {
 		"type": REWARD_ARMOR,
 		"item": item,
@@ -191,10 +216,27 @@ func _set_reward(source_kind: StringName, source_index: int, reward: Dictionary)
 		saved_rewards[source_index] = reward
 
 
-func _clear_saved_slots() -> void:
-	saved_rewards.clear()
-	for slot_index in range(SAVED_SLOT_COUNT):
+func _sync_saved_slots() -> void:
+	var target_count: int = clampi(
+		ResearchManager.get_blueprint_slot_count(),
+		0,
+		MAX_SAVED_SLOT_COUNT
+	)
+	while saved_rewards.size() < target_count:
 		saved_rewards.append({})
+	while saved_rewards.size() > target_count:
+		saved_rewards.remove_at(saved_rewards.size() - 1)
+
+
+func _on_research_changed() -> void:
+	_sync_saved_slots()
+	rewards_changed.emit()
+
+
+func _apply_round_condition_wear() -> void:
+	var wear_multiplier: float = ResearchManager.get_condition_wear_multiplier()
+	ExtensionInventory.apply_condition_wear_for_local(4.0 * wear_multiplier)
+	ArmorInventory.apply_condition_wear_for_local(4.0 * wear_multiplier)
 
 
 func _shuffle_array(items: Array) -> void:

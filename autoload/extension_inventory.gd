@@ -77,6 +77,28 @@ func add_item_for_player(player_slot: int, item: WeaponExtensionItem) -> bool:
 	return true
 
 
+func apply_condition_wear_for_local(amount: float) -> void:
+	if amount <= 0.0:
+		return
+	var player_slot: int = get_local_player_slot()
+	var changed: bool = false
+	var worn_items: Array[WeaponExtensionItem] = []
+	var equipped: Dictionary = _get_loadout_for_player(player_slot)
+	for slot in WeaponExtensionDefinition.all_slots():
+		var item: WeaponExtensionItem = equipped.get(slot, null) as WeaponExtensionItem
+		if item == null:
+			continue
+		if worn_items.has(item):
+			continue
+		worn_items.append(item)
+		item.condition = ItemCondition.clamp_value(item.condition - amount)
+		changed = true
+	if changed:
+		inventory_changed.emit(player_slot)
+		loadout_changed.emit(player_slot)
+		_publish_local_loadout_if_needed(player_slot)
+
+
 func reset_match() -> void:
 	_inventory_by_player.clear()
 	_equipped_by_player.clear()
@@ -165,12 +187,15 @@ func get_reward_definitions() -> Array[WeaponExtensionDefinition]:
 
 
 func get_merge_cost_for_next_mark(next_mark: int) -> int:
+	var base_cost: int = 0
 	match next_mark:
 		2:
-			return GameSettings.EXTENSION_MERGE_MK2_COST
+			base_cost = GameSettings.EXTENSION_MERGE_MK2_COST
 		3:
-			return GameSettings.EXTENSION_MERGE_MK3_COST
-	return 0
+			base_cost = GameSettings.EXTENSION_MERGE_MK3_COST
+	if base_cost <= 0:
+		return 0
+	return maxi(1, int(roundf(float(base_cost) * ResearchManager.get_upgrade_cost_multiplier())))
 
 
 func get_merge_cost_for_items(first_item: WeaponExtensionItem, second_item: WeaponExtensionItem) -> int:
