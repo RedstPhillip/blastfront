@@ -26,6 +26,7 @@ var _current_ammo: int = 3
 var _is_reloading: bool = false
 var _reload_timer: float = 0.0
 var _ammo_label: Label = null
+var _reload_bar: ColorRect = null
 
 @onready var _player: Player = get_parent() as Player
 @onready var _visual_root: Node2D = $VisualRoot
@@ -62,15 +63,41 @@ func _update_laser_sight() -> void:
 	_laser_sight.set_point_position(1, end_pos)
 
 
+func _exit_tree() -> void:
+	_cleanup_ammo_display()
+
+
 func _setup_ammo_display() -> void:
+	var parent: Node = _player if _player != null else self
+
 	_ammo_label = Label.new()
 	_ammo_label.name = "AmmoLabel"
 	_ammo_label.z_index = 3
 	_ammo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_ammo_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_ammo_label.add_theme_font_size_override("font_size", 10)
-	_ammo_label.position = Vector2(-12, -22)
-	add_child(_ammo_label)
+	_ammo_label.add_theme_font_size_override("font_size", 14)
+	_ammo_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
+	_ammo_label.add_theme_constant_override("shadow_outline_size", 2)
+	_ammo_label.position = Vector2(-20, -42)
+	parent.add_child(_ammo_label)
+
+	_reload_bar = ColorRect.new()
+	_reload_bar.name = "ReloadBar"
+	_reload_bar.z_index = 3
+	_reload_bar.size = Vector2(40, 4)
+	_reload_bar.color = Color(1, 0.85, 0.2, 0.9)
+	_reload_bar.position = Vector2(-20, -29)
+	_reload_bar.hide()
+	parent.add_child(_reload_bar)
+
+
+func _cleanup_ammo_display() -> void:
+	if _ammo_label != null and is_instance_valid(_ammo_label):
+		_ammo_label.queue_free()
+		_ammo_label = null
+	if _reload_bar != null and is_instance_valid(_reload_bar):
+		_reload_bar.queue_free()
+		_reload_bar = null
 
 
 func _reset_ammo() -> void:
@@ -85,11 +112,20 @@ func _update_ammo_display() -> void:
 	if _is_reloading:
 		var progress: float = 1.0 - (_reload_timer / _get_effective_reload_time())
 		var pct: int = clampi(int(progress * 100), 0, 100)
+		var show_floor: int = pct - (pct % 25)
 		_ammo_label.text = "RELOAD {0}%".format([pct])
-		_ammo_label.modulate = Color(1, 0.8, 0.2, 1)
+		_ammo_label.modulate = Color(1, 0.85, 0.2, 0.95)
+
+		if _reload_bar != null:
+			_reload_bar.show()
+			_reload_bar.size.x = 40.0 * clampf(progress, 0.0, 1.0)
+			if progress >= 1.0:
+				_reload_bar.color = Color(0.3, 1.0, 0.3, 0.9)
 	else:
 		_ammo_label.text = "{0}/{1}".format([_current_ammo, _get_effective_max_ammo()])
-		_ammo_label.modulate = Color(1, 1, 1, 0.9)
+		_ammo_label.modulate = Color(1, 1, 1, 0.95)
+		if _reload_bar != null:
+			_reload_bar.hide()
 
 
 func _physics_process(delta: float) -> void:
