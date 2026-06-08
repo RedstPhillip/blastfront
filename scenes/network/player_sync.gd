@@ -78,7 +78,7 @@ func apply_snapshot(data: Dictionary) -> void:
 
 
 func _build_player_snapshot(player: Player) -> Dictionary:
-	return {
+	var snapshot: Dictionary = {
 		"slot": player.player_slot,
 		"position": player.global_position,
 		"velocity": player.velocity,
@@ -90,6 +90,12 @@ func _build_player_snapshot(player: Player) -> Dictionary:
 		"block_direction": player.get_block_direction(),
 		"block_cooldown_ratio": player.get_block_cooldown_ratio(),
 	}
+	var gun: Node = player.get_node_or_null("Gun")
+	if gun != null and gun.has_method("get_current_ammo"):
+		snapshot["ammo"] = int(gun.call("get_current_ammo"))
+		snapshot["reloading"] = bool(gun.call("is_reloading"))
+		snapshot["reload_ratio"] = float(gun.call("get_reload_ratio"))
+	return snapshot
 
 
 func _apply_player_snapshot(slot: int, snapshot: Dictionary) -> void:

@@ -8,7 +8,6 @@ const PLAYER_SCENE := preload("res://scenes/player/player.tscn")
 @onready var _player_2: Player = $Player2
 @onready var _projectiles: Node2D = $Projectiles
 @onready var _camera: Camera2D = $Camera2D
-@onready var _score_label: Label = $HUD/ScoreLabel
 
 var _local_player: Player = null
 var _game_sync: GameSync = null
@@ -72,7 +71,6 @@ func _process(delta: float) -> void:
 		Vector2.ONE * target_zoom,
 		clampf(delta * GameSettings.CAMERA_ZOOM_SPEED, 0.0, 1.0)
 	)
-	_update_score_display()
 
 
 func get_config() -> Dictionary:
@@ -330,6 +328,10 @@ func get_local_player() -> Player:
 	return _local_player
 
 
+func get_score_for_slot(slot: int) -> int:
+	return int(_offline_score.get(slot, 0))
+
+
 func get_projectiles_root() -> Node2D:
 	return _projectiles
 
@@ -453,7 +455,6 @@ func _on_offline_health_depleted(slot: int) -> void:
 
 	if _offline_score[source_slot] >= GameSettings.MATCH_WINS_NEEDED:
 		_offline_match_over = true
-		_score_label.text = "Player %d wins!" % source_slot
 		return
 
 	_heal_and_respawn_after_delay()
@@ -475,25 +476,6 @@ func _heal_and_respawn_after_delay() -> void:
 	if not is_inside_tree():
 		return
 	_heal_and_respawn()
-
-
-func _update_score_display() -> void:
-	if _score_label == null:
-		return
-
-	if NetworkSession.is_steam_match_active():
-		if _game_sync != null:
-			_score_label.hide()
-	elif NetworkSession.is_debug():
-		_score_label.hide()
-	elif not _has_player_two():
-		_score_label.hide()
-	else:
-		_score_label.text = "%d - %d" % [
-			_offline_score.get(GameSettings.PLAYER_ONE_SLOT, 0),
-			_offline_score.get(GameSettings.PLAYER_TWO_SLOT, 0),
-		]
-		_score_label.show()
 
 
 func _get_player_by_slot(slot: int) -> Player:

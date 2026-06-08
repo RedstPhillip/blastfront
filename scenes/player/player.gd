@@ -276,7 +276,10 @@ func apply_remote_snapshot(snapshot: Dictionary) -> void:
 	var snapshot_block_active: Variant = snapshot.get("block_active", _block_active)
 	var snapshot_block_direction: Variant = snapshot.get("block_direction", _block_direction)
 	var snapshot_block_cooldown_ratio: Variant = snapshot.get("block_cooldown_ratio", GameSettings.PLAYER_BLOCK_REMOTE_COOLDOWN_RATIO)
-	var had_network_target := _has_network_target
+	var snapshot_ammo: int = int(snapshot.get("ammo", 0))
+	var snapshot_reloading: bool = snapshot.get("reloading", false) == true
+	var snapshot_reload_ratio: float = float(snapshot.get("reload_ratio", 1.0))
+	var had_network_target: bool = _has_network_target
 
 	if snapshot_position is Vector2:
 		_network_target_position = snapshot_position
@@ -293,6 +296,9 @@ func apply_remote_snapshot(snapshot: Dictionary) -> void:
 		last_dir = signf(float(snapshot_facing))
 	if snapshot_block_active is bool:
 		apply_remote_block_state(snapshot_block_active, snapshot_block_direction, snapshot_block_cooldown_ratio)
+	var gun: Node = get_node_or_null("Gun")
+	if snapshot.has("ammo") and gun != null and gun.has_method("apply_remote_ammo_state"):
+		gun.call("apply_remote_ammo_state", snapshot_ammo, snapshot_reloading, snapshot_reload_ratio)
 
 	_has_network_target = true
 	if not had_network_target:

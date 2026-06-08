@@ -25,7 +25,6 @@ var _has_laser_scope: bool = false
 var _current_ammo: int = 3
 var _is_reloading: bool = false
 var _reload_timer: float = 0.0
-var _ammo_label: Label = null
 
 @onready var _player: Player = get_parent() as Player
 @onready var _visual_root: Node2D = $VisualRoot
@@ -37,7 +36,6 @@ func _ready() -> void:
 	_connect_extension_inventory()
 	_refresh_extension_loadout()
 	_setup_laser_sight()
-	_setup_ammo_display()
 	_reset_ammo()
 
 
@@ -121,34 +119,10 @@ func _build_laser_trajectory() -> PackedVector2Array:
 	return points
 
 
-func _setup_ammo_display() -> void:
-	_ammo_label = Label.new()
-	_ammo_label.name = "AmmoLabel"
-	_ammo_label.z_index = 3
-	_ammo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_ammo_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_ammo_label.add_theme_font_size_override("font_size", 10)
-	_ammo_label.position = Vector2(-12, -22)
-	add_child(_ammo_label)
-
-
 func _reset_ammo() -> void:
 	_current_ammo = _get_effective_max_ammo()
 	_is_reloading = false
 	_reload_timer = 0.0
-
-
-func _update_ammo_display() -> void:
-	if _ammo_label == null:
-		return
-	if _is_reloading:
-		var progress: float = 1.0 - (_reload_timer / _get_effective_reload_time())
-		var pct: int = clampi(int(progress * 100), 0, 100)
-		_ammo_label.text = "RELOAD {0}%".format([pct])
-		_ammo_label.modulate = Color(1, 0.8, 0.2, 1)
-	else:
-		_ammo_label.text = "{0}/{1}".format([_current_ammo, _get_effective_max_ammo()])
-		_ammo_label.modulate = Color(1, 1, 1, 0.9)
 
 
 func _physics_process(delta: float) -> void:
@@ -181,9 +155,6 @@ func _physics_process(delta: float) -> void:
 		_fire_cooldown = _get_modified_fire_interval()
 		if _current_ammo <= 0:
 			_start_reload()
-
-	_update_ammo_display()
-
 
 func _shoot() -> void:
 	var base_direction: Vector2 = get_shot_direction()
@@ -341,6 +312,34 @@ func _get_effective_max_ammo() -> int:
 
 func _get_effective_reload_time() -> float:
 	return maxf(0.1, reload_time + _get_extension_attribute(&"reload_time"))
+
+
+func get_current_ammo() -> int:
+	return _current_ammo
+
+
+func get_max_ammo() -> int:
+	return _get_effective_max_ammo()
+
+
+func is_reloading() -> bool:
+	return _is_reloading
+
+
+func get_reload_ratio() -> float:
+	if not _is_reloading:
+		return 1.0
+	var reload_duration: float = _get_effective_reload_time()
+	return clampf(1.0 - (_reload_timer / reload_duration), 0.0, 1.0)
+
+
+func apply_remote_ammo_state(current_ammo: int, reloading: bool, reload_ratio: float) -> void:
+	_current_ammo = clampi(current_ammo, 0, _get_effective_max_ammo())
+	_is_reloading = reloading
+	if _is_reloading:
+		_reload_timer = (1.0 - clampf(reload_ratio, 0.0, 1.0)) * _get_effective_reload_time()
+	else:
+		_reload_timer = 0.0
 
 
 func _connect_extension_inventory() -> void:
