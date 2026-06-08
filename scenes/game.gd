@@ -95,19 +95,38 @@ func request_shot(owner: Node, spawn_position: Vector2, direction: Vector2, proj
 		_game_sync.request_shot(owner_slot, spawn_position, direction, projectile_data)
 		return
 
-	var projectile: Node2D = PROJECTILE_SCENE.instantiate() as Node2D
-	var muzzle_speed: float = float(projectile_data.get("muzzle_speed", projectile.get("muzzle_speed")))
-	projectile.set("direction", direction)
-	projectile.set("muzzle_speed", muzzle_speed)
-	projectile.set("gravity", float(projectile_data.get("gravity", projectile.get("gravity"))))
-	projectile.set("linear_damping", float(projectile_data.get("linear_damping", projectile.get("linear_damping"))))
-	projectile.set("max_distance", float(projectile_data.get("max_distance", projectile.get("max_distance"))))
-	projectile.set("damage", int(projectile_data.get("damage", projectile.get("damage"))))
-	projectile.set("extension_tags", projectile_data.get("extension_tags", []))
-	projectile.set("extension_effects", projectile_data.get("extension_effects", {}))
-	projectile.set("source_extensions", projectile_data.get("source_extensions", []))
-	projectile.set("initial_velocity", projectile_data.get("initial_velocity", direction * muzzle_speed))
-	spawn_projectile(projectile, spawn_position)
+	var directions: Array[Vector2] = _extract_volley_directions(projectile_data, direction)
+	for shot_direction in directions:
+		var projectile: Node2D = PROJECTILE_SCENE.instantiate() as Node2D
+		var muzzle_speed: float = float(projectile_data.get("muzzle_speed", projectile.get("muzzle_speed")))
+		projectile.set("owner_slot", owner_slot)
+		projectile.set("direction", shot_direction)
+		projectile.set("muzzle_speed", muzzle_speed)
+		projectile.set("gravity", float(projectile_data.get("gravity", projectile.get("gravity"))))
+		projectile.set("linear_damping", float(projectile_data.get("linear_damping", projectile.get("linear_damping"))))
+		projectile.set("max_distance", float(projectile_data.get("max_distance", projectile.get("max_distance"))))
+		projectile.set("damage", int(projectile_data.get("damage", projectile.get("damage"))))
+		projectile.set("projectile_scale", float(projectile_data.get("projectile_scale", 1.0)))
+		projectile.set("extension_tags", projectile_data.get("extension_tags", []))
+		projectile.set("extension_effects", projectile_data.get("extension_effects", {}))
+		projectile.set("source_extensions", projectile_data.get("source_extensions", []))
+		projectile.set("initial_velocity", shot_direction * muzzle_speed)
+		spawn_projectile(projectile, spawn_position)
+
+
+func _extract_volley_directions(projectile_data: Dictionary, fallback_direction: Vector2) -> Array[Vector2]:
+	var result: Array[Vector2] = []
+	var directions_variant: Variant = projectile_data.get("volley_directions", [])
+	if directions_variant is Array:
+		var raw_directions: Array = directions_variant
+		for raw_direction in raw_directions:
+			if raw_direction is Vector2:
+				var shot_direction: Vector2 = raw_direction
+				if shot_direction.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
+					result.append(shot_direction.normalized())
+	if result.is_empty():
+		result.append(fallback_direction.normalized())
+	return result
 
 
 func request_block_state(owner: Node, active: bool, direction: Vector2, cooldown_ratio: float) -> void:
@@ -149,6 +168,7 @@ func build_authoritative_shot(owner_slot: int) -> Dictionary:
 	return {
 		"spawn_position": shot_data.get("spawn_position", player.global_position),
 		"direction": direction,
+		"directions": shot_data.get("directions", [direction]),
 		"fire_interval": shot_data.get("fire_interval", 0.0),
 		"projectile": shot_data.get("projectile", {}),
 	}

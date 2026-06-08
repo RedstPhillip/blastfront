@@ -11,6 +11,7 @@ slot_key = "ammo"
 description = "Electrified ammo that stuns enemies for 0.2s, 3 times over 1 second. Damage -2, Fire Rate +0.08s, Reload +0.1s."
 default_condition = 78.0
 minimum_condition_factor = 0.25
+condition_scales_projectile_effects = false
 attribute_modifiers = {
 "damage": -2.0,
 "fire_interval": 0.08,
@@ -20,6 +21,7 @@ projectile_tags = Array[String](["shock"])
 projectile_effects = {
 "shock": {
 "duration": 1.0,
+"tick_count": 3,
 "tick_interval": 0.33,
 "stun_duration": 0.2,
 "tint_color": Color(1.0, 0.9, 0.3, 1)

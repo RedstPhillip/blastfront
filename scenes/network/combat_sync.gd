@@ -9,6 +9,7 @@ func get_packet_types() -> Array[StringName]:
 		GameSettings.PACKET_PLAYER_HIT,
 		GameSettings.PACKET_HEALTH_CHANGED,
 		GameSettings.PACKET_PLAYER_KILLED,
+		GameSettings.PACKET_STATUS_EFFECT_APPLIED,
 	]
 
 
@@ -51,6 +52,50 @@ func _handle_player_killed(target_slot: int, source_slot: int) -> void:
 	OnlineMatch.record_kill(source_slot)
 
 
+func apply_status_effect(target_slot: int, source_slot: int, effect_name: StringName, effect_data: Dictionary) -> void:
+	if game_sync == null or not game_sync.is_host():
+		return
+	if not OnlineMatch.is_playing_set():
+		return
+
+	var player: Player = _get_player(target_slot)
+	if player == null or player.status_effect_manager == null:
+		return
+
+	var visual_data: Dictionary = effect_data.duplicate(true)
+	var damage_per_tick: int = int(visual_data.get("damage_per_tick", 0))
+	visual_data.erase("damage_per_tick")
+	player.status_effect_manager.apply_effect(effect_name, visual_data)
+	game_sync.send_reliable(GameSettings.PACKET_STATUS_EFFECT_APPLIED, {
+		"target_slot": target_slot,
+		"effect_name": str(effect_name),
+		"effect_data": visual_data,
+	}, GameSettings.NETWORK_CHANNEL_EVENTS)
+
+	if damage_per_tick > 0:
+		var tick_interval: float = maxf(float(effect_data.get("tick_interval", 1.0)), 0.05)
+		var tick_count: int = int(effect_data.get("tick_count", 1))
+		_run_damage_over_time(target_slot, source_slot, damage_per_tick, tick_interval, maxi(tick_count, 1))
+
+
+func _run_damage_over_time(
+	target_slot: int,
+	source_slot: int,
+	damage_per_tick: int,
+	tick_interval: float,
+	tick_count: int
+) -> void:
+	for tick_index in range(tick_count):
+		if not OnlineMatch.is_playing_set():
+			return
+		var player: Player = _get_player(target_slot)
+		if player == null or player.is_eliminated():
+			return
+		apply_hit(target_slot, source_slot, 0, damage_per_tick)
+		if tick_index < tick_count - 1:
+			await get_tree().create_timer(tick_interval, false).timeout
+
+
 func handle_packet(packet: Dictionary) -> void:
 	var payload := _get_payload(packet)
 	var packet_type: StringName = StringName(str(packet.get("type", "")))
@@ -65,6 +110,13 @@ func handle_packet(packet: Dictionary) -> void:
 		_set_player_health(slot, health)
 	elif packet_type == GameSettings.PACKET_PLAYER_KILLED:
 		pass
+	elif packet_type == GameSettings.PACKET_STATUS_EFFECT_APPLIED:
+		var target_slot: int = int(payload.get("target_slot", 0))
+		var effect_name: StringName = StringName(str(payload.get("effect_name", "")))
+		var effect_data_variant: Variant = payload.get("effect_data", {})
+		if effect_data_variant is Dictionary:
+			var effect_data: Dictionary = effect_data_variant
+			_apply_remote_status_effect(target_slot, effect_name, effect_data)
 
 
 func build_snapshot() -> Dictionary:
@@ -126,6 +178,13 @@ func _apply_remote_hit_feedback(target_slot: int, source_slot: int, damage: int)
 	if source_player != null:
 		source_position = source_player.global_position
 	target_player.apply_hit_feedback(source_position, damage)
+
+
+func _apply_remote_status_effect(target_slot: int, effect_name: StringName, effect_data: Dictionary) -> void:
+	var target_player: Player = _get_player(target_slot)
+	if target_player == null or target_player.status_effect_manager == null:
+		return
+	target_player.status_effect_manager.apply_effect(effect_name, effect_data)
 
 
 func _get_player(slot: int) -> Player:

@@ -43,23 +43,59 @@ func _ready() -> void:
 
 func _setup_laser_sight() -> void:
 	_laser_sight = Line2D.new()
-	_laser_sight.points = PackedVector2Array([Vector2.ZERO, Vector2.RIGHT * 1400])
-	_laser_sight.default_color = Color(0.9, 0.2, 0.15, 0.3)
-	_laser_sight.width = 1.5
+	_laser_sight.top_level = true
+	_laser_sight.z_index = 20
+	_laser_sight.default_color = Color(1.0, 0.12, 0.08, 0.82)
+	_laser_sight.width = 2.0
 	_laser_sight.antialiased = true
 	_laser_sight.hide()
-	if _muzzle != null:
-		_muzzle.add_child(_laser_sight)
-		_laser_sight.owner = _muzzle
+	add_child(_laser_sight)
 
 
 func _update_laser_sight() -> void:
-	if _laser_sight == null or not _has_laser_scope:
+	if _laser_sight == null:
+		return
+	if not _has_laser_scope or _muzzle == null:
+		_laser_sight.hide()
 		return
 	_laser_sight.show()
-	var aim_dir: Vector2 = get_shot_direction()
-	var end_pos: Vector2 = aim_dir * 1400
-	_laser_sight.set_point_position(1, end_pos)
+	_laser_sight.global_position = get_muzzle_global_position()
+	_laser_sight.global_rotation = 0.0
+	_laser_sight.points = _build_laser_trajectory()
+
+
+func _build_laser_trajectory() -> PackedVector2Array:
+	const SEGMENT_COUNT: int = 28
+	var points: PackedVector2Array = PackedVector2Array([Vector2.ZERO])
+	var direction: Vector2 = get_shot_direction()
+	var speed: float = _get_modified_float(&"projectile_speed", projectile_speed, 1.0)
+	var gravity_value: float = projectile_gravity + _get_extension_attribute(&"projectile_gravity")
+	if _get_extension_tags().has("hover"):
+		gravity_value = 0.0
+	var max_distance: float = maxf(50.0, projectile_max_distance + _get_extension_attribute(&"projectile_max_distance"))
+	var velocity: Vector2 = direction * speed
+	var step_time: float = max_distance / maxf(speed, 1.0) / float(SEGMENT_COUNT)
+	var local_position: Vector2 = Vector2.ZERO
+	var world_start: Vector2 = get_muzzle_global_position()
+	var space_state: PhysicsDirectSpaceState2D = get_world_2d().direct_space_state
+
+	for segment_index in range(SEGMENT_COUNT):
+		velocity.y += gravity_value * step_time
+		var next_position: Vector2 = local_position + velocity * step_time
+		var query: PhysicsRayQueryParameters2D = PhysicsRayQueryParameters2D.create(
+			world_start + local_position,
+			world_start + next_position,
+			1
+		)
+		query.exclude = [_player.get_rid()]
+		var hit: Dictionary = space_state.intersect_ray(query)
+		if not hit.is_empty():
+			var hit_position: Vector2 = hit.get("position", world_start + next_position)
+			points.append(hit_position - world_start)
+			break
+		points.append(next_position)
+		local_position = next_position
+	return points
 
 
 func _setup_ammo_display() -> void:
@@ -132,15 +168,21 @@ func _shoot() -> void:
 	_play_fire_feedback(base_direction, muzzle_position)
 
 	var projectile_data: Dictionary = _build_projectile_data(base_direction)
-	var shots: int = maxi(1, int(1.0 + _get_extension_attribute(&"shots_per_fire")))
-	var spread_degrees: float = _get_extension_attribute(&"shot_spread_degrees")
+	projectile_data["volley_directions"] = _build_shot_directions(base_direction)
+	_fire_projectile(base_direction, muzzle_position, projectile_data)
 
-	for i in range(shots):
-		var dir: Vector2 = base_direction
+
+func _build_shot_directions(base_direction: Vector2) -> Array[Vector2]:
+	var directions: Array[Vector2] = []
+	var shots: int = maxi(1, int(roundf(1.0 + _get_extension_attribute(&"shots_per_fire"))))
+	var spread_degrees: float = maxf(0.0, _get_extension_attribute(&"shot_spread_degrees"))
+	for shot_index in range(shots):
+		var shot_direction: Vector2 = base_direction
 		if shots > 1 and spread_degrees > 0.0:
-			var ratio: float = (float(i) / float(shots - 1)) - 0.5
-			dir = base_direction.rotated(deg_to_rad(spread_degrees * ratio))
-		_fire_projectile(dir, muzzle_position, projectile_data)
+			var ratio: float = (float(shot_index) / float(shots - 1)) - 0.5
+			shot_direction = base_direction.rotated(deg_to_rad(spread_degrees * ratio))
+		directions.append(shot_direction.normalized())
+	return directions
 
 
 func _fire_projectile(direction: Vector2, muzzle_position: Vector2, projectile_data: Dictionary) -> void:
@@ -154,20 +196,32 @@ func _fire_projectile(direction: Vector2, muzzle_position: Vector2, projectile_d
 	if world == null or not world.has_method("spawn_projectile"):
 		return
 
-	var muzzle_speed: float = float(projectile_data.get("muzzle_speed", projectile_speed))
-	var projectile: Node2D = PROJECTILE_SCENE.instantiate() as Node2D
-	projectile.set("direction", direction)
-	projectile.set("muzzle_speed", muzzle_speed)
-	projectile.set("gravity", float(projectile_data.get("gravity", projectile_gravity)))
-	projectile.set("linear_damping", float(projectile_data.get("linear_damping", projectile_linear_damping)))
-	projectile.set("max_distance", float(projectile_data.get("max_distance", projectile_max_distance)))
-	projectile.set("damage", int(projectile_data.get("damage", GameSettings.PROJECTILE_DAMAGE)))
-	projectile.set("projectile_scale", float(projectile_data.get("projectile_scale", 1.0)))
-	projectile.set("extension_tags", projectile_data.get("extension_tags", []))
-	projectile.set("extension_effects", projectile_data.get("extension_effects", {}))
-	projectile.set("source_extensions", projectile_data.get("source_extensions", []))
-	projectile.set("initial_velocity", projectile_data.get("initial_velocity", direction * muzzle_speed))
-	world.spawn_projectile(projectile, muzzle_position)
+	var shot_directions: Array[Vector2] = []
+	var directions_variant: Variant = projectile_data.get("volley_directions", [])
+	if directions_variant is Array:
+		for raw_direction in directions_variant:
+			if raw_direction is Vector2:
+				var volley_direction: Vector2 = raw_direction
+				if volley_direction.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
+					shot_directions.append(volley_direction.normalized())
+	if shot_directions.is_empty():
+		shot_directions.append(direction.normalized())
+
+	for shot_direction in shot_directions:
+		var muzzle_speed: float = float(projectile_data.get("muzzle_speed", projectile_speed))
+		var projectile: Node2D = PROJECTILE_SCENE.instantiate() as Node2D
+		projectile.set("direction", shot_direction)
+		projectile.set("muzzle_speed", muzzle_speed)
+		projectile.set("gravity", float(projectile_data.get("gravity", projectile_gravity)))
+		projectile.set("linear_damping", float(projectile_data.get("linear_damping", projectile_linear_damping)))
+		projectile.set("max_distance", float(projectile_data.get("max_distance", projectile_max_distance)))
+		projectile.set("damage", int(projectile_data.get("damage", GameSettings.PROJECTILE_DAMAGE)))
+		projectile.set("projectile_scale", float(projectile_data.get("projectile_scale", 1.0)))
+		projectile.set("extension_tags", projectile_data.get("extension_tags", []))
+		projectile.set("extension_effects", projectile_data.get("extension_effects", {}))
+		projectile.set("source_extensions", projectile_data.get("source_extensions", []))
+		projectile.set("initial_velocity", shot_direction * muzzle_speed)
+		world.spawn_projectile(projectile, muzzle_position)
 
 
 func build_shot_data() -> Dictionary:
@@ -175,6 +229,7 @@ func build_shot_data() -> Dictionary:
 	return {
 		"spawn_position": get_muzzle_global_position(),
 		"direction": direction,
+		"directions": _build_shot_directions(direction),
 		"fire_interval": _get_modified_fire_interval(),
 		"projectile": _build_projectile_data(direction),
 	}

@@ -87,6 +87,7 @@ func _spawn_authoritative_projectile_for_owner(
 	var shot_data: Dictionary = _build_authoritative_shot(owner_slot)
 	var spawn_position: Vector2 = fallback_spawn_position
 	var direction: Vector2 = fallback_direction
+	var directions: Array[Vector2] = []
 	var fire_interval: float = 0.0
 	var projectile_data: Dictionary = fallback_projectile_data
 
@@ -100,6 +101,15 @@ func _spawn_authoritative_projectile_for_owner(
 			var shot_direction: Vector2 = direction_variant
 			if shot_direction.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
 				direction = shot_direction.normalized()
+
+		var directions_variant: Variant = shot_data.get("directions", [])
+		if directions_variant is Array:
+			var raw_directions: Array = directions_variant
+			for raw_direction in raw_directions:
+				if raw_direction is Vector2:
+					var volley_direction: Vector2 = raw_direction
+					if volley_direction.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
+						directions.append(volley_direction.normalized())
 
 		var projectile_data_variant: Variant = shot_data.get("projectile", projectile_data)
 		if projectile_data_variant is Dictionary:
@@ -115,17 +125,37 @@ func _spawn_authoritative_projectile_for_owner(
 	if not _can_authoritative_shoot(owner_slot, fire_interval):
 		return
 
-	var net_id: int = _next_projectile_id
-	_next_projectile_id += 1
+	if directions.is_empty():
+		directions = _extract_volley_directions(projectile_data, direction)
+	for shot_direction in directions:
+		var net_id: int = _next_projectile_id
+		_next_projectile_id += 1
+		var shot_projectile_data: Dictionary = projectile_data.duplicate(true)
+		shot_projectile_data.erase("volley_directions")
+		shot_projectile_data["initial_velocity"] = shot_direction * float(shot_projectile_data.get("muzzle_speed", GameSettings.PROJECTILE_MUZZLE_SPEED))
+		_spawn_projectile(net_id, owner_slot, spawn_position, shot_direction, shot_projectile_data, true)
+		game_sync.send_reliable(GameSettings.PACKET_PROJECTILE_SPAWNED, {
+			"net_id": net_id,
+			"owner_slot": owner_slot,
+			"spawn_position": spawn_position,
+			"direction": shot_direction,
+			"projectile": shot_projectile_data,
+		}, GameSettings.NETWORK_CHANNEL_EVENTS)
 
-	_spawn_projectile(net_id, owner_slot, spawn_position, direction, projectile_data, true)
-	game_sync.send_reliable(GameSettings.PACKET_PROJECTILE_SPAWNED, {
-		"net_id": net_id,
-		"owner_slot": owner_slot,
-		"spawn_position": spawn_position,
-		"direction": direction,
-		"projectile": projectile_data,
-	}, GameSettings.NETWORK_CHANNEL_EVENTS)
+
+func _extract_volley_directions(projectile_data: Dictionary, fallback_direction: Vector2) -> Array[Vector2]:
+	var result: Array[Vector2] = []
+	var directions_variant: Variant = projectile_data.get("volley_directions", [])
+	if directions_variant is Array:
+		var raw_directions: Array = directions_variant
+		for raw_direction in raw_directions:
+			if raw_direction is Vector2:
+				var shot_direction: Vector2 = raw_direction
+				if shot_direction.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
+					result.append(shot_direction.normalized())
+	if result.is_empty():
+		result.append(fallback_direction.normalized())
+	return result
 
 
 func _build_authoritative_shot(owner_slot: int) -> Dictionary:
@@ -235,20 +265,96 @@ func _on_projectile_despawn_requested(projectile: Node, reason: StringName, coll
 		OnlineMatch.record_block(int(hit_player.player_slot), int(projectile.get("damage")))
 	if hit_player != null and reason != &"blocked" and int(hit_player.player_slot) != int(projectile.get("owner_slot")):
 		var projectile_damage: int = int(projectile.get("damage"))
-		var projectile_position: Vector2 = hit_player.global_position
-		var projectile_node: Node2D = projectile as Node2D
-		if projectile_node != null:
-			projectile_position = projectile_node.global_position
+		var projectile_position: Vector2 = _get_projectile_position(projectile, hit_player.global_position)
 		hit_player.apply_hit_feedback(projectile_position, projectile_damage)
-		ExtensionEffectRegistry.apply_projectile_effects(hit_player, projectile)
 		var combat_sync: Variant = game_sync.get_module(GameSettings.MODULE_COMBAT)
 		if combat_sync != null and combat_sync.has_method("apply_hit"):
 			combat_sync.call("apply_hit", int(hit_player.player_slot), int(projectile.get("owner_slot")), net_id, projectile_damage)
+	if reason == &"collision":
+		_apply_authoritative_extension_effects(projectile, hit_player)
 
 	game_sync.send_reliable(GameSettings.PACKET_PROJECTILE_DESPAWNED, {
 		"net_id": net_id,
 		"reason": str(reason),
 	}, GameSettings.NETWORK_CHANNEL_EVENTS)
+
+
+func _apply_authoritative_extension_effects(projectile: Node, direct_target: Player) -> void:
+	var effects_variant: Variant = projectile.get("extension_effects")
+	if not (effects_variant is Dictionary):
+		return
+	var effects: Dictionary = effects_variant
+	var owner_slot: int = int(projectile.get("owner_slot"))
+	var origin: Vector2 = _get_projectile_position(projectile, direct_target.global_position if direct_target != null else Vector2.ZERO)
+	var combat_sync: Variant = game_sync.get_module(GameSettings.MODULE_COMBAT)
+	if combat_sync == null:
+		return
+
+	for raw_effect_name in effects.keys():
+		var effect_name: StringName = StringName(str(raw_effect_name))
+		var effect_data_variant: Variant = effects[raw_effect_name]
+		if not (effect_data_variant is Dictionary):
+			continue
+		var effect_data: Dictionary = effect_data_variant
+		match effect_name:
+			&"freeze", &"shock", &"poison":
+				if direct_target != null and combat_sync.has_method("apply_status_effect"):
+					combat_sync.call("apply_status_effect", int(direct_target.player_slot), owner_slot, effect_name, effect_data)
+			&"explosive":
+				_apply_area_damage(
+					origin,
+					owner_slot,
+					float(effect_data.get("radius", 80.0)),
+					int(effect_data.get("splash_damage", effect_data.get("damage", 10)))
+				)
+			&"grenade":
+				_schedule_grenade_explosion(origin, owner_slot, effect_data)
+
+
+func _schedule_grenade_explosion(origin: Vector2, owner_slot: int, effect_data: Dictionary) -> void:
+	var delay: float = maxf(float(effect_data.get("delay", 0.5)), 0.0)
+	var radius: float = float(effect_data.get("radius", 80.0))
+	var damage: int = int(effect_data.get("damage_per_hit", effect_data.get("damage", 10)))
+	await get_tree().create_timer(delay, false).timeout
+	if game_sync == null or not game_sync.is_host() or not OnlineMatch.is_playing_set():
+		return
+	_apply_area_damage(origin, owner_slot, radius, damage)
+
+
+func _apply_area_damage(origin: Vector2, owner_slot: int, radius: float, damage: int) -> void:
+	if game == null or radius <= 0.0 or damage <= 0:
+		return
+	var combat_sync: Variant = game_sync.get_module(GameSettings.MODULE_COMBAT)
+	if combat_sync == null or not combat_sync.has_method("apply_hit"):
+		return
+	GameJuice.spawn_burst(&"impact", origin, Vector2.UP, Color(1.0, 0.42, 0.08, 0.95))
+	GameJuice.shake(2.6, 0.12)
+	for target_slot in GameSettings.player_slots():
+		if target_slot == owner_slot:
+			continue
+		var player: Player = _get_player(target_slot)
+		if player == null or player.is_eliminated():
+			continue
+		var distance: float = player.global_position.distance_to(origin)
+		if distance > radius:
+			continue
+		var falloff: float = 1.0 - distance / radius
+		var final_damage: int = maxi(1, int(roundf(float(damage) * falloff)))
+		player.apply_hit_feedback(origin, final_damage)
+		combat_sync.call("apply_hit", target_slot, owner_slot, 0, final_damage)
+
+
+func _get_projectile_position(projectile: Node, fallback: Vector2) -> Vector2:
+	var projectile_node: Node2D = projectile as Node2D
+	if projectile_node != null:
+		return projectile_node.global_position
+	return fallback
+
+
+func _get_player(slot: int) -> Player:
+	if game == null or not game.has_method("get_player_by_slot"):
+		return null
+	return game.get_player_by_slot(slot)
 
 
 func _on_projectile_tree_exited(net_id: int) -> void:

@@ -18,6 +18,7 @@ func apply_effect(name: StringName, params: Dictionary) -> void:
 		"tick_interval": float(params.get("tick_interval", 0.0)),
 		"tick_timer": 0.0,
 		"damage_per_tick": int(params.get("damage_per_tick", 0)),
+		"ticks_remaining": int(params.get("tick_count", -1)),
 		"stun_duration": float(params.get("stun_duration", 0.0)),
 		"speed_multiplier": float(params.get("speed_multiplier", 1.0)),
 		"tint_color": params.get("tint_color", null),
@@ -104,9 +105,12 @@ func _process(delta: float) -> void:
 			var tick_interval: float = instance.get("tick_interval", 0.0) as float
 			if tick_interval > 0.0:
 				instance.tick_timer = (instance.tick_timer as float) - delta
-				if instance.tick_timer <= 0.0:
+				var ticks_remaining: int = int(instance.get("ticks_remaining", -1))
+				if instance.tick_timer <= 0.0 and ticks_remaining != 0:
 					instance.tick_timer = tick_interval
 					_tick_instance(instance)
+					if ticks_remaining > 0:
+						instance.ticks_remaining = ticks_remaining - 1
 
 			if instance.time_remaining <= 0.0:
 				instances.remove_at(i)

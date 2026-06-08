@@ -22,7 +22,6 @@ var initial_velocity: Vector2 = Vector2.ZERO
 var _distance_travelled: float = 0.0
 var _despawn_requested: bool = false
 var _bounces_left: int = 0
-var _drill_left: int = 0
 
 
 func _ready() -> void:
@@ -31,12 +30,11 @@ func _ready() -> void:
 	direction = direction.normalized()
 
 	velocity = initial_velocity if initial_velocity.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED else direction * muzzle_speed
-	if not is_equal_approx(projectile_scale, 1.0):
-		scale *= projectile_scale
+	_apply_projectile_scale()
 	if extension_tags.has("bouncy"):
 		_bounces_left = 2
 	if extension_tags.has("drill"):
-		_drill_left = 1
+		collision_mask &= ~1
 	_update_rotation()
 
 
@@ -51,6 +49,7 @@ func _physics_process(delta: float) -> void:
 	var motion: Vector2 = velocity * delta
 	var collision: KinematicCollision2D = move_and_collide(motion)
 	if collision != null:
+		_distance_travelled += collision.get_travel().length()
 		_on_collision(collision)
 		return
 
@@ -92,21 +91,32 @@ func _on_collision(collision: KinematicCollision2D) -> void:
 		_bounces_left -= 1
 		var normal: Vector2 = collision.get_normal()
 		velocity = velocity.bounce(normal)
-		_play_collision_feedback(collision, collider)
-		return
-
-	if not is_player and _drill_left > 0:
-		_drill_left -= 1
-		var remainder: Vector2 = collision.get_remainder()
-		var normal: Vector2 = collision.get_normal()
-		global_position += -normal * (remainder.length() + 16.0)
+		global_position += normal * maxf(2.0, projectile_scale * 2.5)
 		_play_collision_feedback(collision, collider)
 		return
 
 	_play_collision_feedback(collision, collider)
 	if net_id == 0:
 		_apply_local_collision_damage(collider)
+		ExtensionEffectRegistry.apply_projectile_effects(collider as Player, self)
 	_request_despawn(&"collision", collider)
+
+
+func _apply_projectile_scale() -> void:
+	var safe_scale: float = maxf(projectile_scale, 0.1)
+	var collision_shape: CollisionShape2D = get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if collision_shape != null and collision_shape.shape != null:
+		var scaled_shape: Shape2D = collision_shape.shape.duplicate(true) as Shape2D
+		if scaled_shape is CircleShape2D:
+			(scaled_shape as CircleShape2D).radius *= safe_scale
+		elif scaled_shape is RectangleShape2D:
+			(scaled_shape as RectangleShape2D).size *= safe_scale
+		collision_shape.shape = scaled_shape
+
+	for child_name in ["Trail", "Outline", "Polygon2D"]:
+		var visual: Node2D = get_node_or_null(child_name) as Node2D
+		if visual != null:
+			visual.scale *= safe_scale
 
 
 func _apply_local_collision_damage(collider: Object) -> void:
@@ -114,7 +124,6 @@ func _apply_local_collision_damage(collider: Object) -> void:
 	if player != null:
 		player.apply_hit_feedback(global_position, damage)
 		player.health_component.damage(damage)
-		ExtensionEffectRegistry.apply_projectile_effects(player, self)
 
 
 func _is_blocked_by_player(collider: Object) -> bool:

@@ -11,6 +11,7 @@ slot_key = "ammo"
 description = "Cryogenic ammo that slows enemies to 40% speed for 3 seconds. Damage -1, Speed -50, Reload +0.1s."
 default_condition = 78.0
 minimum_condition_factor = 0.25
+condition_scales_projectile_effects = false
 attribute_modifiers = {
 "damage": -1.0,
 "projectile_speed": -50.0,

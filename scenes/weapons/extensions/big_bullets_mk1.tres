@@ -8,12 +8,12 @@ script = ExtResource("1_definition")
 extension_id = "big_bullets_mk1"
 display_name = "Big Bullets MK1"
 slot_key = "ammo"
-description = "Fires enlarged projectiles with increased impact damage. Damage +3, Scale +0.5, Ammo -1."
+description = "Fires dramatically enlarged projectiles with a matching larger hitbox. Damage +3, Scale +1.0, Ammo -1."
 default_condition = 100.0
 minimum_condition_factor = 0.25
 attribute_modifiers = {
 "damage": 3.0,
-"projectile_scale": 0.5,
+"projectile_scale": 1.0,
 "ammo_max": -1.0
 }
 visual_scene = ExtResource("2_visual")

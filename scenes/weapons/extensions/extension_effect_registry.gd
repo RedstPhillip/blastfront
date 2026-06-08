@@ -31,7 +31,7 @@ static func has_effect(effect_name: StringName) -> bool:
 
 
 static func apply_projectile_effects(target: Player, projectile: Node) -> void:
-	if target == null or projectile == null:
+	if projectile == null:
 		return
 
 	var projectile_effects: Dictionary = _get_projectile_effects(projectile)

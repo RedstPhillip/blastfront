@@ -310,11 +310,15 @@ func get_move_direction() -> float:
 func is_jump_pressed() -> bool:
 	if control_mode != GameSettings.CONTROL_LOCAL or not movement_enabled:
 		return false
+	if _stun_timer > 0.0:
+		return false
 	return Input.is_action_just_pressed(jump_action)
 
 
 func is_jump_held() -> bool:
 	if control_mode != GameSettings.CONTROL_LOCAL or not movement_enabled:
+		return false
+	if _stun_timer > 0.0:
 		return false
 	return Input.is_action_pressed(jump_action)
 
@@ -322,17 +326,23 @@ func is_jump_held() -> bool:
 func is_shoot_pressed() -> bool:
 	if control_mode != GameSettings.CONTROL_LOCAL or not shooting_enabled:
 		return false
+	if _stun_timer > 0.0:
+		return false
 	return Input.is_action_just_pressed(shoot_action)
 
 
 func is_shoot_down() -> bool:
 	if control_mode != GameSettings.CONTROL_LOCAL or not shooting_enabled:
 		return false
+	if _stun_timer > 0.0:
+		return false
 	return Input.is_action_pressed(shoot_action)
 
 
 func is_block_pressed() -> bool:
 	if control_mode != GameSettings.CONTROL_LOCAL or not movement_enabled:
+		return false
+	if _stun_timer > 0.0:
 		return false
 	return Input.is_action_just_pressed(block_action)
 
@@ -483,17 +493,22 @@ func jump() -> void:
 
 func apply_horizontal_movement(delta: float, max_speed: float, acceleration: float, friction: float) -> float:
 	var direction := get_move_direction()
-	if status_effect_manager != null:
-		var slow: float = status_effect_manager.get_slow_multiplier()
-		max_speed *= slow
-		acceleration *= slow
-		friction *= slow
+	var slow: float = get_status_speed_multiplier()
+	max_speed *= slow
+	acceleration *= slow
+	friction *= slow
 	if direction != 0.0:
 		last_dir = signf(direction)
 		velocity.x = move_toward(velocity.x, direction * max_speed, acceleration * delta)
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, friction * delta)
 	return direction
+
+
+func get_status_speed_multiplier() -> float:
+	if status_effect_manager == null:
+		return 1.0
+	return status_effect_manager.get_slow_multiplier()
 
 
 func apply_gravity(delta: float, multiplier: float = 1.0) -> void:
