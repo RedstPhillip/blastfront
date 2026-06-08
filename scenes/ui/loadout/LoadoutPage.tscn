@@ -310,6 +310,8 @@ theme_override_constants/separation = 12
 [node name="InfoCard" type="PanelContainer" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox"]
 custom_minimum_size = Vector2(272, 360)
 layout_mode = 2
+size_flags_vertical = 0
+clip_contents = true
 theme_override_styles/panel = SubResource("StyleBoxFlat_info_card")
 
 [node name="InfoVBox" type="VBoxContainer" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/InfoCard"]
@@ -325,21 +327,26 @@ color = Color(0.62, 0.64, 0.68, 1)
 
 [node name="DescriptionTitle" type="Label" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/InfoCard/InfoVBox" unique_id=1182614712]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 27)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.94, 0.98, 0.94, 1)
 theme_override_font_sizes/font_size = 19
 text = "Loadout"
 clip_text = true
+max_lines_visible = 1
 
 [node name="DescriptionMeta" type="Label" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/InfoCard/InfoVBox"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 16)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.7, 0.76, 0.78, 0.92)
 theme_override_font_sizes/font_size = 10
 text = "ITEM DETAILS"
 clip_text = true
+max_lines_visible = 1
 
 [node name="ConditionRow" type="HBoxContainer" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/InfoCard/InfoVBox"]
+custom_minimum_size = Vector2(0, 18)
 layout_mode = 2
 theme_override_constants/separation = 8
 
@@ -367,13 +374,17 @@ horizontal_alignment = 2
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 58)
 layout_mode = 2
+size_flags_vertical = 0
 theme_override_colors/font_color = Color(0.86, 0.9, 0.9, 0.84)
 theme_override_font_sizes/font_size = 11
 text = "Hover description"
+clip_text = true
 autowrap_mode = 3
+max_lines_visible = 3
 
 [node name="ChangesTitle" type="Label" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/InfoCard/InfoVBox"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 16)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.62, 0.68, 0.7, 0.92)
 theme_override_font_sizes/font_size = 10
@@ -384,7 +395,8 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 148)
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 3
+size_flags_vertical = 0
+clip_contents = true
 theme_override_constants/separation = 5
 
 [node name="NoChangesLabel" type="Label" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/InfoCard/InfoVBox/ChangesVBox"]
@@ -398,6 +410,7 @@ autowrap_mode = 3
 [node name="RewardCenter" type="CenterContainer" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox"]
 layout_mode = 2
 size_flags_vertical = 3
+clip_contents = true
 
 [node name="RewardVBox" type="VBoxContainer" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/RewardCenter"]
 layout_mode = 2
