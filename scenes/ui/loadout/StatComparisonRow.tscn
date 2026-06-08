@@ -1,0 +1,70 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/loadout/stat_comparison_row.gd" id="1_row"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bar_background"]
+bg_color = Color(0.055, 0.062, 0.07, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_before_fill"]
+bg_color = Color(0.4, 0.45, 0.48, 0.76)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_after_fill"]
+bg_color = Color(0.28, 0.72, 0.42, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[node name="StatComparisonRow" type="VBoxContainer"]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+theme_override_constants/separation = 2
+script = ExtResource("1_row")
+
+[node name="Header" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="StatName" type="Label" parent="Header"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.82, 0.86, 0.87, 0.94)
+theme_override_font_sizes/font_size = 10
+text = "Damage"
+clip_text = true
+
+[node name="StatValue" type="Label" parent="Header"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(96, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "10 > 12"
+horizontal_alignment = 2
+
+[node name="BeforeBar" type="ProgressBar" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 5)
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_bar_background")
+theme_override_styles/fill = SubResource("StyleBoxFlat_before_fill")
+value = 65.0
+show_percentage = false
+
+[node name="AfterBar" type="ProgressBar" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 5)
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_bar_background")
+theme_override_styles/fill = SubResource("StyleBoxFlat_after_fill")
+value = 82.0
+show_percentage = false

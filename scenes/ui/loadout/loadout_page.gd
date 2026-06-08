@@ -3,6 +3,9 @@ class_name LoadoutPage
 
 const ARMOR_ITEM_CARD_SCENE: PackedScene = preload("res://scenes/ui/loadout/ArmorItemCard.tscn")
 const WEAPON_EXTENSION_ITEM_CARD_SCENE: PackedScene = preload("res://scenes/ui/loadout/WeaponExtensionItemCard.tscn")
+const STAT_COMPARISON_ROW_SCENE: PackedScene = preload("res://scenes/ui/loadout/StatComparisonRow.tscn")
+const BASE_RELOAD_TIME: float = 1.2
+const BASE_AMMO: float = 3.0
 
 var _weapon_slots: Dictionary = {}
 var _armor_slots: Dictionary = {}
@@ -15,6 +18,11 @@ var _saved_reward_slots: Array[RoundRewardSlot] = []
 @onready var _description_accent: ColorRect = %Accent
 @onready var _condition_bar: ProgressBar = %ConditionBar
 @onready var _condition_label: Label = %ConditionLabel
+@onready var _current_stats_title: Label = %CurrentStatsTitle
+@onready var _current_stats: Label = %CurrentStats
+@onready var _changes_title: Label = %ChangesTitle
+@onready var _changes_vbox: VBoxContainer = %ChangesVBox
+@onready var _no_changes_label: Label = %NoChangesLabel
 @onready var _weapon_slot_one: WeaponExtensionSlot = %WeaponSlotOne
 @onready var _weapon_slot_two: WeaponExtensionSlot = %WeaponSlotTwo
 @onready var _weapon_slot_three: WeaponExtensionSlot = %WeaponSlotThree
@@ -203,6 +211,8 @@ func _show_default_description() -> void:
 	_description_meta.text = "ITEM DETAILS"
 	_description_body.text = "Hover over an item to inspect its type, condition and effects."
 	_set_description_condition(0.0, Color8(98, 104, 110, 255), false)
+	_update_current_weapon_stats(_get_current_weapon_modifiers())
+	_clear_stat_changes("Hover an item to compare its attributes.")
 
 
 func _show_weapon_extension_description(item: WeaponExtensionItem) -> void:
@@ -215,8 +225,12 @@ func _show_weapon_extension_description(item: WeaponExtensionItem) -> void:
 		item.definition.mark,
 		item.get_condition_tier_name().to_upper(),
 	]
-	_description_body.text = item.definition.description if not item.definition.description.is_empty() else "No description available."
+	_description_body.text = _short_description(item.definition.description)
 	_set_description_condition(item.condition, item.get_condition_color(), true)
+	var current_modifiers: Dictionary = _get_current_weapon_modifiers()
+	var preview_modifiers: Dictionary = _build_weapon_preview_modifiers(item, current_modifiers)
+	_update_current_weapon_stats(current_modifiers)
+	_show_weapon_stat_changes(current_modifiers, preview_modifiers)
 
 
 func _show_armor_description(item: ArmorItemData) -> void:
@@ -228,8 +242,12 @@ func _show_armor_description(item: ArmorItemData) -> void:
 		item.get_category_display_name().to_upper(),
 		item.get_condition_name().to_upper(),
 	]
-	_description_body.text = item.description if not item.description.is_empty() else "No description available."
+	_description_body.text = _short_description(item.description)
 	_set_description_condition(item.condition, item.get_condition_color(), true)
+	var current_modifiers: Dictionary = ArmorInventory.get_scaled_attributes()
+	var preview_modifiers: Dictionary = _build_armor_preview_modifiers(item, current_modifiers)
+	_update_current_armor_stats(current_modifiers)
+	_show_armor_stat_changes(current_modifiers, preview_modifiers)
 
 
 func _set_description_condition(value: float, color: Color, visible: bool) -> void:
@@ -245,6 +263,264 @@ func _set_description_condition(value: float, color: Color, visible: bool) -> vo
 	fill_style.corner_radius_bottom_right = 3
 	fill_style.corner_radius_bottom_left = 3
 	_condition_bar.add_theme_stylebox_override("fill", fill_style)
+
+
+func _get_current_weapon_modifiers() -> Dictionary:
+	var stats: Dictionary = ExtensionInventory.build_effective_stats_for_player(ExtensionInventory.get_local_player_slot())
+	var attributes_variant: Variant = stats.get("attributes", {})
+	if attributes_variant is Dictionary:
+		var attributes: Dictionary = attributes_variant
+		return attributes.duplicate()
+	return {}
+
+
+func _build_weapon_preview_modifiers(item: WeaponExtensionItem, current: Dictionary) -> Dictionary:
+	var preview: Dictionary = current.duplicate()
+	var equipped_item: WeaponExtensionItem = ExtensionInventory.get_equipped_item_for_local(item.get_slot())
+	if equipped_item != null:
+		var equipped_stats: Dictionary = equipped_item.build_effective_stats()
+		_apply_numeric_modifiers(preview, equipped_stats.get("attributes", {}), -1.0)
+	var item_stats: Dictionary = item.build_effective_stats()
+	_apply_numeric_modifiers(preview, item_stats.get("attributes", {}), 1.0)
+	return preview
+
+
+func _build_armor_preview_modifiers(item: ArmorItemData, current: Dictionary) -> Dictionary:
+	var preview: Dictionary = current.duplicate()
+	var equipped_item: ArmorItemData = ArmorInventory.get_equipped_item(item.category)
+	if equipped_item != null:
+		_apply_numeric_modifiers(preview, equipped_item.get_scaled_attributes(), -1.0)
+	_apply_numeric_modifiers(preview, item.get_scaled_attributes(), 1.0)
+	return preview
+
+
+func _apply_numeric_modifiers(target: Dictionary, incoming_variant: Variant, factor: float) -> void:
+	if not (incoming_variant is Dictionary):
+		return
+	var incoming: Dictionary = incoming_variant
+	for raw_key in incoming.keys():
+		var value: Variant = incoming[raw_key]
+		if value is int or value is float:
+			var key: StringName = StringName(str(raw_key))
+			target[key] = float(target.get(key, 0.0)) + float(value) * factor
+
+
+func _update_current_weapon_stats(modifiers: Dictionary) -> void:
+	var damage: float = _weapon_display_value(&"damage", modifiers)
+	var fire_rate: float = _weapon_display_value(&"fire_interval", modifiers)
+	var reload: float = _weapon_display_value(&"reload_time", modifiers)
+	var ammo: float = _weapon_display_value(&"ammo_max", modifiers)
+	_current_stats_title.text = "CURRENT WEAPON"
+	_current_stats.text = "DMG %d     FIRE %.2f/s\nRELOAD %.2fs     AMMO %d" % [
+		int(round(damage)),
+		fire_rate,
+		reload,
+		int(round(ammo)),
+	]
+
+
+func _update_current_armor_stats(modifiers: Dictionary) -> void:
+	var health: float = _armor_display_value(&"max_health", modifiers)
+	var movement: float = _armor_display_value(&"move_speed", modifiers)
+	var block: float = _armor_display_value(&"block_strength", modifiers)
+	_current_stats_title.text = "CURRENT ARMOR"
+	_current_stats.text = "HEALTH %d     MOVE %d\nBLOCK %d" % [
+		int(round(health)),
+		int(round(movement)),
+		int(round(block)),
+	]
+
+
+func _show_weapon_stat_changes(current: Dictionary, preview: Dictionary) -> void:
+	var keys: Array[StringName] = _changed_numeric_keys(current, preview)
+	_clear_stat_changes("This item does not change numeric weapon attributes.")
+	for key in keys:
+		var before_value: float = _weapon_display_value(key, current)
+		var after_value: float = _weapon_display_value(key, preview)
+		if is_equal_approx(before_value, after_value):
+			continue
+		_add_stat_row(
+			_weapon_attribute_name(key),
+			before_value,
+			after_value,
+			_weapon_attribute_suffix(key),
+			_weapon_attribute_decimals(key),
+			_weapon_attribute_lower_is_better(key)
+		)
+
+
+func _show_armor_stat_changes(current: Dictionary, preview: Dictionary) -> void:
+	var keys: Array[StringName] = _changed_numeric_keys(current, preview)
+	_clear_stat_changes("This item does not change numeric armor attributes.")
+	for key in keys:
+		var before_value: float = _armor_display_value(key, current)
+		var after_value: float = _armor_display_value(key, preview)
+		if is_equal_approx(before_value, after_value):
+			continue
+		_add_stat_row(
+			_armor_attribute_name(key),
+			before_value,
+			after_value,
+			"",
+			0,
+			false
+		)
+
+
+func _changed_numeric_keys(current: Dictionary, preview: Dictionary) -> Array[StringName]:
+	var result: Array[StringName] = []
+	for raw_key in current.keys():
+		var key: StringName = StringName(str(raw_key))
+		if not result.has(key):
+			result.append(key)
+	for raw_key in preview.keys():
+		var key: StringName = StringName(str(raw_key))
+		if not result.has(key):
+			result.append(key)
+	return result
+
+
+func _clear_stat_changes(empty_text: String) -> void:
+	for child in _changes_vbox.get_children():
+		if child == _no_changes_label:
+			continue
+		_changes_vbox.remove_child(child)
+		child.queue_free()
+	_no_changes_label.text = empty_text
+	_no_changes_label.visible = true
+
+
+func _add_stat_row(
+	display_name: String,
+	before_value: float,
+	after_value: float,
+	suffix: String,
+	decimals: int,
+	lower_is_better: bool
+) -> void:
+	var row: StatComparisonRow = STAT_COMPARISON_ROW_SCENE.instantiate() as StatComparisonRow
+	if row == null:
+		return
+	_no_changes_label.visible = false
+	_changes_vbox.add_child(row)
+	row.setup(display_name, before_value, after_value, suffix, decimals, lower_is_better)
+
+
+func _weapon_display_value(attribute: StringName, modifiers: Dictionary) -> float:
+	var modifier: float = float(modifiers.get(attribute, 0.0))
+	match attribute:
+		&"damage":
+			return maxf(1.0, float(GameSettings.PROJECTILE_DAMAGE) + modifier)
+		&"fire_interval":
+			return 1.0 / maxf(0.03, GameSettings.GUN_FIRE_INTERVAL + modifier)
+		&"reload_time":
+			return maxf(0.1, BASE_RELOAD_TIME + modifier)
+		&"ammo_max":
+			return maxf(1.0, BASE_AMMO + modifier)
+		&"projectile_speed":
+			return maxf(1.0, GameSettings.GUN_PROJECTILE_SPEED + modifier)
+		&"projectile_gravity":
+			return GameSettings.GUN_PROJECTILE_GRAVITY + modifier
+		&"projectile_linear_damping":
+			return maxf(0.0, GameSettings.GUN_PROJECTILE_LINEAR_DAMPING + modifier)
+		&"projectile_max_distance":
+			return maxf(50.0, GameSettings.GUN_PROJECTILE_MAX_DISTANCE + modifier)
+		&"projectile_scale":
+			return maxf(0.1, 1.0 + modifier)
+		&"shots_per_fire":
+			return maxf(1.0, 1.0 + modifier)
+		&"recoil_rotation_degrees":
+			return maxf(0.0, GameSettings.GUN_RECOIL_ROTATION_DEGREES + modifier)
+		_:
+			return modifier
+
+
+func _armor_display_value(attribute: StringName, modifiers: Dictionary) -> float:
+	var modifier: float = float(modifiers.get(attribute, 0.0))
+	match attribute:
+		&"max_health":
+			return float(GameSettings.DEFAULT_MAX_HEALTH) + modifier
+		&"move_speed":
+			return GameSettings.PLAYER_SPEED + modifier
+		&"block_strength":
+			return modifier
+		_:
+			return modifier
+
+
+func _weapon_attribute_name(attribute: StringName) -> String:
+	match attribute:
+		&"damage":
+			return "Damage"
+		&"fire_interval":
+			return "Fire rate"
+		&"reload_time":
+			return "Reload time"
+		&"ammo_max":
+			return "Ammo"
+		&"projectile_speed":
+			return "Projectile speed"
+		&"projectile_gravity":
+			return "Bullet drop"
+		&"projectile_linear_damping":
+			return "Air resistance"
+		&"projectile_max_distance":
+			return "Range"
+		&"projectile_scale":
+			return "Projectile size"
+		&"shots_per_fire":
+			return "Projectiles"
+		&"shot_spread_degrees":
+			return "Spread"
+		&"recoil_rotation_degrees":
+			return "Recoil"
+		_:
+			return str(attribute).replace("_", " ").capitalize()
+
+
+func _armor_attribute_name(attribute: StringName) -> String:
+	match attribute:
+		&"max_health":
+			return "Health"
+		&"move_speed":
+			return "Movement speed"
+		&"block_strength":
+			return "Block strength"
+		_:
+			return str(attribute).replace("_", " ").capitalize()
+
+
+func _weapon_attribute_suffix(attribute: StringName) -> String:
+	match attribute:
+		&"fire_interval":
+			return "/s"
+		&"reload_time":
+			return "s"
+		&"shot_spread_degrees", &"recoil_rotation_degrees":
+			return " deg"
+		_:
+			return ""
+
+
+func _weapon_attribute_decimals(attribute: StringName) -> int:
+	if attribute == &"fire_interval" or attribute == &"reload_time" or attribute == &"projectile_scale":
+		return 2
+	return 0
+
+
+func _weapon_attribute_lower_is_better(attribute: StringName) -> bool:
+	return attribute == &"reload_time" \
+		or attribute == &"projectile_gravity" \
+		or attribute == &"projectile_linear_damping" \
+		or attribute == &"shot_spread_degrees" \
+		or attribute == &"recoil_rotation_degrees"
+
+
+func _short_description(description: String) -> String:
+	if description.is_empty():
+		return "No description available."
+	var sentences: PackedStringArray = description.split(". ")
+	return sentences[0] + ("." if not sentences[0].ends_with(".") else "")
 
 
 func _show_round_reward_description(reward: Dictionary) -> void:
