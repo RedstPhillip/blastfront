@@ -263,7 +263,7 @@ func _on_projectile_despawn_requested(projectile: Node, reason: StringName, coll
 	var hit_player: Player = collider as Player
 	if hit_player != null and reason == &"blocked" and int(hit_player.player_slot) != int(projectile.get("owner_slot")):
 		OnlineMatch.record_block(int(hit_player.player_slot), int(projectile.get("damage")))
-	if hit_player != null and reason != &"blocked" and int(hit_player.player_slot) != int(projectile.get("owner_slot")):
+	if hit_player != null and reason != &"blocked":
 		var projectile_damage: int = int(projectile.get("damage"))
 		var projectile_position: Vector2 = _get_projectile_position(projectile, hit_player.global_position)
 		hit_player.apply_hit_feedback(projectile_position, projectile_damage)
@@ -330,8 +330,6 @@ func _apply_area_damage(origin: Vector2, owner_slot: int, radius: float, damage:
 	GameJuice.spawn_burst(&"impact", origin, Vector2.UP, Color(1.0, 0.42, 0.08, 0.95))
 	GameJuice.shake(2.6, 0.12)
 	for target_slot in GameSettings.player_slots():
-		if target_slot == owner_slot:
-			continue
 		var player: Player = _get_player(target_slot)
 		if player == null or player.is_eliminated():
 			continue
