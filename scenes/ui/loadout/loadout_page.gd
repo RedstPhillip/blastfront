@@ -10,7 +10,11 @@ var _offer_reward_slots: Array[RoundRewardSlot] = []
 var _saved_reward_slots: Array[RoundRewardSlot] = []
 
 @onready var _description_title: Label = %DescriptionTitle
+@onready var _description_meta: Label = %DescriptionMeta
 @onready var _description_body: Label = %DescriptionBody
+@onready var _description_accent: ColorRect = %Accent
+@onready var _condition_bar: ProgressBar = %ConditionBar
+@onready var _condition_label: Label = %ConditionLabel
 @onready var _weapon_slot_one: WeaponExtensionSlot = %WeaponSlotOne
 @onready var _weapon_slot_two: WeaponExtensionSlot = %WeaponSlotTwo
 @onready var _weapon_slot_three: WeaponExtensionSlot = %WeaponSlotThree
@@ -196,20 +200,23 @@ func _refresh_round_rewards() -> void:
 
 func _show_default_description() -> void:
 	_description_title.text = "Loadout"
-	_description_body.text = "Hover ueber Weapon Extensions oder Armor, um Item-Details, Condition und spaetere Effekte hier zu sehen."
+	_description_meta.text = "ITEM DETAILS"
+	_description_body.text = "Hover over an item to inspect its type, condition and effects."
+	_set_description_condition(0.0, Color8(98, 104, 110, 255), false)
 
 
 func _show_weapon_extension_description(item: WeaponExtensionItem) -> void:
 	if item == null or item.definition == null:
 		_show_default_description()
 		return
-	var lines: Array[String] = []
-	lines.append("%s | Mark %d | %s" % [item.get_slot_display_name(), item.definition.mark, item.get_condition_tier_name()])
-	lines.append("Condition: %d / 100" % int(round(item.condition)))
-	if not item.definition.description.is_empty():
-		lines.append(item.definition.description)
 	_description_title.text = item.get_display_name()
-	_description_body.text = "\n".join(lines)
+	_description_meta.text = "WEAPON EXTENSION  |  %s  |  MARK %d  |  %s" % [
+		item.get_slot_display_name().to_upper(),
+		item.definition.mark,
+		item.get_condition_tier_name().to_upper(),
+	]
+	_description_body.text = item.definition.description if not item.definition.description.is_empty() else "No description available."
+	_set_description_condition(item.condition, item.get_condition_color(), true)
 
 
 func _show_armor_description(item: ArmorItemData) -> void:
@@ -217,7 +224,27 @@ func _show_armor_description(item: ArmorItemData) -> void:
 		_show_default_description()
 		return
 	_description_title.text = item.get_hover_title()
-	_description_body.text = item.get_hover_text()
+	_description_meta.text = "ARMOR  |  %s  |  %s" % [
+		item.get_category_display_name().to_upper(),
+		item.get_condition_name().to_upper(),
+	]
+	_description_body.text = item.description if not item.description.is_empty() else "No description available."
+	_set_description_condition(item.condition, item.get_condition_color(), true)
+
+
+func _set_description_condition(value: float, color: Color, visible: bool) -> void:
+	_description_accent.color = color
+	_condition_bar.visible = visible
+	_condition_label.visible = visible
+	_condition_bar.value = value
+	_condition_label.text = "%d%%" % int(round(value))
+	var fill_style: StyleBoxFlat = StyleBoxFlat.new()
+	fill_style.bg_color = color
+	fill_style.corner_radius_top_left = 3
+	fill_style.corner_radius_top_right = 3
+	fill_style.corner_radius_bottom_right = 3
+	fill_style.corner_radius_bottom_left = 3
+	_condition_bar.add_theme_stylebox_override("fill", fill_style)
 
 
 func _show_round_reward_description(reward: Dictionary) -> void:
@@ -241,7 +268,9 @@ func _on_armor_selected(item: ArmorItemData) -> void:
 func _on_armor_cleared(category_id: StringName) -> void:
 	ArmorInventory.unequip_category(category_id)
 	_description_title.text = ArmorItemData.category_display_name(category_id)
-	_description_body.text = "Slot geleert. Ziehe spaeter ein passendes Armor-Item aus dem Inventar hierher."
+	_description_meta.text = "ARMOR SLOT  |  EMPTY"
+	_description_body.text = "Drag a matching armor item here to equip it."
+	_set_description_condition(0.0, Color8(98, 104, 110, 255), false)
 
 
 func _on_weapon_extension_selected(item: WeaponExtensionItem) -> void:
@@ -254,7 +283,9 @@ func _on_weapon_extension_selected(item: WeaponExtensionItem) -> void:
 func _on_weapon_extension_cleared(slot_key: StringName) -> void:
 	ExtensionInventory.unequip_local(slot_key)
 	_description_title.text = WeaponExtensionDefinition.slot_display_name(slot_key)
-	_description_body.text = "Slot geleert. Ziehe eine passende Weapon Extension aus dem Inventar hierher."
+	_description_meta.text = "WEAPON SLOT  |  EMPTY"
+	_description_body.text = "Drag a matching weapon extension here to equip it."
+	_set_description_condition(0.0, Color8(98, 104, 110, 255), false)
 
 
 func _on_extension_inventory_changed(player_slot: int) -> void:
@@ -270,7 +301,9 @@ func _on_extension_loadout_changed(player_slot: int) -> void:
 func _on_round_reward_claimed(source_kind: StringName, source_index: int) -> void:
 	if RoundRewardInventory.claim_reward(source_kind, source_index):
 		_description_title.text = "Item collected"
-		_description_body.text = "The item was added to your inventory."
+		_description_meta.text = "INVENTORY UPDATED"
+		_description_body.text = "The item was added to your inventory and is ready to equip."
+		_set_description_condition(0.0, Color8(72, 190, 111, 255), false)
 
 
 func _on_reward_dropped_to_saved(payload: Dictionary, target_index: int) -> void:
