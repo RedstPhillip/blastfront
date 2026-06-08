@@ -1,30 +1,9 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://scenes/ui/loadout/stat_comparison_row.gd" id="1_row"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bar_background"]
-bg_color = Color(0.055, 0.062, 0.07, 0.95)
-corner_radius_top_left = 2
-corner_radius_top_right = 2
-corner_radius_bottom_right = 2
-corner_radius_bottom_left = 2
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_before_fill"]
-bg_color = Color(0.4, 0.45, 0.48, 0.76)
-corner_radius_top_left = 2
-corner_radius_top_right = 2
-corner_radius_bottom_right = 2
-corner_radius_bottom_left = 2
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_after_fill"]
-bg_color = Color(0.28, 0.72, 0.42, 1)
-corner_radius_top_left = 2
-corner_radius_top_right = 2
-corner_radius_bottom_right = 2
-corner_radius_bottom_left = 2
-
 [node name="StatComparisonRow" type="VBoxContainer"]
-custom_minimum_size = Vector2(0, 42)
+custom_minimum_size = Vector2(0, 31)
 layout_mode = 2
 theme_override_constants/separation = 2
 script = ExtResource("1_row")
@@ -49,22 +28,37 @@ theme_override_font_sizes/font_size = 10
 text = "10 > 12"
 horizontal_alignment = 2
 
-[node name="BeforeBar" type="ProgressBar" parent="."]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 5)
+[node name="BarTrack" type="Control" parent="."]
+custom_minimum_size = Vector2(0, 7)
 layout_mode = 2
 mouse_filter = 2
-theme_override_styles/background = SubResource("StyleBoxFlat_bar_background")
-theme_override_styles/fill = SubResource("StyleBoxFlat_before_fill")
-value = 65.0
-show_percentage = false
 
-[node name="AfterBar" type="ProgressBar" parent="."]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 5)
-layout_mode = 2
+[node name="Background" type="ColorRect" parent="BarTrack"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
-theme_override_styles/background = SubResource("StyleBoxFlat_bar_background")
-theme_override_styles/fill = SubResource("StyleBoxFlat_after_fill")
-value = 82.0
-show_percentage = false
+color = Color(0.055, 0.062, 0.07, 0.95)
+
+[node name="BaseFill" type="ColorRect" parent="BarTrack"]
+unique_name_in_owner = true
+layout_mode = 1
+anchor_right = 0.65
+anchor_bottom = 1.0
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.4, 0.45, 0.48, 0.82)
+
+[node name="DeltaFill" type="ColorRect" parent="BarTrack"]
+unique_name_in_owner = true
+layout_mode = 1
+anchor_left = 0.65
+anchor_right = 0.82
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.24, 0.58, 0.95, 1)

@@ -308,7 +308,7 @@ layout_mode = 2
 theme_override_constants/separation = 12
 
 [node name="InfoCard" type="PanelContainer" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox"]
-custom_minimum_size = Vector2(272, 320)
+custom_minimum_size = Vector2(272, 360)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_info_card")
 
@@ -394,19 +394,15 @@ theme_override_colors/font_color = Color(0.62, 0.68, 0.7, 0.92)
 theme_override_font_sizes/font_size = 10
 text = "ITEM CHANGES"
 
-[node name="ChangesScroll" type="ScrollContainer" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/InfoCard/InfoVBox"]
-custom_minimum_size = Vector2(0, 86)
-layout_mode = 2
-size_flags_vertical = 3
-horizontal_scroll_mode = 0
-
-[node name="ChangesVBox" type="VBoxContainer" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/InfoCard/InfoVBox/ChangesScroll"]
+[node name="ChangesVBox" type="VBoxContainer" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/InfoCard/InfoVBox"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 139)
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 3
 theme_override_constants/separation = 5
 
-[node name="NoChangesLabel" type="Label" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/InfoCard/InfoVBox/ChangesScroll/ChangesVBox"]
+[node name="NoChangesLabel" type="Label" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/InfoCard/InfoVBox/ChangesVBox"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.58, 0.63, 0.65, 0.82)

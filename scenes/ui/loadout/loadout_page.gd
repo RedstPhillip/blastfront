@@ -6,6 +6,32 @@ const WEAPON_EXTENSION_ITEM_CARD_SCENE: PackedScene = preload("res://scenes/ui/l
 const STAT_COMPARISON_ROW_SCENE: PackedScene = preload("res://scenes/ui/loadout/StatComparisonRow.tscn")
 const BASE_RELOAD_TIME: float = 1.2
 const BASE_AMMO: float = 3.0
+const MAX_VISIBLE_STATS: int = 4
+const WEAPON_STAT_PRIORITY: Array[StringName] = [
+	&"damage",
+	&"fire_interval",
+	&"reload_time",
+	&"ammo_max",
+	&"projectile_speed",
+	&"projectile_max_distance",
+	&"shots_per_fire",
+	&"shot_spread_degrees",
+	&"projectile_gravity",
+	&"recoil_rotation_degrees",
+	&"projectile_scale",
+	&"projectile_linear_damping",
+]
+const ARMOR_STAT_PRIORITY: Array[StringName] = [
+	&"max_health",
+	&"move_speed",
+	&"block_strength",
+]
+const DEFAULT_WEAPON_STATS: Array[StringName] = [
+	&"damage",
+	&"fire_interval",
+	&"reload_time",
+	&"ammo_max",
+]
 
 var _weapon_slots: Dictionary = {}
 var _armor_slots: Dictionary = {}
@@ -211,8 +237,9 @@ func _show_default_description() -> void:
 	_description_meta.text = "ITEM DETAILS"
 	_description_body.text = "Hover over an item to inspect its type, condition and effects."
 	_set_description_condition(0.0, Color8(98, 104, 110, 255), false)
-	_update_current_weapon_stats(_get_current_weapon_modifiers())
-	_clear_stat_changes("Hover an item to compare its attributes.")
+	var current_modifiers: Dictionary = _get_current_weapon_modifiers()
+	_update_current_weapon_stats(current_modifiers)
+	_show_default_weapon_stats(current_modifiers)
 
 
 func _show_weapon_extension_description(item: WeaponExtensionItem) -> void:
@@ -332,8 +359,10 @@ func _update_current_armor_stats(modifiers: Dictionary) -> void:
 
 
 func _show_weapon_stat_changes(current: Dictionary, preview: Dictionary) -> void:
-	var keys: Array[StringName] = _changed_numeric_keys(current, preview)
+	var keys: Array[StringName] = _ordered_changed_keys(current, preview, WEAPON_STAT_PRIORITY)
+	_changes_title.text = "ITEM CHANGES"
 	_clear_stat_changes("This item does not change numeric weapon attributes.")
+	var visible_count: int = 0
 	for key in keys:
 		var before_value: float = _weapon_display_value(key, current)
 		var after_value: float = _weapon_display_value(key, preview)
@@ -347,11 +376,16 @@ func _show_weapon_stat_changes(current: Dictionary, preview: Dictionary) -> void
 			_weapon_attribute_decimals(key),
 			_weapon_attribute_lower_is_better(key)
 		)
+		visible_count += 1
+		if visible_count >= MAX_VISIBLE_STATS:
+			break
 
 
 func _show_armor_stat_changes(current: Dictionary, preview: Dictionary) -> void:
-	var keys: Array[StringName] = _changed_numeric_keys(current, preview)
+	var keys: Array[StringName] = _ordered_changed_keys(current, preview, ARMOR_STAT_PRIORITY)
+	_changes_title.text = "ITEM CHANGES"
 	_clear_stat_changes("This item does not change numeric armor attributes.")
+	var visible_count: int = 0
 	for key in keys:
 		var before_value: float = _armor_display_value(key, current)
 		var after_value: float = _armor_display_value(key, preview)
@@ -365,19 +399,54 @@ func _show_armor_stat_changes(current: Dictionary, preview: Dictionary) -> void:
 			0,
 			false
 		)
+		visible_count += 1
+		if visible_count >= MAX_VISIBLE_STATS:
+			break
 
 
-func _changed_numeric_keys(current: Dictionary, preview: Dictionary) -> Array[StringName]:
+func _show_default_weapon_stats(current: Dictionary) -> void:
+	_changes_title.text = "KEY STATS"
+	_clear_stat_changes("")
+	for attribute in DEFAULT_WEAPON_STATS:
+		var value: float = _weapon_display_value(attribute, current)
+		_add_stat_row(
+			_weapon_attribute_name(attribute),
+			value,
+			value,
+			_weapon_attribute_suffix(attribute),
+			_weapon_attribute_decimals(attribute),
+			false
+		)
+
+
+func _ordered_changed_keys(
+	current: Dictionary,
+	preview: Dictionary,
+	priority: Array[StringName]
+) -> Array[StringName]:
 	var result: Array[StringName] = []
+	for key in priority:
+		if _numeric_value_changed(key, current, preview):
+			result.append(key)
 	for raw_key in current.keys():
 		var key: StringName = StringName(str(raw_key))
-		if not result.has(key):
+		if not result.has(key) and _numeric_value_changed(key, current, preview):
 			result.append(key)
 	for raw_key in preview.keys():
 		var key: StringName = StringName(str(raw_key))
-		if not result.has(key):
+		if not result.has(key) and _numeric_value_changed(key, current, preview):
 			result.append(key)
 	return result
+
+
+func _numeric_value_changed(key: StringName, current: Dictionary, preview: Dictionary) -> bool:
+	var current_value: Variant = current.get(key, 0.0)
+	var preview_value: Variant = preview.get(key, 0.0)
+	if not (current_value is int or current_value is float):
+		return false
+	if not (preview_value is int or preview_value is float):
+		return false
+	return not is_equal_approx(float(current_value), float(preview_value))
 
 
 func _clear_stat_changes(empty_text: String) -> void:
@@ -387,7 +456,7 @@ func _clear_stat_changes(empty_text: String) -> void:
 		_changes_vbox.remove_child(child)
 		child.queue_free()
 	_no_changes_label.text = empty_text
-	_no_changes_label.visible = true
+	_no_changes_label.visible = not empty_text.is_empty()
 
 
 func _add_stat_row(
@@ -547,6 +616,9 @@ func _on_armor_cleared(category_id: StringName) -> void:
 	_description_meta.text = "ARMOR SLOT  |  EMPTY"
 	_description_body.text = "Drag a matching armor item here to equip it."
 	_set_description_condition(0.0, Color8(98, 104, 110, 255), false)
+	var current_modifiers: Dictionary = _get_current_weapon_modifiers()
+	_update_current_weapon_stats(current_modifiers)
+	_show_default_weapon_stats(current_modifiers)
 
 
 func _on_weapon_extension_selected(item: WeaponExtensionItem) -> void:
@@ -562,6 +634,9 @@ func _on_weapon_extension_cleared(slot_key: StringName) -> void:
 	_description_meta.text = "WEAPON SLOT  |  EMPTY"
 	_description_body.text = "Drag a matching weapon extension here to equip it."
 	_set_description_condition(0.0, Color8(98, 104, 110, 255), false)
+	var current_modifiers: Dictionary = _get_current_weapon_modifiers()
+	_update_current_weapon_stats(current_modifiers)
+	_show_default_weapon_stats(current_modifiers)
 
 
 func _on_extension_inventory_changed(player_slot: int) -> void:
@@ -580,6 +655,9 @@ func _on_round_reward_claimed(source_kind: StringName, source_index: int) -> voi
 		_description_meta.text = "INVENTORY UPDATED"
 		_description_body.text = "The item was added to your inventory and is ready to equip."
 		_set_description_condition(0.0, Color8(72, 190, 111, 255), false)
+		var current_modifiers: Dictionary = _get_current_weapon_modifiers()
+		_update_current_weapon_stats(current_modifiers)
+		_show_default_weapon_stats(current_modifiers)
 
 
 func _on_reward_dropped_to_saved(payload: Dictionary, target_index: int) -> void:
