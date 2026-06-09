@@ -45,7 +45,7 @@ const DEFAULT_WEAPON_STATS: Array[StringName] = [
 	&"reload_time",
 	&"ammo_max",
 ]
-const EMPTY_WEAPON_INVENTORY_SLOTS: int = 12
+const MIN_WEAPON_INVENTORY_SLOTS: int = 30
 
 var _weapon_slots: Dictionary = {}
 var _armor_slots: Dictionary = {}
@@ -221,11 +221,9 @@ func _refresh_weapon_inventory() -> void:
 		child.queue_free()
 
 	var items: Array[WeaponExtensionItem] = ExtensionInventory.get_inventory_for_local()
-	_weapon_inventory_empty_label.visible = items.is_empty()
-	if items.is_empty():
-		_add_empty_weapon_inventory_slots()
-		return
+	_weapon_inventory_empty_label.visible = false
 
+	var visible_item_count: int = 0
 	for item in items:
 		if item == null:
 			continue
@@ -238,10 +236,12 @@ func _refresh_weapon_inventory() -> void:
 		card.extension_selected.connect(_on_weapon_extension_selected)
 		card.extension_merge_requested.connect(_on_weapon_extension_merge_requested)
 		_weapon_inventory_grid.add_child(card)
+		visible_item_count += 1
+	_add_empty_weapon_inventory_slots(maxi(MIN_WEAPON_INVENTORY_SLOTS - visible_item_count, 0))
 
 
-func _add_empty_weapon_inventory_slots() -> void:
-	for slot_index in range(EMPTY_WEAPON_INVENTORY_SLOTS):
+func _add_empty_weapon_inventory_slots(slot_count: int) -> void:
+	for slot_index in range(slot_count):
 		var card: WeaponExtensionItemCard = WEAPON_EXTENSION_ITEM_CARD_SCENE.instantiate() as WeaponExtensionItemCard
 		if card == null:
 			continue
@@ -261,13 +261,15 @@ func _refresh_armor_inventory() -> void:
 	for child in _armor_inventory_grid.get_children():
 		child.queue_free()
 
-	_armor_inventory_empty_label.visible = ArmorInventory.inventory.is_empty()
-	if ArmorInventory.inventory.is_empty():
-		_armor_inventory_empty_label.text = "Add armor resources to data/armor/items to display them here."
-		return
+	var equipped_items: Array[ArmorItemData] = [
+		ArmorInventory.get_equipped_item(ArmorItemData.CATEGORY_BOOTS),
+		ArmorInventory.get_equipped_item(ArmorItemData.CATEGORY_VEST),
+		ArmorInventory.get_equipped_item(ArmorItemData.CATEGORY_SHIELD),
+	]
 
+	var visible_item_count: int = 0
 	for item in ArmorInventory.inventory:
-		if item == null:
+		if item == null or equipped_items.has(item):
 			continue
 		var card: ArmorItemCard = ARMOR_ITEM_CARD_SCENE.instantiate() as ArmorItemCard
 		if card == null:
@@ -276,12 +278,20 @@ func _refresh_armor_inventory() -> void:
 		card.armor_hovered.connect(_show_armor_description)
 		card.armor_selected.connect(_on_armor_selected)
 		_armor_inventory_grid.add_child(card)
+		visible_item_count += 1
+
+	_armor_inventory_empty_label.visible = visible_item_count <= 0
+	if ArmorInventory.inventory.is_empty():
+		_armor_inventory_empty_label.text = "Add armor resources to data/armor/items to display them here."
+	else:
+		_armor_inventory_empty_label.text = "All owned armor is equipped."
 
 
 func _refresh_armor_slots() -> void:
 	_boots_slot.set_item(ArmorInventory.get_equipped_item(ArmorItemData.CATEGORY_BOOTS))
 	_vest_slot.set_item(ArmorInventory.get_equipped_item(ArmorItemData.CATEGORY_VEST))
 	_shield_slot.set_item(ArmorInventory.get_equipped_item(ArmorItemData.CATEGORY_SHIELD))
+	_refresh_armor_inventory()
 
 
 func _refresh_round_rewards() -> void:

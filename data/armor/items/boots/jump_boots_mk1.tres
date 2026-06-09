@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="ArmorItemData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="ArmorItemData" load_steps=3 format=3]
 
 [ext_resource type="Script" uid="uid://njb7kuuotflf" path="res://scenes/items/armor/armor_item_data.gd" id="1_armor"]
+[ext_resource type="Texture2D" path="res://assets/ui/armor/jump_boots.svg" id="2_preview"]
 
 [resource]
 script = ExtResource("1_armor")
@@ -10,6 +11,7 @@ category = &"boots"
 condition = 100.0
 minimum_condition_scale = 0.3
 rarity = &"common"
+preview_texture = ExtResource("2_preview")
 attributes = {
 "jump_velocity": 50.0,
 "move_speed": -4.0

@@ -39,12 +39,30 @@ func reset_match() -> void:
 
 
 func equip_item(item: ArmorItemData) -> bool:
+	if item == null or not item.is_valid_category():
+		return false
+
+	var previous_item: ArmorItemData = loadout.get_equipped_item(item.category)
+	var inventory_changed_for_equip: bool = false
+	if inventory.has(item):
+		inventory.erase(item)
+		inventory_changed_for_equip = true
+	if previous_item != null and previous_item != item and not inventory.has(previous_item):
+		inventory.append(previous_item)
+		inventory_changed_for_equip = true
+
 	var was_equipped: bool = loadout.equip_item(item)
+	if inventory_changed_for_equip:
+		inventory_changed.emit()
 	return was_equipped
 
 
 func unequip_category(category_id: StringName) -> void:
+	var item: ArmorItemData = loadout.get_equipped_item(category_id)
 	loadout.unequip_category(category_id)
+	if item != null and not inventory.has(item):
+		inventory.append(item)
+		inventory_changed.emit()
 
 
 func get_equipped_item(category_id: StringName) -> ArmorItemData:

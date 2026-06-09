@@ -64,6 +64,7 @@ func host_invite_round(open_overlay_when_ready: bool = false) -> void:
 	mode = GameSettings.NETWORK_MODE_HOST
 	local_player_slot = GameSettings.PLAYER_ONE_SLOT
 	_open_invite_overlay_when_lobby_ready = open_overlay_when_ready
+	_reset_equipment_progression()
 	_set_status("Creating private Steam invite...")
 	Steam.createLobby(Steam.LOBBY_TYPE_PRIVATE, GameSettings.NETWORK_LOBBY_MAX_MEMBERS)
 

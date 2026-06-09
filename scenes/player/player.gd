@@ -240,7 +240,8 @@ func set_player_color(color_id: StringName) -> void:
 
 
 func _on_armor_loadout_changed(changed_player_slot: int = 0) -> void:
-	if changed_player_slot == 0 or changed_player_slot == player_slot:
+	var effective_slot: int = _get_effective_armor_player_slot()
+	if changed_player_slot == 0 or changed_player_slot == effective_slot:
 		_refresh_armor_visuals()
 		_refresh_armor_stats()
 
@@ -248,8 +249,9 @@ func _on_armor_loadout_changed(changed_player_slot: int = 0) -> void:
 func _refresh_armor_visuals() -> void:
 	if _armor_visual_root == null:
 		return
+	var effective_slot: int = _get_effective_armor_player_slot()
 	if ArmorInventory.has_method("get_loadout_for_player"):
-		_armor_visual_root.apply_loadout(ArmorInventory.get_loadout_for_player(player_slot))
+		_armor_visual_root.apply_loadout(ArmorInventory.get_loadout_for_player(effective_slot))
 	else:
 		_armor_visual_root.apply_loadout(ArmorInventory.loadout)
 
@@ -268,8 +270,9 @@ func _capture_base_stats() -> void:
 
 func _refresh_armor_stats() -> void:
 	var loadout: ArmorLoadout = null
+	var effective_slot: int = _get_effective_armor_player_slot()
 	if ArmorInventory.has_method("get_loadout_for_player"):
-		loadout = ArmorInventory.get_loadout_for_player(player_slot)
+		loadout = ArmorInventory.get_loadout_for_player(effective_slot)
 	else:
 		loadout = ArmorInventory.loadout
 
@@ -300,6 +303,14 @@ func _refresh_armor_stats() -> void:
 		)
 		if was_full_health:
 			health_component.health = health_component.max_health
+
+
+func _get_effective_armor_player_slot() -> int:
+	if player_slot != 0:
+		return player_slot
+	if ArmorInventory != null and ArmorInventory.has_method("get_local_player_slot"):
+		return ArmorInventory.get_local_player_slot()
+	return GameSettings.PLAYER_ONE_SLOT
 
 
 func get_visual_tint() -> Color:
