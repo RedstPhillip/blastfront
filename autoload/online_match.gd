@@ -473,7 +473,7 @@ func _record_survival_time(delta: float) -> void:
 		_current_set_stats[slot] = stats
 
 
-# Set rewards combine performance categories, apply the cap, then research multipliers.
+# Set rewards combine performance categories, then research multipliers.
 func _award_set_coins() -> void:
 	last_set_earnings = {}
 	for slot in GameSettings.player_slots():
@@ -487,8 +487,7 @@ func _award_set_coins() -> void:
 		var block_steps: int = int(blocked_damage / GameSettings.COIN_BLOCK_DAMAGE_STEP)
 		var block_coins: int = block_steps * GameSettings.COIN_BLOCK_REWARD
 		var first_hit_coins: int = GameSettings.COIN_FIRST_HIT_REWARD if first_hit else 0
-		var uncapped_total: int = damage_coins + survival_coins + block_coins + first_hit_coins
-		var base_earned: int = mini(uncapped_total, GameSettings.COIN_SET_REWARD_CAP)
+		var base_earned: int = damage_coins + survival_coins + block_coins + first_hit_coins
 		var coin_multiplier: float = ResearchManager.get_coin_multiplier(slot)
 		var earned: int = int(roundf(float(base_earned) * coin_multiplier))
 		var interest_bonus: int = earned - base_earned
@@ -505,7 +504,6 @@ func _award_set_coins() -> void:
 			"earned": earned,
 			"base_earned": base_earned,
 			"interest_bonus": interest_bonus,
-			"capped": uncapped_total > base_earned,
 			"balance": get_coin_balance(slot),
 		}
 

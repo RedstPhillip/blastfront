@@ -22,7 +22,6 @@ extends Control
 @onready var _first_hit_coins_label: Label = %FirstHitCoinsLabel
 @onready var _earned_total_label: Label = %EarnedTotalLabel
 @onready var _coin_balance_label: Label = %CoinBalanceLabel
-@onready var _reward_cap_label: Label = %RewardCapLabel
 
 var _local_slot: int = GameSettings.PLAYER_ONE_SLOT
 var _remote_slot: int = GameSettings.PLAYER_TWO_SLOT
@@ -120,7 +119,6 @@ func _refresh_earnings() -> void:
 	_first_hit_coins_label.text = "+%d" % int(earnings.get("first_hit_coins", 0))
 	_earned_total_label.text = "EARNED  +%d" % int(earnings.get("earned", 0))
 	_coin_balance_label.text = "BALANCE  %d COINS" % OnlineMatch.get_local_coin_balance()
-	_reward_cap_label.visible = earnings.get("capped", false) == true
 
 
 func _set_page(next_page: int) -> void:

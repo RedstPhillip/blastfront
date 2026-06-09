@@ -40,6 +40,7 @@ func start_offline() -> void:
 	local_player_slot = GameSettings.PLAYER_ONE_SLOT
 	remote_steam_id = 0
 	_match_active = false
+	_reset_equipment_progression()
 	_set_status("Offline local mode")
 
 
@@ -49,6 +50,7 @@ func start_training() -> void:
 	local_player_slot = GameSettings.PLAYER_ONE_SLOT
 	remote_steam_id = 0
 	_match_active = false
+	_reset_equipment_progression()
 	_set_status("Training range mode")
 
 
@@ -436,3 +438,15 @@ func _can_use_steam() -> bool:
 func _set_status(message: String) -> void:
 	status_text = message
 	status_changed.emit(status_text)
+
+
+func _reset_equipment_progression() -> void:
+	var reward_inventory: Node = get_node_or_null("/root/RoundRewardInventory")
+	if reward_inventory != null and reward_inventory.has_method("reset_match"):
+		reward_inventory.call("reset_match")
+	var extension_inventory: Node = get_node_or_null("/root/ExtensionInventory")
+	if extension_inventory != null and extension_inventory.has_method("reset_match"):
+		extension_inventory.call("reset_match")
+	var armor_inventory: Node = get_node_or_null("/root/ArmorInventory")
+	if armor_inventory != null and armor_inventory.has_method("reset_match"):
+		armor_inventory.call("reset_match")

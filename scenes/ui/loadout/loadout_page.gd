@@ -55,6 +55,7 @@ var _inspecting_item: bool = false
 var _pending_merge_source: WeaponExtensionItem = null
 var _pending_merge_target: WeaponExtensionItem = null
 var _merge_dialog: ConfirmationDialog = null
+var _merge_warning_dialog: AcceptDialog = null
 var _saved_reward_spacer: Control = null
 
 @onready var _description_title: Label = %DescriptionTitle
@@ -790,7 +791,7 @@ func _on_weapon_extension_merge_requested(source_item: WeaponExtensionItem, targ
 	var next_mark: int = source_item.mark + 1
 	var merge_cost: int = ExtensionInventory.get_merge_cost_for_items(source_item, target_item)
 	if OnlineMatch.get_local_coin_balance() < merge_cost:
-		_show_merge_error("Not enough coins", "Merging into MK%d costs %d coins." % [next_mark, merge_cost])
+		_show_not_enough_merge_coins_warning(next_mark, merge_cost)
 		return
 
 	_pending_merge_source = source_item
@@ -816,7 +817,10 @@ func _confirm_pending_extension_merge() -> void:
 	var merge_cost: int = ExtensionInventory.get_merge_cost_for_items(source_item, target_item)
 	var merged_item: WeaponExtensionItem = ExtensionInventory.try_merge_items_for_local(source_item, target_item)
 	if merged_item == null:
-		_show_merge_error("Merge failed", "The merge could not be completed. Check coins and matching MK tiers.")
+		if OnlineMatch.get_local_coin_balance() < merge_cost:
+			_show_not_enough_merge_coins_warning(source_item.mark + 1, merge_cost)
+		else:
+			_show_merge_error("Merge failed", "The merge could not be completed. Check coins and matching MK tiers.")
 		return
 
 	_refresh_shop_state()
@@ -838,11 +842,31 @@ func _show_merge_error(title: String, body: String) -> void:
 	_show_default_weapon_stats(current_modifiers)
 
 
+func _show_not_enough_merge_coins_warning(next_mark: int, merge_cost: int) -> void:
+	var balance: int = OnlineMatch.get_local_coin_balance()
+	var body: String = "Merging into MK%d costs %d coins. You currently have %d." % [
+		next_mark,
+		merge_cost,
+		balance,
+	]
+	_show_merge_error("Not enough coins", body)
+	if _merge_warning_dialog == null:
+		return
+	_merge_warning_dialog.title = "Not Enough Coins"
+	_merge_warning_dialog.dialog_text = "%s\n\nEarn more coins before merging these extensions." % body
+	_merge_warning_dialog.popup_centered()
+
+
 func _setup_merge_dialog() -> void:
 	_merge_dialog = ConfirmationDialog.new()
 	_merge_dialog.name = "ExtensionMergeDialog"
 	add_child(_merge_dialog)
 	_merge_dialog.confirmed.connect(_confirm_pending_extension_merge)
+
+	_merge_warning_dialog = AcceptDialog.new()
+	_merge_warning_dialog.name = "ExtensionMergeWarningDialog"
+	_merge_warning_dialog.ok_button_text = "OK"
+	add_child(_merge_warning_dialog)
 
 
 func _on_weapon_extension_cleared(slot_key: StringName) -> void:

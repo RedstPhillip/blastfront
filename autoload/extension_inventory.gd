@@ -134,7 +134,7 @@ func equip_item_for_local(item: WeaponExtensionItem) -> bool:
 
 
 func equip_item_for_player(player_slot: int, item: WeaponExtensionItem) -> bool:
-	if item == null or item.definition == null:
+	if item == null or item.definition == null or not _is_player_slot(player_slot):
 		return false
 
 	var extension_slot: StringName = item.get_slot()
@@ -143,8 +143,21 @@ func equip_item_for_player(player_slot: int, item: WeaponExtensionItem) -> bool:
 
 	_ensure_player_state(player_slot)
 	var loadout: Dictionary = _get_loadout_for_player(player_slot)
+	var inventory: Array = _inventory_by_player.get(player_slot, [])
+	var previous_item: WeaponExtensionItem = loadout.get(extension_slot, null) as WeaponExtensionItem
+	var inventory_changed_for_equip: bool = false
+	if inventory.has(item):
+		inventory.erase(item)
+		inventory_changed_for_equip = true
+	if previous_item != null and previous_item != item and not inventory.has(previous_item):
+		inventory.append(previous_item)
+		inventory_changed_for_equip = true
+
 	loadout[extension_slot] = item
+	_inventory_by_player[player_slot] = inventory
 	_equipped_by_player[player_slot] = loadout
+	if inventory_changed_for_equip:
+		inventory_changed.emit(player_slot)
 	loadout_changed.emit(player_slot)
 	_publish_local_loadout_if_needed(player_slot)
 	return true
@@ -160,8 +173,15 @@ func unequip_for_player(player_slot: int, slot: StringName) -> void:
 
 	_ensure_player_state(player_slot)
 	var loadout: Dictionary = _get_loadout_for_player(player_slot)
+	var item: WeaponExtensionItem = loadout.get(slot, null) as WeaponExtensionItem
 	loadout[slot] = null
 	_equipped_by_player[player_slot] = loadout
+	if item != null:
+		var inventory: Array = _inventory_by_player.get(player_slot, [])
+		if not inventory.has(item):
+			inventory.append(item)
+			_inventory_by_player[player_slot] = inventory
+			inventory_changed.emit(player_slot)
 	loadout_changed.emit(player_slot)
 	_publish_local_loadout_if_needed(player_slot)
 
@@ -369,7 +389,7 @@ func _ensure_player_state(player_slot: int) -> void:
 
 func _build_demo_inventory() -> Array[WeaponExtensionItem]:
 	var result: Array[WeaponExtensionItem] = []
-	if not GameSettings.START_WITH_ALL_ARMOR_ITEMS or not GameSettings.START_WITH_ALL_WEAPON_EXTENSIONS:
+	if not GameSettings.START_WITH_ALL_WEAPON_EXTENSIONS:
 		return result
 	for definition in get_all_definitions():
 		result.append(WeaponExtensionItem.create(definition, definition.default_condition))
