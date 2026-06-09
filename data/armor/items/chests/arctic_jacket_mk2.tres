@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="ArmorItemData" load_steps=3 format=3]
 
 [ext_resource type="Script" uid="uid://njb7kuuotflf" path="res://scenes/items/armor/armor_item_data.gd" id="1_armor"]
-[ext_resource type="Texture2D" path="res://assets/ui/armor/arctic_jacket.svg" id="2_preview"]
+[ext_resource type="PackedScene" path="res://scenes/items/armor/visuals/arctic_jacket_visual.tscn" id="3_visual"]
 
 [resource]
 script = ExtResource("1_armor")
@@ -11,7 +11,7 @@ category = &"vest"
 condition = 100.0
 minimum_condition_scale = 0.3
 rarity = &"uncommon"
-preview_texture = ExtResource("2_preview")
+visual_scene = ExtResource("3_visual")
 attributes = {
 "freeze_resistance": 0.55,
 "max_health": 14.0,

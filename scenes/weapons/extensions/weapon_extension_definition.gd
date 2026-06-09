@@ -142,8 +142,8 @@ func _build_default_attribute_modifiers(item_mark: int) -> Dictionary:
 
 
 func _scale_default_attribute(attribute: StringName, value: float, item_mark: int) -> float:
-	var benefit_factor: float = 1.35 if item_mark == 2 else 1.75
-	var drawback_factor: float = 0.85 if item_mark == 2 else 0.7
+	var benefit_factor: float = 1.6 if item_mark == 2 else 2.35
+	var drawback_factor: float = 1.15 if item_mark == 2 else 1.35
 	var lower_is_better: bool = _attribute_lower_is_better(attribute)
 	var is_benefit: bool = value < 0.0 if lower_is_better else value > 0.0
 	return value * (benefit_factor if is_benefit else drawback_factor)
@@ -155,6 +155,7 @@ func _attribute_lower_is_better(attribute: StringName) -> bool:
 		or attribute == &"projectile_gravity" \
 		or attribute == &"projectile_linear_damping" \
 		or attribute == &"shot_spread_degrees" \
+		or attribute == &"shot_random_spread_degrees" \
 		or attribute == &"recoil_rotation_degrees"
 
 

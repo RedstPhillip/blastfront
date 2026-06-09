@@ -338,7 +338,7 @@ text = "0 COINS"
 horizontal_alignment = 2
 
 [node name="InfoCard" type="PanelContainer" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox"]
-custom_minimum_size = Vector2(272, 174)
+custom_minimum_size = Vector2(272, 250)
 layout_mode = 2
 size_flags_vertical = 0
 clip_contents = true
@@ -422,7 +422,7 @@ text = "ITEM CHANGES"
 
 [node name="ChangesVBox" type="VBoxContainer" parent="RootMargin/MainColumns/CenterColumn/CenterMargin/CenterVBox/InfoCard/InfoVBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 52)
+custom_minimum_size = Vector2(0, 104)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0

@@ -1,0 +1,31 @@
+[gd_scene format=3]
+
+[node name="PullShieldVisual" type="Node2D"]
+scale = Vector2(0.58, 0.78)
+rotation = 0.14
+
+[node name="OuterShield" type="Polygon2D" parent="."]
+color = Color(0.065, 0.055, 0.09, 1)
+polygon = PackedVector2Array(-4, -22, 15, -14, 14, 6, 8, 18, 0, 24, -7, 18, -12, 6, -13, -14)
+
+[node name="ShieldFace" type="Polygon2D" parent="."]
+color = Color(0.44, 0.3, 0.72, 1)
+polygon = PackedVector2Array(-3, -18, 11, -12, 11, 4, 6, 15, 0, 20, -5, 15, -9, 4, -10, -12)
+
+[node name="LeftFacet" type="Polygon2D" parent="."]
+color = Color(0.25, 0.18, 0.42, 1)
+polygon = PackedVector2Array(-3, -18, -10, -12, -9, 4, -5, 15, 0, 20)
+
+[node name="RightFacet" type="Polygon2D" parent="."]
+color = Color(0.58, 0.4, 0.84, 1)
+polygon = PackedVector2Array(-3, -18, 11, -12, 11, 4, 6, 15, 0, 20)
+
+[node name="PullArrow" type="Line2D" parent="."]
+points = PackedVector2Array(7, 2, -3, 2, 2, -4, -3, 2, 2, 8)
+width = 2.7
+default_color = Color(0.92, 0.86, 1, 0.9)
+
+[node name="LowerRim" type="Line2D" parent="."]
+points = PackedVector2Array(-7, 6, -4, 15, 0, 20, 4, 15, 8, 6)
+width = 1.4
+default_color = Color(0.82, 0.72, 1, 0.5)

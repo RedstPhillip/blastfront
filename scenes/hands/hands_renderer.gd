@@ -11,13 +11,13 @@ extends Node2D
 @export var guard_hand_y: float = GameSettings.ARM_GUARD_HAND_Y
 @export var guard_follow_x: float = GameSettings.ARM_GUARD_FOLLOW_X
 @export var guard_follow_y: float = GameSettings.ARM_GUARD_FOLLOW_Y
-@export var glove_rotation_offset_degrees: float = GameSettings.ARM_GLOVE_ROTATION_OFFSET_DEGREES
+@export var shield_rotation_offset_degrees: float = GameSettings.ARM_SHIELD_ROTATION_OFFSET_DEGREES
 @export var block_hand_distance: float = GameSettings.ARM_BLOCK_HAND_DISTANCE
 @export var block_hand_lerp_speed: float = GameSettings.ARM_BLOCK_HAND_LERP_SPEED
 
 var _p: CharacterBody2D
 var _gun: Node2D
-var _glove: Sprite2D
+var _shield: Sprite2D
 var _shield_visual_root: Node2D
 var _shield_visual_instance: Node = null
 
@@ -38,40 +38,40 @@ func _ready() -> void:
 	_p = get_parent() as CharacterBody2D
 	if _p != null:
 		_gun = _p.get_node_or_null("Gun") as Node2D
-	_glove = get_node_or_null("Glove") as Sprite2D
-	_shield_visual_root = get_node_or_null("Glove/ShieldVisualRoot") as Node2D
+	_shield = get_node_or_null("Shield") as Sprite2D
+	_shield_visual_root = get_node_or_null("Shield/ShieldVisualRoot") as Node2D
 
 	var mat: CanvasItemMaterial = CanvasItemMaterial.new()
 	mat.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
 	material = mat
 
-	if _glove != null:
-		var glove_mat: CanvasItemMaterial = CanvasItemMaterial.new()
-		glove_mat.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
-		_glove.material = glove_mat
+	if _shield != null:
+		var shield_mat: CanvasItemMaterial = CanvasItemMaterial.new()
+		shield_mat.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
+		_shield.material = shield_mat
 
 
 func set_shield_visual_scene(visual_scene: PackedScene) -> void:
 	_clear_shield_visual()
-	if _glove == null:
+	if _shield == null:
 		return
 	if _shield_visual_root == null:
 		_shield_visual_root = Node2D.new()
 		_shield_visual_root.name = "ShieldVisualRoot"
-		_glove.add_child(_shield_visual_root)
+		_shield.add_child(_shield_visual_root)
 	if visual_scene == null:
-		_glove.texture = null
+		_shield.texture = null
 		return
 
-	_glove.texture = null
+	_shield.texture = null
 	_shield_visual_instance = visual_scene.instantiate()
 	_shield_visual_root.add_child(_shield_visual_instance)
 
 
 func clear_shield_visual_scene() -> void:
 	_clear_shield_visual()
-	if _glove != null:
-		_glove.texture = null
+	if _shield != null:
+		_shield.texture = null
 
 
 func _process(delta: float) -> void:
@@ -90,8 +90,8 @@ func _draw() -> void:
 # Both arms use two-bone IK; the guard hand interpolates to avoid block snapping.
 func _update_pose(delta: float) -> void:
 	if _p == null or _gun == null:
-		if _glove != null:
-			_glove.visible = false
+		if _shield != null:
+			_shield.visible = false
 		return
 
 	var aim_vector: Vector2 = _gun.global_position - _p.global_position
@@ -122,7 +122,7 @@ func _update_pose(delta: float) -> void:
 	_guard_hand = _clamp_to_reach(_guard_shoulder, _guard_hand, upper_len + lower_len - GameSettings.LIMB_REACH_MARGIN)
 	_guard_elbow = _two_bone_ik(_guard_shoulder, _guard_hand, upper_len, lower_len, _guard_side)
 
-	_update_glove()
+	_update_shield()
 
 
 func _shoulder_world(side: float) -> Vector2:
@@ -141,14 +141,14 @@ func _get_guard_hand_target_world(aim_dir: Vector2, side: float) -> Vector2:
 	return _guard_hand_world(aim_dir, side)
 
 
-func _update_glove() -> void:
-	if _glove == null:
+func _update_shield() -> void:
+	if _shield == null:
 		return
 
-	_glove.visible = true
-	_glove.position = _guard_hand
+	_shield.visible = true
+	_shield.position = _guard_hand
 	var body_to_guard: Vector2 = _guard_hand - to_local(_p.global_position)
-	_glove.rotation = body_to_guard.angle() + deg_to_rad(glove_rotation_offset_degrees)
+	_shield.rotation = body_to_guard.angle() + deg_to_rad(shield_rotation_offset_degrees)
 	if _shield_visual_root != null:
 		_shield_visual_root.scale = Vector2.ONE
 		_shield_visual_root.rotation = PI if _guard_hand.x < 0.0 else 0.0

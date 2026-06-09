@@ -115,7 +115,7 @@ var _healing_field_progress: float = 0.0
 var _frosty_aura_timer: float = 0.0
 
 @onready var _body_sprite: Sprite2D = $Sprite2D
-@onready var _glove: Sprite2D = $ArmRenderer/Glove
+@onready var _shield: Sprite2D = $ArmRenderer/Shield
 @onready var _armor_visual_root: ArmorVisualRoot = $ArmorVisualRoot
 
 var _leg_renderer: Node = null
@@ -1135,8 +1135,8 @@ func _apply_player_palette() -> void:
 		_leg_renderer.col_leg = limb_color
 	if _arm_renderer != null:
 		_arm_renderer.col_arm = limb_color
-	if _glove != null:
-		_glove.self_modulate = limb_color
+	if _shield != null:
+		_shield.self_modulate = limb_color
 	_update_body_sprite_direction()
 
 

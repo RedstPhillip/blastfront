@@ -1,0 +1,36 @@
+[gd_scene format=3]
+
+[node name="ArcticJacketVisual" type="Node2D"]
+position = Vector2(0, 7)
+scale = Vector2(0.72, 0.62)
+
+[node name="OuterSilhouette" type="Polygon2D" parent="."]
+color = Color(0.04, 0.075, 0.095, 1)
+polygon = PackedVector2Array(-20, -5, -13, -9, -5, -7, 0, -4, 5, -7, 13, -9, 20, -5, 22, 5, 16, 15, 6, 19, -6, 19, -16, 15, -22, 5)
+
+[node name="MainBellyPlate" type="Polygon2D" parent="."]
+color = Color(0.26, 0.55, 0.68, 1)
+polygon = PackedVector2Array(-17, -3, -11, -7, -4, -5, 0, -2, 4, -5, 11, -7, 17, -3, 18, 5, 13, 12, 5, 16, -5, 16, -13, 12, -18, 5)
+
+[node name="LeftPanel" type="Polygon2D" parent="."]
+color = Color(0.14, 0.31, 0.4, 1)
+polygon = PackedVector2Array(-16, -2, -8, -5, -4, -3, -5, 14, -11, 14, -16, 10, -18, 4)
+
+[node name="RightPanel" type="Polygon2D" parent="."]
+color = Color(0.14, 0.31, 0.4, 1)
+polygon = PackedVector2Array(8, -5, 16, -2, 18, 4, 16, 10, 11, 14, 5, 14, 4, -3)
+
+[node name="FurCollar" type="Line2D" parent="."]
+points = PackedVector2Array(-13, -6, -5, -4, 0, -1, 5, -4, 13, -6)
+width = 3.5
+default_color = Color(0.82, 0.98, 1, 0.82)
+
+[node name="Snowflake" type="Line2D" parent="."]
+points = PackedVector2Array(0, 2, 0, 13, -5, 5, 5, 10, 5, 5, -5, 10)
+width = 1.8
+default_color = Color(0.84, 0.97, 1, 0.9)
+
+[node name="PanelRim" type="Line2D" parent="."]
+points = PackedVector2Array(-14, 0, -11, 11, -4, 14, 0, 17, 4, 14, 11, 11, 14, 0)
+width = 1.1
+default_color = Color(0.75, 0.94, 1, 0.45)

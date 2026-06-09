@@ -6,6 +6,7 @@ signal armor_selected(item: ArmorItemData)
 
 var item: ArmorItemData = null
 var _is_hovered: bool = false
+var _mark_label: Label = null
 
 @onready var _background: TextureRect = %Background
 @onready var _icon_rect: TextureRect = %IconRect
@@ -15,6 +16,7 @@ var _is_hovered: bool = false
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(54, 54)
+	_ensure_mark_label()
 	_clear_button_chrome()
 	mouse_entered.connect(_on_mouse_entered)
 	mouse_exited.connect(_on_mouse_exited)
@@ -51,6 +53,8 @@ func _refresh() -> void:
 		_visual_preview.visible = false
 		_preview_frame.set_condition_color(Color8(70, 78, 88, 210), false)
 		_apply_background_gradient(Color8(70, 78, 88, 210))
+		_update_mark_label(0)
+		tooltip_text = ""
 		return
 
 	_visual_preview.visible = _visual_preview.set_armor_item(item)
@@ -58,11 +62,46 @@ func _refresh() -> void:
 	_icon_rect.texture = _get_fallback_texture(item)
 	_preview_frame.set_condition_color(item.get_condition_color())
 	_apply_background_gradient(item.get_condition_color())
-	tooltip_text = item.get_hover_text()
+	_update_mark_label(item.get_mark())
+	tooltip_text = ""
 
 
 func _apply_background_gradient(base_color: Color) -> void:
 	_background.texture = LoadoutPreviewFrame.create_condition_texture(54, 54, base_color, 0.82, LoadoutPreviewFrame.DEFAULT_CORNER_RADIUS, _is_hovered)
+
+
+func _ensure_mark_label() -> void:
+	if _mark_label != null:
+		return
+	_mark_label = Label.new()
+	_mark_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_mark_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_mark_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	_mark_label.add_theme_font_size_override("font_size", 11)
+	_mark_label.add_theme_color_override("font_color", Color8(255, 225, 92, 255))
+	_mark_label.add_theme_color_override("font_shadow_color", Color8(0, 0, 0, 220))
+	_mark_label.add_theme_constant_override("shadow_offset_x", 1)
+	_mark_label.add_theme_constant_override("shadow_offset_y", 1)
+	add_child(_mark_label)
+	_mark_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_mark_label.offset_left = -38.0
+	_mark_label.offset_top = 2.0
+	_mark_label.offset_right = -3.0
+	_mark_label.offset_bottom = 18.0
+
+
+func _update_mark_label(item_mark: int) -> void:
+	_ensure_mark_label()
+	_mark_label.visible = item_mark > 0
+	_mark_label.text = _stars_for_mark(item_mark)
+
+
+func _stars_for_mark(item_mark: int) -> String:
+	var filled: int = clampi(item_mark, 1, ArmorItemData.MAX_MARK)
+	var result: String = ""
+	for star_index in range(ArmorItemData.MAX_MARK):
+		result += "★" if star_index < filled else "☆"
+	return result
 
 
 func _create_icon_texture(base_color: Color) -> Texture2D:

@@ -51,6 +51,7 @@ func start_training() -> void:
 	remote_steam_id = 0
 	_match_active = false
 	_reset_equipment_progression()
+	_seed_training_extension_inventory()
 	_set_status("Training range mode")
 
 
@@ -504,3 +505,12 @@ func _reset_equipment_progression(persist_research: bool = true) -> void:
 	var armor_inventory: Node = get_node_or_null("/root/ArmorInventory")
 	if armor_inventory != null and armor_inventory.has_method("reset_match"):
 		armor_inventory.call("reset_match")
+
+
+func _seed_training_extension_inventory() -> void:
+	var extension_inventory: Node = get_node_or_null("/root/ExtensionInventory")
+	if extension_inventory != null and extension_inventory.has_method("add_all_definitions_for_local"):
+		extension_inventory.call("add_all_definitions_for_local")
+	var armor_inventory: Node = get_node_or_null("/root/ArmorInventory")
+	if armor_inventory != null and armor_inventory.has_method("add_all_definitions_for_local"):
+		armor_inventory.call("add_all_definitions_for_local")

@@ -155,6 +155,7 @@ func _create_armor_reward(definitions: Array[ArmorItemData], index: int) -> Dict
 	if definitions.is_empty():
 		return {}
 	var definition: ArmorItemData = definitions[index % definitions.size()]
+	definition = _apply_bonus_mark_to_armor_definition(definition)
 	var item: ArmorItemData = definition.duplicate(true) as ArmorItemData
 	if item == null:
 		return {}
@@ -164,6 +165,22 @@ func _create_armor_reward(definitions: Array[ArmorItemData], index: int) -> Dict
 		"item": item,
 		"price": _calculate_price(REWARD_ARMOR, item),
 	}
+
+
+func _apply_bonus_mark_to_armor_definition(definition: ArmorItemData) -> ArmorItemData:
+	if definition == null:
+		return null
+	if definition.get_mark() != 1:
+		return definition
+	if _rng.randf() >= ResearchManager.get_bonus_mark_chance():
+		return definition
+
+	var definition_id: String = str(definition.item_id)
+	if not definition_id.ends_with("_mk1"):
+		return definition
+	var upgraded_id: StringName = StringName(definition_id.substr(0, definition_id.length() - 1) + "2")
+	var upgraded_definition: ArmorItemData = ArmorInventory.get_definition(upgraded_id)
+	return upgraded_definition if upgraded_definition != null else definition
 
 
 # Price combines mark, condition and item power before applying shop limits.

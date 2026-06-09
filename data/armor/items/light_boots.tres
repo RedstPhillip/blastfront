@@ -1,8 +1,7 @@
-[gd_resource type="Resource" script_class="ArmorItemData" load_steps=4 format=3]
+[gd_resource type="Resource" script_class="ArmorItemData" load_steps=3 format=3]
 
 [ext_resource type="Script" uid="uid://njb7kuuotflf" path="res://scenes/items/armor/armor_item_data.gd" id="1_armor"]
 [ext_resource type="PackedScene" path="res://scenes/items/armor/visuals/light_boots_visual.tscn" id="2_visual"]
-[ext_resource type="Texture2D" path="res://assets/ui/armor/light_boots.svg" id="2_preview"]
 
 [resource]
 script = ExtResource("1_armor")
@@ -13,7 +12,6 @@ condition = 84.0
 minimum_condition_scale = 0.25
 rarity = &"common"
 visual_scene = ExtResource("2_visual")
-preview_texture = ExtResource("2_preview")
 attributes = {
 "move_speed": 24.0
 }

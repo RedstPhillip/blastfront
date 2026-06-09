@@ -4,13 +4,13 @@
 
 [node name="CanisterBack" type="Polygon2D" parent="."]
 color = Color(0.05, 0.05, 0.05, 1)
-polygon = PackedVector2Array(-11, -8, 11, -8, 14, -2, 11, 8, -11, 8, -14, -2)
+polygon = PackedVector2Array(-9, -6, 9, -6, 11, -2, 9, 6, -9, 6, -11, -2)
 
 [node name="CanisterCore" type="Polygon2D" parent="."]
 color = Color(0.9, 0.4, 0.1, 1)
-polygon = PackedVector2Array(-8, -5, 9, -5, 11, -1, 9, 5, -8, 5, -11, -1)
+polygon = PackedVector2Array(-6, -4, 7, -4, 9, -1, 7, 4, -6, 4, -8, -1)
 
 [node name="PlusLine" type="Line2D" parent="."]
-points = PackedVector2Array(-4, 0, 4, 0)
-width = 2.5
+points = PackedVector2Array(-3, 0, 3, 0)
+width = 2.0
 default_color = Color(1, 0.6, 0.2, 0.9)

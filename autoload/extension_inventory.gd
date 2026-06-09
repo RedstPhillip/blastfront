@@ -66,6 +66,23 @@ func add_item_for_local(item: WeaponExtensionItem) -> bool:
 	return add_item_for_player(get_local_player_slot(), item)
 
 
+func add_all_definitions_for_local() -> void:
+	add_all_definitions_for_player(get_local_player_slot())
+
+
+func add_all_definitions_for_player(player_slot: int) -> void:
+	if not _is_player_slot(player_slot):
+		return
+	_ensure_player_state(player_slot)
+	var inventory: Array = _inventory_by_player.get(player_slot, [])
+	for definition in get_all_definitions():
+		if definition == null:
+			continue
+		inventory.append(WeaponExtensionItem.create(definition, definition.default_condition, definition.mark))
+	_inventory_by_player[player_slot] = inventory
+	inventory_changed.emit(player_slot)
+
+
 func add_item_for_player(player_slot: int, item: WeaponExtensionItem) -> bool:
 	if item == null or item.definition == null or not _is_player_slot(player_slot):
 		return false

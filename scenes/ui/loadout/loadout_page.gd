@@ -16,6 +16,7 @@ const WEAPON_STAT_PRIORITY: Array[StringName] = [
 	&"projectile_max_distance",
 	&"shots_per_fire",
 	&"shot_spread_degrees",
+	&"shot_random_spread_degrees",
 	&"projectile_gravity",
 	&"recoil_rotation_degrees",
 	&"projectile_scale",
@@ -45,6 +46,7 @@ const DEFAULT_WEAPON_STATS: Array[StringName] = [
 	&"reload_time",
 	&"ammo_max",
 ]
+const HOVER_CLEAR_DELAY: float = 0.12
 const MIN_WEAPON_INVENTORY_SLOTS: int = 30
 const MIN_ARMOR_INVENTORY_SLOTS: int = 18
 
@@ -58,6 +60,7 @@ var _pending_merge_target: WeaponExtensionItem = null
 var _merge_dialog: ConfirmationDialog = null
 var _merge_warning_dialog: AcceptDialog = null
 var _saved_reward_spacer: Control = null
+var _hover_clear_timer: float = 0.0
 
 @onready var _description_title: Label = %DescriptionTitle
 @onready var _description_meta: Label = %DescriptionMeta
@@ -127,11 +130,16 @@ func _ready() -> void:
 	_show_default_description()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if not _inspecting_item:
 		return
 	var hovered: Control = get_viewport().gui_get_hovered_control()
-	if not _is_inspectable_control(hovered):
+	if _is_inspectable_control(hovered):
+		_hover_clear_timer = HOVER_CLEAR_DELAY
+		return
+
+	_hover_clear_timer -= delta
+	if _hover_clear_timer <= 0.0:
 		_show_default_description()
 
 
@@ -344,6 +352,7 @@ func _refresh_shop_state() -> void:
 # The details panel also summarizes the currently equipped stats.
 func _show_default_description() -> void:
 	_inspecting_item = false
+	_hover_clear_timer = 0.0
 	_description_title.text = "Loadout"
 	_description_meta.text = "ITEM DETAILS"
 	_description_body.text = "Hover over an item to inspect its type, condition and effects."
@@ -357,6 +366,7 @@ func _show_weapon_extension_description(item: WeaponExtensionItem) -> void:
 		_show_default_description()
 		return
 	_inspecting_item = true
+	_hover_clear_timer = HOVER_CLEAR_DELAY
 	_description_title.text = item.get_display_name()
 	_description_meta.text = "%s  |  MK%d  |  %s" % [
 		item.get_slot_display_name().to_upper(),
@@ -382,9 +392,11 @@ func _show_armor_description(item: ArmorItemData) -> void:
 		_show_default_description()
 		return
 	_inspecting_item = true
+	_hover_clear_timer = HOVER_CLEAR_DELAY
 	_description_title.text = item.get_hover_title()
-	_description_meta.text = "ARMOR  |  %s  |  %s" % [
+	_description_meta.text = "ARMOR  |  %s  |  MK%d  |  %s" % [
 		item.get_category_display_name().to_upper(),
+		item.get_mark(),
 		item.get_condition_name().to_upper(),
 	]
 	_description_body.text = _short_description(item.description)
@@ -672,6 +684,8 @@ func _weapon_attribute_name(attribute: StringName) -> String:
 			return "Projectiles"
 		&"shot_spread_degrees":
 			return "Spread"
+		&"shot_random_spread_degrees":
+			return "Random spread"
 		&"recoil_rotation_degrees":
 			return "Recoil"
 		_:
@@ -734,7 +748,7 @@ func _weapon_attribute_suffix(attribute: StringName) -> String:
 			return "/s"
 		&"reload_time":
 			return "s"
-		&"shot_spread_degrees", &"recoil_rotation_degrees":
+		&"shot_spread_degrees", &"shot_random_spread_degrees", &"recoil_rotation_degrees":
 			return " deg"
 		_:
 			return ""
@@ -777,6 +791,7 @@ func _weapon_attribute_lower_is_better(attribute: StringName) -> bool:
 		or attribute == &"projectile_gravity" \
 		or attribute == &"projectile_linear_damping" \
 		or attribute == &"shot_spread_degrees" \
+		or attribute == &"shot_random_spread_degrees" \
 		or attribute == &"recoil_rotation_degrees"
 
 

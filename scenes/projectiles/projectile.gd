@@ -22,6 +22,10 @@ var initial_velocity: Vector2 = Vector2.ZERO
 var _distance_travelled: float = 0.0
 var _despawn_requested: bool = false
 var _bounces_left: int = 0
+var _drill_walls_left: int = 0
+var _drill_ignore_distance_remaining: float = 0.0
+var _drill_visual_timer: float = 0.0
+var _drill_clear_distance_remaining: float = 0.0
 
 
 func _ready() -> void:
@@ -32,9 +36,9 @@ func _ready() -> void:
 	velocity = initial_velocity if initial_velocity.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED else direction * muzzle_speed
 	_apply_projectile_scale()
 	if extension_tags.has("bouncy"):
-		_bounces_left = 2
+		_bounces_left = 1
 	if extension_tags.has("drill"):
-		collision_mask &= ~1
+		_drill_walls_left = _get_drill_wall_passes()
 	_update_rotation()
 
 
@@ -52,9 +56,12 @@ func _physics_process(delta: float) -> void:
 	if collision != null:
 		_distance_travelled += collision.get_travel().length()
 		_on_collision(collision)
+		_update_drill_visual(delta)
 		return
 
 	_distance_travelled += motion.length()
+	_update_drill_wall_mask(motion.length())
+	_update_drill_visual(delta)
 	if _distance_travelled >= max_distance:
 		_request_despawn(&"max_distance", null)
 
@@ -97,6 +104,10 @@ func _on_collision(collision: KinematicCollision2D) -> void:
 		_apply_hover_collision_avoidance(collision)
 		return
 
+	if _should_drill_through_collision(collider):
+		_apply_drill_wall_pass(collision)
+		return
+
 	if not is_player and _bounces_left > 0:
 		_bounces_left -= 1
 		var normal: Vector2 = collision.get_normal()
@@ -128,6 +139,78 @@ func _apply_projectile_scale() -> void:
 		var visual: Node2D = get_node_or_null(child_name) as Node2D
 		if visual != null:
 			visual.scale *= safe_scale
+
+
+func _get_drill_wall_passes() -> int:
+	var drill_variant: Variant = extension_effects.get("drill", {})
+	if drill_variant is Dictionary:
+		var drill_effect: Dictionary = drill_variant
+		return maxi(0, int(roundf(float(drill_effect.get("wall_passes", 1.0)))))
+	return 1
+
+
+func _should_drill_through_collision(collider: Object) -> bool:
+	return extension_tags.has("drill") and _drill_walls_left > 0 and not (collider is Player)
+
+
+func _apply_drill_wall_pass(collision: KinematicCollision2D) -> void:
+	_drill_walls_left -= 1
+	_drill_ignore_distance_remaining = maxf(_drill_ignore_distance_remaining, 220.0)
+	_drill_clear_distance_remaining = maxf(_drill_clear_distance_remaining, 18.0)
+	_drill_visual_timer = 0.16
+	collision_mask &= ~1
+	var forward: Vector2 = velocity.normalized() if velocity.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED else direction
+	global_position += forward * maxf(6.0, projectile_scale * 6.0)
+	_play_collision_feedback(collision, collision.get_collider())
+
+
+func _update_drill_wall_mask(travel_distance: float) -> void:
+	if _drill_ignore_distance_remaining <= 0.0:
+		return
+
+	_drill_ignore_distance_remaining = maxf(_drill_ignore_distance_remaining - travel_distance, 0.0)
+	_drill_clear_distance_remaining = maxf(_drill_clear_distance_remaining - travel_distance, 0.0)
+	if _drill_clear_distance_remaining > 0.0:
+		return
+	if _drill_ignore_distance_remaining > 0.0 and _is_overlapping_world_obstacle():
+		return
+
+	_enable_world_collision_after_drill()
+
+
+func _enable_world_collision_after_drill() -> void:
+	_drill_ignore_distance_remaining = 0.0
+	_drill_clear_distance_remaining = 0.0
+	collision_mask |= 1
+
+
+func _is_overlapping_world_obstacle() -> bool:
+	var collision_shape: CollisionShape2D = get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if collision_shape == null or collision_shape.shape == null:
+		return false
+
+	var query: PhysicsShapeQueryParameters2D = PhysicsShapeQueryParameters2D.new()
+	query.shape = collision_shape.shape
+	query.transform = collision_shape.global_transform
+	query.collision_mask = 1
+	query.collide_with_bodies = true
+	query.collide_with_areas = false
+	query.exclude = [get_rid()]
+	return not get_world_2d().direct_space_state.intersect_shape(query, 1).is_empty()
+
+
+func _exit_tree() -> void:
+	if _drill_ignore_distance_remaining > 0.0:
+		collision_mask |= 1
+
+
+func _update_drill_visual(delta: float) -> void:
+	if _drill_visual_timer > 0.0:
+		_drill_visual_timer = maxf(_drill_visual_timer - delta, 0.0)
+	if extension_tags.has("drill") and (_drill_visual_timer > 0.0 or _drill_ignore_distance_remaining > 0.0):
+		modulate = Color(0.72, 0.86, 1.0, 0.76)
+	else:
+		modulate = Color.WHITE
 
 
 func _apply_local_collision_damage(collider: Object) -> void:
@@ -196,7 +279,7 @@ func _should_hover_over_collision(collision: KinematicCollision2D, collider: Obj
 
 func _apply_hover_collision_avoidance(collision: KinematicCollision2D) -> void:
 	var normal: Vector2 = collision.get_normal()
-	var clearance: float = maxf(5.0, projectile_scale * 4.0)
+	var clearance: float = maxf(8.0, projectile_scale * 5.0)
 	global_position += normal * clearance
 	velocity = velocity.slide(normal)
 	if velocity.y > 0.0:

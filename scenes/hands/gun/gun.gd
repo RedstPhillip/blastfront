@@ -71,7 +71,8 @@ func _build_laser_trajectory(world_start: Vector2, direction: Vector2) -> Packed
 	var local_position: Vector2 = Vector2.ZERO
 	var distance_travelled: float = 0.0
 	var space_state: PhysicsDirectSpaceState2D = get_world_2d().direct_space_state
-	var collision_mask: int = 2 if extension_tags.has("drill") else 3
+	var collision_mask: int = 3
+	var drill_wall_passes: int = _get_drill_wall_passes() if extension_tags.has("drill") else 0
 	var max_steps: int = ceili(max_distance / maxf(speed * step_time, 1.0)) + 60
 
 	for step_index in range(max_steps):
@@ -97,6 +98,19 @@ func _build_laser_trajectory(world_start: Vector2, direction: Vector2) -> Packed
 		var hit: Dictionary = space_state.intersect_ray(query)
 		if not hit.is_empty():
 			var hit_position: Vector2 = hit.get("position", world_start + next_position)
+			var collider: Object = hit.get("collider", null)
+			if drill_wall_passes > 0 and not (collider is Player):
+				drill_wall_passes -= 1
+				var hit_local_position: Vector2 = hit_position - world_start
+				distance_travelled += (hit_local_position - local_position).length()
+				points.append(hit_local_position)
+				var skip_distance: float = 96.0
+				local_position = hit_local_position + velocity.normalized() * skip_distance
+				distance_travelled += skip_distance
+				points.append(local_position)
+				if distance_travelled >= max_distance:
+					break
+				continue
 			points.append(hit_position - world_start)
 			break
 		distance_travelled += (next_position - local_position).length()
@@ -173,11 +187,14 @@ func _build_shot_directions(base_direction: Vector2) -> Array[Vector2]:
 	var directions: Array[Vector2] = []
 	var shots: int = maxi(1, int(roundf(1.0 + _get_extension_attribute(&"shots_per_fire"))))
 	var spread_degrees: float = maxf(0.0, _get_extension_attribute(&"shot_spread_degrees"))
+	var random_spread_degrees: float = maxf(0.0, _get_extension_attribute(&"shot_random_spread_degrees"))
 	for shot_index in range(shots):
 		var shot_direction: Vector2 = base_direction
 		if shots > 1 and spread_degrees > 0.0:
 			var ratio: float = (float(shot_index) / float(shots - 1)) - 0.5
 			shot_direction = base_direction.rotated(deg_to_rad(spread_degrees * ratio))
+		if random_spread_degrees > 0.0:
+			shot_direction = shot_direction.rotated(deg_to_rad(randf_range(-random_spread_degrees, random_spread_degrees)))
 		directions.append(shot_direction.normalized())
 	return directions
 
@@ -266,9 +283,9 @@ func get_projectile_spawn_position(direction: Vector2 = Vector2.ZERO) -> Vector2
 		return muzzle_position
 
 	var hit_position: Vector2 = hit.get("position", muzzle_position)
-	var hit_normal: Vector2 = hit.get("normal", Vector2.ZERO)
-	if hit_normal.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
-		return hit_position + hit_normal.normalized() * MUZZLE_WALL_CLEARANCE
+	var player_side: Vector2 = player_position - hit_position
+	if player_side.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
+		return hit_position + player_side.normalized() * MUZZLE_WALL_CLEARANCE
 	return hit_position - shot_direction * MUZZLE_WALL_CLEARANCE
 
 
@@ -482,6 +499,15 @@ func _get_extension_effects() -> Dictionary:
 		var effects: Dictionary = effects_variant
 		return effects.duplicate(true)
 	return {}
+
+
+func _get_drill_wall_passes() -> int:
+	var effects: Dictionary = _get_extension_effects()
+	var drill_variant: Variant = effects.get("drill", {})
+	if drill_variant is Dictionary:
+		var drill_effect: Dictionary = drill_variant
+		return maxi(0, int(roundf(float(drill_effect.get("wall_passes", 1.0)))))
+	return 1
 
 
 func _get_source_extensions() -> Array[String]:

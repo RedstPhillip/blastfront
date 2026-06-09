@@ -114,6 +114,20 @@ func register_item(item: ArmorItemData) -> void:
 		inventory_changed.emit()
 
 
+func add_all_definitions_for_local() -> void:
+	var changed: bool = false
+	for definition in definitions:
+		if definition == null or _owns_item_id(definition.item_id):
+			continue
+		var item: ArmorItemData = definition.duplicate(true) as ArmorItemData
+		if item == null:
+			continue
+		inventory.append(item)
+		changed = true
+	if changed:
+		inventory_changed.emit()
+
+
 func apply_condition_wear_for_local(amount: float) -> void:
 	if amount <= 0.0:
 		return
@@ -249,6 +263,18 @@ func _create_item_from_loadout_data(loadout_data: Dictionary) -> ArmorItemData:
 		return null
 	item.condition = float(loadout_data.get("condition", definition.condition))
 	return item
+
+
+func _owns_item_id(item_id: StringName) -> bool:
+	for item_variant in inventory:
+		var item: ArmorItemData = item_variant as ArmorItemData
+		if item != null and item.item_id == item_id:
+			return true
+	for category_id in ArmorItemData.category_ids():
+		var equipped_item: ArmorItemData = loadout.get_equipped_item(category_id)
+		if equipped_item != null and equipped_item.item_id == item_id:
+			return true
+	return false
 
 
 func _ensure_online_loadouts() -> void:

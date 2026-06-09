@@ -125,14 +125,14 @@ func _refresh() -> void:
 	elif reward_type == RoundRewardInventory.REWARD_ARMOR:
 		var armor_item: ArmorItemData = item_variant as ArmorItemData
 		if armor_item != null:
-			_update_mark_label(0)
+			_update_mark_label(armor_item.get_mark())
 			condition_color = armor_item.get_condition_color()
 			_armor_preview.visible = _armor_preview.set_armor_item(armor_item)
 			_icon_rect.texture = _get_armor_fallback_texture(armor_item)
 			_icon_rect.visible = not _armor_preview.visible
 			_preview_frame.visible = true
 			_preview_frame.set_condition_color(condition_color)
-			tooltip_text = armor_item.get_hover_text()
+			tooltip_text = ""
 
 	_apply_background_gradient(condition_color, 0.82)
 	_refresh_price(true)

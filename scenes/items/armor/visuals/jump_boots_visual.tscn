@@ -1,0 +1,30 @@
+[gd_scene format=3]
+
+[node name="JumpBootsVisual" type="Node2D"]
+scale = Vector2(0.42, 0.42)
+
+[node name="BackSole" type="Polygon2D" parent="."]
+color = Color(0.1, 0.075, 0.035, 1)
+polygon = PackedVector2Array(-13, 3, 10, 3, 18, 9, 13, 17, -9, 17, -17, 10)
+
+[node name="UpperBack" type="Polygon2D" parent="."]
+color = Color(0.13, 0.095, 0.04, 1)
+polygon = PackedVector2Array(-9, -18, 5, -18, 12, -10, 11, 6, 4, 13, -9, 12, -14, 4, -13, -10)
+
+[node name="UpperPlate" type="Polygon2D" parent="."]
+color = Color(0.72, 0.49, 0.16, 1)
+polygon = PackedVector2Array(-8, -15, 4, -15, 9, -9, 8, 4, 3, 9, -7, 9, -11, 3, -10, -9)
+
+[node name="ToeCap" type="Polygon2D" parent="."]
+color = Color(0.36, 0.24, 0.08, 1)
+polygon = PackedVector2Array(-12, 3, 9, 3, 16, 9, 12, 15, -8, 15, -15, 9)
+
+[node name="Spring" type="Line2D" parent="."]
+points = PackedVector2Array(-11, -10, -5, -16, 1, -10, 7, -16, 13, -10)
+width = 2.3
+default_color = Color(1, 0.92, 0.45, 0.9)
+
+[node name="RimLight" type="Line2D" parent="."]
+points = PackedVector2Array(-8, -14, 4, -15, 9, -9, 8, 4, 3, 9, -7, 9, -11, 3)
+width = 1.2
+default_color = Color(1, 0.86, 0.48, 0.52)

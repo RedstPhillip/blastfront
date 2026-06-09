@@ -1,7 +1,7 @@
 class_name HoverBehavior
 extends ExtensionBehavior
 
-const HOVER_HEIGHT: float = 22.0
+const HOVER_HEIGHT: float = 34.0
 const GROUND_DETECTION_DEPTH: float = 96.0
 const FLOOR_NORMAL_THRESHOLD: float = -0.5
 const HEIGHT_RESPONSE: float = 7.0

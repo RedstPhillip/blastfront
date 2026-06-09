@@ -1,0 +1,30 @@
+[gd_scene format=3]
+
+[node name="ReflectiveArmorVisual" type="Node2D"]
+position = Vector2(0, 7)
+scale = Vector2(0.72, 0.62)
+
+[node name="OuterSilhouette" type="Polygon2D" parent="."]
+color = Color(0.055, 0.065, 0.1, 1)
+polygon = PackedVector2Array(-20, -5, -13, -9, -5, -7, 0, -4, 5, -7, 13, -9, 20, -5, 22, 5, 16, 15, 6, 19, -6, 19, -16, 15, -22, 5)
+
+[node name="MainBellyPlate" type="Polygon2D" parent="."]
+color = Color(0.38, 0.44, 0.72, 1)
+polygon = PackedVector2Array(-17, -3, -11, -7, -4, -5, 0, -2, 4, -5, 11, -7, 17, -3, 18, 5, 13, 12, 5, 16, -5, 16, -13, 12, -18, 5)
+
+[node name="LeftPanel" type="Polygon2D" parent="."]
+color = Color(0.22, 0.26, 0.42, 1)
+polygon = PackedVector2Array(-16, -2, -8, -5, -4, -3, -5, 14, -11, 14, -16, 10, -18, 4)
+
+[node name="RightPanel" type="Polygon2D" parent="."]
+color = Color(0.22, 0.26, 0.42, 1)
+polygon = PackedVector2Array(8, -5, 16, -2, 18, 4, 16, 10, 11, 14, 5, 14, 4, -3)
+
+[node name="MirrorSheen" type="Polygon2D" parent="."]
+color = Color(0.95, 0.98, 1, 0.5)
+polygon = PackedVector2Array(-8, 2, 7, -3, 14, 0, -2, 7)
+
+[node name="Ricochet" type="Line2D" parent="."]
+points = PackedVector2Array(-18, -2, -9, -2, -14, -7, -9, -2, -14, 3)
+width = 1.9
+default_color = Color(0.88, 0.98, 1, 0.9)

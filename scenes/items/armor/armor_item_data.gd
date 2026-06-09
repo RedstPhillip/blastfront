@@ -4,6 +4,7 @@ class_name ArmorItemData
 const CATEGORY_BOOTS: StringName = &"boots"
 const CATEGORY_VEST: StringName = &"vest"
 const CATEGORY_SHIELD: StringName = &"shield"
+const MAX_MARK: int = 3
 
 @export var item_id: StringName = &""
 @export var display_name: String = ""
@@ -42,14 +43,35 @@ func get_condition_color() -> Color:
 	return ItemCondition.get_grade_color(condition)
 
 
+func get_mark() -> int:
+	var metadata_variant: Variant = metadata
+	if metadata_variant is Dictionary:
+		var item_metadata: Dictionary = metadata_variant
+		return clampi(int(item_metadata.get("mark", 1)), 1, MAX_MARK)
+	return 1
+
+
+func get_mark_power_multiplier() -> float:
+	match get_mark():
+		2:
+			return 1.25
+		3:
+			return 1.65
+	return 1.0
+
+
 func get_scaled_attributes() -> Dictionary:
 	var scale: float = get_condition_scale()
+	var mark_multiplier: float = get_mark_power_multiplier()
 	var scaled_attributes: Dictionary = {}
 	for raw_key in attributes.keys():
-		var key: Variant = raw_key
-		var value: Variant = attributes[key]
+		var key: StringName = StringName(str(raw_key))
+		var value: Variant = attributes[raw_key]
 		if value is int or value is float:
-			scaled_attributes[key] = float(value) * scale
+			var numeric_value: float = float(value) * scale
+			if _attribute_scales_with_mark(key):
+				numeric_value *= mark_multiplier
+			scaled_attributes[key] = numeric_value
 		else:
 			scaled_attributes[key] = value
 	return scaled_attributes
@@ -72,11 +94,15 @@ func get_hover_title() -> String:
 
 func get_hover_text() -> String:
 	var lines: Array[String] = []
-	lines.append("%s | %s" % [get_category_display_name(), get_condition_name()])
+	lines.append("%s | MK%d | %s" % [get_category_display_name(), get_mark(), get_condition_name()])
 	lines.append("Condition: %d / 100" % int(round(condition)))
 	if not description.is_empty():
 		lines.append(description)
 	return "\n".join(lines)
+
+
+func _attribute_scales_with_mark(attribute: StringName) -> bool:
+	return attribute != &"instant_reload_on_block"
 
 
 static func category_display_name(category_id: StringName) -> String:

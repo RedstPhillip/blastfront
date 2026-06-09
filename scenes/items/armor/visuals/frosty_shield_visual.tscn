@@ -1,0 +1,31 @@
+[gd_scene format=3]
+
+[node name="FrostyShieldVisual" type="Node2D"]
+scale = Vector2(0.58, 0.78)
+rotation = 0.14
+
+[node name="OuterShield" type="Polygon2D" parent="."]
+color = Color(0.04, 0.075, 0.095, 1)
+polygon = PackedVector2Array(-4, -22, 15, -14, 14, 6, 8, 18, 0, 24, -7, 18, -12, 6, -13, -14)
+
+[node name="ShieldFace" type="Polygon2D" parent="."]
+color = Color(0.26, 0.58, 0.72, 1)
+polygon = PackedVector2Array(-3, -18, 11, -12, 11, 4, 6, 15, 0, 20, -5, 15, -9, 4, -10, -12)
+
+[node name="LeftFacet" type="Polygon2D" parent="."]
+color = Color(0.15, 0.34, 0.45, 1)
+polygon = PackedVector2Array(-3, -18, -10, -12, -9, 4, -5, 15, 0, 20)
+
+[node name="RightFacet" type="Polygon2D" parent="."]
+color = Color(0.36, 0.73, 0.86, 1)
+polygon = PackedVector2Array(-3, -18, 11, -12, 11, 4, 6, 15, 0, 20)
+
+[node name="IceMark" type="Line2D" parent="."]
+points = PackedVector2Array(0, -8, 0, 10, -7, -1, 7, 6, 7, -1, -7, 6)
+width = 1.9
+default_color = Color(0.84, 0.98, 1, 0.92)
+
+[node name="LowerRim" type="Line2D" parent="."]
+points = PackedVector2Array(-7, 6, -4, 15, 0, 20, 4, 15, 8, 6)
+width = 1.4
+default_color = Color(0.75, 0.94, 1, 0.5)
