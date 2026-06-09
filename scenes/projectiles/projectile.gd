@@ -88,6 +88,10 @@ func _on_collision(collision: KinematicCollision2D) -> void:
 		return
 
 	var is_player: bool = collider is Player
+	if is_player:
+		var hit_player: Player = collider as Player
+		if hit_player != null and hit_player.try_reflect_projectile(self):
+			return
 
 	if not is_player and _bounces_left > 0:
 		_bounces_left -= 1
@@ -125,15 +129,23 @@ func _apply_projectile_scale() -> void:
 func _apply_local_collision_damage(collider: Object) -> void:
 	var player: Player = collider as Player
 	if player != null:
-		player.apply_hit_feedback(global_position, damage)
-		var old_health: int = player.health_component.health
-		player.health_component.damage(damage)
-		var applied_damage: int = mini(maxi(damage, 0), old_health)
+		var applied_damage: int = player.apply_incoming_damage(damage, owner_slot, global_position)
 		_apply_local_life_steal(applied_damage)
+		_note_source_damage_dealt(applied_damage)
 
 
 func _apply_local_life_steal(applied_damage: int) -> void:
 	ResearchManager.apply_local_life_steal(owner_slot, applied_damage)
+
+
+func _note_source_damage_dealt(applied_damage: int) -> void:
+	if applied_damage <= 0:
+		return
+	for node in get_tree().get_nodes_in_group(GameSettings.PLAYERS_GROUP):
+		var player: Player = node as Player
+		if player != null and player.player_slot == owner_slot:
+			player.note_damage_dealt(applied_damage)
+			return
 
 
 func _is_blocked_by_player(collider: Object) -> bool:

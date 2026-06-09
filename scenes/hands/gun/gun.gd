@@ -329,6 +329,10 @@ func is_reloading() -> bool:
 	return _is_reloading
 
 
+func instant_reload() -> void:
+	_finish_reload()
+
+
 func get_reload_ratio() -> float:
 	if not _is_reloading:
 		return 1.0

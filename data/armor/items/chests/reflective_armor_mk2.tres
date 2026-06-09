@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ArmorItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" uid="uid://njb7kuuotflf" path="res://scenes/items/armor/armor_item_data.gd" id="1_armor"]
+
+[resource]
+script = ExtResource("1_armor")
+item_id = &"reflective_armor_mk2"
+display_name = "Reflective Armor MK2"
+category = &"vest"
+condition = 100.0
+minimum_condition_scale = 0.3
+rarity = &"uncommon"
+attributes = {
+"max_health": 12.0,
+"move_speed": -14.0,
+"reflect_chance": 0.12
+}
+description = "Moderate chance to reflect incoming bullets with a movement penalty."
+metadata = {
+"mark": 2
+}

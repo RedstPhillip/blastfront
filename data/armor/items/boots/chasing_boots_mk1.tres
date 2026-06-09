@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="ArmorItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" uid="uid://njb7kuuotflf" path="res://scenes/items/armor/armor_item_data.gd" id="1_armor"]
+
+[resource]
+script = ExtResource("1_armor")
+item_id = &"chasing_boots_mk1"
+display_name = "Chasing Boots MK1"
+category = &"boots"
+condition = 100.0
+minimum_condition_scale = 0.3
+rarity = &"common"
+attributes = {
+"chase_speed_bonus": 28.0,
+"move_speed": 6.0
+}
+description = "Move faster while running towards an opponent."
+metadata = {
+"mark": 1
+}

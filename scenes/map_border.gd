@@ -201,7 +201,9 @@ func _try_apply_border_hit(player: Player, side: StringName) -> void:
 			if combat_sync != null and combat_sync.has_method("apply_hit"):
 				combat_sync.call("apply_hit", player.player_slot, source_slot, 0, damage_amount)
 	else:
-		if player.health_component != null:
+		if player.has_method("apply_incoming_damage"):
+			player.call("apply_incoming_damage", damage_amount, 0, player.global_position, true)
+		elif player.health_component != null:
 			player.health_component.damage(damage_amount)
 
 

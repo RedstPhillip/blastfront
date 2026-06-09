@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ArmorItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" uid="uid://njb7kuuotflf" path="res://scenes/items/armor/armor_item_data.gd" id="1_armor"]
+
+[resource]
+script = ExtResource("1_armor")
+item_id = &"frosty_shield_mk3"
+display_name = "Frosty Shield MK3"
+category = &"shield"
+condition = 100.0
+minimum_condition_scale = 0.3
+rarity = &"rare"
+attributes = {
+"block_strength": 18.0,
+"frosty_duration": 0.75,
+"frosty_radius": 145.0,
+"frosty_speed_multiplier": 0.58
+}
+description = "Blocking heavily slows nearby enemies."
+metadata = {
+"mark": 3
+}

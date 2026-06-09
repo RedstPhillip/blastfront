@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ArmorItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" uid="uid://njb7kuuotflf" path="res://scenes/items/armor/armor_item_data.gd" id="1_armor"]
+
+[resource]
+script = ExtResource("1_armor")
+item_id = &"healing_shield_mk1"
+display_name = "Healing Shield MK1"
+category = &"shield"
+condition = 100.0
+minimum_condition_scale = 0.3
+rarity = &"common"
+attributes = {
+"block_strength": 6.0,
+"healing_radius": 90.0,
+"healing_rate": 10.0
+}
+description = "Blocking creates a small healing field."
+metadata = {
+"mark": 1
+}

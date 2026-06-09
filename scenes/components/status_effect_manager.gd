@@ -8,20 +8,28 @@ var _active_effects: Dictionary = {}
 
 
 func apply_effect(name: StringName, params: Dictionary) -> void:
-	var duration: float = float(params.get("duration", 0.0))
+	var adjusted_params: Dictionary = params
+	var parent: Node = get_parent()
+	if parent != null and parent.has_method("adjust_status_effect_data"):
+		var adjusted_variant: Variant = parent.call("adjust_status_effect_data", name, params)
+		if adjusted_variant is Dictionary:
+			adjusted_params = adjusted_variant
+
+	var duration: float = float(adjusted_params.get("duration", 0.0))
 	if duration <= 0.0:
 		return
 
 	var instance: Dictionary = {
 		"time_remaining": duration,
 		"duration": duration,
-		"tick_interval": float(params.get("tick_interval", 0.0)),
+		"tick_interval": float(adjusted_params.get("tick_interval", 0.0)),
 		"tick_timer": 0.0,
-		"damage_per_tick": int(params.get("damage_per_tick", 0)),
-		"ticks_remaining": int(params.get("tick_count", -1)),
-		"stun_duration": float(params.get("stun_duration", 0.0)),
-		"speed_multiplier": float(params.get("speed_multiplier", 1.0)),
-		"tint_color": params.get("tint_color", null),
+		"damage_per_tick": int(adjusted_params.get("damage_per_tick", 0)),
+		"ticks_remaining": int(adjusted_params.get("tick_count", -1)),
+		"stun_duration": float(adjusted_params.get("stun_duration", 0.0)),
+		"speed_multiplier": float(adjusted_params.get("speed_multiplier", 1.0)),
+		"tint_color": adjusted_params.get("tint_color", null),
+		"source_slot": int(adjusted_params.get("source_slot", 0)),
 	}
 
 	if not _active_effects.has(name):
@@ -134,7 +142,14 @@ func _tick_instance(instance: Dictionary) -> void:
 	var damage: int = instance.get("damage_per_tick", 0) as int
 	if damage > 0:
 		var health: Node = parent.get_node_or_null("HealthComponent")
-		if health != null and health.has_method("damage"):
+		if parent.has_method("apply_incoming_damage"):
+			var armor_source_slot: int = int(instance.get("source_slot", 0))
+			var modified_damage: int = ResearchManager.apply_rage_to_damage(armor_source_slot, damage)
+			var applied_damage: int = int(parent.call("apply_incoming_damage", modified_damage, armor_source_slot, parent.get("global_position"), false))
+			if armor_source_slot > 0 and applied_damage > 0:
+				ResearchManager.apply_local_life_steal(armor_source_slot, applied_damage)
+				_notify_damage_dealt(armor_source_slot, applied_damage)
+		elif health != null and health.has_method("damage"):
 			var source_slot: int = int(instance.get("source_slot", 0))
 			damage = ResearchManager.apply_rage_to_damage(source_slot, damage)
 			var old_health: int = int(health.get("health"))
@@ -146,3 +161,16 @@ func _tick_instance(instance: Dictionary) -> void:
 	var stun: float = instance.get("stun_duration", 0.0) as float
 	if stun > 0.0 and parent.has_method("apply_stun"):
 		parent.apply_stun(stun)
+
+
+func _notify_damage_dealt(source_slot: int, applied_damage: int) -> void:
+	if applied_damage <= 0:
+		return
+	var tree: SceneTree = get_tree()
+	if tree == null:
+		return
+	for node in tree.get_nodes_in_group(GameSettings.PLAYERS_GROUP):
+		var player: Player = node as Player
+		if player != null and player.player_slot == source_slot:
+			player.note_damage_dealt(applied_damage)
+			return

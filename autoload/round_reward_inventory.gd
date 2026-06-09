@@ -202,6 +202,23 @@ func _armor_power_bonus(item: ArmorItemData) -> int:
 	bonus = maxf(bonus, absf(float(attributes.get(&"max_health", 0.0))) / 8.0)
 	bonus = maxf(bonus, absf(float(attributes.get(&"move_speed", 0.0))) / 12.0)
 	bonus = maxf(bonus, absf(float(attributes.get(&"block_strength", 0.0))) / 8.0)
+	bonus = maxf(bonus, absf(float(attributes.get(&"jump_velocity", 0.0))) / 40.0)
+	bonus = maxf(bonus, absf(float(attributes.get(&"damage_reduction", 0.0))) * 1.25)
+	bonus = maxf(bonus, absf(float(attributes.get(&"stationary_damage_reduction", 0.0))) * 0.8)
+	bonus = maxf(bonus, absf(float(attributes.get(&"freeze_resistance", 0.0))) * 5.0)
+	bonus = maxf(bonus, absf(float(attributes.get(&"reflect_chance", 0.0))) * 16.0)
+	bonus = maxf(bonus, absf(float(attributes.get(&"delayed_damage_duration", 0.0))) * 0.55)
+	bonus = maxf(bonus, absf(float(attributes.get(&"escape_speed_bonus", 0.0))) / 30.0)
+	bonus = maxf(bonus, absf(float(attributes.get(&"chase_speed_bonus", 0.0))) / 24.0)
+	bonus = maxf(bonus, absf(float(attributes.get(&"adrenaline_speed_bonus", 0.0))) / 30.0)
+	bonus = maxf(bonus, absf(float(attributes.get(&"frosty_radius", 0.0))) / 55.0)
+	bonus = maxf(bonus, absf(float(attributes.get(&"healing_rate", 0.0))) / 7.0)
+	bonus = maxf(bonus, absf(float(attributes.get(&"pull_strength", 0.0))) / 260.0)
+	if float(attributes.get(&"instant_reload_on_block", 0.0)) > 0.0:
+		bonus = maxf(bonus, 2.0 + absf(float(attributes.get(&"block_strength", 0.0))) / 10.0)
+	var metadata_variant: Variant = item.metadata
+	if metadata_variant is Dictionary:
+		bonus += maxf(0.0, float((metadata_variant as Dictionary).get("mark", 1)) - 1.0) * 0.65
 	return clampi(int(roundf(bonus)), 0, 4)
 
 

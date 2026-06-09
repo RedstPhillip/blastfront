@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ArmorItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" uid="uid://njb7kuuotflf" path="res://scenes/items/armor/armor_item_data.gd" id="1_armor"]
+
+[resource]
+script = ExtResource("1_armor")
+item_id = &"arctic_jacket_mk3"
+display_name = "Arctic Jacket MK3"
+category = &"vest"
+condition = 100.0
+minimum_condition_scale = 0.3
+rarity = &"rare"
+attributes = {
+"freeze_resistance": 0.75,
+"max_health": 20.0,
+"move_speed": -22.0
+}
+description = "Greatly reduces freeze duration and slow strength with a clear speed penalty."
+metadata = {
+"mark": 3
+}

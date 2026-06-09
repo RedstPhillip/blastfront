@@ -279,8 +279,6 @@ func _on_projectile_despawn_requested(projectile: Node, reason: StringName, coll
 		OnlineMatch.record_block(int(hit_player.player_slot), int(projectile.get("damage")))
 	if hit_player != null and reason != &"blocked":
 		var projectile_damage: int = int(projectile.get("damage"))
-		var projectile_position: Vector2 = _get_projectile_position(projectile, hit_player.global_position)
-		hit_player.apply_hit_feedback(projectile_position, projectile_damage)
 		var combat_sync: Variant = game_sync.get_module(GameSettings.MODULE_COMBAT)
 		if combat_sync != null and combat_sync.has_method("apply_hit"):
 			combat_sync.call("apply_hit", int(hit_player.player_slot), int(projectile.get("owner_slot")), net_id, projectile_damage)
@@ -354,7 +352,6 @@ func _apply_area_damage(origin: Vector2, owner_slot: int, radius: float, damage:
 		var falloff: float = 1.0 - distance / radius
 		var base_damage: int = maxi(1, int(roundf(float(damage) * falloff)))
 		var final_damage: int = ResearchManager.apply_rage_to_damage(owner_slot, base_damage)
-		player.apply_hit_feedback(origin, final_damage)
 		combat_sync.call("apply_hit", target_slot, owner_slot, 0, final_damage)
 
 

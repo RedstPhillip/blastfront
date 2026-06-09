@@ -101,6 +101,18 @@ var _status_fx_timer: float = 0.0
 var _status_fx_phase: float = 0.0
 var _passive_heal_progress: float = 0.0
 var _phoenix_used: bool = false
+var _armor_attributes: Dictionary = {}
+var _base_speed: float = GameSettings.PLAYER_SPEED
+var _base_air_speed: float = GameSettings.PLAYER_AIR_SPEED
+var _base_jump_velocity: float = GameSettings.PLAYER_JUMP_VELOCITY
+var _base_wall_jump_velocity: Vector2 = GameSettings.PLAYER_WALL_JUMP_VELOCITY
+var _base_block_duration: float = GameSettings.PLAYER_BLOCK_DURATION
+var _base_block_cooldown: float = GameSettings.PLAYER_BLOCK_COOLDOWN
+var _base_block_cone_degrees: float = GameSettings.PLAYER_BLOCK_CONE_DEGREES
+var _base_max_health: int = GameSettings.DEFAULT_MAX_HEALTH
+var _adrenaline_timer: float = 0.0
+var _healing_field_progress: float = 0.0
+var _frosty_aura_timer: float = 0.0
 
 @onready var _body_sprite: Sprite2D = $Sprite2D
 @onready var _glove: Sprite2D = $ArmRenderer/Glove
@@ -119,6 +131,7 @@ var _arm_renderer: Node = null
 func _ready() -> void:
 	_leg_renderer = get_node_or_null("LegRenderer")
 	_arm_renderer = get_node_or_null("ArmRenderer")
+	_capture_base_stats()
 	_default_collision_layer = collision_layer
 	_default_collision_mask = collision_mask
 	_body_base_scale = _body_sprite.scale
@@ -138,6 +151,7 @@ func _ready() -> void:
 	if not ArmorInventory.player_loadout_changed.is_connected(_on_armor_loadout_changed):
 		ArmorInventory.player_loadout_changed.connect(_on_armor_loadout_changed)
 	_refresh_armor_visuals()
+	_refresh_armor_stats()
 
 
 func _exit_tree() -> void:
@@ -150,7 +164,9 @@ func _process(delta: float) -> void:
 		return
 	_update_block_timers(delta)
 	_stun_timer = maxf(_stun_timer - delta, 0.0)
+	_adrenaline_timer = maxf(_adrenaline_timer - delta, 0.0)
 	_update_status_effect_feedback(delta)
+	_update_block_armor_effects(delta)
 	_update_research_healing(delta)
 	_update_feedback_visuals(delta)
 
@@ -182,6 +198,7 @@ func configure_local_control(slot: int, move_left: StringName, move_right: Strin
 	_apply_control_mode()
 	_apply_player_palette()
 	_refresh_armor_visuals()
+	_refresh_armor_stats()
 
 
 func configure_remote_control(slot: int) -> void:
@@ -199,6 +216,7 @@ func configure_remote_control(slot: int) -> void:
 	_apply_control_mode()
 	_apply_player_palette()
 	_refresh_armor_visuals()
+	_refresh_armor_stats()
 
 
 func set_controls_enabled(enabled: bool) -> void:
@@ -224,6 +242,7 @@ func set_player_color(color_id: StringName) -> void:
 func _on_armor_loadout_changed(changed_player_slot: int = 0) -> void:
 	if changed_player_slot == 0 or changed_player_slot == player_slot:
 		_refresh_armor_visuals()
+		_refresh_armor_stats()
 
 
 func _refresh_armor_visuals() -> void:
@@ -235,8 +254,141 @@ func _refresh_armor_visuals() -> void:
 		_armor_visual_root.apply_loadout(ArmorInventory.loadout)
 
 
+func _capture_base_stats() -> void:
+	_base_speed = speed
+	_base_air_speed = air_speed
+	_base_jump_velocity = jump_velocity
+	_base_wall_jump_velocity = wall_jump_velocity
+	_base_block_duration = block_duration
+	_base_block_cooldown = block_cooldown
+	_base_block_cone_degrees = block_cone_degrees
+	if health_component != null:
+		_base_max_health = health_component.max_health
+
+
+func _refresh_armor_stats() -> void:
+	var loadout: ArmorLoadout = null
+	if ArmorInventory.has_method("get_loadout_for_player"):
+		loadout = ArmorInventory.get_loadout_for_player(player_slot)
+	else:
+		loadout = ArmorInventory.loadout
+
+	_armor_attributes = {}
+	if loadout != null:
+		_armor_attributes = loadout.get_scaled_attributes()
+
+	speed = maxf(60.0, _base_speed + _get_armor_attribute(&"move_speed"))
+	air_speed = maxf(40.0, _base_air_speed + _get_armor_attribute(&"air_speed"))
+	jump_velocity = maxf(120.0, _base_jump_velocity + _get_armor_attribute(&"jump_velocity"))
+	var wall_jump_y_bonus: float = _get_armor_attribute(&"jump_velocity")
+	wall_jump_velocity = Vector2(
+		_base_wall_jump_velocity.x,
+		_base_wall_jump_velocity.y - wall_jump_y_bonus * 0.45
+	)
+
+	var block_strength: float = _get_armor_attribute(&"block_strength")
+	block_duration = maxf(0.12, _base_block_duration + block_strength * 0.004)
+	block_cooldown = maxf(0.35, _base_block_cooldown - block_strength * 0.003)
+	block_cone_degrees = clampf(_base_block_cone_degrees + block_strength * 0.55, 72.0, 178.0)
+
+	if health_component != null:
+		var old_max_health: int = health_component.max_health
+		var was_full_health: bool = health_component.health >= old_max_health
+		health_component.max_health = maxi(
+			GameSettings.MIN_MAX_HEALTH,
+			int(roundf(float(_base_max_health) + _get_armor_attribute(&"max_health")))
+		)
+		if was_full_health:
+			health_component.health = health_component.max_health
+
+
 func get_visual_tint() -> Color:
 	return GameSettings.player_color_value(_get_effective_color_id())
+
+
+func note_damage_dealt(_amount: int = 0) -> void:
+	var duration: float = _get_armor_attribute(&"adrenaline_duration")
+	if duration > 0.0:
+		_adrenaline_timer = maxf(_adrenaline_timer, duration)
+
+
+func apply_incoming_damage(
+	amount: int,
+	source_slot: int = 0,
+	source_position: Vector2 = Vector2.ZERO,
+	allow_delay: bool = true
+) -> int:
+	if amount <= 0 or health_component == null:
+		return 0
+
+	var modified_damage: int = get_modified_incoming_damage(amount)
+	var delay_duration: float = _get_armor_attribute(&"delayed_damage_duration")
+	if allow_delay and delay_duration > 0.0 and modified_damage > 1:
+		_run_delayed_damage(modified_damage, delay_duration, source_slot, source_position)
+		return 0
+
+	return apply_resolved_damage(modified_damage, source_position)
+
+
+func apply_resolved_damage(amount: int, source_position: Vector2 = Vector2.ZERO) -> int:
+	if amount <= 0 or health_component == null:
+		return 0
+	var old_health: int = health_component.health
+	apply_hit_feedback(source_position, amount)
+	health_component.damage(amount, true)
+	return mini(amount, old_health)
+
+
+func get_modified_incoming_damage(amount: int) -> int:
+	var reduction: float = _get_armor_attribute(&"damage_reduction")
+	if _is_stationary_for_armor():
+		reduction += _get_armor_attribute(&"stationary_damage_reduction")
+	var reduced_damage: int = int(roundf(float(amount) - reduction))
+	if amount > 0:
+		return maxi(1, reduced_damage)
+	return 0
+
+
+func get_delayed_damage_duration() -> float:
+	return _get_armor_attribute(&"delayed_damage_duration")
+
+
+func adjust_status_effect_data(effect_name: StringName, params: Dictionary) -> Dictionary:
+	if effect_name != &"freeze":
+		return params
+	var resistance: float = clampf(_get_armor_attribute(&"freeze_resistance"), 0.0, 0.9)
+	if resistance <= 0.0:
+		return params
+
+	var adjusted: Dictionary = params.duplicate(true)
+	adjusted["duration"] = maxf(0.05, float(adjusted.get("duration", 0.0)) * (1.0 - resistance))
+	if adjusted.has("speed_multiplier"):
+		var speed_multiplier: float = float(adjusted.get("speed_multiplier", 1.0))
+		adjusted["speed_multiplier"] = clampf(lerpf(speed_multiplier, 1.0, resistance), 0.05, 1.0)
+	return adjusted
+
+
+func try_reflect_projectile(projectile: Projectile) -> bool:
+	if projectile == null or projectile.owner_slot == player_slot:
+		return false
+	var chance: float = clampf(_get_armor_attribute(&"reflect_chance"), 0.0, 0.95)
+	if chance <= 0.0 or randf() > chance:
+		return false
+
+	var reflect_direction: Vector2 = -projectile.velocity.normalized()
+	if reflect_direction.length_squared() <= GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
+		reflect_direction = (projectile.global_position - global_position).normalized()
+	if reflect_direction.length_squared() <= GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
+		reflect_direction = Vector2(signf(last_dir), 0.0)
+
+	projectile.owner_slot = player_slot
+	projectile.direction = reflect_direction.normalized()
+	projectile.velocity = reflect_direction.normalized() * maxf(projectile.velocity.length(), projectile.muzzle_speed)
+	projectile.initial_velocity = projectile.velocity
+	projectile.global_position += reflect_direction.normalized() * maxf(8.0, projectile.projectile_scale * 8.0)
+	GameJuice.spawn_burst(&"block", projectile.global_position, reflect_direction, Color(0.96, 0.96, 1.0, 0.9))
+	GameJuice.play_sound_2d(&"block", projectile.global_position, 1.0, 0.04)
+	return true
 
 
 func is_eliminated() -> bool:
@@ -520,6 +672,8 @@ func jump() -> void:
 func apply_horizontal_movement(delta: float, max_speed: float, acceleration: float, friction: float) -> float:
 	var direction: float = get_move_direction()
 	var slow: float = get_status_speed_multiplier()
+	var armor_speed_bonus: float = _get_dynamic_armor_speed_bonus(direction)
+	max_speed += armor_speed_bonus
 	max_speed *= slow
 	acceleration *= slow
 	friction *= slow
@@ -529,6 +683,46 @@ func apply_horizontal_movement(delta: float, max_speed: float, acceleration: flo
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, friction * delta)
 	return direction
+
+
+func _get_dynamic_armor_speed_bonus(direction: float) -> float:
+	var bonus: float = 0.0
+	if health_component != null:
+		var health_ratio: float = float(health_component.health) / maxf(float(health_component.max_health), 1.0)
+		var missing_ratio: float = clampf(1.0 - health_ratio, 0.0, 1.0)
+		bonus += _get_armor_attribute(&"escape_speed_bonus") * missing_ratio
+
+	if direction != 0.0 and _is_moving_towards_opponent(direction):
+		bonus += _get_armor_attribute(&"chase_speed_bonus")
+
+	if _adrenaline_timer > 0.0:
+		bonus += _get_armor_attribute(&"adrenaline_speed_bonus")
+
+	return bonus
+
+
+func _is_moving_towards_opponent(direction: float) -> bool:
+	var opponent: Player = _get_nearest_opponent()
+	if opponent == null:
+		return false
+	var to_opponent: float = opponent.global_position.x - global_position.x
+	return absf(to_opponent) > 2.0 and signf(to_opponent) == signf(direction)
+
+
+func _get_nearest_opponent() -> Player:
+	var nearest: Player = null
+	var nearest_distance_sq: float = INF
+	for node in get_tree().get_nodes_in_group(GameSettings.PLAYERS_GROUP):
+		var other: Player = node as Player
+		if other == null or other == self or other.is_eliminated():
+			continue
+		if other.player_slot == player_slot:
+			continue
+		var distance_sq: float = global_position.distance_squared_to(other.global_position)
+		if distance_sq < nearest_distance_sq:
+			nearest = other
+			nearest_distance_sq = distance_sq
+	return nearest
 
 
 func get_status_speed_multiplier() -> float:
@@ -756,6 +950,7 @@ func _begin_block() -> void:
 	_block_active = true
 	_block_timer = block_duration
 	_block_cooldown_timer = 0.0
+	_apply_block_start_armor_effects()
 	_notify_block_state(true)
 
 
@@ -777,6 +972,96 @@ func _refresh_block_direction() -> void:
 			fallback_dir = 1.0
 		aim_vector = Vector2(fallback_dir, 0.0)
 	_block_direction = aim_vector.normalized()
+
+
+func _apply_block_start_armor_effects() -> void:
+	if _get_armor_attribute(&"instant_reload_on_block") <= 0.0:
+		return
+	var gun: Node = get_node_or_null("Gun")
+	if gun != null and gun.has_method("instant_reload"):
+		gun.call("instant_reload")
+
+
+func _update_block_armor_effects(delta: float) -> void:
+	if not _block_active:
+		_healing_field_progress = 0.0
+		_frosty_aura_timer = 0.0
+		return
+
+	_update_frosty_shield(delta)
+	_update_healing_shield(delta)
+	_update_pull_shield(delta)
+
+
+func _update_frosty_shield(delta: float) -> void:
+	var radius: float = _get_armor_attribute(&"frosty_radius")
+	if radius <= 0.0:
+		return
+	_frosty_aura_timer -= delta
+	if _frosty_aura_timer > 0.0:
+		return
+	_frosty_aura_timer = 0.18
+
+	var slow_multiplier: float = clampf(_get_armor_attribute(&"frosty_speed_multiplier"), 0.05, 1.0)
+	var duration: float = maxf(_get_armor_attribute(&"frosty_duration"), 0.05)
+	for target in _get_players_in_radius(radius, false):
+		if target.status_effect_manager == null:
+			continue
+		target.status_effect_manager.apply_effect(&"freeze", {
+			"duration": duration,
+			"speed_multiplier": slow_multiplier,
+			"tint_color": Color(0.36, 0.82, 1.0, 0.55),
+		})
+
+
+func _update_healing_shield(delta: float) -> void:
+	var radius: float = _get_armor_attribute(&"healing_radius")
+	var heal_rate: float = _get_armor_attribute(&"healing_rate")
+	if radius <= 0.0 or heal_rate <= 0.0:
+		_healing_field_progress = 0.0
+		return
+
+	_healing_field_progress += heal_rate * delta
+	var heal_amount: int = int(floor(_healing_field_progress))
+	if heal_amount <= 0:
+		return
+	_healing_field_progress -= float(heal_amount)
+
+	for target in _get_players_in_radius(radius, true):
+		if target.player_slot != player_slot:
+			continue
+		if target.health_component != null:
+			target.health_component.heal(heal_amount)
+			GameJuice.spawn_burst(&"spawn", target.global_position, Vector2.UP, Color(0.48, 1.0, 0.62, 0.45))
+
+
+func _update_pull_shield(delta: float) -> void:
+	var radius: float = _get_armor_attribute(&"pull_radius")
+	var strength: float = _get_armor_attribute(&"pull_strength")
+	if radius <= 0.0 or strength <= 0.0:
+		return
+
+	for target in _get_players_in_radius(radius, false):
+		var to_center: Vector2 = global_position - target.global_position
+		var distance: float = to_center.length()
+		if distance <= 1.0:
+			continue
+		var falloff: float = 1.0 - clampf(distance / radius, 0.0, 1.0)
+		target.velocity += to_center.normalized() * strength * falloff * delta
+
+
+func _get_players_in_radius(radius: float, include_self: bool) -> Array[Player]:
+	var result: Array[Player] = []
+	var radius_sq: float = radius * radius
+	for node in get_tree().get_nodes_in_group(GameSettings.PLAYERS_GROUP):
+		var player_node: Player = node as Player
+		if player_node == null or player_node.is_eliminated():
+			continue
+		if player_node == self and not include_self:
+			continue
+		if global_position.distance_squared_to(player_node.global_position) <= radius_sq:
+			result.append(player_node)
+	return result
 
 
 func _notify_block_state(active: bool) -> void:
@@ -1046,3 +1331,39 @@ func _update_research_healing(delta: float) -> void:
 		return
 	_passive_heal_progress -= float(heal_amount)
 	health_component.health = mini(health_component.health + heal_amount, target_health)
+
+
+func _run_delayed_damage(amount: int, duration: float, source_slot: int, source_position: Vector2) -> void:
+	var tick_count: int = maxi(1, int(ceil(duration)))
+	var tick_interval: float = duration / float(tick_count)
+	var remaining_damage: int = amount
+	for tick_index in range(tick_count):
+		if not is_inside_tree() or _is_eliminated:
+			return
+		var ticks_left: int = tick_count - tick_index
+		var tick_damage: int = maxi(1, int(roundf(float(remaining_damage) / float(ticks_left))))
+		remaining_damage -= tick_damage
+		var applied_damage: int = apply_resolved_damage(tick_damage, source_position)
+		if source_slot > 0 and applied_damage > 0:
+			ResearchManager.apply_local_life_steal(source_slot, applied_damage)
+			_notify_player_damage_dealt(source_slot, applied_damage)
+		if tick_index < tick_count - 1:
+			await get_tree().create_timer(tick_interval, false).timeout
+
+
+func _get_armor_attribute(attribute_name: StringName) -> float:
+	return float(_armor_attributes.get(attribute_name, 0.0))
+
+
+func _is_stationary_for_armor() -> bool:
+	return update_grounded() and absf(velocity.x) < 8.0 and absf(velocity.y) < 8.0
+
+
+func _notify_player_damage_dealt(source_slot: int, applied_damage: int) -> void:
+	if applied_damage <= 0:
+		return
+	for node in get_tree().get_nodes_in_group(GameSettings.PLAYERS_GROUP):
+		var player_node: Player = node as Player
+		if player_node != null and player_node.player_slot == source_slot:
+			player_node.note_damage_dealt(applied_damage)
+			return

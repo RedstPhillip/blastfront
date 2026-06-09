@@ -24,7 +24,20 @@ const WEAPON_STAT_PRIORITY: Array[StringName] = [
 const ARMOR_STAT_PRIORITY: Array[StringName] = [
 	&"max_health",
 	&"move_speed",
+	&"air_speed",
+	&"jump_velocity",
+	&"damage_reduction",
+	&"stationary_damage_reduction",
+	&"freeze_resistance",
+	&"reflect_chance",
+	&"delayed_damage_duration",
 	&"block_strength",
+	&"frosty_radius",
+	&"healing_rate",
+	&"pull_strength",
+	&"adrenaline_speed_bonus",
+	&"escape_speed_bonus",
+	&"chase_speed_bonus",
 ]
 const DEFAULT_WEAPON_STATS: Array[StringName] = [
 	&"damage",
@@ -454,9 +467,9 @@ func _show_armor_stat_changes(current: Dictionary, preview: Dictionary) -> void:
 			_armor_attribute_name(key),
 			before_value,
 			after_value,
-			"",
-			0,
-			false
+			_armor_attribute_suffix(key),
+			_armor_attribute_decimals(key),
+			_armor_attribute_lower_is_better(key)
 		)
 		visible_count += 1
 		if visible_count >= MAX_VISIBLE_STATS:
@@ -572,6 +585,10 @@ func _armor_display_value(attribute: StringName, modifiers: Dictionary) -> float
 			return GameSettings.PLAYER_SPEED + modifier
 		&"block_strength":
 			return modifier
+		&"freeze_resistance", &"reflect_chance":
+			return modifier * 100.0
+		&"frosty_speed_multiplier":
+			return modifier * 100.0
 		_:
 			return modifier
 
@@ -612,8 +629,46 @@ func _armor_attribute_name(attribute: StringName) -> String:
 			return "Health"
 		&"move_speed":
 			return "Movement speed"
+		&"air_speed":
+			return "Air speed"
+		&"jump_velocity":
+			return "Jump power"
+		&"damage_reduction":
+			return "Protection"
+		&"stationary_damage_reduction":
+			return "Still protection"
+		&"freeze_resistance":
+			return "Freeze resist"
+		&"reflect_chance":
+			return "Reflect chance"
+		&"delayed_damage_duration":
+			return "Damage delay"
 		&"block_strength":
 			return "Block strength"
+		&"frosty_radius":
+			return "Frost radius"
+		&"frosty_duration":
+			return "Frost duration"
+		&"frosty_speed_multiplier":
+			return "Enemy speed"
+		&"healing_radius":
+			return "Heal radius"
+		&"healing_rate":
+			return "Healing"
+		&"pull_radius":
+			return "Pull radius"
+		&"pull_strength":
+			return "Pull force"
+		&"instant_reload_on_block":
+			return "Block reload"
+		&"adrenaline_duration":
+			return "Adrenaline time"
+		&"adrenaline_speed_bonus":
+			return "Adrenaline speed"
+		&"escape_speed_bonus":
+			return "Low HP speed"
+		&"chase_speed_bonus":
+			return "Chase speed"
 		_:
 			return str(attribute).replace("_", " ").capitalize()
 
@@ -634,6 +689,32 @@ func _weapon_attribute_decimals(attribute: StringName) -> int:
 	if attribute == &"fire_interval" or attribute == &"reload_time" or attribute == &"projectile_scale":
 		return 2
 	return 0
+
+
+func _armor_attribute_suffix(attribute: StringName) -> String:
+	match attribute:
+		&"freeze_resistance", &"reflect_chance", &"frosty_speed_multiplier":
+			return "%"
+		&"delayed_damage_duration", &"frosty_duration", &"adrenaline_duration":
+			return "s"
+		&"healing_rate":
+			return "/s"
+		_:
+			return ""
+
+
+func _armor_attribute_decimals(attribute: StringName) -> int:
+	if attribute == &"freeze_resistance" or attribute == &"reflect_chance":
+		return 0
+	if attribute == &"delayed_damage_duration" \
+			or attribute == &"frosty_duration" \
+			or attribute == &"adrenaline_duration":
+		return 1
+	return 0
+
+
+func _armor_attribute_lower_is_better(attribute: StringName) -> bool:
+	return attribute == &"frosty_speed_multiplier"
 
 
 func _weapon_attribute_lower_is_better(attribute: StringName) -> bool:

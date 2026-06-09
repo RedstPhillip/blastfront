@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="ArmorItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" uid="uid://njb7kuuotflf" path="res://scenes/items/armor/armor_item_data.gd" id="1_armor"]
+
+[resource]
+script = ExtResource("1_armor")
+item_id = &"jump_boots_mk2"
+display_name = "Jump Boots MK2"
+category = &"boots"
+condition = 100.0
+minimum_condition_scale = 0.3
+rarity = &"uncommon"
+attributes = {
+"jump_velocity": 85.0,
+"move_speed": -8.0
+}
+description = "Jump much higher with a moderate movement tradeoff."
+metadata = {
+"mark": 2
+}

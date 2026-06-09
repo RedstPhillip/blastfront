@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ArmorItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" uid="uid://njb7kuuotflf" path="res://scenes/items/armor/armor_item_data.gd" id="1_armor"]
+
+[resource]
+script = ExtResource("1_armor")
+item_id = &"pull_shield_mk1"
+display_name = "Pull Shield MK1"
+category = &"shield"
+condition = 100.0
+minimum_condition_scale = 0.3
+rarity = &"common"
+attributes = {
+"block_strength": 5.0,
+"pull_radius": 105.0,
+"pull_strength": 460.0
+}
+description = "Blocking pulls nearby enemies towards you."
+metadata = {
+"mark": 1
+}
