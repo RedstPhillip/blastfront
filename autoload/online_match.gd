@@ -19,6 +19,7 @@ var last_winner_slot: int = 0
 var final_winner_slot: int = 0
 var intermission_remaining: float = GameSettings.ONLINE_INTERMISSION_SECONDS
 var locker_countdown_remaining: float = -1.0
+var match_generation: int = 0
 
 var _current_set_stats: Dictionary = {}
 var _first_hit_recorded: bool = false
@@ -67,6 +68,7 @@ func _process(delta: float) -> void:
 # Entering the locker starts a fresh session and resets synchronized progression state.
 func enter_locker(reset_scores: bool = true) -> void:
 	if reset_scores:
+		match_generation += 1
 		_reset_match_scores()
 		_reset_match_economy()
 		var reward_inventory: Node = get_node_or_null("/root/RoundRewardInventory")
@@ -436,6 +438,7 @@ func build_state() -> Dictionary:
 		"final_winner_slot": final_winner_slot,
 		"intermission_remaining": intermission_remaining,
 		"locker_countdown_remaining": locker_countdown_remaining,
+		"match_generation": match_generation,
 	}
 
 
@@ -584,6 +587,13 @@ func _apply_player_color(slot: int, color_id: StringName) -> void:
 
 # Replace synchronized containers in place so existing UI references remain valid.
 func _apply_state(state: Dictionary) -> void:
+	var incoming_generation: int = int(state.get("match_generation", match_generation))
+	var generation_changed: bool = incoming_generation != match_generation
+	if generation_changed:
+		match_generation = incoming_generation
+		if not _has_authority():
+			_reset_local_client_progression()
+
 	_apply_dictionary(state.get("player_colors", {}), player_colors, true)
 	_apply_extension_loadouts(state.get("extension_loadouts", {}))
 	_apply_armor_loadouts(state.get("armor_loadouts", {}))
@@ -607,6 +617,23 @@ func _apply_state(state: Dictionary) -> void:
 		phase_changed.emit(phase)
 	state_changed.emit()
 	countdown_changed.emit(int(ceil(intermission_remaining)))
+	if generation_changed and not _has_authority():
+		call_deferred("_request_local_research_profile")
+
+
+func _reset_local_client_progression() -> void:
+	var reward_inventory: Node = get_node_or_null("/root/RoundRewardInventory")
+	if reward_inventory != null and reward_inventory.has_method("reset_match"):
+		reward_inventory.call("reset_match")
+	var extension_inventory: Node = get_node_or_null("/root/ExtensionInventory")
+	if extension_inventory != null and extension_inventory.has_method("reset_match"):
+		extension_inventory.call("reset_match")
+	var armor_inventory: Node = get_node_or_null("/root/ArmorInventory")
+	if armor_inventory != null and armor_inventory.has_method("reset_match"):
+		armor_inventory.call("reset_match")
+	var research_manager: Node = get_node_or_null("/root/ResearchManager")
+	if research_manager != null and research_manager.has_method("reset_for_new_game"):
+		research_manager.call("reset_for_new_game")
 
 
 func _apply_dictionary(source_variant: Variant, target: Dictionary, stores_color_ids: bool) -> void:

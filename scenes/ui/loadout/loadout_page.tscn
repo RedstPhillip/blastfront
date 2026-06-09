@@ -671,6 +671,7 @@ theme_override_constants/v_separation = 8
 
 [node name="ArmorInventoryEmptyLabel" type="Label" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin/ArmorVBox/ArmorInventoryPanel/ArmorInventoryPadding/ArmorInventoryStack" unique_id=1582675109]
 unique_name_in_owner = true
+visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -679,7 +680,6 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_colors/font_color = Color(0.75, 0.8, 0.8, 0.72)
 theme_override_font_sizes/font_size = 12
-text = "Armor inventory placeholder"
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3

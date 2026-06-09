@@ -93,6 +93,10 @@ func _on_collision(collision: KinematicCollision2D) -> void:
 		if hit_player != null and hit_player.try_reflect_projectile(self):
 			return
 
+	if _should_hover_over_collision(collision, collider):
+		_apply_hover_collision_avoidance(collision)
+		return
+
 	if not is_player and _bounces_left > 0:
 		_bounces_left -= 1
 		var normal: Vector2 = collision.get_normal()
@@ -179,3 +183,21 @@ func _play_collision_feedback(collision: KinematicCollision2D, collider: Object)
 	GameJuice.spawn_burst(&"impact", collision_position, impact_direction, Color(0.98, 0.55, 0.18, 0.9))
 	GameJuice.play_sound_2d(&"impact", collision_position, -7.0, 0.035)
 	GameJuice.shake(GameSettings.PROJECTILE_IMPACT_SHAKE_STRENGTH, GameSettings.PROJECTILE_IMPACT_SHAKE_TIME)
+
+
+func _should_hover_over_collision(collision: KinematicCollision2D, collider: Object) -> bool:
+	if not extension_tags.has("hover"):
+		return false
+	if collider is Player:
+		return false
+	var normal: Vector2 = collision.get_normal()
+	return normal.y <= HoverBehavior.FLOOR_NORMAL_THRESHOLD
+
+
+func _apply_hover_collision_avoidance(collision: KinematicCollision2D) -> void:
+	var normal: Vector2 = collision.get_normal()
+	var clearance: float = maxf(5.0, projectile_scale * 4.0)
+	global_position += normal * clearance
+	velocity = velocity.slide(normal)
+	if velocity.y > 0.0:
+		velocity.y = 0.0

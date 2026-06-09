@@ -1,6 +1,8 @@
 extends Node2D
 
 const PROJECTILE_SCENE: PackedScene = preload("res://scenes/projectiles/projectile.tscn")
+const MUZZLE_WORLD_COLLISION_MASK: int = 1
+const MUZZLE_WALL_CLEARANCE: float = 6.0
 
 @export var orbit_radius: float = GameSettings.GUN_ORBIT_RADIUS
 @export var aim_angle_offset_degrees: float = GameSettings.GUN_AIM_ANGLE_OFFSET_DEGREES
@@ -45,15 +47,16 @@ func _update_laser_sight() -> void:
 		_laser_sight.hide()
 		return
 	_laser_sight.show()
-	_laser_sight.global_position = get_muzzle_global_position()
+	var direction: Vector2 = get_shot_direction()
+	var laser_origin: Vector2 = get_projectile_spawn_position(direction)
+	_laser_sight.global_position = laser_origin
 	_laser_sight.global_rotation = 0.0
-	_laser_sight.points = _build_laser_trajectory()
+	_laser_sight.points = _build_laser_trajectory(laser_origin, direction)
 
 
 # Simulate the projectile arc and stop the preview at the first physics hit.
-func _build_laser_trajectory() -> PackedVector2Array:
+func _build_laser_trajectory(world_start: Vector2, direction: Vector2) -> PackedVector2Array:
 	var points: PackedVector2Array = PackedVector2Array([Vector2.ZERO])
-	var direction: Vector2 = get_shot_direction()
 	var speed: float = _get_modified_float(&"projectile_speed", projectile_speed, 1.0)
 	var gravity_value: float = projectile_gravity + _get_extension_attribute(&"projectile_gravity")
 	var extension_tags: Array[String] = _get_extension_tags()
@@ -67,7 +70,6 @@ func _build_laser_trajectory() -> PackedVector2Array:
 	var step_time: float = 1.0 / physics_ticks
 	var local_position: Vector2 = Vector2.ZERO
 	var distance_travelled: float = 0.0
-	var world_start: Vector2 = get_muzzle_global_position()
 	var space_state: PhysicsDirectSpaceState2D = get_world_2d().direct_space_state
 	var collision_mask: int = 2 if extension_tags.has("drill") else 3
 	var max_steps: int = ceili(max_distance / maxf(speed * step_time, 1.0)) + 60
@@ -158,7 +160,7 @@ func _physics_process(delta: float) -> void:
 
 func _shoot() -> void:
 	var base_direction: Vector2 = get_shot_direction()
-	var muzzle_position: Vector2 = get_muzzle_global_position()
+	var muzzle_position: Vector2 = get_projectile_spawn_position(base_direction)
 	_play_fire_feedback(base_direction, muzzle_position)
 
 	var projectile_data: Dictionary = _build_projectile_data(base_direction)
@@ -223,7 +225,7 @@ func _fire_projectile(direction: Vector2, muzzle_position: Vector2, projectile_d
 func build_shot_data() -> Dictionary:
 	var direction: Vector2 = get_shot_direction()
 	return {
-		"spawn_position": get_muzzle_global_position(),
+		"spawn_position": get_projectile_spawn_position(direction),
 		"direction": direction,
 		"directions": _build_shot_directions(direction),
 		"fire_interval": _get_modified_fire_interval(),
@@ -235,6 +237,39 @@ func get_muzzle_global_position() -> Vector2:
 	if _muzzle == null:
 		return global_position
 	return _muzzle.global_position
+
+
+func get_projectile_spawn_position(direction: Vector2 = Vector2.ZERO) -> Vector2:
+	var muzzle_position: Vector2 = get_muzzle_global_position()
+	if _player == null or not is_inside_tree():
+		return muzzle_position
+
+	var shot_direction: Vector2 = direction
+	if shot_direction.length_squared() <= GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
+		shot_direction = get_shot_direction()
+	if shot_direction.length_squared() <= GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
+		return muzzle_position
+	shot_direction = shot_direction.normalized()
+
+	var player_position: Vector2 = _player.global_position
+	if player_position.distance_squared_to(muzzle_position) <= 1.0:
+		return muzzle_position
+
+	var query: PhysicsRayQueryParameters2D = PhysicsRayQueryParameters2D.create(
+		player_position,
+		muzzle_position,
+		MUZZLE_WORLD_COLLISION_MASK
+	)
+	query.exclude = [_player.get_rid()]
+	var hit: Dictionary = get_world_2d().direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		return muzzle_position
+
+	var hit_position: Vector2 = hit.get("position", muzzle_position)
+	var hit_normal: Vector2 = hit.get("normal", Vector2.ZERO)
+	if hit_normal.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
+		return hit_position + hit_normal.normalized() * MUZZLE_WALL_CLEARANCE
+	return hit_position - shot_direction * MUZZLE_WALL_CLEARANCE
 
 
 func get_shot_direction() -> Vector2:

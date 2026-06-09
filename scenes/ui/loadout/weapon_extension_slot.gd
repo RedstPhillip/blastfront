@@ -91,7 +91,7 @@ func _refresh() -> void:
 	_swatch.visible = false
 	_preview_frame.visible = false
 	_preview_frame.set_condition_color(item.get_condition_color() if _visual_preview.visible else item.definition.icon_color)
-	_apply_background_gradient(Color8(74, 78, 82, 230), 0.64)
+	_apply_background_gradient(item.get_condition_color(), 0.82)
 	_update_mark_label(item.mark)
 	tooltip_text = ""
 
@@ -146,7 +146,7 @@ func _on_mouse_entered() -> void:
 	if item == null or item.definition == null:
 		_apply_background_gradient(Color8(46, 54, 61, 210), 0.46)
 	else:
-		_apply_background_gradient(Color8(74, 78, 82, 230), 0.64)
+		_apply_background_gradient(item.get_condition_color(), 0.82)
 		extension_hovered.emit(item)
 
 
@@ -155,7 +155,7 @@ func _on_mouse_exited() -> void:
 	if item == null or item.definition == null:
 		_apply_background_gradient(Color8(46, 54, 61, 210), 0.46)
 	else:
-		_apply_background_gradient(Color8(74, 78, 82, 230), 0.64)
+		_apply_background_gradient(item.get_condition_color(), 0.82)
 
 
 func _on_pressed() -> void:

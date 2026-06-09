@@ -84,7 +84,7 @@ func _refresh() -> void:
 	_icon_rect.visible = not _visual_preview.visible
 	_icon_rect.texture = _get_fallback_texture(item)
 	_preview_frame.set_condition_color(item.get_condition_color())
-	_apply_background_gradient(Color8(74, 78, 82, 230), 0.64)
+	_apply_background_gradient(item.get_condition_color(), 0.82)
 	tooltip_text = item.get_hover_text()
 
 
@@ -128,7 +128,7 @@ func _on_mouse_entered() -> void:
 	if item == null:
 		_apply_background_gradient(Color8(46, 54, 61, 210), 0.46)
 	else:
-		_apply_background_gradient(Color8(74, 78, 82, 230), 0.64)
+		_apply_background_gradient(item.get_condition_color(), 0.82)
 	if item != null:
 		armor_hovered.emit(item)
 
@@ -138,7 +138,7 @@ func _on_mouse_exited() -> void:
 	if item == null:
 		_apply_background_gradient(Color8(46, 54, 61, 210), 0.46)
 	else:
-		_apply_background_gradient(Color8(74, 78, 82, 230), 0.64)
+		_apply_background_gradient(item.get_condition_color(), 0.82)
 
 
 func _on_pressed() -> void:

@@ -46,6 +46,7 @@ const DEFAULT_WEAPON_STATS: Array[StringName] = [
 	&"ammo_max",
 ]
 const MIN_WEAPON_INVENTORY_SLOTS: int = 30
+const MIN_ARMOR_INVENTORY_SLOTS: int = 18
 
 var _weapon_slots: Dictionary = {}
 var _armor_slots: Dictionary = {}
@@ -280,11 +281,17 @@ func _refresh_armor_inventory() -> void:
 		_armor_inventory_grid.add_child(card)
 		visible_item_count += 1
 
-	_armor_inventory_empty_label.visible = visible_item_count <= 0
-	if ArmorInventory.inventory.is_empty():
-		_armor_inventory_empty_label.text = "Add armor resources to data/armor/items to display them here."
-	else:
-		_armor_inventory_empty_label.text = "All owned armor is equipped."
+	_armor_inventory_empty_label.visible = false
+	_add_empty_armor_inventory_slots(maxi(MIN_ARMOR_INVENTORY_SLOTS - visible_item_count, 0))
+
+
+func _add_empty_armor_inventory_slots(slot_count: int) -> void:
+	for slot_index in range(slot_count):
+		var card: ArmorItemCard = ARMOR_ITEM_CARD_SCENE.instantiate() as ArmorItemCard
+		if card == null:
+			continue
+		card.setup(null)
+		_armor_inventory_grid.add_child(card)
 
 
 func _refresh_armor_slots() -> void:

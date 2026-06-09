@@ -131,7 +131,18 @@ func apply_condition_wear_for_local(amount: float) -> void:
 
 
 func get_reward_definitions() -> Array[ArmorItemData]:
-	return definitions.duplicate()
+	var result: Array[ArmorItemData] = []
+	for definition in definitions:
+		if definition == null:
+			continue
+		var metadata_variant: Variant = definition.metadata
+		var mark: int = 1
+		if metadata_variant is Dictionary:
+			var metadata: Dictionary = metadata_variant
+			mark = int(metadata.get("mark", 1))
+		if mark == 1:
+			result.append(definition)
+	return result
 
 
 func get_local_player_slot() -> int:
