@@ -86,21 +86,21 @@ func _on_next_page_pressed() -> void:
 func _refresh() -> void:
 	var local_name: String = OnlineMatch.get_player_color_name(_local_slot)
 	var remote_name: String = OnlineMatch.get_player_color_name(_remote_slot)
-	_title_label.text = "Next set"
+	_title_label.text = "NEXT SET"
 	_score_label.text = "%s %d - %d %s" % [
-		local_name,
+		local_name.to_upper(),
 		int(OnlineMatch.match_points.get(_local_slot, 0)),
 		int(OnlineMatch.match_points.get(_remote_slot, 0)),
-		remote_name,
+		remote_name.to_upper(),
 	]
-	_countdown_label.text = "%ds" % int(ceil(OnlineMatch.intermission_remaining))
+	_countdown_label.text = "%dS" % int(ceil(OnlineMatch.intermission_remaining))
 
 	var local_ready: bool = OnlineMatch.intermission_ready.get(_local_slot, false) == true
 	var remote_ready: bool = OnlineMatch.intermission_ready.get(_remote_slot, false) == true
-	_local_ready_label.text = "You: READY" if local_ready else "You: not ready"
-	_remote_ready_label.text = "Friend: READY" if remote_ready else "Friend: not ready"
+	_local_ready_label.text = "YOU // READY" if local_ready else "YOU // NOT READY"
+	_remote_ready_label.text = "OPPONENT // READY" if remote_ready else "OPPONENT // NOT READY"
 	_ready_button.disabled = local_ready
-	_ready_button.text = "Ready" if not local_ready else "Ready locked"
+	_ready_button.text = "LOCK IN" if not local_ready else "READY LOCKED"
 	_refresh_earnings()
 
 
@@ -110,13 +110,13 @@ func _refresh_earnings() -> void:
 	var survival_seconds: int = int(earnings.get("survival_seconds", 0))
 	var blocked_damage: int = int(earnings.get("blocked_damage", 0))
 	var first_hit: bool = earnings.get("first_hit", false) == true
-	_damage_earnings_label.text = "%d damage" % damage
+	_damage_earnings_label.text = "%d DAMAGE" % damage
 	_damage_coins_label.text = "+%d" % int(earnings.get("damage_coins", 0))
-	_survival_earnings_label.text = "%ds alive" % survival_seconds
+	_survival_earnings_label.text = "%dS ALIVE" % survival_seconds
 	_survival_coins_label.text = "+%d" % int(earnings.get("survival_coins", 0))
-	_blocking_earnings_label.text = "%d blocked" % blocked_damage
+	_blocking_earnings_label.text = "%d BLOCKED" % blocked_damage
 	_blocking_coins_label.text = "+%d" % int(earnings.get("block_coins", 0))
-	_first_hit_earnings_label.text = "First hit" if first_hit else "No first hit"
+	_first_hit_earnings_label.text = "FIRST HIT" if first_hit else "NO FIRST HIT"
 	_first_hit_coins_label.text = "+%d" % int(earnings.get("first_hit_coins", 0))
 	_earned_total_label.text = "EARNED  +%d" % int(earnings.get("earned", 0))
 	_coin_balance_label.text = "BALANCE  %d COINS" % OnlineMatch.get_local_coin_balance()
@@ -132,11 +132,11 @@ func _set_page(next_page: int) -> void:
 	_right_page_button.visible = _page_index < 1
 	match _page_index:
 		-1:
-			_page_label.text = "LOADOUT"
+			_page_label.text = "LOADOUT // EQUIPMENT BAY"
 		1:
-			_page_label.text = "RESEARCH"
+			_page_label.text = "RESEARCH // FIELD LAB"
 		_:
-			_page_label.text = "READY"
+			_page_label.text = "< LOADOUT      COMBAT DEBRIEF      RESEARCH >"
 
 
 func _is_page_left_event(event: InputEvent) -> bool:

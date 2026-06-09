@@ -1,8 +1,177 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=19 format=3]
 
 [ext_resource type="Script" path="res://scenes/menus/intermission_menu.gd" id="1_intermission"]
 [ext_resource type="PackedScene" path="res://scenes/ui/loadout/loadout_page.tscn" id="2_loadout"]
 [ext_resource type="PackedScene" path="res://scenes/ui/research/research_page.tscn" id="3_research"]
+[ext_resource type="Texture2D" path="res://assets/locker_room_background.png" id="4_background"]
+[ext_resource type="Font" path="res://assets/fonts/blastfront_hud_font.tres" id="5_hud_font"]
+[ext_resource type="Font" path="res://assets/fonts/blastfront_combat_font.tres" id="6_combat_font"]
+
+[sub_resource type="Gradient" id="Gradient_intermission_vignette"]
+offsets = PackedFloat32Array(0, 0.58, 1)
+colors = PackedColorArray(0, 0, 0, 0.02, 0, 0, 0, 0.2, 0, 0, 0, 0.7)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture_intermission_vignette"]
+gradient = SubResource("Gradient_intermission_vignette")
+width = 1280
+height = 720
+fill = 1
+fill_from = Vector2(0.5, 0.45)
+
+[sub_resource type="StyleBoxFlat" id="Style_main_panel"]
+content_margin_left = 28.0
+content_margin_top = 22.0
+content_margin_right = 28.0
+content_margin_bottom = 24.0
+bg_color = Color(0.018, 0.05, 0.063, 0.94)
+border_width_left = 3
+border_width_top = 1
+border_width_right = 3
+border_width_bottom = 2
+border_color = Color(0.42, 0.91, 0.98, 0.72)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+shadow_color = Color(0, 0, 0, 0.66)
+shadow_size = 24
+shadow_offset = Vector2(0, 12)
+
+[sub_resource type="StyleBoxFlat" id="Style_stat_card"]
+content_margin_left = 20.0
+content_margin_top = 18.0
+content_margin_right = 20.0
+content_margin_bottom = 18.0
+bg_color = Color(0.006, 0.018, 0.024, 0.76)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.54, 0.82, 0.86, 0.34)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="Style_score"]
+content_margin_left = 18.0
+content_margin_top = 6.0
+content_margin_right = 18.0
+content_margin_bottom = 6.0
+bg_color = Color(0.02, 0.21, 0.27, 0.72)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.35, 0.88, 0.96, 0.48)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="StyleBoxFlat" id="Style_ready_normal"]
+content_margin_top = 10.0
+content_margin_bottom = 10.0
+bg_color = Color(0.08, 0.68, 0.82, 0.92)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.76, 0.98, 1, 0.9)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+shadow_color = Color(0, 0.62, 0.86, 0.34)
+shadow_size = 12
+shadow_offset = Vector2(0, 4)
+
+[sub_resource type="StyleBoxFlat" id="Style_ready_hover"]
+content_margin_top = 10.0
+content_margin_bottom = 10.0
+bg_color = Color(0.14, 0.86, 1, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 1, 1, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+shadow_color = Color(0.04, 0.78, 1, 0.5)
+shadow_size = 16
+shadow_offset = Vector2(0, 4)
+
+[sub_resource type="StyleBoxFlat" id="Style_ready_pressed"]
+content_margin_top = 10.0
+content_margin_bottom = 10.0
+bg_color = Color(0.03, 0.38, 0.5, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.55, 0.92, 0.98, 0.9)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="Style_ready_disabled"]
+content_margin_top = 10.0
+content_margin_bottom = 10.0
+bg_color = Color(0.08, 0.26, 0.29, 0.72)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.34, 0.68, 0.7, 0.45)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="Style_nav_normal"]
+bg_color = Color(0.02, 0.08, 0.1, 0.88)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.42, 0.88, 0.96, 0.62)
+corner_radius_top_left = 29
+corner_radius_top_right = 29
+corner_radius_bottom_right = 29
+corner_radius_bottom_left = 29
+shadow_color = Color(0, 0, 0, 0.48)
+shadow_size = 10
+shadow_offset = Vector2(0, 5)
+
+[sub_resource type="StyleBoxFlat" id="Style_nav_hover"]
+bg_color = Color(0.08, 0.62, 0.76, 0.96)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.86, 1, 1, 1)
+corner_radius_top_left = 29
+corner_radius_top_right = 29
+corner_radius_bottom_right = 29
+corner_radius_bottom_left = 29
+shadow_color = Color(0.02, 0.72, 0.9, 0.4)
+shadow_size = 14
+shadow_offset = Vector2(0, 5)
+
+[sub_resource type="StyleBoxFlat" id="Style_nav_pressed"]
+bg_color = Color(0.02, 0.3, 0.4, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.56, 0.92, 0.98, 0.9)
+corner_radius_top_left = 29
+corner_radius_top_right = 29
+corner_radius_bottom_right = 29
+corner_radius_bottom_left = 29
 
 [node name="IntermissionMenu" type="Control"]
 layout_mode = 3
@@ -13,14 +182,51 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_intermission")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Background" type="TextureRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.035, 0.04, 0.052, 1)
+mouse_filter = 2
+texture = ExtResource("4_background")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Darken" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.005, 0.018, 0.024, 0.52)
+
+[node name="Vignette" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = SubResource("GradientTexture_intermission_vignette")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="TopLine" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 160.0
+offset_top = 28.0
+offset_right = -160.0
+offset_bottom = 30.0
+grow_horizontal = 2
+mouse_filter = 2
+color = Color(0.36, 0.9, 0.98, 0.5)
 
 [node name="StatusPage" type="Control" parent="."]
 unique_name_in_owner = true
@@ -31,149 +237,270 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
+[node name="ModeLabel" type="Label" parent="StatusPage"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 35.0
+offset_bottom = 58.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(0.48, 0.92, 0.98, 0.9)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_fonts/font = ExtResource("5_hud_font")
+theme_override_font_sizes/font_size = 13
+text = "BLASTFRONT // COMBAT DEBRIEF"
+horizontal_alignment = 1
+
 [node name="Center" type="CenterContainer" parent="StatusPage"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_top = 45.0
+offset_bottom = -18.0
 grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Panel" type="PanelContainer" parent="StatusPage/Center"]
-custom_minimum_size = Vector2(460, 0)
+custom_minimum_size = Vector2(880, 570)
 layout_mode = 2
+theme_override_styles/panel = SubResource("Style_main_panel")
 
 [node name="VBox" type="VBoxContainer" parent="StatusPage/Center/Panel"]
 layout_mode = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 12
 
 [node name="TitleLabel" type="Label" parent="StatusPage/Center/Panel/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 42
-text = "Next set"
+theme_override_colors/font_color = Color(0.94, 0.99, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
+theme_override_constants/shadow_offset_x = 3
+theme_override_constants/shadow_offset_y = 3
+theme_override_fonts/font = ExtResource("6_combat_font")
+theme_override_font_sizes/font_size = 46
+text = "NEXT SET"
 horizontal_alignment = 1
 
-[node name="ScoreLabel" type="Label" parent="StatusPage/Center/Panel/VBox"]
+[node name="ScorePanel" type="PanelContainer" parent="StatusPage/Center/Panel/VBox"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_styles/panel = SubResource("Style_score")
+
+[node name="ScoreLabel" type="Label" parent="StatusPage/Center/Panel/VBox/ScorePanel"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 30
-text = "0 - 0"
+theme_override_colors/font_color = Color(0.78, 0.96, 1, 1)
+theme_override_fonts/font = ExtResource("5_hud_font")
+theme_override_font_sizes/font_size = 26
+text = "BLUE 0 - 0 RED"
 horizontal_alignment = 1
 
-[node name="EarningsTitle" type="Label" parent="StatusPage/Center/Panel/VBox"]
+[node name="Divider" type="ColorRect" parent="StatusPage/Center/Panel/VBox"]
+custom_minimum_size = Vector2(0, 2)
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.82, 0.28, 1)
-theme_override_font_sizes/font_size = 18
-text = "SET EARNINGS"
-horizontal_alignment = 1
+color = Color(0.4, 0.86, 0.92, 0.36)
 
-[node name="EarningsGrid" type="GridContainer" parent="StatusPage/Center/Panel/VBox"]
+[node name="ContentRow" type="HBoxContainer" parent="StatusPage/Center/Panel/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 18
+
+[node name="EarningsCard" type="PanelContainer" parent="StatusPage/Center/Panel/VBox/ContentRow"]
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("Style_stat_card")
+
+[node name="EarningsVBox" type="VBoxContainer" parent="StatusPage/Center/Panel/VBox/ContentRow/EarningsCard"]
+layout_mode = 2
+theme_override_constants/separation = 11
+
+[node name="EarningsTitle" type="Label" parent="StatusPage/Center/Panel/VBox/ContentRow/EarningsCard/EarningsVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.78, 0.28, 1)
+theme_override_fonts/font = ExtResource("5_hud_font")
+theme_override_font_sizes/font_size = 19
+text = "SET EARNINGS"
+
+[node name="EarningsGrid" type="GridContainer" parent="StatusPage/Center/Panel/VBox/ContentRow/EarningsCard/EarningsVBox"]
 layout_mode = 2
 theme_override_constants/h_separation = 28
-theme_override_constants/v_separation = 5
+theme_override_constants/v_separation = 10
 columns = 2
 
-[node name="DamageEarningsLabel" type="Label" parent="StatusPage/Center/Panel/VBox/EarningsGrid"]
+[node name="DamageEarningsLabel" type="Label" parent="StatusPage/Center/Panel/VBox/ContentRow/EarningsCard/EarningsVBox/EarningsGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-text = "0 damage"
+theme_override_colors/font_color = Color(0.78, 0.86, 0.88, 1)
+theme_override_fonts/font = ExtResource("5_hud_font")
+theme_override_font_sizes/font_size = 15
+text = "0 DAMAGE"
 
-[node name="DamageCoinsLabel" type="Label" parent="StatusPage/Center/Panel/VBox/EarningsGrid"]
+[node name="DamageCoinsLabel" type="Label" parent="StatusPage/Center/Panel/VBox/ContentRow/EarningsCard/EarningsVBox/EarningsGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.82, 0.28, 1)
+theme_override_fonts/font = ExtResource("5_hud_font")
+theme_override_font_sizes/font_size = 15
 text = "+0"
 horizontal_alignment = 2
 
-[node name="SurvivalEarningsLabel" type="Label" parent="StatusPage/Center/Panel/VBox/EarningsGrid"]
+[node name="SurvivalEarningsLabel" type="Label" parent="StatusPage/Center/Panel/VBox/ContentRow/EarningsCard/EarningsVBox/EarningsGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-text = "0s alive"
+theme_override_colors/font_color = Color(0.78, 0.86, 0.88, 1)
+theme_override_fonts/font = ExtResource("5_hud_font")
+theme_override_font_sizes/font_size = 15
+text = "0S ALIVE"
 
-[node name="SurvivalCoinsLabel" type="Label" parent="StatusPage/Center/Panel/VBox/EarningsGrid"]
+[node name="SurvivalCoinsLabel" type="Label" parent="StatusPage/Center/Panel/VBox/ContentRow/EarningsCard/EarningsVBox/EarningsGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.82, 0.28, 1)
+theme_override_fonts/font = ExtResource("5_hud_font")
+theme_override_font_sizes/font_size = 15
 text = "+0"
 horizontal_alignment = 2
 
-[node name="BlockingEarningsLabel" type="Label" parent="StatusPage/Center/Panel/VBox/EarningsGrid"]
+[node name="BlockingEarningsLabel" type="Label" parent="StatusPage/Center/Panel/VBox/ContentRow/EarningsCard/EarningsVBox/EarningsGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-text = "0 blocked"
+theme_override_colors/font_color = Color(0.78, 0.86, 0.88, 1)
+theme_override_fonts/font = ExtResource("5_hud_font")
+theme_override_font_sizes/font_size = 15
+text = "0 BLOCKED"
 
-[node name="BlockingCoinsLabel" type="Label" parent="StatusPage/Center/Panel/VBox/EarningsGrid"]
+[node name="BlockingCoinsLabel" type="Label" parent="StatusPage/Center/Panel/VBox/ContentRow/EarningsCard/EarningsVBox/EarningsGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.82, 0.28, 1)
+theme_override_fonts/font = ExtResource("5_hud_font")
+theme_override_font_sizes/font_size = 15
 text = "+0"
 horizontal_alignment = 2
 
-[node name="FirstHitEarningsLabel" type="Label" parent="StatusPage/Center/Panel/VBox/EarningsGrid"]
+[node name="FirstHitEarningsLabel" type="Label" parent="StatusPage/Center/Panel/VBox/ContentRow/EarningsCard/EarningsVBox/EarningsGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-text = "No first hit"
+theme_override_colors/font_color = Color(0.78, 0.86, 0.88, 1)
+theme_override_fonts/font = ExtResource("5_hud_font")
+theme_override_font_sizes/font_size = 15
+text = "NO FIRST HIT"
 
-[node name="FirstHitCoinsLabel" type="Label" parent="StatusPage/Center/Panel/VBox/EarningsGrid"]
+[node name="FirstHitCoinsLabel" type="Label" parent="StatusPage/Center/Panel/VBox/ContentRow/EarningsCard/EarningsVBox/EarningsGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.82, 0.28, 1)
+theme_override_fonts/font = ExtResource("5_hud_font")
+theme_override_font_sizes/font_size = 15
 text = "+0"
 horizontal_alignment = 2
 
-[node name="EarnedTotalLabel" type="Label" parent="StatusPage/Center/Panel/VBox"]
+[node name="EarningsSpacer" type="Control" parent="StatusPage/Center/Panel/VBox/ContentRow/EarningsCard/EarningsVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="EarnedTotalLabel" type="Label" parent="StatusPage/Center/Panel/VBox/ContentRow/EarningsCard/EarningsVBox"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.56, 1, 0.68, 1)
+theme_override_fonts/font = ExtResource("5_hud_font")
 theme_override_font_sizes/font_size = 22
 text = "EARNED  +0"
-horizontal_alignment = 1
 
-[node name="CoinBalanceLabel" type="Label" parent="StatusPage/Center/Panel/VBox"]
+[node name="CoinBalanceLabel" type="Label" parent="StatusPage/Center/Panel/VBox/ContentRow/EarningsCard/EarningsVBox"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.82, 0.28, 1)
-theme_override_font_sizes/font_size = 24
+theme_override_fonts/font = ExtResource("5_hud_font")
+theme_override_font_sizes/font_size = 20
 text = "BALANCE  0 COINS"
-horizontal_alignment = 1
 
-[node name="RewardCapLabel" type="Label" parent="StatusPage/Center/Panel/VBox"]
+[node name="RewardCapLabel" type="Label" parent="StatusPage/Center/Panel/VBox/ContentRow/EarningsCard/EarningsVBox"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
 theme_override_colors/font_color = Color(0.72, 0.76, 0.78, 0.8)
-theme_override_font_sizes/font_size = 12
-text = "Set reward capped at 20 coins"
+theme_override_fonts/font = ExtResource("5_hud_font")
+theme_override_font_sizes/font_size = 11
+text = "SET REWARD CAPPED AT 20 COINS"
+
+[node name="ReadyCard" type="PanelContainer" parent="StatusPage/Center/Panel/VBox/ContentRow"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("Style_stat_card")
+
+[node name="ReadyVBox" type="VBoxContainer" parent="StatusPage/Center/Panel/VBox/ContentRow/ReadyCard"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ReadyTitle" type="Label" parent="StatusPage/Center/Panel/VBox/ContentRow/ReadyCard/ReadyVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.48, 0.92, 0.98, 1)
+theme_override_fonts/font = ExtResource("5_hud_font")
+theme_override_font_sizes/font_size = 17
+text = "NEXT DEPLOYMENT"
 horizontal_alignment = 1
 
-[node name="CountdownLabel" type="Label" parent="StatusPage/Center/Panel/VBox"]
+[node name="CountdownLabel" type="Label" parent="StatusPage/Center/Panel/VBox/ContentRow/ReadyCard/ReadyVBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 42
-text = "60s"
+theme_override_colors/font_color = Color(0.94, 0.99, 1, 1)
+theme_override_colors/font_shadow_color = Color(0.02, 0.5, 0.62, 0.72)
+theme_override_constants/shadow_offset_x = 3
+theme_override_constants/shadow_offset_y = 3
+theme_override_fonts/font = ExtResource("6_combat_font")
+theme_override_font_sizes/font_size = 72
+text = "60S"
 horizontal_alignment = 1
 
-[node name="LocalReadyLabel" type="Label" parent="StatusPage/Center/Panel/VBox"]
+[node name="ReadyDivider" type="ColorRect" parent="StatusPage/Center/Panel/VBox/ContentRow/ReadyCard/ReadyVBox"]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+color = Color(0.4, 0.86, 0.92, 0.26)
+
+[node name="LocalReadyLabel" type="Label" parent="StatusPage/Center/Panel/VBox/ContentRow/ReadyCard/ReadyVBox"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "You: not ready"
+theme_override_colors/font_color = Color(0.74, 0.9, 0.92, 1)
+theme_override_fonts/font = ExtResource("5_hud_font")
+theme_override_font_sizes/font_size = 15
+text = "YOU // NOT READY"
 horizontal_alignment = 1
 
-[node name="RemoteReadyLabel" type="Label" parent="StatusPage/Center/Panel/VBox"]
+[node name="RemoteReadyLabel" type="Label" parent="StatusPage/Center/Panel/VBox/ContentRow/ReadyCard/ReadyVBox"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Friend: not ready"
+theme_override_colors/font_color = Color(0.74, 0.9, 0.92, 1)
+theme_override_fonts/font = ExtResource("5_hud_font")
+theme_override_font_sizes/font_size = 15
+text = "OPPONENT // NOT READY"
 horizontal_alignment = 1
 
-[node name="ReadyButton" type="Button" parent="StatusPage/Center/Panel/VBox"]
-unique_name_in_owner = true
+[node name="ReadySpacer" type="Control" parent="StatusPage/Center/Panel/VBox/ContentRow/ReadyCard/ReadyVBox"]
 layout_mode = 2
-text = "Ready"
+size_flags_vertical = 3
+
+[node name="ReadyButton" type="Button" parent="StatusPage/Center/Panel/VBox/ContentRow/ReadyCard/ReadyVBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 1, 1, 1)
+theme_override_colors/font_disabled_color = Color(0.58, 0.78, 0.78, 0.8)
+theme_override_fonts/font = ExtResource("5_hud_font")
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("Style_ready_normal")
+theme_override_styles/hover = SubResource("Style_ready_hover")
+theme_override_styles/pressed = SubResource("Style_ready_pressed")
+theme_override_styles/disabled = SubResource("Style_ready_disabled")
+text = "LOCK IN"
 
 [node name="LoadoutPage" parent="." instance=ExtResource("2_loadout")]
 unique_name_in_owner = true
@@ -216,7 +543,12 @@ offset_top = -29.0
 offset_right = 78.0
 offset_bottom = 29.0
 grow_vertical = 2
+theme_override_colors/font_color = Color(0.82, 0.98, 1, 1)
+theme_override_fonts/font = ExtResource("5_hud_font")
 theme_override_font_sizes/font_size = 28
+theme_override_styles/normal = SubResource("Style_nav_normal")
+theme_override_styles/hover = SubResource("Style_nav_hover")
+theme_override_styles/pressed = SubResource("Style_nav_pressed")
 text = "<"
 
 [node name="RightPageButton" type="Button" parent="PageControls"]
@@ -235,21 +567,33 @@ offset_right = -20.0
 offset_bottom = 29.0
 grow_horizontal = 0
 grow_vertical = 2
+theme_override_colors/font_color = Color(0.82, 0.98, 1, 1)
+theme_override_fonts/font = ExtResource("5_hud_font")
 theme_override_font_sizes/font_size = 28
+theme_override_styles/normal = SubResource("Style_nav_normal")
+theme_override_styles/hover = SubResource("Style_nav_hover")
+theme_override_styles/pressed = SubResource("Style_nav_pressed")
 text = ">"
 
 [node name="PageLabel" type="Label" parent="PageControls"]
 unique_name_in_owner = true
 layout_mode = 1
-anchors_preset = 5
+anchors_preset = 7
 anchor_left = 0.5
+anchor_top = 1.0
 anchor_right = 0.5
-offset_left = -110.0
-offset_top = 18.0
-offset_right = 110.0
-offset_bottom = 50.0
+anchor_bottom = 1.0
+offset_left = -150.0
+offset_top = -32.0
+offset_right = 150.0
+offset_bottom = -8.0
 grow_horizontal = 2
-theme_override_colors/font_color = Color(0.78, 0.86, 0.88, 0.86)
-theme_override_font_sizes/font_size = 18
-text = "READY"
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.58, 0.9, 0.94, 0.9)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_fonts/font = ExtResource("5_hud_font")
+theme_override_font_sizes/font_size = 15
+text = "< LOADOUT      READY      RESEARCH >"
 horizontal_alignment = 1
