@@ -4,11 +4,11 @@ class_name ResearchNodeButton
 signal research_selected(research_id: StringName)
 signal research_hovered(research_id: StringName)
 
-const COLOR_ECONOMY: Color = Color8(245, 190, 66, 255)
-const COLOR_MOVEMENT: Color = Color8(80, 190, 255, 255)
-const COLOR_MISC: Color = Color8(205, 105, 245, 255)
-const COLOR_LOCKED: Color = Color8(92, 99, 108, 255)
-const COLOR_PLANNED: Color = Color8(65, 69, 76, 255)
+const COLOR_ECONOMY: Color = Color8(205, 151, 65, 255)
+const COLOR_MOVEMENT: Color = Color8(137, 148, 101, 255)
+const COLOR_MISC: Color = Color8(176, 91, 62, 255)
+const COLOR_LOCKED: Color = Color8(91, 88, 80, 255)
+const COLOR_PLANNED: Color = Color8(67, 64, 59, 255)
 
 var research_id: StringName = &""
 var definition: Dictionary = {}
@@ -67,7 +67,7 @@ func _refresh_icon(accent: Color, available: bool, requirements_met: bool) -> vo
 		var icon_resource: Resource = load(icon_path) if not icon_path.is_empty() else null
 		_icon_texture.texture = icon_resource as Texture2D
 	if not available:
-		_icon_texture.modulate = Color8(125, 132, 140, 180)
+		_icon_texture.modulate = Color8(125, 119, 107, 180)
 	elif not requirements_met:
 		_icon_texture.modulate = Color(accent.r, accent.g, accent.b, 0.58)
 	else:
@@ -111,8 +111,8 @@ func _apply_styles(accent: Color, unlocked: bool, can_buy: bool) -> void:
 	var pressed_style: StyleBoxFlat = _style(accent.lightened(0.32), 0.36, 3)
 	var disabled_style: StyleBoxFlat = _style(accent, 0.1 if unlocked else 0.035, 1)
 	if can_buy:
-		normal.shadow_color = Color(accent.r, accent.g, accent.b, 0.36)
-		normal.shadow_size = 6
+		normal.shadow_color = Color(0, 0, 0, 0.42)
+		normal.shadow_size = 5
 	add_theme_stylebox_override("normal", normal)
 	add_theme_stylebox_override("hover", hover)
 	add_theme_stylebox_override("focus", hover)
@@ -122,10 +122,15 @@ func _apply_styles(accent: Color, unlocked: bool, can_buy: bool) -> void:
 
 func _style(accent: Color, background_alpha: float, border_width: int) -> StyleBoxFlat:
 	var style: StyleBoxFlat = StyleBoxFlat.new()
-	style.bg_color = Color(accent.r * 0.22, accent.g * 0.22, accent.b * 0.22, 0.9 + background_alpha * 0.1)
-	style.border_color = Color(accent.r, accent.g, accent.b, 0.52 + background_alpha)
+	style.bg_color = Color(
+		0.075 + accent.r * 0.08,
+		0.065 + accent.g * 0.07,
+		0.05 + accent.b * 0.05,
+		0.94
+	)
+	style.border_color = Color(accent.r, accent.g, accent.b, 0.48 + background_alpha)
 	style.set_border_width_all(border_width)
-	style.set_corner_radius_all(37)
+	style.set_corner_radius_all(8)
 	style.content_margin_left = 4.0
 	style.content_margin_top = 4.0
 	style.content_margin_right = 4.0

@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://scenes/ui/research/research_page.gd" id="1_page"]
 [ext_resource type="Script" path="res://scenes/ui/research/research_connection_layer.gd" id="2_connections"]
-[ext_resource type="Texture2D" path="res://assets/locker_room_background.png" id="3_background"]
+[ext_resource type="Texture2D" path="res://assets/main_menu_background.png" id="3_background"]
 [ext_resource type="Font" path="res://assets/fonts/blastfront_hud_font.tres" id="4_hud_font"]
 [ext_resource type="Font" path="res://assets/fonts/blastfront_combat_font.tres" id="5_combat_font"]
 
@@ -18,62 +18,62 @@ fill = 1
 fill_from = Vector2(0.5, 0.43)
 
 [sub_resource type="StyleBoxFlat" id="Style_header"]
-bg_color = Color(0.025, 0.07, 0.085, 0.94)
-border_width_left = 4
+bg_color = Color(0.075, 0.064, 0.052, 0.95)
+border_width_left = 3
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 2
-border_color = Color(0.22, 0.9, 1, 0.82)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+border_color = Color(0.62, 0.43, 0.24, 0.82)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
 shadow_color = Color(0, 0, 0, 0.5)
-shadow_size = 14
-shadow_offset = Vector2(0, 6)
+shadow_size = 12
+shadow_offset = Vector2(5, 7)
 
 [sub_resource type="StyleBoxFlat" id="Style_points"]
 content_margin_left = 18.0
 content_margin_top = 6.0
 content_margin_right = 18.0
 content_margin_bottom = 6.0
-bg_color = Color(0.03, 0.34, 0.42, 0.72)
+bg_color = Color(0.3, 0.2, 0.1, 0.82)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.52, 0.96, 1, 0.72)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_right = 5
-corner_radius_bottom_left = 5
+border_color = Color(0.82, 0.61, 0.31, 0.72)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
 
 [sub_resource type="StyleBoxFlat" id="Style_tree"]
-bg_color = Color(0.008, 0.018, 0.024, 0.88)
+bg_color = Color(0.025, 0.023, 0.019, 0.9)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.42, 0.78, 0.84, 0.48)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
+border_color = Color(0.48, 0.41, 0.31, 0.6)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
 shadow_color = Color(0, 0, 0, 0.58)
 shadow_size = 18
 shadow_offset = Vector2(0, 8)
 
 [sub_resource type="StyleBoxFlat" id="Style_details"]
-bg_color = Color(0.02, 0.055, 0.068, 0.96)
+bg_color = Color(0.07, 0.06, 0.048, 0.96)
 border_width_left = 3
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.25, 0.88, 0.98, 0.68)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+border_color = Color(0.66, 0.48, 0.27, 0.72)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
 
 [node name="ResearchPage" type="Control"]
 layout_mode = 3
@@ -104,7 +104,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.005, 0.018, 0.024, 0.58)
+color = Color(0.025, 0.018, 0.012, 0.54)
 
 [node name="Vignette" type="TextureRect" parent="."]
 layout_mode = 1
@@ -143,14 +143,7 @@ theme_override_constants/separation = 16
 [node name="TitleStack" type="VBoxContainer" parent="Header/HeaderMargin/HeaderRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = -3
-
-[node name="Eyebrow" type="Label" parent="Header/HeaderMargin/HeaderRow/TitleStack"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.42, 0.9, 0.96, 0.86)
-theme_override_fonts/font = ExtResource("4_hud_font")
-theme_override_font_sizes/font_size = 11
-text = "BLASTFRONT // FIELD LAB"
+theme_override_constants/separation = 0
 
 [node name="Title" type="Label" parent="Header/HeaderMargin/HeaderRow/TitleStack"]
 layout_mode = 2
@@ -160,7 +153,7 @@ theme_override_constants/shadow_offset_x = 2
 theme_override_constants/shadow_offset_y = 2
 theme_override_fonts/font = ExtResource("5_combat_font")
 theme_override_font_sizes/font_size = 30
-text = "RESEARCH NETWORK"
+text = "RESEARCH"
 
 [node name="PointsPanel" type="PanelContainer" parent="Header/HeaderMargin/HeaderRow"]
 layout_mode = 2
@@ -169,7 +162,7 @@ theme_override_styles/panel = SubResource("Style_points")
 [node name="PointsLabel" type="Label" parent="Header/HeaderMargin/HeaderRow/PointsPanel"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.7, 0.98, 1, 1)
+theme_override_colors/font_color = Color(0.96, 0.82, 0.5, 1)
 theme_override_fonts/font = ExtResource("4_hud_font")
 theme_override_font_sizes/font_size = 19
 text = "0 RESEARCH POINTS"
@@ -195,7 +188,7 @@ vertical_scroll_mode = 1
 
 [node name="TreeCanvas" type="Control" parent="TreePanel/TreeScroll"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(1210, 490)
+custom_minimum_size = Vector2(1210, 466)
 layout_mode = 2
 
 [node name="EconomyLane" type="ColorRect" parent="TreePanel/TreeScroll/TreeCanvas"]
@@ -204,7 +197,7 @@ offset_top = 6.0
 offset_right = 1202.0
 offset_bottom = 178.0
 mouse_filter = 2
-color = Color(0.55, 0.36, 0.05, 0.09)
+color = Color(0.42, 0.29, 0.12, 0.16)
 
 [node name="MovementLane" type="ColorRect" parent="TreePanel/TreeScroll/TreeCanvas"]
 offset_left = 8.0
@@ -212,15 +205,15 @@ offset_top = 184.0
 offset_right = 1202.0
 offset_bottom = 310.0
 mouse_filter = 2
-color = Color(0.02, 0.38, 0.55, 0.09)
+color = Color(0.24, 0.27, 0.19, 0.16)
 
 [node name="MiscLane" type="ColorRect" parent="TreePanel/TreeScroll/TreeCanvas"]
 offset_left = 8.0
 offset_top = 316.0
 offset_right = 1202.0
-offset_bottom = 482.0
+offset_bottom = 464.0
 mouse_filter = 2
-color = Color(0.38, 0.08, 0.52, 0.09)
+color = Color(0.35, 0.16, 0.1, 0.16)
 
 [node name="ConnectionLayer" type="Control" parent="TreePanel/TreeScroll/TreeCanvas"]
 unique_name_in_owner = true
@@ -238,7 +231,7 @@ offset_left = 24.0
 offset_top = 16.0
 offset_right = 135.0
 offset_bottom = 44.0
-theme_override_colors/font_color = Color(1, 0.78, 0.28, 1)
+theme_override_colors/font_color = Color(0.88, 0.66, 0.31, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
 theme_override_constants/shadow_offset_x = 2
 theme_override_constants/shadow_offset_y = 2
@@ -251,7 +244,7 @@ offset_left = 24.0
 offset_top = 198.0
 offset_right = 145.0
 offset_bottom = 226.0
-theme_override_colors/font_color = Color(0.31, 0.82, 1, 1)
+theme_override_colors/font_color = Color(0.67, 0.72, 0.53, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
 theme_override_constants/shadow_offset_x = 2
 theme_override_constants/shadow_offset_y = 2
@@ -264,7 +257,7 @@ offset_left = 24.0
 offset_top = 328.0
 offset_right = 180.0
 offset_bottom = 356.0
-theme_override_colors/font_color = Color(0.86, 0.48, 1, 1)
+theme_override_colors/font_color = Color(0.77, 0.42, 0.29, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
 theme_override_constants/shadow_offset_x = 2
 theme_override_constants/shadow_offset_y = 2
@@ -302,12 +295,12 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.94, 0.99, 1, 1)
 theme_override_fonts/font = ExtResource("4_hud_font")
 theme_override_font_sizes/font_size = 18
-text = "SELECT A RESEARCH NODE"
+text = "CHOOSE AN UPGRADE"
 
 [node name="DetailsBody" type="Label" parent="DetailsPanel/DetailsMargin/DetailsVBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.72, 0.82, 0.84, 1)
+theme_override_colors/font_color = Color(0.78, 0.75, 0.68, 1)
 theme_override_fonts/font = ExtResource("4_hud_font")
 theme_override_font_sizes/font_size = 12
 text = "Hover over an icon to inspect its effect, marks and cost."
@@ -315,7 +308,7 @@ text = "Hover over an icon to inspect its effect, marks and cost."
 [node name="DetailsStatus" type="Label" parent="DetailsPanel/DetailsMargin/DetailsVBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.43, 0.95, 1, 1)
+theme_override_colors/font_color = Color(0.86, 0.64, 0.34, 1)
 theme_override_fonts/font = ExtResource("4_hud_font")
 theme_override_font_sizes/font_size = 11
-text = "ROOT ACCESS // ONLINE"
+text = "AVAILABLE UPGRADES"

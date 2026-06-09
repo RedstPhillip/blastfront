@@ -72,11 +72,11 @@ func _show_research_details(research_id: StringName) -> void:
 	_details_title.text = str(definition.get("name", "Research"))
 	_details_body.text = str(definition.get("description", ""))
 	if definition.get("available", true) != true:
-		_details_status.text = "PLANNED  |  This research is visible but currently disabled."
+		_details_status.text = "Planned for a later update"
 	elif current_mark >= max_mark:
-		_details_status.text = "FULLY RESEARCHED  |  MK%d" % max_mark
+		_details_status.text = "Fully researched - MK%d" % max_mark
 	else:
-		_details_status.text = "MK%d / MK%d  |  NEXT: %d RP" % [
+		_details_status.text = "MK%d of MK%d - next level costs %d points" % [
 			current_mark,
 			max_mark,
 			ResearchManager.get_next_cost(research_id),

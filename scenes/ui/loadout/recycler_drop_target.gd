@@ -14,7 +14,7 @@ func _ready() -> void:
 func refresh() -> void:
 	var ratio: float = ResearchManager.get_recycling_refund_ratio()
 	visible = ratio > 0.0
-	_refund_label.text = "%d%% REFUND" % int(roundf(ratio * 100.0))
+	_refund_label.text = "%d%%" % int(roundf(ratio * 100.0))
 	tooltip_text = "Drop an offered or saved blueprint here to recycle it for coins."
 
 

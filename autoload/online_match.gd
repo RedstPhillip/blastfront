@@ -83,6 +83,10 @@ func enter_locker(reset_scores: bool = true) -> void:
 	extension_loadouts = GameSettings.default_extension_loadouts()
 	armor_loadouts = GameSettings.default_armor_loadouts()
 	research_profiles = {}
+	if reset_scores:
+		var research_manager: Node = get_node_or_null("/root/ResearchManager")
+		if research_manager != null and research_manager.has_method("reset_for_new_game"):
+			research_manager.call("reset_for_new_game")
 	last_winner_slot = 0
 	final_winner_slot = 0
 	_kill_banner_remaining = 0.0
@@ -567,7 +571,6 @@ func _set_phase(next_phase: StringName, should_broadcast: bool) -> void:
 	var previous_phase: StringName = phase
 	phase = next_phase
 	if phase != previous_phase:
-		_handle_completed_game_transition(previous_phase, phase)
 		phase_changed.emit(phase)
 	state_changed.emit()
 	if should_broadcast and _has_authority():
@@ -601,24 +604,9 @@ func _apply_state(state: Dictionary) -> void:
 	var previous_phase: StringName = phase
 	phase = next_phase
 	if phase != previous_phase:
-		_handle_completed_game_transition(previous_phase, phase)
 		phase_changed.emit(phase)
 	state_changed.emit()
 	countdown_changed.emit(int(ceil(intermission_remaining)))
-
-
-func _handle_completed_game_transition(
-	previous_phase: StringName,
-	next_phase: StringName,
-	persist_research: bool = true
-) -> void:
-	if previous_phase == GameSettings.MATCH_PHASE_FINAL:
-		return
-	if next_phase != GameSettings.MATCH_PHASE_FINAL:
-		return
-	var research_manager: Node = get_node_or_null("/root/ResearchManager")
-	if research_manager != null and research_manager.has_method("reset_for_completed_game"):
-		research_manager.call("reset_for_completed_game", persist_research)
 
 
 func _apply_dictionary(source_variant: Variant, target: Dictionary, stores_color_ids: bool) -> void:

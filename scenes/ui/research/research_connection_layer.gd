@@ -15,9 +15,9 @@ func _draw() -> void:
 		positions[str(definition.get("id", ""))] = definition.get("position", Vector2.ZERO) + Vector2(37, 37)
 
 	var starters: Dictionary = {
-		str(ResearchManager.RECYCLING): Color8(245, 190, 66, 175),
-		str(ResearchManager.DASHING): Color8(80, 190, 255, 150),
-		str(ResearchManager.LIFE_STEAL): Color8(205, 105, 245, 165),
+		str(ResearchManager.RECYCLING): Color8(205, 151, 65, 175),
+		str(ResearchManager.DASHING): Color8(137, 148, 101, 155),
+		str(ResearchManager.LIFE_STEAL): Color8(176, 91, 62, 165),
 	}
 	for starter_id in starters.keys():
 		if positions.has(starter_id):
@@ -43,9 +43,10 @@ func _draw() -> void:
 				var unlocked: bool = ResearchManager.get_mark(StringName(source_id)) >= int(requirement.get("mark", 1))
 				_draw_connection(positions[source_id], target_position, color, unlocked)
 
-	draw_circle(root_position, 29.0, Color8(28, 36, 43, 255))
-	draw_arc(root_position, 29.0, 0.0, TAU, 48, Color8(225, 238, 240, 220), 3.0, true)
-	draw_circle(root_position, 8.0, Color8(225, 238, 240, 225))
+	var root_rect: Rect2 = Rect2(root_position - Vector2(27, 27), Vector2(54, 54))
+	draw_rect(root_rect, Color8(45, 40, 32, 255), true)
+	draw_rect(root_rect, Color8(184, 155, 105, 220), false, 3.0)
+	draw_rect(Rect2(root_position - Vector2(7, 7), Vector2(14, 14)), Color8(205, 167, 99, 225), true)
 
 
 func _draw_connection(from: Vector2, to: Vector2, color: Color, unlocked: bool) -> void:
@@ -57,14 +58,14 @@ func _draw_connection(from: Vector2, to: Vector2, color: Color, unlocked: bool) 
 		Vector2(midpoint_x, to.y),
 		to,
 	])
-	draw_polyline(points, line_color, 3.0 if unlocked else 2.0, true)
+	draw_polyline(points, line_color, 2.5 if unlocked else 1.5, true)
 
 
 func _branch_color(branch: StringName) -> Color:
 	match branch:
 		ResearchManager.BRANCH_ECONOMY:
-			return Color8(245, 190, 66, 185)
+			return Color8(205, 151, 65, 185)
 		ResearchManager.BRANCH_MOVEMENT:
-			return Color8(80, 190, 255, 175)
+			return Color8(137, 148, 101, 175)
 		_:
-			return Color8(205, 105, 245, 180)
+			return Color8(176, 91, 62, 180)

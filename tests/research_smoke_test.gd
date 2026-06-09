@@ -72,6 +72,7 @@ func _ready() -> void:
 	research_page.queue_free()
 
 	var loadout_page_scene: PackedScene = load("res://scenes/ui/loadout/loadout_page.tscn") as PackedScene
+	RoundRewardInventory.prepare_for_round(1)
 	var loadout_page: Control = loadout_page_scene.instantiate() as Control
 	add_child(loadout_page)
 	await get_tree().process_frame
@@ -80,6 +81,7 @@ func _ready() -> void:
 	assert(offer_grid != null and offer_grid.visible)
 	assert(offer_grid.columns == 2)
 	assert(recycler != null and recycler.visible)
+	assert(recycler.get_global_rect().end.y <= 690.0)
 	for slot_name in ["SavedRewardOne", "SavedRewardTwo", "SavedRewardThree", "SavedRewardFour"]:
 		var saved_slot: Control = loadout_page.find_child(slot_name, true, false) as Control
 		assert(saved_slot != null and saved_slot.visible)
@@ -150,18 +152,7 @@ func _ready() -> void:
 	ResearchManager._local_marks[str(ResearchManager.RECYCLING)] = 3
 	ResearchManager._local_marks[str(ResearchManager.BLUEPRINT_STORAGE)] = 3
 	ResearchManager.research_points = 1
-	OnlineMatch._handle_completed_game_transition(
-		GameSettings.MATCH_PHASE_PLAYING_SET,
-		GameSettings.MATCH_PHASE_INTERMISSION,
-		false
-	)
-	assert(ResearchManager.get_mark(ResearchManager.RECYCLING) == 3)
-	assert(ResearchManager.research_points == 1)
-	OnlineMatch._handle_completed_game_transition(
-		GameSettings.MATCH_PHASE_KILL_BANNER,
-		GameSettings.MATCH_PHASE_FINAL,
-		false
-	)
+	NetworkSession._reset_equipment_progression(false)
 	assert(ResearchManager._local_marks.is_empty())
 	assert(ResearchManager.research_points == ResearchManager.DEFAULT_RESEARCH_POINTS)
 	assert(ResearchManager.get_blueprint_slot_count() == 0)

@@ -93,6 +93,7 @@ func join_invited_round(target_lobby_id: int) -> void:
 	mode = GameSettings.NETWORK_MODE_CLIENT
 	local_player_slot = GameSettings.PLAYER_TWO_SLOT
 	_open_invite_overlay_when_lobby_ready = false
+	_reset_equipment_progression()
 	_set_status("Joining invited round...")
 	Steam.joinLobby(target_lobby_id)
 
@@ -440,7 +441,10 @@ func _set_status(message: String) -> void:
 	status_changed.emit(status_text)
 
 
-func _reset_equipment_progression() -> void:
+func _reset_equipment_progression(persist_research: bool = true) -> void:
+	var research_manager: Node = get_node_or_null("/root/ResearchManager")
+	if research_manager != null and research_manager.has_method("reset_for_new_game"):
+		research_manager.call("reset_for_new_game", persist_research)
 	var reward_inventory: Node = get_node_or_null("/root/RoundRewardInventory")
 	if reward_inventory != null and reward_inventory.has_method("reset_match"):
 		reward_inventory.call("reset_match")

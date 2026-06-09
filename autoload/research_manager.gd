@@ -130,7 +130,7 @@ func add_research_points(base_amount: int) -> int:
 	return awarded
 
 
-func reset_for_completed_game(persist_progress: bool = true) -> void:
+func reset_for_new_game(persist_progress: bool = true) -> void:
 	research_points = DEFAULT_RESEARCH_POINTS
 	_local_marks.clear()
 	_remote_marks_by_player.clear()
@@ -447,9 +447,9 @@ func _build_definitions() -> Dictionary:
 		_definition(PASSIVE_HEALING, "Field Regeneration", BRANCH_MISC, "res://assets/ui/research/passive_healing.svg", "While standing still, heal up to 50%, 75% or 100% health.", [4, 8, 14], Vector2(670, 345), [_require(RAGE)], true, 230),
 		_definition(PHOENIX, "Phoenix", BRANCH_MISC, "res://assets/ui/research/phoenix.svg", "Once per set, survive lethal damage and return with 40% health.", [20], Vector2(870, 345), [_require(PASSIVE_HEALING, 3)], true, 240),
 		_definition(TIME_CONTROL, "Time Control", BRANCH_MISC, "res://assets/ui/research/time_control.svg", "Future research: slow the world, extend the effect, then briefly freeze time.", [60, 120, 240], Vector2(1120, 345), [], false, 999),
-		_definition(FASTER_CAPTURE, "Faster Capture", BRANCH_MISC, "res://assets/ui/research/faster_capture.svg", "Future research: capture objectives faster.", [3, 7, 12], Vector2(670, 415), [_require(RAGE)], false, 260),
-		_definition(CAPTURE_BONUS, "Capture Bonus", BRANCH_MISC, "res://assets/ui/research/capture_bonus.svg", "Future research: gain better rewards from captured objectives.", [4, 8, 14], Vector2(870, 415), [_require(FASTER_CAPTURE)], false, 270),
-		_definition(CAPTURE_RADIUS, "Capture Radius", BRANCH_MISC, "res://assets/ui/research/capture_radius.svg", "Future research: increase objective capture radius.", [4, 9, 15], Vector2(1070, 415), [_require(CAPTURE_BONUS)], false, 280),
+		_definition(FASTER_CAPTURE, "Faster Capture", BRANCH_MISC, "res://assets/ui/research/faster_capture.svg", "Future research: capture objectives faster.", [3, 7, 12], Vector2(670, 390), [_require(RAGE)], false, 260),
+		_definition(CAPTURE_BONUS, "Capture Bonus", BRANCH_MISC, "res://assets/ui/research/capture_bonus.svg", "Future research: gain better rewards from captured objectives.", [4, 8, 14], Vector2(870, 390), [_require(FASTER_CAPTURE)], false, 270),
+		_definition(CAPTURE_RADIUS, "Capture Radius", BRANCH_MISC, "res://assets/ui/research/capture_radius.svg", "Future research: increase objective capture radius.", [4, 9, 15], Vector2(1070, 390), [_require(CAPTURE_BONUS)], false, 280),
 	]
 	for entry in entries:
 		definitions[str(entry.get("id", ""))] = entry

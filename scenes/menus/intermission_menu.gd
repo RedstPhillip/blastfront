@@ -96,10 +96,10 @@ func _refresh() -> void:
 
 	var local_ready: bool = OnlineMatch.intermission_ready.get(_local_slot, false) == true
 	var remote_ready: bool = OnlineMatch.intermission_ready.get(_remote_slot, false) == true
-	_local_ready_label.text = "YOU // READY" if local_ready else "YOU // NOT READY"
-	_remote_ready_label.text = "OPPONENT // READY" if remote_ready else "OPPONENT // NOT READY"
+	_local_ready_label.text = "You: ready" if local_ready else "You: not ready"
+	_remote_ready_label.text = "Opponent: ready" if remote_ready else "Opponent: not ready"
 	_ready_button.disabled = local_ready
-	_ready_button.text = "LOCK IN" if not local_ready else "READY LOCKED"
+	_ready_button.text = "READY" if not local_ready else "READY"
 	_refresh_earnings()
 
 
@@ -130,11 +130,11 @@ func _set_page(next_page: int) -> void:
 	_right_page_button.visible = _page_index < 1
 	match _page_index:
 		-1:
-			_page_label.text = "LOADOUT // EQUIPMENT BAY"
+			_page_label.text = "LOADOUT"
 		1:
-			_page_label.text = "RESEARCH // FIELD LAB"
+			_page_label.text = "RESEARCH"
 		_:
-			_page_label.text = "< LOADOUT      COMBAT DEBRIEF      RESEARCH >"
+			_page_label.text = "INTERMISSION"
 
 
 func _is_page_left_event(event: InputEvent) -> bool:
