@@ -363,8 +363,11 @@ func _show_weapon_extension_description(item: WeaponExtensionItem) -> void:
 			_description_body.text += " Merge cost: %d coins." % merge_cost
 	_set_description_condition(item.condition, item.get_condition_color(), true)
 	var current_modifiers: Dictionary = _get_current_weapon_modifiers()
-	var preview_modifiers: Dictionary = _build_weapon_preview_modifiers(item, current_modifiers)
-	_show_weapon_stat_changes(current_modifiers, preview_modifiers)
+	if _is_weapon_extension_equipped(item):
+		_show_equipped_weapon_extension_stats(item)
+	else:
+		var preview_modifiers: Dictionary = _build_weapon_preview_modifiers(item, current_modifiers)
+		_show_weapon_stat_changes(current_modifiers, preview_modifiers)
 
 
 func _show_armor_description(item: ArmorItemData) -> void:
@@ -406,6 +409,12 @@ func _get_current_weapon_modifiers() -> Dictionary:
 		var attributes: Dictionary = attributes_variant
 		return attributes.duplicate()
 	return {}
+
+
+func _is_weapon_extension_equipped(item: WeaponExtensionItem) -> bool:
+	if item == null:
+		return false
+	return ExtensionInventory.get_equipped_item_for_local(item.get_slot()) == item
 
 
 func _build_weapon_preview_modifiers(item: WeaponExtensionItem, current: Dictionary) -> Dictionary:
@@ -455,6 +464,34 @@ func _show_weapon_stat_changes(current: Dictionary, preview: Dictionary) -> void
 			_weapon_attribute_name(key),
 			before_value,
 			after_value,
+			_weapon_attribute_suffix(key),
+			_weapon_attribute_decimals(key),
+			_weapon_attribute_lower_is_better(key)
+		)
+		visible_count += 1
+		if visible_count >= MAX_VISIBLE_STATS:
+			break
+
+
+func _show_equipped_weapon_extension_stats(item: WeaponExtensionItem) -> void:
+	var item_stats: Dictionary = item.build_effective_stats()
+	var attributes_variant: Variant = item_stats.get("attributes", {})
+	var item_modifiers: Dictionary = {}
+	if attributes_variant is Dictionary:
+		item_modifiers = attributes_variant
+	var keys: Array[StringName] = _ordered_changed_keys({}, item_modifiers, WEAPON_STAT_PRIORITY)
+	_changes_title.text = "ACTIVE ITEM STATS"
+	_clear_stat_changes("This equipped item has no numeric weapon attributes.")
+	var visible_count: int = 0
+	for key in keys:
+		var base_value: float = _weapon_display_value(key, {})
+		var item_value: float = _weapon_display_value(key, item_modifiers)
+		if is_equal_approx(base_value, item_value):
+			continue
+		_add_stat_row(
+			_weapon_attribute_name(key),
+			base_value,
+			item_value,
 			_weapon_attribute_suffix(key),
 			_weapon_attribute_decimals(key),
 			_weapon_attribute_lower_is_better(key)

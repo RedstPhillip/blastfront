@@ -321,6 +321,10 @@ func _make_control_packet(packet_type: StringName, payload: Dictionary) -> Dicti
 
 # Drain a bounded packet batch so networking cannot monopolize a frame.
 func _read_p2p_packets(channel: int) -> void:
+	if channel == GameSettings.NETWORK_CHANNEL_STATE:
+		_read_coalesced_state_packets(channel)
+		return
+
 	var packets_read: int = 0
 	while packets_read < GameSettings.NETWORK_PACKET_READ_LIMIT:
 		var packet_size: int = Steam.getAvailableP2PPacketSize(channel)
@@ -341,6 +345,41 @@ func _read_p2p_packets(channel: int) -> void:
 		var packet_dictionary: Dictionary = packet
 		var sender_id: int = _extract_steam_id(raw_packet)
 		_handle_packet(sender_id, packet_dictionary)
+
+
+# State packets are sent frequently and supersede older state from the same peer.
+# Coalescing them keeps a network backlog from turning into visible input lag.
+func _read_coalesced_state_packets(channel: int) -> void:
+	var packets_read: int = 0
+	var latest_packets: Dictionary = {}
+	while packets_read < GameSettings.NETWORK_PACKET_READ_LIMIT:
+		var packet_size: int = Steam.getAvailableP2PPacketSize(channel)
+		if packet_size <= 0:
+			break
+
+		var raw_packet: Dictionary = Steam.readP2PPacket(packet_size, channel)
+		packets_read += 1
+		if raw_packet.is_empty():
+			continue
+
+		var payload: PackedByteArray = raw_packet.get("data", PackedByteArray())
+		var packet: Variant = bytes_to_var(payload)
+		if not (packet is Dictionary):
+			continue
+
+		var packet_dictionary: Dictionary = packet
+		var sender_id: int = _extract_steam_id(raw_packet)
+		var key: String = _state_packet_key(packet_dictionary, sender_id)
+		latest_packets[key] = {
+			"packet": packet_dictionary,
+			"sender_id": sender_id,
+		}
+
+	for packet_state in latest_packets.values():
+		if not (packet_state is Dictionary):
+			continue
+		var packet_data: Dictionary = packet_state
+		_handle_packet(int(packet_data.get("sender_id", 0)), packet_data.get("packet", {}))
 
 
 # Session control stays here; validated gameplay packets are forwarded to consumers.
@@ -369,6 +408,16 @@ func _send_packet(target_steam_id: int, packet: Dictionary, send_type: int, chan
 		return
 
 	Steam.sendP2PPacket(target_steam_id, var_to_bytes(packet), send_type, channel)
+
+
+func _state_packet_key(packet: Dictionary, sender_id: int) -> String:
+	var packet_type: String = str(packet.get("type", ""))
+	var slot: int = int(packet.get("from_slot", 0))
+	var payload: Variant = packet.get("payload", {})
+	if payload is Dictionary:
+		var payload_dictionary: Dictionary = payload
+		slot = int(payload_dictionary.get("slot", slot))
+	return "%s:%d:%d" % [packet_type, sender_id, slot]
 
 
 func _activate_lobby(message: String) -> void:
