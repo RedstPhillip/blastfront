@@ -12,8 +12,9 @@ const COLOR_PLANNED: Color = Color8(65, 69, 76, 255)
 
 var research_id: StringName = &""
 var definition: Dictionary = {}
+var _loaded_icon_path: String = ""
 
-@onready var _icon_label: Label = %IconLabel
+@onready var _icon_texture: TextureRect = %IconTexture
 @onready var _stars_label: Label = %StarsLabel
 @onready var _lock_label: Label = %LockLabel
 
@@ -48,8 +49,7 @@ func refresh() -> void:
 	elif current_mark <= 0 and not requirements_met:
 		accent = COLOR_LOCKED
 
-	_icon_label.text = str(definition.get("icon", "?"))
-	_icon_label.add_theme_color_override("font_color", Color.WHITE if available else Color8(145, 149, 154, 255))
+	_refresh_icon(accent, available, requirements_met)
 	_stars_label.text = _stars(current_mark, max_mark)
 	_stars_label.add_theme_color_override("font_color", accent.lightened(0.18))
 	_lock_label.visible = not available or (current_mark <= 0 and not requirements_met)
@@ -58,6 +58,20 @@ func refresh() -> void:
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if not disabled else Control.CURSOR_ARROW
 	_apply_styles(accent, current_mark > 0, can_buy)
 	tooltip_text = _build_tooltip(current_mark, max_mark, available, requirements_met)
+
+
+func _refresh_icon(accent: Color, available: bool, requirements_met: bool) -> void:
+	var icon_path: String = str(definition.get("icon_path", ""))
+	if icon_path != _loaded_icon_path:
+		_loaded_icon_path = icon_path
+		var icon_resource: Resource = load(icon_path) if not icon_path.is_empty() else null
+		_icon_texture.texture = icon_resource as Texture2D
+	if not available:
+		_icon_texture.modulate = Color8(125, 132, 140, 180)
+	elif not requirements_met:
+		_icon_texture.modulate = Color(accent.r, accent.g, accent.b, 0.58)
+	else:
+		_icon_texture.modulate = accent.lightened(0.28)
 
 
 func _requirements_met() -> bool:

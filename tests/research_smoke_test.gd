@@ -63,7 +63,12 @@ func _ready() -> void:
 	var research_page: Control = research_page_scene.instantiate() as Control
 	add_child(research_page)
 	await get_tree().process_frame
-	assert(research_page.find_children("*", "ResearchNodeButton", true, false).size() == 18)
+	var research_nodes: Array[Node] = research_page.find_children("*", "ResearchNodeButton", true, false)
+	assert(research_nodes.size() == 18)
+	for research_node in research_nodes:
+		var icon_texture: TextureRect = research_node.find_child("IconTexture", true, false) as TextureRect
+		assert(icon_texture != null)
+		assert(icon_texture.texture != null)
 	research_page.queue_free()
 
 	var loadout_page_scene: PackedScene = load("res://scenes/ui/loadout/loadout_page.tscn") as PackedScene
@@ -141,6 +146,25 @@ func _ready() -> void:
 
 	ResearchManager._local_marks[str(ResearchManager.UPGRADE_DISCOUNT)] = 3
 	assert(ExtensionInventory.get_merge_cost_for_next_mark(3) == 13)
+
+	ResearchManager._local_marks[str(ResearchManager.RECYCLING)] = 3
+	ResearchManager._local_marks[str(ResearchManager.BLUEPRINT_STORAGE)] = 3
+	ResearchManager.research_points = 1
+	OnlineMatch._handle_completed_game_transition(
+		GameSettings.MATCH_PHASE_PLAYING_SET,
+		GameSettings.MATCH_PHASE_INTERMISSION,
+		false
+	)
+	assert(ResearchManager.get_mark(ResearchManager.RECYCLING) == 3)
+	assert(ResearchManager.research_points == 1)
+	OnlineMatch._handle_completed_game_transition(
+		GameSettings.MATCH_PHASE_KILL_BANNER,
+		GameSettings.MATCH_PHASE_FINAL,
+		false
+	)
+	assert(ResearchManager._local_marks.is_empty())
+	assert(ResearchManager.research_points == ResearchManager.DEFAULT_RESEARCH_POINTS)
+	assert(ResearchManager.get_blueprint_slot_count() == 0)
 
 	ResearchManager._local_marks = original_marks
 	ResearchManager.research_points = original_points

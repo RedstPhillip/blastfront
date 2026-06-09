@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scenes/ui/research/research_node.gd" id="1_node"]
+[ext_resource type="Font" path="res://assets/fonts/blastfront_hud_font.tres" id="2_font"]
 
 [node name="ResearchNode" type="Button"]
 custom_minimum_size = Vector2(74, 74)
@@ -10,21 +11,23 @@ focus_mode = 1
 text = ""
 script = ExtResource("1_node")
 
-[node name="IconLabel" type="Label" parent="."]
+[node name="IconTexture" type="TextureRect" parent="."]
 unique_name_in_owner = true
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_top = 7.0
-offset_bottom = -18.0
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -21.0
+offset_top = -25.0
+offset_right = 21.0
+offset_bottom = 17.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_font_sizes/font_size = 24
-text = "RC"
-horizontal_alignment = 1
-vertical_alignment = 1
+expand_mode = 1
+stretch_mode = 5
 
 [node name="StarsLabel" type="Label" parent="."]
 unique_name_in_owner = true
@@ -37,8 +40,9 @@ offset_bottom = -5.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
+theme_override_fonts/font = ExtResource("2_font")
 theme_override_font_sizes/font_size = 12
-text = "☆☆☆"
+text = "***"
 horizontal_alignment = 1
 
 [node name="LockLabel" type="Label" parent="."]
@@ -53,6 +57,7 @@ offset_bottom = 18.0
 grow_horizontal = 2
 mouse_filter = 2
 theme_override_colors/font_color = Color(0.7, 0.72, 0.74, 0.92)
+theme_override_fonts/font = ExtResource("2_font")
 theme_override_font_sizes/font_size = 8
 text = "LOCK"
 horizontal_alignment = 2
