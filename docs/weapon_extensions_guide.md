@@ -14,7 +14,7 @@ Core files:
   Defines one extension type. This is the main data model used by `.tres` extension files.
 - `res://scenes/weapons/extensions/weapon_extension_item.gd`
   Runtime instance of an extension definition with a concrete condition value.
-- `res://scenes/weapons/extensions/extension_condition.gd`
+- `res://scenes/items/item_condition.gd`
   Condition tiers, tier colors, condition clamping, and random condition rolling.
 - `res://autoload/extension_inventory.gd`
   Loads extension definitions, creates demo inventory items, stores equipped slots, merges stats, and syncs loadouts through `OnlineMatch`.
@@ -27,9 +27,9 @@ Core files:
 
 UI and visuals:
 
-- `res://scenes/menus/extensions/ExtensionWorkbench.tscn`
+- `res://scenes/menus/extensions/extension_workbench.tscn`
   Intermission extension page with inventory cards, three slots, and weapon preview.
-- `res://scenes/weapons/extensions/WeaponPreview2D.tscn`
+- `res://scenes/weapons/extensions/weapon_preview_2d.tscn`
   Reuses the same socket layout as the real gun for preview visuals.
 - `res://scenes/weapons/extensions/weapon_extension_visuals.gd`
   Spawns visual scenes into `middle`, `ammo`, and `front` sockets.
@@ -150,7 +150,7 @@ res://scenes/weapons/extensions/my_extension_mk1.tres
 
 Steps:
 
-1. Duplicate an existing `.tres`, such as `long_barrel_mk1.tres`.
+1. Duplicate an existing `.tres`, such as `extended_barrel_mk1.tres`.
 2. Change `extension_id` to a unique ID.
 3. Change `display_name`.
 4. Set `slot_key`.
@@ -359,9 +359,9 @@ Every extension definition must be added to:
 
 ```gdscript
 const EXTENSION_DEFINITION_PATHS: Array[String] = [
-	"res://scenes/weapons/extensions/red_dot_sight_mk1.tres",
-	"res://scenes/weapons/extensions/cryo_rounds_mk1.tres",
-	"res://scenes/weapons/extensions/long_barrel_mk1.tres",
+	"res://scenes/weapons/extensions/laser_scope_mk1.tres",
+	"res://scenes/weapons/extensions/freeze_rounds_mk1.tres",
+	"res://scenes/weapons/extensions/extended_barrel_mk1.tres",
 	"res://scenes/weapons/extensions/my_new_extension_mk1.tres",
 ]
 ```
@@ -428,7 +428,7 @@ Use stable lowercase IDs:
 ```text
 fire_ammo_mk1
 homing_scope_mk1
-long_barrel_mk1
+extended_barrel_mk1
 ```
 
 Use matching file names:
@@ -436,7 +436,7 @@ Use matching file names:
 ```text
 fire_ammo_mk1.tres
 homing_scope_mk1.tres
-long_barrel_mk1.tres
+extended_barrel_mk1.tres
 ```
 
 Use clear script names:
@@ -451,19 +451,19 @@ accelerating_behavior.gd
 
 Existing extension definitions:
 
-- `red_dot_sight_mk1.tres`
-  Middle/top slot, modifies fire interval, has a sight visual.
-- `cryo_rounds_mk1.tres`
-  Ammo slot, carries a future `freeze` projectile effect payload.
-- `long_barrel_mk1.tres`
-  Front slot, modifies projectile speed, gravity, and range.
+- `laser_scope_mk1.tres`
+  Middle slot, adds a laser sight and modifies weapon handling.
+- `freeze_rounds_mk1.tres`
+  Ammo slot, applies the reusable freeze effect.
+- `extended_barrel_mk1.tres`
+  Front slot, modifies projectile speed and range.
 
 Existing behavior/effect templates:
 
-- `homing_behavior.gd`
-  Demonstrates a flight behavior that steers toward the nearest enemy.
-- `fire_effect.gd`
-  Demonstrates hit-effect registration and direct damage application.
+- `hover_behavior.gd`
+  Reusable flight behavior used by ground-hover projectiles.
+- `freeze_effect.gd`
+  Reusable status effect applied by freeze ammunition.
 - `poison_effect.gd`
   Minimal hit-effect template.
 

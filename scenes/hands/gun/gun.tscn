@@ -30,3 +30,11 @@ position = Vector2(-28, -30)
 
 [node name="FrontSocket" type="Node2D" parent="VisualRoot/ExtensionVisuals"]
 position = Vector2(-63, -40)
+
+[node name="LaserSight" type="Line2D" parent="."]
+top_level = true
+visible = false
+z_index = 20
+width = 2.0
+default_color = Color(1, 0.12, 0.08, 0.82)
+antialiased = true

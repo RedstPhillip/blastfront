@@ -24,6 +24,7 @@ func _ready() -> void:
 	_check_command_line_invite()
 
 
+# Steam P2P separates control, snapshots and reliable gameplay events by channel.
 func _process(_delta: float) -> void:
 	if not _can_use_steam() or lobby_id == 0:
 		return
@@ -42,15 +43,16 @@ func start_offline() -> void:
 	_set_status("Offline local mode")
 
 
-func start_debug() -> void:
+func start_training() -> void:
 	leave_round()
-	mode = GameSettings.NETWORK_MODE_DEBUG
+	mode = GameSettings.NETWORK_MODE_TRAINING
 	local_player_slot = GameSettings.PLAYER_ONE_SLOT
 	remote_steam_id = 0
 	_match_active = false
-	_set_status("Debug range mode")
+	_set_status("Training range mode")
 
 
+# Lobby membership is established before direct gameplay packets are accepted.
 func host_invite_round(open_overlay_when_ready: bool = false) -> void:
 	if not _can_use_steam():
 		_set_status(SteamService.get_status_text())
@@ -93,6 +95,7 @@ func join_invited_round(target_lobby_id: int) -> void:
 	Steam.joinLobby(target_lobby_id)
 
 
+# Tear down lobby and direct P2P state so later sessions start cleanly.
 func leave_round() -> void:
 	var had_lobby: bool = lobby_id != 0 or remote_steam_id != 0 or _match_active
 	if _can_use_steam():
@@ -118,8 +121,8 @@ func is_steam_match_active() -> bool:
 	)
 
 
-func is_debug() -> bool:
-	return mode == GameSettings.NETWORK_MODE_DEBUG
+func is_training() -> bool:
+	return mode == GameSettings.NETWORK_MODE_TRAINING
 
 
 func is_host() -> bool:
@@ -158,17 +161,17 @@ func _check_command_line_invite() -> void:
 	if not _can_use_steam():
 		return
 
-	var args := OS.get_cmdline_args()
+	var args: PackedStringArray = OS.get_cmdline_args()
 	for index in range(args.size()):
 		if args[index] == GameSettings.STEAM_CONNECT_LOBBY_ARG and index + 1 < args.size():
-			var invited_lobby_id := int(args[index + 1])
+			var invited_lobby_id: int = int(args[index + 1])
 			if invited_lobby_id != 0:
 				join_invited_round(invited_lobby_id)
 			return
 
 
 func _on_join_requested(invite, _friend_id: int = 0) -> void:
-	var invited_lobby_id := 0
+	var invited_lobby_id: int = 0
 	if invite is Dictionary:
 		invited_lobby_id = int(invite.get("lobby", 0))
 	else:
@@ -249,7 +252,7 @@ func _on_lobby_chat_update(changed_lobby_id: int, changed_id: int, _making_chang
 
 
 func _on_p2p_session_request(remote_id) -> void:
-	var requester_id := _extract_steam_id(remote_id)
+	var requester_id: int = _extract_steam_id(remote_id)
 	if requester_id == 0:
 		return
 
@@ -261,7 +264,7 @@ func _on_p2p_session_request(remote_id) -> void:
 
 
 func _on_p2p_session_connect_fail(remote_id, session_error: int = -1) -> void:
-	var failed_id := _extract_steam_id(remote_id)
+	var failed_id: int = _extract_steam_id(remote_id)
 	_set_status("Steam P2P failed with %s: %s" % [failed_id, _describe_p2p_error(int(session_error))])
 
 
@@ -270,7 +273,7 @@ func _refresh_lobby_members() -> void:
 	if lobby_id == 0:
 		return
 
-	var member_count := Steam.getNumLobbyMembers(lobby_id)
+	var member_count: int = Steam.getNumLobbyMembers(lobby_id)
 	for index in range(member_count):
 		var member_id: int = Steam.getLobbyMemberByIndex(lobby_id, index)
 		lobby_members.append({
@@ -281,11 +284,12 @@ func _refresh_lobby_members() -> void:
 			remote_steam_id = member_id
 
 
+# The control handshake confirms the peer identity before activating the match.
 func _send_handshake() -> void:
 	if remote_steam_id == 0:
 		return
 
-	var packet := _make_control_packet(&"hello", {
+	var packet: Dictionary = _make_control_packet(&"hello", {
 		"steam_id": SteamService.steam_id,
 		"name": SteamService.steam_name,
 	})
@@ -293,7 +297,7 @@ func _send_handshake() -> void:
 
 
 func _send_handshake_ack(target_steam_id: int) -> void:
-	var packet := _make_control_packet(&"hello_ack", {
+	var packet: Dictionary = _make_control_packet(&"hello_ack", {
 		"steam_id": SteamService.steam_id,
 		"name": SteamService.steam_name,
 	})
@@ -311,8 +315,9 @@ func _make_control_packet(packet_type: StringName, payload: Dictionary) -> Dicti
 	}
 
 
+# Drain a bounded packet batch so networking cannot monopolize a frame.
 func _read_p2p_packets(channel: int) -> void:
-	var packets_read := 0
+	var packets_read: int = 0
 	while packets_read < GameSettings.NETWORK_PACKET_READ_LIMIT:
 		var packet_size: int = Steam.getAvailableP2PPacketSize(channel)
 		if packet_size <= 0:
@@ -330,23 +335,24 @@ func _read_p2p_packets(channel: int) -> void:
 			continue
 
 		var packet_dictionary: Dictionary = packet
-		var sender_id := _extract_steam_id(raw_packet)
+		var sender_id: int = _extract_steam_id(raw_packet)
 		_handle_packet(sender_id, packet_dictionary)
 
 
+# Session control stays here; validated gameplay packets are forwarded to consumers.
 func _handle_packet(sender_id: int, packet: Dictionary) -> void:
 	if int(packet.get("protocol_version", GameSettings.NETWORK_PROTOCOL_VERSION)) != GameSettings.NETWORK_PROTOCOL_VERSION:
 		return
 
 	match str(packet.get("type", "")):
 		"hello":
-			var hello_sender := _resolve_packet_sender(sender_id, packet)
+			var hello_sender: int = _resolve_packet_sender(sender_id, packet)
 			if _is_lobby_member(hello_sender):
 				remote_steam_id = hello_sender
 				_set_status("Steam peer ready: %s" % _get_payload(packet).get("name", hello_sender))
 				_send_handshake_ack(hello_sender)
 		"hello_ack":
-			var ack_sender := _resolve_packet_sender(sender_id, packet)
+			var ack_sender: int = _resolve_packet_sender(sender_id, packet)
 			if _is_lobby_member(ack_sender):
 				remote_steam_id = ack_sender
 				_set_status("Steam peer ready")
@@ -396,7 +402,7 @@ func _resolve_packet_sender(sender_id: int, packet: Dictionary) -> int:
 	if sender_id != 0:
 		return sender_id
 
-	var payload := _get_payload(packet)
+	var payload: Dictionary = _get_payload(packet)
 	return int(payload.get("steam_id", 0))
 
 

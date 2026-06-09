@@ -1,6 +1,6 @@
 extends "res://scenes/network/sync_module.gd"
 
-const PROJECTILE_SCENE := preload("res://scenes/projectiles/projectile.tscn")
+const PROJECTILE_SCENE: PackedScene = preload("res://scenes/projectiles/projectile.tscn")
 
 var _next_projectile_id: int = GameSettings.NETWORK_FIRST_PROJECTILE_ID
 var _projectiles: Dictionary = {}
@@ -20,6 +20,7 @@ func get_packet_types() -> Array[StringName]:
 	]
 
 
+# Clients request shots; the host owns projectile creation and validation.
 func request_shot(owner_slot: int, spawn_position: Vector2, direction: Vector2, projectile_data: Dictionary) -> void:
 	if game_sync == null or not game_sync.is_network_active():
 		_spawn_projectile(0, owner_slot, spawn_position, direction, projectile_data, true)
@@ -78,6 +79,7 @@ func apply_snapshot(data: Dictionary) -> void:
 			projectile.call("apply_network_snapshot", snapshot)
 
 
+# Rebuild weapon data host-side instead of trusting client projectile stats.
 func _spawn_authoritative_projectile_for_owner(
 	owner_slot: int,
 	fallback_spawn_position: Vector2 = Vector2.ZERO,
@@ -168,6 +170,7 @@ func _build_authoritative_shot(owner_slot: int) -> Dictionary:
 	return {}
 
 
+# Host-side fire-rate validation limits forged or duplicated shot requests.
 func _can_authoritative_shoot(owner_slot: int, fire_interval: float) -> bool:
 	if fire_interval <= 0.0:
 		return true
@@ -222,6 +225,7 @@ func _apply_projectile_despawn(payload: Dictionary) -> void:
 	_projectiles.erase(net_id)
 
 
+# Remote projectiles are replicas; only authoritative instances resolve gameplay hits.
 func _spawn_projectile(net_id: int, owner_slot: int, spawn_position: Vector2, direction: Vector2, projectile_data: Dictionary, authority: bool) -> Node:
 	if game == null or not game.has_method("spawn_projectile"):
 		return null
@@ -265,6 +269,7 @@ func _remote_projectile_collision_mask(projectile_data: Dictionary) -> int:
 	return GameSettings.PROJECTILE_REMOTE_COLLISION_MASK
 
 
+# Convert collision results into combat state before broadcasting the despawn.
 func _on_projectile_despawn_requested(projectile: Node, reason: StringName, collider, net_id: int) -> void:
 	if game_sync == null or not game_sync.is_host() or net_id == 0:
 		return
@@ -288,6 +293,7 @@ func _on_projectile_despawn_requested(projectile: Node, reason: StringName, coll
 	}, GameSettings.NETWORK_CHANNEL_EVENTS)
 
 
+# Extension effects run only on the host to prevent duplicated status or area damage.
 func _apply_authoritative_extension_effects(projectile: Node, direct_target: Player) -> void:
 	var effects_variant: Variant = projectile.get("extension_effects")
 	if not (effects_variant is Dictionary):
@@ -383,10 +389,3 @@ func _build_projectile_snapshots() -> Array[Dictionary]:
 			"rotation": projectile.global_rotation,
 		})
 	return snapshots
-
-
-func _get_payload(packet: Dictionary) -> Dictionary:
-	var payload: Variant = packet.get("payload", {})
-	if payload is Dictionary:
-		return payload
-	return {}

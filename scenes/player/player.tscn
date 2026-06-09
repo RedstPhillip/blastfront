@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://doun1m2ix5any"]
 
-[ext_resource type="Texture2D" uid="uid://bufb1umvbprtf" path="res://assets/Player/blue_ball.png" id="1_4flbx"]
+[ext_resource type="Texture2D" uid="uid://tb2dygse1lm1" path="res://assets/player/blue_ball.png" id="1_4flbx"]
 [ext_resource type="Script" uid="uid://b7k42ms07y2wq" path="res://scenes/player/player.gd" id="1_onrkg"]
 [ext_resource type="Script" uid="uid://8hfnbsqidpdh" path="res://scenes/player/leg_renderer.gd" id="3_gmlin"]
 [ext_resource type="PackedScene" uid="uid://dhc5lavdjobne" path="res://scenes/hands/gun/gun.tscn" id="4_lvxji"]
@@ -11,6 +11,7 @@
 [ext_resource type="Script" uid="uid://tstjolcc3t2" path="res://scenes/player/wall_state.gd" id="10_wall"]
 [ext_resource type="Script" uid="uid://d03ad0fet400" path="res://scenes/player/fall_state.gd" id="12_fall"]
 [ext_resource type="Script" uid="uid://canek1a6obvjn" path="res://scenes/components/health_component.gd" id="13_health"]
+[ext_resource type="Script" uid="uid://br043jwad2o1o" path="res://scenes/components/status_effect_manager.gd" id="14_status"]
 [ext_resource type="Script" path="res://scenes/player/armor_visual_root.gd" id="16_armor_visual"]
 
 [node name="Player" type="CharacterBody2D" unique_id=874337750]
@@ -83,3 +84,6 @@ script = ExtResource("10_wall")
 
 [node name="HealthComponent" type="Node" parent="." unique_id=832184161]
 script = ExtResource("13_health")
+
+[node name="StatusEffectManager" type="Node" parent="."]
+script = ExtResource("14_status")

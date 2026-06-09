@@ -1,11 +1,6 @@
 extends Node
 class_name GameSync
 
-const PLAYER_SYNC_SCRIPT := preload("res://scenes/network/player_sync.gd")
-const PROJECTILE_SYNC_SCRIPT := preload("res://scenes/network/projectile_sync.gd")
-const COMBAT_SYNC_SCRIPT := preload("res://scenes/network/combat_sync.gd")
-const BLOCK_SYNC_SCRIPT := preload("res://scenes/network/block_sync.gd")
-
 var game: Node = null
 var tick: int = 0
 
@@ -20,6 +15,9 @@ var _snapshot_rate: float = GameSettings.DEFAULT_WORLD_SNAPSHOT_RATE
 func setup(game_world: Node) -> void:
 	game = game_world
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_modules.clear()
+	_modules_by_name.clear()
+	_packet_handlers.clear()
 
 	if game != null and game.has_method("get_config"):
 		var config: Variant = game.call("get_config")
@@ -29,10 +27,11 @@ func setup(game_world: Node) -> void:
 	if not NetworkSession.packet_received.is_connected(_on_packet_received):
 		NetworkSession.packet_received.connect(_on_packet_received)
 
-	register_module(PLAYER_SYNC_SCRIPT.new() as SyncModule)
-	register_module(PROJECTILE_SYNC_SCRIPT.new() as SyncModule)
-	register_module(COMBAT_SYNC_SCRIPT.new() as SyncModule)
-	register_module(BLOCK_SYNC_SCRIPT.new() as SyncModule)
+	# Sync modules are scene children so their ownership and configuration stay visible in Godot.
+	for child in get_children():
+		var module: SyncModule = child as SyncModule
+		if module != null:
+			register_module(module)
 
 
 func _exit_tree() -> void:
@@ -56,7 +55,8 @@ func _physics_process(delta: float) -> void:
 
 
 func register_module(module: SyncModule) -> void:
-	add_child(module)
+	if module.get_parent() != self:
+		add_child(module)
 	_modules.append(module)
 
 	module.setup(self, game)

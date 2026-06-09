@@ -22,17 +22,17 @@ func physics_sync_tick(delta: float) -> void:
 	_send_timer = 1.0 / GameSettings.NETWORK_PLAYER_STATE_RATE
 	if game_sync.is_host():
 		for slot in GameSettings.player_slots():
-			var player := _get_player(slot)
+			var player: Player = _get_player(slot)
 			if player != null:
 				game_sync.send_unreliable(GameSettings.PACKET_PLAYER_SNAPSHOT, _build_player_snapshot(player), GameSettings.NETWORK_CHANNEL_STATE)
 	else:
-		var local_player := _get_player(game_sync.get_local_slot())
+		var local_player: Player = _get_player(game_sync.get_local_slot())
 		if local_player != null:
 			game_sync.send_unreliable(GameSettings.PACKET_PLAYER_SNAPSHOT, _build_player_snapshot(local_player), GameSettings.NETWORK_CHANNEL_STATE)
 
 
 func handle_packet(packet: Dictionary) -> void:
-	var payload := _get_payload(packet)
+	var payload: Dictionary = _get_payload(packet)
 	var sender_slot: int = int(packet.get("from_slot", 0))
 	var slot: int = int(payload.get("slot", sender_slot))
 
@@ -54,7 +54,7 @@ func build_snapshot() -> Dictionary:
 
 	var snapshots: Array[Dictionary] = []
 	for slot in GameSettings.player_slots():
-		var player := _get_player(slot)
+		var player: Player = _get_player(slot)
 		if player != null:
 			snapshots.append(_build_player_snapshot(player))
 
@@ -99,7 +99,7 @@ func _build_player_snapshot(player: Player) -> Dictionary:
 
 
 func _apply_player_snapshot(slot: int, snapshot: Dictionary) -> void:
-	var player := _get_player(slot)
+	var player: Player = _get_player(slot)
 	if player == null:
 		return
 
@@ -110,10 +110,3 @@ func _get_player(slot: int) -> Player:
 	if game == null or not game.has_method("get_player_by_slot"):
 		return null
 	return game.get_player_by_slot(slot)
-
-
-func _get_payload(packet: Dictionary) -> Dictionary:
-	var payload: Variant = packet.get("payload", {})
-	if payload is Dictionary:
-		return payload
-	return {}

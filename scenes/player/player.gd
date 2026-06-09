@@ -1,10 +1,10 @@
 extends CharacterBody2D
 class_name Player
 
-const BLUE_BODY_TEXTURE: Texture2D = preload("res://assets/Player/blue_ball.png")
-const BLUE_BODY_TEXTURE_MIRRORED: Texture2D = preload("res://assets/Player/blue_ball_mirrored.png")
-const RED_BODY_TEXTURE: Texture2D = preload("res://assets/Player/red_ball.png")
-const RED_BODY_TEXTURE_MIRRORED: Texture2D = preload("res://assets/Player/red_ball_mirrored.png")
+const BLUE_BODY_TEXTURE: Texture2D = preload("res://assets/player/blue_ball.png")
+const BLUE_BODY_TEXTURE_MIRRORED: Texture2D = preload("res://assets/player/blue_ball_mirrored.png")
+const RED_BODY_TEXTURE: Texture2D = preload("res://assets/player/red_ball.png")
+const RED_BODY_TEXTURE_MIRRORED: Texture2D = preload("res://assets/player/red_ball_mirrored.png")
 
 @export var gravity: float = GameSettings.PLAYER_GRAVITY
 @export var wall_slide_speed: float = GameSettings.PLAYER_WALL_SLIDE_SPEED
@@ -102,8 +102,6 @@ var _status_fx_phase: float = 0.0
 var _passive_heal_progress: float = 0.0
 var _phoenix_used: bool = false
 
-var status_effect_manager: StatusEffectManager
-
 @onready var _body_sprite: Sprite2D = $Sprite2D
 @onready var _glove: Sprite2D = $ArmRenderer/Glove
 @onready var _armor_visual_root: ArmorVisualRoot = $ArmorVisualRoot
@@ -115,6 +113,7 @@ var _arm_renderer: Node = null
 @onready var _ray_r: RayCast2D = $RayR
 @onready var _state_machine: StateMachine = $State
 @onready var health_component: HealthComponent = $HealthComponent
+@onready var status_effect_manager: StatusEffectManager = $StatusEffectManager
 
 
 func _ready() -> void:
@@ -131,9 +130,6 @@ func _ready() -> void:
 	_apply_player_palette()
 	_last_feedback_grounded = update_grounded()
 	_last_feedback_velocity_y = velocity.y
-	status_effect_manager = StatusEffectManager.new()
-	status_effect_manager.name = "StatusEffectManager"
-	add_child(status_effect_manager)
 	status_effect_manager.effect_added.connect(_on_status_effect_added)
 	if not health_component.health_changed.is_connected(_on_health_changed):
 		health_component.health_changed.connect(_on_health_changed)
@@ -172,6 +168,7 @@ func _physics_process(delta: float) -> void:
 	update_wall_coyote(delta)
 
 
+# Control mode decides whether input logic or remote interpolation drives this player.
 func configure_local_control(slot: int, move_left: StringName, move_right: StringName, jump: StringName, shoot: StringName, block: StringName, allow_shoot: bool) -> void:
 	player_slot = slot
 	control_mode = GameSettings.CONTROL_LOCAL
@@ -282,6 +279,7 @@ func set_eliminated(eliminated: bool) -> void:
 		_last_feedback_velocity_y = velocity.y
 
 
+# Network snapshots set targets; the remote physics tick performs the interpolation.
 func apply_remote_snapshot(snapshot: Dictionary) -> void:
 	var snapshot_position: Variant = snapshot.get("position", global_position)
 	var snapshot_velocity: Variant = snapshot.get("velocity", velocity)
@@ -397,6 +395,7 @@ func get_block_direction() -> Vector2:
 	return _block_direction.normalized()
 
 
+# A block succeeds only when the incoming projectile lies inside the aim-facing cone.
 func is_blocking_projectile(projectile_position: Vector2, projectile_velocity: Vector2 = Vector2.ZERO) -> bool:
 	if not _block_active:
 		return false
@@ -455,7 +454,7 @@ func _physics_process_remote(delta: float) -> void:
 	if not _has_network_target:
 		return
 
-	var interpolation_weight := clampf(delta * remote_interpolation_speed, 0.0, 1.0)
+	var interpolation_weight: float = clampf(delta * remote_interpolation_speed, 0.0, 1.0)
 	global_position = global_position.lerp(_network_target_position, interpolation_weight)
 	velocity = _network_target_velocity
 	if absf(velocity.x) > GameSettings.PLAYER_REMOTE_FACING_SPEED_THRESHOLD:
@@ -486,7 +485,7 @@ func consume_jump_buffer() -> void:
 func update_wall_coyote(delta: float) -> void:
 	if is_on_wall():
 		_wall_coyote_timer = wall_coyote_time
-		var wall_x := get_wall_normal().x
+		var wall_x: float = get_wall_normal().x
 		_wall_coyote_dir = signf(wall_x) if absf(wall_x) > 0.0 else -last_dir
 	else:
 		_wall_coyote_timer = maxf(_wall_coyote_timer - delta, 0.0)
@@ -497,10 +496,10 @@ func can_wall_jump() -> bool:
 
 
 func wall_jump() -> void:
-	var dir := _wall_coyote_dir
+	var dir: float = _wall_coyote_dir
 	if dir == 0.0:
 		dir = -last_dir
-	var input_dir := get_move_direction()
+	var input_dir: float = get_move_direction()
 	if input_dir != 0.0:
 		dir = -signf(input_dir)
 	velocity.x = -dir * wall_jump_velocity.x
@@ -519,7 +518,7 @@ func jump() -> void:
 
 
 func apply_horizontal_movement(delta: float, max_speed: float, acceleration: float, friction: float) -> float:
-	var direction := get_move_direction()
+	var direction: float = get_move_direction()
 	var slow: float = get_status_speed_multiplier()
 	max_speed *= slow
 	acceleration *= slow
@@ -543,7 +542,7 @@ func apply_gravity(delta: float, multiplier: float = 1.0) -> void:
 
 
 func apply_better_jump_gravity(delta: float) -> void:
-	var multiplier := 1.0
+	var multiplier: float = 1.0
 	if velocity.y > 0.0:
 		multiplier = fall_gravity_multiplier
 	elif velocity.y < 0.0 and not is_jump_held():
@@ -555,32 +554,33 @@ func maintain_hover_height(delta: float) -> void:
 	if not update_grounded():
 		return
 
-	var floor_y := global_position.y + hover_dist
+	var floor_y: float = global_position.y + hover_dist
 	if _is_floor_ray(_ray_l):
 		floor_y = minf(floor_y, _ray_l.get_collision_point().y)
 	if _is_floor_ray(_ray_r):
 		floor_y = minf(floor_y, _ray_r.get_collision_point().y)
 
-	var target_y := floor_y - hover_dist
+	var target_y: float = floor_y - hover_dist
 	global_position.y = lerpf(global_position.y, target_y, clampf(delta * hover_snap_speed, 0.0, 1.0))
 	if velocity.y > 0.0:
 		velocity.y = 0.0
 
 
+# Feet use procedural stepping that remains independent from collision movement.
 func update_visual_movement(delta: float) -> void:
-	var speed_ratio := clampf(absf(velocity.x) / maxf(speed, 1.0), 0.0, 1.0)
+	var speed_ratio: float = clampf(absf(velocity.x) / maxf(speed, 1.0), 0.0, 1.0)
 	var grounded: bool = update_grounded()
 	_update_surface_feedback(delta, grounded, speed_ratio)
 	if grounded:
-		var look := velocity.x * look_ahead
-		var floor_y := global_position.y + hover_dist
+		var look: float = velocity.x * look_ahead
+		var floor_y: float = global_position.y + hover_dist
 		if _is_floor_ray(_ray_l):
 			floor_y = minf(floor_y, _ray_l.get_collision_point().y)
 		if _is_floor_ray(_ray_r):
 			floor_y = minf(floor_y, _ray_r.get_collision_point().y)
 
-		var ideal_l := Vector2(global_position.x - foot_spread + look, floor_y)
-		var ideal_r := Vector2(global_position.x + foot_spread + look, floor_y)
+		var ideal_l: Vector2 = Vector2(global_position.x - foot_spread + look, floor_y)
+		var ideal_r: Vector2 = Vector2(global_position.x + foot_spread + look, floor_y)
 		var floor_l: bool = _is_floor_ray(_ray_l)
 		var floor_r: bool = _is_floor_ray(_ray_r)
 		if floor_l != floor_r:
@@ -611,12 +611,12 @@ func update_visual_movement(delta: float) -> void:
 		if changed_direction:
 			_set_feet(ideal_l, ideal_r)
 		elif _step_t_l >= 1.0 and _step_t_r >= 1.0:
-			var dl := foot_pos_l.distance_to(ideal_l)
-			var dr := foot_pos_r.distance_to(ideal_r)
-			var l_ready := (_step_clock - _last_step_time_l) >= stride_min_interval
-			var r_ready := (_step_clock - _last_step_time_r) >= stride_min_interval
+			var dl: float = foot_pos_l.distance_to(ideal_l)
+			var dr: float = foot_pos_r.distance_to(ideal_r)
+			var l_ready: bool = (_step_clock - _last_step_time_l) >= stride_min_interval
+			var r_ready: bool = (_step_clock - _last_step_time_r) >= stride_min_interval
 
-			var prefer_left := _last_stepped == 1
+			var prefer_left: bool = _last_stepped == 1
 			if prefer_left:
 				if dl > step_trigger and l_ready:
 					_begin_step(true, ideal_l)
@@ -637,7 +637,7 @@ func update_visual_movement(delta: float) -> void:
 		_last_visual_move_dir = 0.0
 		_step_t_l = 1.0
 		_step_t_r = 1.0
-		var hip := global_position + Vector2(0.0, hip_y_offset).rotated(rotation)
+		var hip: Vector2 = global_position + Vector2(0.0, hip_y_offset).rotated(rotation)
 		var tuck_y: float = hover_dist * GameSettings.PLAYER_AIR_FOOT_HOVER_MULTIPLIER - air_foot_tuck_y
 		foot_pos_l = foot_pos_l.lerp(
 			hip + Vector2(-air_foot_tuck_x, tuck_y),
@@ -649,7 +649,7 @@ func update_visual_movement(delta: float) -> void:
 		)
 		bounce_t = lerp(bounce_t, 0.0, delta * GameSettings.PLAYER_BOUNCE_SPEED)
 
-	var visual_direction := get_move_direction()
+	var visual_direction: float = get_move_direction()
 	if control_mode == GameSettings.CONTROL_REMOTE:
 		visual_direction = clampf(velocity.x / maxf(speed, 1.0), -1.0, 1.0)
 	rotation = lerp_angle(
@@ -730,6 +730,7 @@ func _update_movement_timers(delta: float) -> void:
 		_coyote_timer = maxf(_coyote_timer - delta, 0.0)
 
 
+# Blocking has a short active window followed by a shared cooldown.
 func _update_block_input() -> void:
 	if _block_active:
 		_refresh_block_direction()
@@ -793,7 +794,7 @@ func _initialize_feet() -> void:
 
 
 func _update_ground_rays() -> void:
-	var target_len := maxf(hover_dist, GameSettings.PLAYER_FLOOR_RAY_MIN_LENGTH)
+	var target_len: float = maxf(hover_dist, GameSettings.PLAYER_FLOOR_RAY_MIN_LENGTH)
 	_ray_l.target_position.y = target_len
 	_ray_r.target_position.y = target_len
 
@@ -825,11 +826,12 @@ func _set_feet(left: Vector2, right: Vector2) -> void:
 
 
 func _arc(a: Vector2, b: Vector2, t: float, h: float) -> Vector2:
-	var p := a.lerp(b, t)
+	var p: Vector2 = a.lerp(b, t)
 	p.y -= sin(t * PI) * h
 	return p
 
 
+# Prefer dedicated color textures and tint the default body only as a fallback.
 func _apply_player_palette() -> void:
 	var effective_color_id: StringName = _get_effective_color_id()
 	var limb_color: Color = GameSettings.player_color_value(effective_color_id)
@@ -845,10 +847,10 @@ func _apply_player_palette() -> void:
 func _update_body_sprite_direction() -> void:
 	if _body_sprite == null:
 		return
-	var facing_dir := signf(last_dir)
+	var facing_dir: float = signf(last_dir)
 	if facing_dir == 0.0:
 		facing_dir = 1.0
-	var facing_left := facing_dir < 0.0
+	var facing_left: bool = facing_dir < 0.0
 	var effective_color_id: StringName = _get_effective_color_id()
 	var next_texture: Texture2D = _get_body_texture(effective_color_id, facing_left)
 	if _body_sprite.texture != next_texture:
@@ -883,7 +885,7 @@ func _has_body_texture(color_id: StringName, facing_left: bool) -> bool:
 
 func _get_body_texture_path(color_id: StringName, facing_left: bool) -> String:
 	var mirrored_suffix: String = "_mirrored" if facing_left else ""
-	return "res://assets/Player/%s_ball%s.png" % [str(color_id), mirrored_suffix]
+	return "res://assets/player/%s_ball%s.png" % [str(color_id), mirrored_suffix]
 
 
 func _get_body_sprite_base_modulate(color_id: StringName, facing_left: bool) -> Color:
@@ -912,6 +914,7 @@ func _emit_jump_feedback(direction: Vector2) -> void:
 	GameJuice.play_sound_2d(&"jump", global_position, 4.5, 0.07)
 
 
+# Movement state feeds dust, sounds, squash and landing impact from one place.
 func _update_surface_feedback(delta: float, grounded: bool, speed_ratio: float) -> void:
 	if grounded and not _last_feedback_grounded:
 		var land_speed: float = maxf(_last_feedback_velocity_y, 0.0)
@@ -1001,6 +1004,7 @@ func _on_health_changed(old_health: int, new_health: int) -> void:
 	apply_hit_feedback(fallback_source, old_health - new_health)
 
 
+# Phoenix consumes its once-per-set revive before normal elimination continues.
 func _on_health_depleted() -> void:
 	if _is_eliminated:
 		return
@@ -1022,6 +1026,7 @@ func _on_health_depleted() -> void:
 	set_eliminated(true)
 
 
+# Passive healing accumulates fractional health only while the player stands still.
 func _update_research_healing(delta: float) -> void:
 	if NetworkSession.is_steam_match_active() and NetworkSession.mode != GameSettings.NETWORK_MODE_HOST:
 		return

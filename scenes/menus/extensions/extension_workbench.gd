@@ -1,7 +1,7 @@
 class_name ExtensionWorkbench
 extends Control
 
-const CARD_SCENE: PackedScene = preload("res://scenes/menus/extensions/ExtensionInventoryCard.tscn")
+const CARD_SCENE: PackedScene = preload("res://scenes/menus/extensions/extension_inventory_card.tscn")
 
 @onready var _inventory_row: HBoxContainer = %InventoryRow
 @onready var _weapon_preview: WeaponPreview2D = %WeaponPreview

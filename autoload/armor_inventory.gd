@@ -27,7 +27,7 @@ func reload_definitions() -> void:
 	definitions.clear()
 	_definitions_by_id.clear()
 	_load_items_from_dir(ARMOR_ITEMS_DIR)
-	if not GameSettings.DEBUG_UNLOCK_ALL_ITEMS:
+	if not GameSettings.START_WITH_ALL_ARMOR_ITEMS:
 		inventory.clear()
 	inventory_changed.emit()
 
@@ -181,6 +181,7 @@ func _load_items_from_dir(path: String) -> void:
 	if dir == null:
 		return
 
+	# Armor definitions are discovered recursively so content can be organized in subfolders.
 	dir.list_dir_begin()
 	var file_name: String = dir.get_next()
 	while not file_name.is_empty():

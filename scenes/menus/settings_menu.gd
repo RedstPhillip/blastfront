@@ -1,6 +1,16 @@
 extends Control
+class_name SettingsMenu
 
 signal back_pressed
+
+const RESOLUTIONS: Array[Vector2i] = [
+	Vector2i(1280, 720),
+	Vector2i(1600, 900),
+	Vector2i(1920, 1080),
+	Vector2i(2560, 1440),
+]
+const FPS_LIMITS: Array[int] = [0, 30, 60, 120, 144]
+const PARTICLE_MODIFIERS: Array[float] = [0.0, 0.33, 0.66, 1.0]
 
 @onready var _volume_slider: HSlider = %VolumeSlider
 @onready var _sfx_slider: HSlider = %SfxSlider
@@ -13,46 +23,37 @@ signal back_pressed
 @onready var _fps_button: OptionButton = %FpsButton
 @onready var _back_button: Button = %BackButton
 
-const RESOLUTIONS: Array[Vector2i] = [
-	Vector2i(1280, 720),
-	Vector2i(1600, 900),
-	Vector2i(1920, 1080),
-	Vector2i(2560, 1440)
-]
-
-const FPS_LIMITS: Array[int] = [0, 30, 60, 120, 144]
-
-const PARTICLE_MODIFIERS: Array[float] = [0.0, 0.33, 0.66, 1.0]
-
 
 func _ready() -> void:
-	# 1. Volumes Setup
-	_init_volume_slider("Master", _volume_slider)
-	_init_volume_slider("SFX", _sfx_slider)
-	_init_volume_slider("UI", _ui_slider)
-
-	# 2. Screen Shake Multiplier
+	_init_volume_slider(&"Master", _volume_slider)
+	_init_volume_slider(&"SFX", _sfx_slider)
+	_init_volume_slider(&"UI", _ui_slider)
 	_shake_slider.value = GameJuice.shake_multiplier
+	_setup_particle_options()
+	_setup_window_mode_options()
+	_setup_resolution_options()
+	_setup_fps_options()
+	_connect_controls()
+	GameJuice.attach_button_feedback(self)
 
-	# 3. Particle Details Button Setup
+
+func _setup_particle_options() -> void:
 	_particles_button.clear()
-	_particles_button.add_item("Aus", 0)
-	_particles_button.add_item("Niedrig", 1)
-	_particles_button.add_item("Mittel", 2)
-	_particles_button.add_item("Hoch", 3)
+	_particles_button.add_item("Off", 0)
+	_particles_button.add_item("Low", 1)
+	_particles_button.add_item("Medium", 2)
+	_particles_button.add_item("High", 3)
 
 	var current_particles: float = GameJuice.particles_multiplier
-	var part_idx: int = PARTICLE_MODIFIERS.find(current_particles)
-	if part_idx != -1:
-		_particles_button.select(part_idx)
-	else:
-		_particles_button.select(3)
+	var particle_index: int = PARTICLE_MODIFIERS.find(current_particles)
+	_particles_button.select(particle_index if particle_index >= 0 else PARTICLE_MODIFIERS.size() - 1)
 
-	# 4. Window Mode OptionButton Setup
+
+func _setup_window_mode_options() -> void:
 	_window_mode_button.clear()
-	_window_mode_button.add_item("Fenster", 0)
-	_window_mode_button.add_item("Vollbild", 1)
-	_window_mode_button.add_item("Randloses Vollbild", 2)
+	_window_mode_button.add_item("Windowed", 0)
+	_window_mode_button.add_item("Fullscreen", 1)
+	_window_mode_button.add_item("Exclusive Fullscreen", 2)
 
 	var current_mode: int = DisplayServer.window_get_mode()
 	match current_mode:
@@ -65,45 +66,44 @@ func _ready() -> void:
 		_:
 			_window_mode_button.select(0)
 
-	# 5. Resolution OptionButton Setup
+
+func _setup_resolution_options() -> void:
 	_resolution_button.clear()
 	var current_size: Vector2i = DisplayServer.window_get_size()
-	var found_resolution_idx: int = -1
-	for idx in range(RESOLUTIONS.size()):
-		var res: Vector2i = RESOLUTIONS[idx]
-		_resolution_button.add_item("%dx%d" % [res.x, res.y], idx)
-		if res.x == current_size.x and res.y == current_size.y:
-			found_resolution_idx = idx
+	var selected_index: int = -1
+	for index in range(RESOLUTIONS.size()):
+		var resolution: Vector2i = RESOLUTIONS[index]
+		_resolution_button.add_item("%dx%d" % [resolution.x, resolution.y], index)
+		if resolution == current_size:
+			selected_index = index
 
-	if found_resolution_idx != -1:
-		_resolution_button.select(found_resolution_idx)
+	if selected_index >= 0:
+		_resolution_button.select(selected_index)
 	else:
 		_resolution_button.add_item("%dx%d (Custom)" % [current_size.x, current_size.y], RESOLUTIONS.size())
 		_resolution_button.select(RESOLUTIONS.size())
 
-	# 6. VSync
 	var vsync_mode: int = DisplayServer.window_get_vsync_mode()
-	_vsync_checkbox.button_pressed = (vsync_mode != DisplayServer.VSYNC_DISABLED)
+	_vsync_checkbox.button_pressed = vsync_mode != DisplayServer.VSYNC_DISABLED
 
-	# 7. FPS Limit
+
+func _setup_fps_options() -> void:
 	_fps_button.clear()
-	_fps_button.add_item("Unbegrenzt", 0)
+	_fps_button.add_item("Unlimited", 0)
 	_fps_button.add_item("30 FPS", 1)
 	_fps_button.add_item("60 FPS", 2)
 	_fps_button.add_item("120 FPS", 3)
 	_fps_button.add_item("144 FPS", 4)
 
 	var current_fps_limit: int = Engine.max_fps
-	var fps_idx: int = FPS_LIMITS.find(current_fps_limit)
-	if fps_idx != -1:
-		_fps_button.select(fps_idx)
-	else:
-		_fps_button.select(0)
+	var fps_index: int = FPS_LIMITS.find(current_fps_limit)
+	_fps_button.select(maxi(fps_index, 0))
 
-	# Connect signals
-	_volume_slider.value_changed.connect(_on_volume_changed.bind("Master"))
-	_sfx_slider.value_changed.connect(_on_volume_changed.bind("SFX"))
-	_ui_slider.value_changed.connect(_on_volume_changed.bind("UI"))
+
+func _connect_controls() -> void:
+	_volume_slider.value_changed.connect(_on_volume_changed.bind(&"Master"))
+	_sfx_slider.value_changed.connect(_on_volume_changed.bind(&"SFX"))
+	_ui_slider.value_changed.connect(_on_volume_changed.bind(&"UI"))
 	_shake_slider.value_changed.connect(_on_shake_changed)
 	_particles_button.item_selected.connect(_on_particles_selected)
 	_window_mode_button.item_selected.connect(_on_window_mode_selected)
@@ -111,8 +111,6 @@ func _ready() -> void:
 	_vsync_checkbox.toggled.connect(_on_vsync_toggled)
 	_fps_button.item_selected.connect(_on_fps_selected)
 	_back_button.pressed.connect(_on_back_pressed)
-
-	GameJuice.attach_button_feedback(self)
 
 
 func _init_volume_slider(bus_name: StringName, slider: HSlider) -> void:
@@ -151,9 +149,9 @@ func _on_window_mode_selected(index: int) -> void:
 
 func _on_resolution_selected(index: int) -> void:
 	if index >= 0 and index < RESOLUTIONS.size():
-		var res: Vector2i = RESOLUTIONS[index]
-		DisplayServer.window_set_size(res)
-		
+		var resolution: Vector2i = RESOLUTIONS[index]
+		DisplayServer.window_set_size(resolution)
+
 		var screen: int = DisplayServer.window_get_current_screen()
 		var screen_size: Vector2i = DisplayServer.screen_get_size(screen)
 		var window_size: Vector2i = DisplayServer.window_get_size()

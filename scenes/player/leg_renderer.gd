@@ -17,14 +17,17 @@ var _last_knee_source_dir: float = 0.0
 var _rendered_foot_l: Vector2 = Vector2.ZERO
 var _rendered_foot_r: Vector2 = Vector2.ZERO
 
+
 func _ready() -> void:
 	_p = get_parent() as Player
-	var mat := CanvasItemMaterial.new()
+	var mat: CanvasItemMaterial = CanvasItemMaterial.new()
 	mat.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
 	material = mat
 
+
 func _process(_delta: float) -> void:
 	queue_redraw()
+
 
 func _draw() -> void:
 	if _p == null:
@@ -99,10 +102,12 @@ func get_rendered_leg_points() -> Dictionary:
 		"foot_r": foot_r,
 	}
 
+
 func _clamp_to_reach(hip: Vector2, foot: Vector2, max_dist: float) -> Vector2:
-	var v := foot - hip
-	var d := v.length()
+	var v: Vector2 = foot - hip
+	var d: float = v.length()
 	return hip + v / d * max_dist if d > max_dist and d > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED else foot
+
 
 func _get_wall_dir() -> float:
 	if not _p.is_on_wall() or _p.update_grounded() or _p.velocity.y < wall_min_y_velocity:
@@ -110,24 +115,27 @@ func _get_wall_dir() -> float:
 	var wall_normal_x: float = _p.get_wall_normal().x
 	return -signf(wall_normal_x) if absf(wall_normal_x) > 0.0 else 0.0
 
+
 func _draw_leg(hip: Vector2, foot: Vector2, side: float) -> void:
 	_draw_bezier(hip, _two_bone_ik(hip, foot, upper_len, lower_len, side), foot)
 
+
 func _draw_bezier(p0: Vector2, p1: Vector2, p2: Vector2) -> void:
-	var pts := PackedVector2Array()
+	var pts: PackedVector2Array = PackedVector2Array()
 	for i in range(bezier_pts + 1):
-		var t := float(i) / bezier_pts
-		var mt := 1.0 - t
+		var t: float = float(i) / bezier_pts
+		var mt: float = 1.0 - t
 		pts.append(mt * mt * p0 + 2.0 * mt * t * p1 + t * t * p2)
 	draw_polyline(pts, col_leg, line_w, true)
 
+
 func _two_bone_ik(hip: Vector2, foot: Vector2, l1: float, l2: float, side: float) -> Vector2:
-	var d := clampf(
+	var d: float = clampf(
 		hip.distance_to(foot),
 		absf(l1 - l2) + GameSettings.IK_MIN_EXTENSION,
 		l1 + l2 - GameSettings.IK_MIN_EXTENSION
 	)
-	var a := (l1 * l1 - l2 * l2 + d * d) / (2.0 * d)
-	var h := sqrt(maxf(l1 * l1 - a * a, 0.0))
-	var dir := (foot - hip).normalized()
+	var a: float = (l1 * l1 - l2 * l2 + d * d) / (2.0 * d)
+	var h: float = sqrt(maxf(l1 * l1 - a * a, 0.0))
+	var dir: Vector2 = (foot - hip).normalized()
 	return hip + dir * a + Vector2(-dir.y, dir.x) * h * side

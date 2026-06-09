@@ -124,10 +124,3 @@ func _get_player(slot: int) -> Player:
 	if game == null or not game.has_method("get_player_by_slot"):
 		return null
 	return game.get_player_by_slot(slot)
-
-
-func _get_payload(packet: Dictionary) -> Dictionary:
-	var payload: Variant = packet.get("payload", {})
-	if payload is Dictionary:
-		return payload
-	return {}

@@ -40,6 +40,7 @@ func _ready() -> void:
 		NetworkSession.lobby_ready.connect(_on_lobby_ready)
 
 
+# Only the host advances authoritative phase timers and set statistics.
 func _process(delta: float) -> void:
 	if not _has_authority():
 		return
@@ -63,6 +64,7 @@ func _process(delta: float) -> void:
 		_record_survival_time(delta)
 
 
+# Entering the locker starts a fresh session and resets synchronized progression state.
 func enter_locker(reset_scores: bool = true) -> void:
 	if reset_scores:
 		_reset_match_scores()
@@ -109,6 +111,7 @@ func start_next_set() -> void:
 	_set_phase(GameSettings.MATCH_PHASE_PLAYING_SET, true)
 
 
+# A kill may advance the set, finish the match, or resume play after a banner.
 func record_kill(winner_slot: int) -> void:
 	if not _has_authority():
 		return
@@ -243,6 +246,7 @@ func set_local_extension_loadout(loadout: Dictionary) -> void:
 	set_extension_loadout(NetworkSession.local_player_slot, loadout)
 
 
+# Clients preview their loadout locally, then ask the host to validate and publish it.
 func set_extension_loadout(slot: int, loadout: Dictionary) -> void:
 	if not _is_player_slot(slot):
 		return
@@ -410,6 +414,7 @@ func is_playing_set() -> bool:
 	return phase == GameSettings.MATCH_PHASE_PLAYING_SET
 
 
+# This complete host snapshot is the source of truth for synchronized match state.
 func build_state() -> Dictionary:
 	return {
 		"phase": str(phase),
@@ -468,6 +473,7 @@ func _record_survival_time(delta: float) -> void:
 		_current_set_stats[slot] = stats
 
 
+# Set rewards combine performance categories, apply the cap, then research multipliers.
 func _award_set_coins() -> void:
 	last_set_earnings = {}
 	for slot in GameSettings.player_slots():
@@ -574,6 +580,7 @@ func _apply_player_color(slot: int, color_id: StringName) -> void:
 	state_changed.emit()
 
 
+# Replace synchronized containers in place so existing UI references remain valid.
 func _apply_state(state: Dictionary) -> void:
 	_apply_dictionary(state.get("player_colors", {}), player_colors, true)
 	_apply_extension_loadouts(state.get("extension_loadouts", {}))
@@ -721,6 +728,7 @@ func _make_packet(packet_type: StringName, payload: Dictionary) -> Dictionary:
 	}
 
 
+# The host validates requests; clients consume only authoritative state snapshots.
 func _on_packet_received(packet: Dictionary, _sender_id: int) -> void:
 	var packet_type: StringName = StringName(str(packet.get("type", "")))
 	var payload: Dictionary = _get_payload(packet)

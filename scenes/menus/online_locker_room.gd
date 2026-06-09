@@ -54,6 +54,7 @@ func _exit_tree() -> void:
 		NetworkSession.packet_received.disconnect(_on_packet_received)
 
 
+# Locker pose data is synchronized separately from gameplay snapshots.
 func _physics_process(delta: float) -> void:
 	if not NetworkSession.is_steam_match_active() or NetworkSession.remote_steam_id == 0:
 		return
@@ -66,6 +67,7 @@ func _physics_process(delta: float) -> void:
 	_send_locker_snapshot()
 
 
+# Both peers share one scene; Steam slots assign the local and remote roles.
 func _configure_players() -> void:
 	_player_one.player_slot = GameSettings.PLAYER_ONE_SLOT
 	_player_two.player_slot = GameSettings.PLAYER_TWO_SLOT
@@ -147,6 +149,7 @@ func spawn_projectile(projectile: Node2D, spawn_position: Vector2) -> void:
 	projectile.global_position = spawn_position
 
 
+# Locker projectiles affect color and ready targets, never player health.
 func request_shot(owner: Node, spawn_position: Vector2, direction: Vector2, projectile_data: Dictionary) -> void:
 	if _help_popup.visible:
 		return
@@ -180,6 +183,7 @@ func _is_pointer_over_invite_button() -> bool:
 	return _invite_button.get_global_rect().has_point(mouse_position)
 
 
+# Target metadata turns hits into color selection or ready-state changes.
 func _on_locker_projectile_despawn_requested(_projectile: Node, reason: StringName, collider) -> void:
 	if reason != &"collision":
 		return
@@ -203,6 +207,7 @@ func _on_locker_projectile_despawn_requested(_projectile: Node, reason: StringNa
 		OnlineMatch.set_local_locker_ready(not is_ready)
 
 
+# Send transient pose only; OnlineMatch synchronizes color and readiness.
 func _send_locker_snapshot() -> void:
 	if _local_player == null:
 		return

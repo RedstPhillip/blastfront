@@ -1,7 +1,7 @@
 class_name ArcadePlayerPanel
 extends Control
 
-const AMMO_BULLET_ICON_SCENE: PackedScene = preload("res://scenes/ui/AmmoBulletIcon.tscn")
+const AMMO_BULLET_ICON_SCENE: PackedScene = preload("res://scenes/ui/ammo_bullet_icon.tscn")
 
 @export var player_slot: int = GameSettings.PLAYER_ONE_SLOT
 @export var right_aligned: bool = false

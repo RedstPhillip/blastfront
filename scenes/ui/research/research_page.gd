@@ -1,7 +1,7 @@
 extends Control
 class_name ResearchPage
 
-const RESEARCH_NODE_SCENE: PackedScene = preload("res://scenes/ui/research/ResearchNode.tscn")
+const RESEARCH_NODE_SCENE: PackedScene = preload("res://scenes/ui/research/research_node.tscn")
 
 var _nodes_by_id: Dictionary = {}
 

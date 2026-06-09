@@ -1,7 +1,7 @@
 extends Control
 
-const SETTINGS_MENU_SCENE: PackedScene = preload("res://scenes/menus/SettingsMenu.tscn")
-const LOADOUT_PAGE_SCENE: PackedScene = preload("res://scenes/ui/loadout/LoadoutPage.tscn")
+const SETTINGS_MENU_SCENE: PackedScene = preload("res://scenes/menus/settings_menu.tscn")
+const LOADOUT_PAGE_SCENE: PackedScene = preload("res://scenes/ui/loadout/loadout_page.tscn")
 
 @onready var _menu_container: Control = %MenuRoot
 @onready var _resume_button: Button = %ResumeButton
@@ -11,8 +11,8 @@ const LOADOUT_PAGE_SCENE: PackedScene = preload("res://scenes/ui/loadout/Loadout
 @onready var _exit_button: Button = %ExitButton
 
 var _is_paused: bool = false
-var _settings_instance: Node = null
-var _loadout_instance: Node = null
+var _settings_instance: SettingsMenu = null
+var _loadout_instance: LoadoutPage = null
 
 
 func _ready() -> void:
@@ -26,7 +26,7 @@ func _ready() -> void:
 	_exit_button.pressed.connect(_on_exit_pressed)
 
 	GameJuice.attach_button_feedback(self)
-	_refresh_debug_ui()
+	_refresh_training_ui()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -45,14 +45,12 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func pause_game() -> void:
 	_is_paused = true
-	_refresh_debug_ui()
+	_refresh_training_ui()
 	show()
 
-	# Pause the physics and processes if offline
 	if not NetworkSession.is_steam_match_active():
 		get_tree().paused = true
 	else:
-		# Disable local player inputs so they don't move/shoot when menu is open
 		_set_local_controls_enabled(false)
 
 
@@ -63,20 +61,20 @@ func resume_game() -> void:
 	_close_loadout()
 	_close_settings()
 
-	# Unpause the physics/process if offline
 	if not NetworkSession.is_steam_match_active():
 		get_tree().paused = false
 	else:
-		# Re-enable local player inputs
 		_set_local_controls_enabled(true)
 
 
 func _on_settings_pressed() -> void:
 	_menu_container.hide()
-	var inst: Node = SETTINGS_MENU_SCENE.instantiate()
-	_settings_instance = inst
-	add_child(inst)
-	inst.connect("back_pressed", Callable(self, "_on_settings_back"))
+	_settings_instance = SETTINGS_MENU_SCENE.instantiate() as SettingsMenu
+	if _settings_instance == null:
+		_menu_container.show()
+		return
+	add_child(_settings_instance)
+	_settings_instance.back_pressed.connect(_on_settings_back)
 
 
 func _on_settings_back() -> void:
@@ -90,10 +88,12 @@ func _on_loadout_pressed() -> void:
 	if _loadout_instance != null and is_instance_valid(_loadout_instance):
 		return
 	_menu_container.hide()
-	var inst: Node = LOADOUT_PAGE_SCENE.instantiate()
-	inst.process_mode = Node.PROCESS_MODE_WHEN_PAUSED
-	_loadout_instance = inst
-	add_child(inst)
+	_loadout_instance = LOADOUT_PAGE_SCENE.instantiate() as LoadoutPage
+	if _loadout_instance == null:
+		_menu_container.show()
+		return
+	_loadout_instance.process_mode = Node.PROCESS_MODE_WHEN_PAUSED
+	add_child(_loadout_instance)
 
 
 func _close_loadout() -> void:
@@ -110,13 +110,9 @@ func _close_settings() -> void:
 
 
 func _on_main_menu_pressed() -> void:
-	# Make sure the tree is not paused when moving back to main menu
 	get_tree().paused = false
-
-	# Clean up network session
 	NetworkSession.leave_round()
 
-	# Transition back
 	var main_node: Node = get_node_or_null("/root/Main")
 	if main_node != null and main_node.has_method("show_menu"):
 		main_node.call("show_menu")
@@ -129,9 +125,9 @@ func _on_exit_pressed() -> void:
 	get_tree().quit()
 
 
-func _refresh_debug_ui() -> void:
-	var is_debug: bool = NetworkSession.is_debug()
-	_loadout_button.visible = is_debug
+func _refresh_training_ui() -> void:
+	var is_training: bool = NetworkSession.is_training()
+	_loadout_button.visible = is_training
 
 
 func _set_local_controls_enabled(enabled: bool) -> void:

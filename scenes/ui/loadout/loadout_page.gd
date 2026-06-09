@@ -1,9 +1,9 @@
 extends Control
 class_name LoadoutPage
 
-const ARMOR_ITEM_CARD_SCENE: PackedScene = preload("res://scenes/ui/loadout/ArmorItemCard.tscn")
-const WEAPON_EXTENSION_ITEM_CARD_SCENE: PackedScene = preload("res://scenes/ui/loadout/WeaponExtensionItemCard.tscn")
-const STAT_COMPARISON_ROW_SCENE: PackedScene = preload("res://scenes/ui/loadout/StatComparisonRow.tscn")
+const ARMOR_ITEM_CARD_SCENE: PackedScene = preload("res://scenes/ui/loadout/armor_item_card.tscn")
+const WEAPON_EXTENSION_ITEM_CARD_SCENE: PackedScene = preload("res://scenes/ui/loadout/weapon_extension_item_card.tscn")
+const STAT_COMPARISON_ROW_SCENE: PackedScene = preload("res://scenes/ui/loadout/stat_comparison_row.tscn")
 const BASE_RELOAD_TIME: float = 1.2
 const BASE_AMMO: float = 3.0
 const MAX_VISIBLE_STATS: int = 4
@@ -70,6 +70,7 @@ var _saved_reward_spacer: Control = null
 @onready var _recycler_drop_target: Control = %RecyclerDropTarget
 
 
+# This controller joins owned items, equipped loadout and current round rewards.
 func _ready() -> void:
 	_weapon_slots = {
 		WeaponExtensionDefinition.SLOT_FRONT: _weapon_slot_one,
@@ -179,6 +180,7 @@ func _setup_reward_slots() -> void:
 	_armor_inventory_panel.reward_dropped.connect(_on_reward_dropped_to_inventory)
 
 
+# Each data source refreshes only the UI region it owns.
 func _connect_inventory_signals() -> void:
 	if not ArmorInventory.inventory_changed.is_connected(_refresh_armor_inventory):
 		ArmorInventory.inventory_changed.connect(_refresh_armor_inventory)
@@ -207,7 +209,6 @@ func _refresh_weapon_inventory() -> void:
 	var items: Array[WeaponExtensionItem] = ExtensionInventory.get_inventory_for_local()
 	_weapon_inventory_empty_label.visible = items.is_empty()
 	if items.is_empty():
-		_weapon_inventory_empty_label.visible = false
 		_add_empty_weapon_inventory_slots()
 		return
 
@@ -248,7 +249,7 @@ func _refresh_armor_inventory() -> void:
 
 	_armor_inventory_empty_label.visible = ArmorInventory.inventory.is_empty()
 	if ArmorInventory.inventory.is_empty():
-		_armor_inventory_empty_label.text = "Lege ArmorItemData-Ressourcen in data/armor/items ab, um Armor hier anzuzeigen."
+		_armor_inventory_empty_label.text = "Add armor resources to data/armor/items to display them here."
 		return
 
 	for item in ArmorInventory.inventory:
@@ -278,6 +279,7 @@ func _refresh_round_rewards() -> void:
 	_refresh_shop_state()
 
 
+# Research controls saved blueprint capacity and recycler visibility.
 func _refresh_research_unlocks() -> void:
 	var saved_count: int = ResearchManager.get_blueprint_slot_count()
 	for saved_index in range(_saved_reward_slots.size()):
@@ -308,6 +310,7 @@ func _refresh_shop_state() -> void:
 		saved_slot.refresh_affordability()
 
 
+# The details panel also summarizes the currently equipped stats.
 func _show_default_description() -> void:
 	_inspecting_item = false
 	_description_title.text = "Loadout"
@@ -383,6 +386,7 @@ func _get_current_weapon_modifiers() -> Dictionary:
 
 func _build_weapon_preview_modifiers(item: WeaponExtensionItem, current: Dictionary) -> Dictionary:
 	var preview: Dictionary = current.duplicate()
+	# Preview the replacement result by removing the equipped item before applying the candidate.
 	var equipped_item: WeaponExtensionItem = ExtensionInventory.get_equipped_item_for_local(item.get_slot())
 	if equipped_item != null:
 		var equipped_stats: Dictionary = equipped_item.build_effective_stats()
@@ -412,6 +416,7 @@ func _apply_numeric_modifiers(target: Dictionary, incoming_variant: Variant, fac
 			target[key] = float(target.get(key, 0.0)) + float(value) * factor
 
 
+# Order comparisons by player-facing importance and limit them for readability.
 func _show_weapon_stat_changes(current: Dictionary, preview: Dictionary) -> void:
 	var keys: Array[StringName] = _ordered_changed_keys(current, preview, WEAPON_STAT_PRIORITY)
 	_changes_title.text = "ITEM CHANGES"
@@ -696,6 +701,7 @@ func _on_weapon_extension_selected(item: WeaponExtensionItem) -> void:
 	_show_weapon_extension_description(item)
 
 
+# Validate compatibility and coin cost before showing the merge confirmation.
 func _on_weapon_extension_merge_requested(source_item: WeaponExtensionItem, target_item: WeaponExtensionItem) -> void:
 	if not ExtensionInventory.can_merge_items(source_item, target_item):
 		_show_merge_error("Invalid merge", "Only two copies of the same extension and same MK can be merged.")
@@ -778,6 +784,7 @@ func _on_extension_loadout_changed(player_slot: int) -> void:
 		_refresh_weapon_slots()
 
 
+# Shop claims report affordability and capacity errors through the details panel.
 func _on_round_reward_claimed(source_kind: StringName, source_index: int) -> void:
 	var price: int = RoundRewardInventory.get_reward_price(source_kind, source_index)
 	if not RoundRewardInventory.can_afford_reward(source_kind, source_index):

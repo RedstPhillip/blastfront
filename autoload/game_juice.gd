@@ -1,7 +1,7 @@
 extends Node
 
-const BURST_EFFECT_SCENE: PackedScene = preload("res://scenes/effects/BurstEffect.tscn")
-const MUZZLE_EFFECT_SCENE: PackedScene = preload("res://scenes/effects/MuzzleEffect.tscn")
+const BURST_EFFECT_SCENE: PackedScene = preload("res://scenes/effects/burst_effect.tscn")
+const MUZZLE_EFFECT_SCENE: PackedScene = preload("res://scenes/effects/muzzle_effect.tscn")
 
 const SOUND_PATHS: Dictionary = {
 	&"shoot": "res://assets/audio/gun_shot.mp3",
@@ -58,6 +58,7 @@ func _initialize_audio_buses() -> void:
 	AudioServer.set_bus_volume_db(ui_index, linear_to_db(0.75))
 
 
+# Camera shake decays centrally so gameplay systems only submit impulses.
 func _process(delta: float) -> void:
 	if _camera == null or not is_instance_valid(_camera):
 		return
@@ -106,6 +107,7 @@ func shake(strength: float, duration: float) -> void:
 	_shake_time = maxf(_shake_time, duration)
 
 
+# Effects live under the active scene while retaining their world coordinates.
 func spawn_burst(kind: StringName, world_position: Vector2, direction: Vector2 = Vector2.UP, tint: Color = Color.WHITE) -> void:
 	var effect: Node2D = BURST_EFFECT_SCENE.instantiate() as Node2D
 	if effect == null:
@@ -161,6 +163,7 @@ func play_sound_2d(sound_id: StringName, world_position: Vector2, volume_db: flo
 	player.play()
 
 
+# Metadata prevents duplicate feedback connections when UI trees are reused.
 func attach_button_feedback(root: Node) -> void:
 	if root == null:
 		return
@@ -268,8 +271,9 @@ func _place_effect(effect: Node2D, root_node: Node, world_position: Vector2) -> 
 		effect.global_position = world_position
 
 
+# Damage labels are lightweight transient Controls animated in canvas coordinates.
 func spawn_damage_number(world_position: Vector2, amount: int, color: Color = Color(1.0, 0.28, 0.22, 1.0)) -> void:
-	var label := Label.new()
+	var label: Label = Label.new()
 	label.text = str(amount)
 	
 	label.horizontal_alignment = HorizontalAlignment.HORIZONTAL_ALIGNMENT_CENTER
@@ -295,10 +299,10 @@ func spawn_damage_number(world_position: Vector2, amount: int, color: Color = Co
 	
 	root.add_child(label)
 	
-	var tween := create_tween()
+	var tween: Tween = create_tween()
 	tween.set_parallel(true)
 	
-	var target_pos := label.position + Vector2(_rng.randf_range(-40.0, 40.0), _rng.randf_range(-60.0, -90.0))
+	var target_pos: Vector2 = label.position + Vector2(_rng.randf_range(-40.0, 40.0), _rng.randf_range(-60.0, -90.0))
 	tween.tween_property(label, "position", target_pos, 0.85).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	
 	label.scale = Vector2(0.5, 0.5)

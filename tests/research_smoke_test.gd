@@ -59,21 +59,21 @@ func _ready() -> void:
 	var lucky_condition: float = ItemCondition.roll_with_luck(lucky_rng, 3)
 	assert(lucky_condition >= base_condition)
 
-	var research_page_scene: PackedScene = load("res://scenes/ui/research/ResearchPage.tscn") as PackedScene
+	var research_page_scene: PackedScene = load("res://scenes/ui/research/research_page.tscn") as PackedScene
 	var research_page: Control = research_page_scene.instantiate() as Control
 	add_child(research_page)
 	await get_tree().process_frame
 	assert(research_page.find_children("*", "ResearchNodeButton", true, false).size() == 18)
 	research_page.queue_free()
 
-	var loadout_page_scene: PackedScene = load("res://scenes/ui/loadout/LoadoutPage.tscn") as PackedScene
+	var loadout_page_scene: PackedScene = load("res://scenes/ui/loadout/loadout_page.tscn") as PackedScene
 	var loadout_page: Control = loadout_page_scene.instantiate() as Control
 	add_child(loadout_page)
 	await get_tree().process_frame
-	var saved_row: GridContainer = loadout_page.find_child("SavedRow", true, false) as GridContainer
+	var offer_grid: GridContainer = loadout_page.find_child("OfferGrid", true, false) as GridContainer
 	var recycler: RecyclerDropTarget = loadout_page.find_child("RecyclerDropTarget", true, false) as RecyclerDropTarget
-	assert(saved_row != null and saved_row.visible)
-	assert(saved_row.columns == 2)
+	assert(offer_grid != null and offer_grid.visible)
+	assert(offer_grid.columns == 2)
 	assert(recycler != null and recycler.visible)
 	for slot_name in ["SavedRewardOne", "SavedRewardTwo", "SavedRewardThree", "SavedRewardFour"]:
 		var saved_slot: Control = loadout_page.find_child(slot_name, true, false) as Control
@@ -83,11 +83,13 @@ func _ready() -> void:
 	ResearchManager._local_marks.erase(str(ResearchManager.RECYCLING))
 	ResearchManager.research_changed.emit()
 	await get_tree().process_frame
-	assert(not saved_row.visible)
+	for slot_name in ["SavedRewardOne", "SavedRewardTwo", "SavedRewardThree", "SavedRewardFour"]:
+		var saved_slot: Control = loadout_page.find_child(slot_name, true, false) as Control
+		assert(saved_slot != null and not saved_slot.visible)
 	assert(not recycler.visible)
 	loadout_page.queue_free()
 
-	var intermission_scene: PackedScene = load("res://scenes/menus/IntermissionMenu.tscn") as PackedScene
+	var intermission_scene: PackedScene = load("res://scenes/menus/intermission_menu.tscn") as PackedScene
 	var intermission: Control = intermission_scene.instantiate() as Control
 	add_child(intermission)
 	await get_tree().process_frame

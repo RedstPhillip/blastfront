@@ -1,7 +1,6 @@
 extends Control
 
-const ROUND_SCORE_DOT_SCENE: PackedScene = preload("res://scenes/ui/RoundScoreDot.tscn")
-const GAME_SCENE: PackedScene = preload("res://scenes/Game.tscn")
+const ROUND_SCORE_DOT_SCENE: PackedScene = preload("res://scenes/ui/round_score_dot.tscn")
 
 @onready var _left_player_panel: ArcadePlayerPanel = %LeftPlayerPanel
 @onready var _right_player_panel: ArcadePlayerPanel = %RightPlayerPanel
@@ -199,13 +198,13 @@ func _on_play_again_pressed() -> void:
 			OnlineMatch.enter_locker(true)
 		return
 
-	if NetworkSession.is_debug():
-		NetworkSession.start_debug()
+	if NetworkSession.is_training():
+		NetworkSession.start_training()
 	else:
 		NetworkSession.start_offline()
 	var main_node: Node = get_node_or_null("/root/Main")
-	if main_node != null and main_node.has_method("change_scene"):
-		main_node.call("change_scene", GAME_SCENE)
+	if main_node != null and main_node.has_method("start_game"):
+		main_node.call("start_game")
 
 
 func _on_main_menu_pressed() -> void:

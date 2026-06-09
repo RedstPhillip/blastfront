@@ -38,7 +38,7 @@ static func all_slots() -> Array[StringName]:
 static func slot_display_name(slot: StringName) -> String:
 	match slot:
 		SLOT_MIDDLE:
-			return "Mitte/Top"
+			return "Middle/Top"
 		SLOT_AMMO:
 			return "Ammo"
 		SLOT_FRONT:
