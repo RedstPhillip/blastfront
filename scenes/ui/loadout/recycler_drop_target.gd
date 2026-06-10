@@ -22,10 +22,16 @@ func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
 	if not visible or not (data is Dictionary):
 		return false
 	var payload: Dictionary = data
-	return payload.get("type", &"") == &"round_reward"
+	if StringName(str(payload.get("type", ""))) != &"round_reward":
+		return false
+	var source_kind: StringName = StringName(str(payload.get("source_kind", "")))
+	var source_index: int = int(payload.get("source_index", -1))
+	return RoundRewardInventory.has_reward(source_kind, source_index)
 
 
 func _drop_data(_at_position: Vector2, data: Variant) -> void:
+	if not _can_drop_data(_at_position, data):
+		return
 	var payload: Dictionary = data
 	var source_kind: StringName = StringName(str(payload.get("source_kind", "")))
 	var source_index: int = int(payload.get("source_index", -1))

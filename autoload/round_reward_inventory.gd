@@ -125,6 +125,10 @@ func recycle_reward(source_kind: StringName, source_index: int) -> int:
 	return refund
 
 
+func has_reward(source_kind: StringName, source_index: int) -> bool:
+	return not _get_reward(source_kind, source_index).is_empty()
+
+
 # Alternate extension and armor pools so both equipment systems stay represented.
 func _generate_offers() -> void:
 	offers.clear()
