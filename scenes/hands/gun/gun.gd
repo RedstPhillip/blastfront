@@ -497,8 +497,26 @@ func _get_extension_effects() -> Dictionary:
 	var effects_variant: Variant = _extension_stats.get("projectile_effects", {})
 	if effects_variant is Dictionary:
 		var effects: Dictionary = effects_variant
-		return effects.duplicate(true)
+		return _get_balanced_extension_effects(effects)
 	return {}
+
+
+func _get_balanced_extension_effects(effects: Dictionary) -> Dictionary:
+	var balanced_effects: Dictionary = effects.duplicate(true)
+	if not _get_source_extensions().has("shotgun_mk1"):
+		return balanced_effects
+
+	var poison_variant: Variant = balanced_effects.get("poison", {})
+	if not (poison_variant is Dictionary):
+		return balanced_effects
+	var poison_data: Dictionary = poison_variant
+	var base_damage_per_tick: int = int(poison_data.get("damage_per_tick", 0))
+	var base_tick_count: int = int(poison_data.get("tick_count", 1))
+	poison_data["damage_per_tick"] = clampi(base_damage_per_tick, 0, 3)
+	poison_data["tick_count"] = mini(base_tick_count, 3)
+	poison_data["duration"] = minf(float(poison_data.get("duration", 3.0)), 3.0)
+	balanced_effects["poison"] = poison_data
+	return balanced_effects
 
 
 func _get_drill_wall_passes() -> int:

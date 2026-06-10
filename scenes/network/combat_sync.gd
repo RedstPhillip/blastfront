@@ -1,5 +1,11 @@
 extends "res://scenes/network/sync_module.gd"
 
+const STATUS_EFFECT_PACKET_COALESCE_MSEC: int = 120
+
+var _active_damage_over_time: Dictionary = {}
+var _last_status_packet_msec: Dictionary = {}
+
+
 func get_module_name() -> StringName:
 	return GameSettings.MODULE_COMBAT
 
@@ -132,35 +138,97 @@ func apply_status_effect(target_slot: int, source_slot: int, effect_name: String
 	var damage_per_tick: int = int(visual_data.get("damage_per_tick", 0))
 	visual_data.erase("damage_per_tick")
 	player.status_effect_manager.apply_effect(effect_name, visual_data)
-	game_sync.send_reliable(GameSettings.PACKET_STATUS_EFFECT_APPLIED, {
-		"target_slot": target_slot,
-		"effect_name": str(effect_name),
-		"effect_data": visual_data,
-	}, GameSettings.NETWORK_CHANNEL_EVENTS)
+	var effect_key: String = _status_effect_key(target_slot, source_slot, effect_name)
+	if _should_send_status_packet(effect_key):
+		game_sync.send_reliable(GameSettings.PACKET_STATUS_EFFECT_APPLIED, {
+			"target_slot": target_slot,
+			"effect_name": str(effect_name),
+			"effect_data": visual_data,
+		}, GameSettings.NETWORK_CHANNEL_EVENTS)
 
 	if damage_per_tick > 0:
 		var tick_interval: float = maxf(float(effect_data.get("tick_interval", 1.0)), 0.05)
 		var tick_count: int = int(effect_data.get("tick_count", 1))
-		_run_damage_over_time(target_slot, source_slot, damage_per_tick, tick_interval, maxi(tick_count, 1))
+		_start_or_refresh_damage_over_time(
+			effect_key,
+			target_slot,
+			source_slot,
+			damage_per_tick,
+			tick_interval,
+			maxi(tick_count, 1)
+		)
 
 
-func _run_damage_over_time(
+func _start_or_refresh_damage_over_time(
+	effect_key: String,
 	target_slot: int,
 	source_slot: int,
 	damage_per_tick: int,
 	tick_interval: float,
 	tick_count: int
 ) -> void:
-	for tick_index in range(tick_count):
-		if not OnlineMatch.is_playing_set():
+	if _active_damage_over_time.has(effect_key):
+		var active_state: Dictionary = _active_damage_over_time[effect_key]
+		active_state["damage_per_tick"] = maxi(int(active_state.get("damage_per_tick", 0)), damage_per_tick)
+		active_state["ticks_remaining"] = maxi(int(active_state.get("ticks_remaining", 0)), tick_count)
+		_active_damage_over_time[effect_key] = active_state
+		return
+
+	_active_damage_over_time[effect_key] = {
+		"target_slot": target_slot,
+		"source_slot": source_slot,
+		"damage_per_tick": damage_per_tick,
+		"tick_interval": tick_interval,
+		"ticks_remaining": tick_count,
+	}
+	_run_damage_over_time(effect_key)
+
+
+func _run_damage_over_time(effect_key: String) -> void:
+	while _active_damage_over_time.has(effect_key):
+		var wait_state: Dictionary = _active_damage_over_time[effect_key]
+		var tick_interval: float = maxf(float(wait_state.get("tick_interval", 1.0)), 0.05)
+		await get_tree().create_timer(tick_interval, false).timeout
+
+		if not _active_damage_over_time.has(effect_key):
 			return
+		if not OnlineMatch.is_playing_set():
+			_clear_damage_over_time(effect_key)
+			return
+		var active_state: Dictionary = _active_damage_over_time[effect_key]
+		var target_slot: int = int(active_state.get("target_slot", 0))
+		var source_slot: int = int(active_state.get("source_slot", 0))
 		var player: Player = _get_player(target_slot)
 		if player == null or player.is_eliminated():
+			_clear_damage_over_time(effect_key)
 			return
+		var damage_per_tick: int = int(active_state.get("damage_per_tick", 0))
 		var modified_damage: int = ResearchManager.apply_rage_to_damage(source_slot, damage_per_tick)
 		apply_hit(target_slot, source_slot, 0, modified_damage)
-		if tick_index < tick_count - 1:
-			await get_tree().create_timer(tick_interval, false).timeout
+		var ticks_remaining: int = int(active_state.get("ticks_remaining", 1)) - 1
+		if ticks_remaining <= 0:
+			_clear_damage_over_time(effect_key)
+			return
+		active_state["ticks_remaining"] = ticks_remaining
+		_active_damage_over_time[effect_key] = active_state
+
+
+func _status_effect_key(target_slot: int, source_slot: int, effect_name: StringName) -> String:
+	return "%d:%d:%s" % [target_slot, source_slot, str(effect_name)]
+
+
+func _should_send_status_packet(effect_key: String) -> bool:
+	var now_msec: int = Time.get_ticks_msec()
+	var last_msec: int = int(_last_status_packet_msec.get(effect_key, -STATUS_EFFECT_PACKET_COALESCE_MSEC))
+	if now_msec - last_msec < STATUS_EFFECT_PACKET_COALESCE_MSEC:
+		return false
+	_last_status_packet_msec[effect_key] = now_msec
+	return true
+
+
+func _clear_damage_over_time(effect_key: String) -> void:
+	_active_damage_over_time.erase(effect_key)
+	_last_status_packet_msec.erase(effect_key)
 
 
 func handle_packet(packet: Dictionary) -> void:

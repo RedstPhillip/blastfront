@@ -17,6 +17,19 @@ func get_packet_types() -> Array[StringName]:
 	]
 
 
+func physics_sync_tick(_delta: float) -> void:
+	if game_sync == null or not game_sync.is_network_active() or not game_sync.is_host():
+		return
+
+	for slot in GameSettings.player_slots():
+		var player: Player = _get_player(slot)
+		if player == null:
+			continue
+		_block_active[slot] = player.is_blocking()
+		_block_direction[slot] = player.get_block_direction()
+		_block_cooldown_ratio[slot] = player.get_block_cooldown_ratio()
+
+
 func handle_packet(packet: Dictionary) -> void:
 	var payload: Dictionary = _get_payload(packet)
 	var slot: int = int(payload.get("slot", packet.get("from_slot", 0)))

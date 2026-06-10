@@ -32,9 +32,12 @@ func apply_effect(name: StringName, params: Dictionary) -> void:
 		"source_slot": int(adjusted_params.get("source_slot", 0)),
 	}
 
-	if not _active_effects.has(name):
-		_active_effects[name] = []
-	_active_effects[name].append(instance)
+	if name == &"poison":
+		_active_effects[name] = [instance]
+	else:
+		if not _active_effects.has(name):
+			_active_effects[name] = []
+		_active_effects[name].append(instance)
 	effect_added.emit(name)
 
 

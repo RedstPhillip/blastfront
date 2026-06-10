@@ -96,6 +96,7 @@ var _block_active: bool = false
 var _block_timer: float = 0.0
 var _block_cooldown_timer: float = 0.0
 var _block_direction: Vector2 = Vector2.LEFT
+var _remote_block_state_initialized: bool = false
 var _stun_timer: float = 0.0
 var _status_fx_timer: float = 0.0
 var _status_fx_phase: float = 0.0
@@ -209,6 +210,7 @@ func configure_remote_control(slot: int) -> void:
 	_block_active = false
 	_block_timer = 0.0
 	_block_cooldown_timer = 0.0
+	_remote_block_state_initialized = false
 	_network_target_position = global_position
 	_network_target_velocity = Vector2.ZERO
 	_network_aim_world_position = global_position + Vector2.LEFT * GameSettings.PLAYER_REMOTE_AIM_DISTANCE
@@ -448,9 +450,6 @@ func apply_remote_snapshot(snapshot: Dictionary) -> void:
 	var snapshot_velocity: Variant = snapshot.get("velocity", velocity)
 	var snapshot_aim: Variant = snapshot.get("aim", _network_aim_world_position)
 	var snapshot_facing: Variant = snapshot.get("facing", last_dir)
-	var snapshot_block_active: Variant = snapshot.get("block_active", _block_active)
-	var snapshot_block_direction: Variant = snapshot.get("block_direction", _block_direction)
-	var snapshot_block_cooldown_ratio: Variant = snapshot.get("block_cooldown_ratio", GameSettings.PLAYER_BLOCK_REMOTE_COOLDOWN_RATIO)
 	var snapshot_ammo: int = int(snapshot.get("ammo", 0))
 	var snapshot_reloading: bool = snapshot.get("reloading", false) == true
 	var snapshot_reload_ratio: float = float(snapshot.get("reload_ratio", 1.0))
@@ -469,8 +468,6 @@ func apply_remote_snapshot(snapshot: Dictionary) -> void:
 				gun.call("set_aim_direction", aim_vector.normalized())
 	if (snapshot_facing is float or snapshot_facing is int) and absf(float(snapshot_facing)) > 0.0:
 		last_dir = signf(float(snapshot_facing))
-	if snapshot_block_active is bool:
-		apply_remote_block_state(snapshot_block_active, snapshot_block_direction, snapshot_block_cooldown_ratio)
 	var gun: Node = get_node_or_null("Gun")
 	if snapshot.has("ammo") and gun != null and gun.has_method("apply_remote_ammo_state"):
 		gun.call("apply_remote_ammo_state", snapshot_ammo, snapshot_reloading, snapshot_reload_ratio)
@@ -582,17 +579,29 @@ func apply_block_feedback(projectile_position: Vector2) -> void:
 
 
 func apply_remote_block_state(active: bool, direction_variant: Variant = Vector2.ZERO, cooldown_ratio_variant: Variant = GameSettings.PLAYER_BLOCK_REMOTE_COOLDOWN_RATIO) -> void:
+	var was_active: bool = _block_active
 	if direction_variant is Vector2:
 		var remote_block_direction: Vector2 = direction_variant
 		if remote_block_direction.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
 			_block_direction = remote_block_direction.normalized()
 
 	_block_active = active
-	_block_timer = block_duration if _block_active else 0.0
+	if _block_active:
+		if not was_active:
+			_block_timer = block_duration
+		_block_cooldown_timer = 0.0
+	else:
+		_block_timer = 0.0
 
 	if cooldown_ratio_variant is float or cooldown_ratio_variant is int:
 		var cooldown_ratio: float = clampf(float(cooldown_ratio_variant), 0.0, 1.0)
-		_block_cooldown_timer = (1.0 - cooldown_ratio) * block_cooldown
+		var current_ratio: float = get_block_cooldown_ratio()
+		var accepts_initial_state: bool = not _remote_block_state_initialized
+		var accepts_transition: bool = was_active and not active
+		var accepts_progress: bool = not active and cooldown_ratio >= current_ratio
+		if accepts_initial_state or accepts_transition or accepts_progress:
+			_block_cooldown_timer = (1.0 - cooldown_ratio) * block_cooldown
+	_remote_block_state_initialized = true
 
 
 func get_aim_world_position() -> Vector2:
@@ -947,6 +956,8 @@ func _update_block_input() -> void:
 
 func _update_block_timers(delta: float) -> void:
 	if _block_active:
+		if control_mode == GameSettings.CONTROL_REMOTE:
+			return
 		if control_mode == GameSettings.CONTROL_LOCAL:
 			_refresh_block_direction()
 		_block_timer = maxf(_block_timer - delta, 0.0)

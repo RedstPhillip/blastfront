@@ -78,9 +78,6 @@ func _build_player_snapshot(player: Player) -> Dictionary:
 		"facing": player.last_dir,
 		"grounded": player.update_grounded(),
 		"on_wall": player.is_on_wall(),
-		"block_active": player.is_blocking(),
-		"block_direction": player.get_block_direction(),
-		"block_cooldown_ratio": player.get_block_cooldown_ratio(),
 	}
 	var gun: Node = player.get_node_or_null("Gun")
 	if gun != null and gun.has_method("get_current_ammo"):
@@ -124,9 +121,7 @@ func _should_send_snapshot(slot: int, snapshot: Dictionary) -> bool:
 	if aim.distance_squared_to(previous_aim) >= GameSettings.NETWORK_PLAYER_AIM_EPSILON * GameSettings.NETWORK_PLAYER_AIM_EPSILON:
 		return true
 
-	return snapshot.get("block_active", false) != previous.get("block_active", false) \
-		or snapshot.get("block_direction", Vector2.ZERO) != previous.get("block_direction", Vector2.ZERO) \
-		or int(snapshot.get("ammo", 0)) != int(previous.get("ammo", 0)) \
+	return int(snapshot.get("ammo", 0)) != int(previous.get("ammo", 0)) \
 		or bool(snapshot.get("reloading", false)) != bool(previous.get("reloading", false))
 
 

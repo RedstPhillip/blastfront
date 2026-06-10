@@ -82,6 +82,14 @@ func _ready() -> void:
 	assert(offer_grid.columns == 2)
 	assert(recycler != null and recycler.visible)
 	assert(recycler.get_global_rect().end.y <= 690.0)
+	for recycler_child in recycler.find_children("*", "Control", true, false):
+		assert((recycler_child as Control).mouse_filter == Control.MOUSE_FILTER_IGNORE)
+	var recycle_payload: Dictionary = {
+		"type": &"round_reward",
+		"source_kind": RoundRewardInventory.SOURCE_OFFER,
+		"source_index": 0,
+	}
+	assert(recycler._can_drop_data(Vector2.ZERO, recycle_payload))
 	for slot_name in ["SavedRewardOne", "SavedRewardTwo", "SavedRewardThree", "SavedRewardFour"]:
 		var saved_slot: Control = loadout_page.find_child(slot_name, true, false) as Control
 		assert(saved_slot != null and saved_slot.visible)
@@ -134,6 +142,47 @@ func _ready() -> void:
 	assert(not player.is_eliminated())
 	player.queue_free()
 	_test_player = null
+
+	var remote_player: Player = player_scene.instantiate() as Player
+	add_child(remote_player)
+	remote_player.configure_remote_control(GameSettings.PLAYER_TWO_SLOT)
+	remote_player.apply_remote_block_state(true, Vector2.LEFT, 1.0)
+	remote_player._update_block_timers(remote_player.block_duration * 2.0)
+	assert(remote_player.is_blocking())
+	remote_player.apply_remote_block_state(false, Vector2.LEFT, 0.0)
+	remote_player._update_block_timers(0.1)
+	var progressed_cooldown_ratio: float = remote_player.get_block_cooldown_ratio()
+	assert(progressed_cooldown_ratio > 0.0)
+	remote_player.apply_remote_block_state(false, Vector2.LEFT, 0.0)
+	assert(remote_player.get_block_cooldown_ratio() >= progressed_cooldown_ratio)
+	remote_player.queue_free()
+
+	var status_parent: Node = Node.new()
+	var status_manager: StatusEffectManager = StatusEffectManager.new()
+	status_parent.add_child(status_manager)
+	add_child(status_parent)
+	var poison_test_data: Dictionary = {
+		"duration": 3.0,
+		"damage_per_tick": 3,
+		"tick_count": 3,
+		"tick_interval": 1.0,
+	}
+	status_manager.apply_effect(&"poison", poison_test_data)
+	status_manager.apply_effect(&"poison", poison_test_data)
+	assert(status_manager.get_active_count() == 1)
+	status_parent.queue_free()
+
+	var projectile_sync_script: Script = load("res://scenes/network/projectile_sync.gd") as Script
+	var projectile_sync: Node = projectile_sync_script.new() as Node
+	var balanced_poison: Dictionary = projectile_sync.call(
+		"_get_balanced_status_effect_data",
+		&"poison",
+		{"damage_per_tick": 4, "tick_count": 4, "duration": 3.2},
+		["poison_rounds_mk1", "shotgun_mk1"]
+	)
+	assert(int(balanced_poison.get("damage_per_tick", 0)) == 3)
+	assert(int(balanced_poison.get("tick_count", 0)) == 3)
+	projectile_sync.free()
 
 	ResearchManager._local_marks[str(ResearchManager.RECYCLING)] = 1
 	var original_offers: Array[Dictionary] = RoundRewardInventory.offers.duplicate(true)

@@ -298,6 +298,7 @@ func _apply_authoritative_extension_effects(projectile: Node, direct_target: Pla
 		return
 	var effects: Dictionary = effects_variant
 	var owner_slot: int = int(projectile.get("owner_slot"))
+	var source_extensions_variant: Variant = projectile.get("source_extensions")
 	var origin: Vector2 = _get_projectile_position(projectile, direct_target.global_position if direct_target != null else Vector2.ZERO)
 	var combat_sync: Variant = game_sync.get_module(GameSettings.MODULE_COMBAT)
 	if combat_sync == null:
@@ -308,7 +309,12 @@ func _apply_authoritative_extension_effects(projectile: Node, direct_target: Pla
 		var effect_data_variant: Variant = effects[raw_effect_name]
 		if not (effect_data_variant is Dictionary):
 			continue
-		var effect_data: Dictionary = effect_data_variant
+		var raw_effect_data: Dictionary = effect_data_variant
+		var effect_data: Dictionary = _get_balanced_status_effect_data(
+			effect_name,
+			raw_effect_data,
+			source_extensions_variant
+		)
 		match effect_name:
 			&"freeze", &"shock", &"poison":
 				if direct_target != null and combat_sync.has_method("apply_status_effect"):
@@ -322,6 +328,27 @@ func _apply_authoritative_extension_effects(projectile: Node, direct_target: Pla
 				)
 			&"grenade":
 				_schedule_grenade_explosion(origin, owner_slot, effect_data)
+
+
+func _get_balanced_status_effect_data(
+	effect_name: StringName,
+	effect_data: Dictionary,
+	source_extensions_variant: Variant
+) -> Dictionary:
+	var balanced_data: Dictionary = effect_data.duplicate(true)
+	if effect_name != &"poison" or not (source_extensions_variant is Array):
+		return balanced_data
+
+	var source_extensions: Array = source_extensions_variant
+	if not source_extensions.has("shotgun_mk1"):
+		return balanced_data
+
+	var base_damage_per_tick: int = int(balanced_data.get("damage_per_tick", 0))
+	var base_tick_count: int = int(balanced_data.get("tick_count", 1))
+	balanced_data["damage_per_tick"] = clampi(base_damage_per_tick, 0, 3)
+	balanced_data["tick_count"] = mini(base_tick_count, 3)
+	balanced_data["duration"] = minf(float(balanced_data.get("duration", 3.0)), 3.0)
+	return balanced_data
 
 
 func _schedule_grenade_explosion(origin: Vector2, owner_slot: int, effect_data: Dictionary) -> void:
