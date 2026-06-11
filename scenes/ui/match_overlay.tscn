@@ -1,8 +1,9 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scenes/ui/match_overlay.gd" id="1_overlay"]
 [ext_resource type="PackedScene" path="res://scenes/ui/arcade_player_panel.tscn" id="2_player_panel"]
 [ext_resource type="Font" path="res://assets/fonts/blastfront_hud_font.tres" id="3_hud_font"]
+[ext_resource type="PackedScene" path="res://scenes/ui/research/quest_panel.tscn" id="4_quests"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_score_panel"]
 bg_color = Color(0.018, 0.025, 0.04, 0.96)
@@ -168,6 +169,15 @@ grow_horizontal = 0
 grow_vertical = 0
 player_slot = 2
 right_aligned = true
+
+[node name="QuestPanel" parent="." instance=ExtResource("4_quests")]
+layout_mode = 1
+anchors_preset = 0
+offset_left = 14.0
+offset_top = 14.0
+offset_right = 300.0
+offset_bottom = 205.0
+compact = true
 
 [node name="Center" type="CenterContainer" parent="."]
 layout_mode = 1

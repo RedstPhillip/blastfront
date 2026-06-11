@@ -108,6 +108,10 @@ const PACKET_ONLINE_LOCKER_PLAYER_STATE: StringName = &"online_locker_player_sta
 const PACKET_ONLINE_COIN_SPEND: StringName = &"online_coin_spend"
 const PACKET_ONLINE_RESEARCH_PROFILE: StringName = &"online_research_profile"
 const PACKET_ONLINE_COIN_ADD: StringName = &"online_coin_add"
+const PACKET_RESEARCH_QUEST_STATE: StringName = &"research_quest_state"
+const PACKET_RESEARCH_QUEST_EVENT: StringName = &"research_quest_event"
+const PACKET_RESEARCH_POINTS_AWARDED: StringName = &"research_points_awarded"
+const PACKET_AIRDROP_STATE: StringName = &"airdrop_state"
 
 const CONTROL_LOCAL: StringName = &"local"
 const CONTROL_REMOTE: StringName = &"remote"
@@ -194,6 +198,15 @@ const PLAYER_BLOCK_DURATION: float = 0.35
 const PLAYER_BLOCK_COOLDOWN: float = 1.15
 const PLAYER_BLOCK_CONE_DEGREES: float = 128.0
 const PLAYER_BLOCK_REMOTE_COOLDOWN_RATIO: float = 1.0
+
+const AIRDROP_DELAY_SECONDS: float = 20.0
+const AIRDROP_DESCENT_SECONDS: float = 4.2
+const AIRDROP_BASE_CAPTURE_SECONDS: float = 4.0
+const AIRDROP_BASE_CAPTURE_RADIUS: float = 92.0
+const AIRDROP_BASE_RESEARCH_REWARD: int = 5
+const AIRDROP_STATE_RATE: float = 10.0
+const AIRDROP_CAPTURE_DECAY_RATE: float = 0.3
+const AIRDROP_SPAWN_GROUP: StringName = &"airdrop_spawn"
 const PLAYER_BLOCK_FEEDBACK_SHAKE_STRENGTH: float = 1.0
 const PLAYER_BLOCK_FEEDBACK_SHAKE_TIME: float = 0.065
 

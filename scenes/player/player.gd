@@ -972,6 +972,8 @@ func _begin_block() -> void:
 	_block_active = true
 	_block_timer = block_duration
 	_block_cooldown_timer = 0.0
+	if control_mode == GameSettings.CONTROL_LOCAL:
+		ResearchQuestManager.record_local_action(ResearchQuestManager.EVENT_BLOCK_ATTEMPT)
 	_apply_block_start_armor_effects()
 	_notify_block_state(true)
 
@@ -1217,6 +1219,8 @@ func _begin_step(is_left: bool, target: Vector2) -> void:
 func _emit_jump_feedback(direction: Vector2) -> void:
 	var dust_position: Vector2 = global_position + Vector2(0.0, hover_dist - 4.0)
 	_body_punch_scale = Vector2(0.82, 1.16)
+	if control_mode == GameSettings.CONTROL_LOCAL:
+		ResearchQuestManager.record_local_action(ResearchQuestManager.EVENT_JUMP)
 	GameJuice.spawn_burst(&"jump", dust_position, direction, Color(0.86, 0.78, 0.56, 0.65))
 	GameJuice.play_sound_2d(&"jump", global_position, 4.5, 0.07)
 

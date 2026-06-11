@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene load_steps=20 format=3]
 
 [ext_resource type="Script" path="res://scenes/menus/intermission_menu.gd" id="1_intermission"]
 [ext_resource type="PackedScene" path="res://scenes/ui/loadout/loadout_page.tscn" id="2_loadout"]
@@ -6,6 +6,7 @@
 [ext_resource type="Texture2D" path="res://assets/main_menu_background.png" id="4_background"]
 [ext_resource type="Font" path="res://assets/fonts/blastfront_hud_font.tres" id="5_hud_font"]
 [ext_resource type="Font" path="res://assets/fonts/blastfront_combat_font.tres" id="6_combat_font"]
+[ext_resource type="PackedScene" path="res://scenes/ui/research/quest_panel.tscn" id="7_quests"]
 
 [sub_resource type="Gradient" id="Gradient_intermission_vignette"]
 offsets = PackedFloat32Array(0, 0.58, 1)
@@ -429,7 +430,7 @@ theme_override_colors/font_shadow_color = Color(0.27, 0.13, 0.04, 0.82)
 theme_override_constants/shadow_offset_x = 3
 theme_override_constants/shadow_offset_y = 3
 theme_override_fonts/font = ExtResource("6_combat_font")
-theme_override_font_sizes/font_size = 72
+theme_override_font_sizes/font_size = 56
 text = "60S"
 horizontal_alignment = 1
 
@@ -437,6 +438,9 @@ horizontal_alignment = 1
 custom_minimum_size = Vector2(0, 1)
 layout_mode = 2
 color = Color(0.48, 0.39, 0.29, 0.42)
+
+[node name="QuestPanel" parent="StatusPage/Center/Panel/VBox/ContentRow/ReadyCard/ReadyVBox" instance=ExtResource("7_quests")]
+layout_mode = 2
 
 [node name="LocalReadyLabel" type="Label" parent="StatusPage/Center/Panel/VBox/ContentRow/ReadyCard/ReadyVBox"]
 unique_name_in_owner = true

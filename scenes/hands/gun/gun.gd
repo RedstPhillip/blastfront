@@ -175,6 +175,7 @@ func _physics_process(delta: float) -> void:
 func _shoot() -> void:
 	var base_direction: Vector2 = get_shot_direction()
 	var muzzle_position: Vector2 = get_projectile_spawn_position(base_direction)
+	ResearchQuestManager.record_local_action(ResearchQuestManager.EVENT_SHOT)
 	_play_fire_feedback(base_direction, muzzle_position)
 
 	var projectile_data: Dictionary = _build_projectile_data(base_direction)

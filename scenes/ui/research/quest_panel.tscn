@@ -1,0 +1,78 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/research/quest_panel.gd" id="1_panel"]
+[ext_resource type="PackedScene" path="res://scenes/ui/research/quest_row.tscn" id="2_row"]
+[ext_resource type="Font" path="res://assets/fonts/blastfront_hud_font.tres" id="3_font"]
+
+[sub_resource type="StyleBoxFlat" id="Style_panel"]
+content_margin_left = 8.0
+content_margin_top = 7.0
+content_margin_right = 8.0
+content_margin_bottom = 8.0
+bg_color = Color(0.07, 0.06, 0.047, 0.94)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.57, 0.45, 0.29, 0.72)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0, 0, 0, 0.45)
+shadow_size = 7
+shadow_offset = Vector2(3, 4)
+
+[node name="QuestPanel" type="PanelContainer"]
+custom_minimum_size = Vector2(270, 0)
+mouse_filter = 2
+theme_override_styles/panel = SubResource("Style_panel")
+script = ExtResource("1_panel")
+
+[node name="VBox" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Header" type="HBoxContainer" parent="VBox"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="VBox/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.9, 0.7, 0.37, 1)
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 13
+text = "FIELD ORDERS"
+
+[node name="LastRewardLabel" type="Label" parent="VBox/Header"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 1, 0.66, 1)
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 10
+text = "LAST SET +0 RP"
+horizontal_alignment = 2
+
+[node name="EmptyLabel" type="Label" parent="VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72, 0.68, 0.58, 0.82)
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 11
+text = "ORDERS ARRIVE AFTER THE FIRST SET"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="QuestRowEasy" parent="VBox" instance=ExtResource("2_row")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="QuestRowMedium" parent="VBox" instance=ExtResource("2_row")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="QuestRowHard" parent="VBox" instance=ExtResource("2_row")]
+unique_name_in_owner = true
+layout_mode = 2

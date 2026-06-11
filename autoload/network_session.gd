@@ -505,6 +505,9 @@ func _reset_equipment_progression(persist_research: bool = true) -> void:
 	var armor_inventory: Node = get_node_or_null("/root/ArmorInventory")
 	if armor_inventory != null and armor_inventory.has_method("reset_match"):
 		armor_inventory.call("reset_match")
+	var quest_manager: Node = get_node_or_null("/root/ResearchQuestManager")
+	if quest_manager != null and quest_manager.has_method("reset_match"):
+		quest_manager.call("reset_match")
 
 
 func _seed_training_extension_inventory() -> void:
