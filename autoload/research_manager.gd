@@ -123,10 +123,18 @@ func add_research_points(base_amount: int) -> int:
 	if base_amount <= 0:
 		return 0
 	var awarded: int = maxi(1, int(roundf(float(base_amount) * get_research_point_multiplier())))
+	return add_research_points_exact(awarded)
+
+
+func add_research_points_exact(amount: int) -> int:
+	if amount <= 0:
+		return 0
+	var awarded: int = amount
 	research_points += awarded
 	_save_progress()
 	research_points_changed.emit(research_points)
 	research_changed.emit()
+	_publish_local_profile()
 	return awarded
 
 
@@ -235,6 +243,32 @@ func get_bonus_mark_chance(player_slot: int = 0) -> float:
 
 func get_luck_level(player_slot: int = 0) -> int:
 	return get_mark(LUCK, player_slot)
+
+
+func get_capture_time_multiplier(player_slot: int = 0) -> float:
+	match get_mark(FASTER_CAPTURE, player_slot):
+		1:
+			return 0.85
+		2:
+			return 0.7
+		3:
+			return 0.55
+	return 1.0
+
+
+func get_capture_radius(player_slot: int = 0) -> float:
+	match get_mark(CAPTURE_RADIUS, player_slot):
+		1:
+			return GameSettings.AIRDROP_BASE_CAPTURE_RADIUS + 20.0
+		2:
+			return GameSettings.AIRDROP_BASE_CAPTURE_RADIUS + 42.0
+		3:
+			return GameSettings.AIRDROP_BASE_CAPTURE_RADIUS + 68.0
+	return GameSettings.AIRDROP_BASE_CAPTURE_RADIUS
+
+
+func get_capture_research_reward(player_slot: int = 0) -> int:
+	return GameSettings.AIRDROP_BASE_RESEARCH_REWARD + get_mark(CAPTURE_BONUS, player_slot)
 
 
 func get_life_steal_ratio(player_slot: int = 0) -> float:
@@ -447,9 +481,9 @@ func _build_definitions() -> Dictionary:
 		_definition(PASSIVE_HEALING, "Field Regeneration", BRANCH_MISC, "res://assets/ui/research/passive_healing.svg", "While standing still, heal up to 50%, 75% or 100% health.", [4, 8, 14], Vector2(670, 345), [_require(RAGE)], true, 230),
 		_definition(PHOENIX, "Phoenix", BRANCH_MISC, "res://assets/ui/research/phoenix.svg", "Once per set, survive lethal damage and return with 40% health.", [20], Vector2(870, 345), [_require(PASSIVE_HEALING, 3)], true, 240),
 		_definition(TIME_CONTROL, "Time Control", BRANCH_MISC, "res://assets/ui/research/time_control.svg", "Future research: slow the world, extend the effect, then briefly freeze time.", [60, 120, 240], Vector2(1120, 345), [], false, 999),
-		_definition(FASTER_CAPTURE, "Faster Capture", BRANCH_MISC, "res://assets/ui/research/faster_capture.svg", "Future research: capture objectives faster.", [3, 7, 12], Vector2(670, 390), [_require(RAGE)], false, 260),
-		_definition(CAPTURE_BONUS, "Capture Bonus", BRANCH_MISC, "res://assets/ui/research/capture_bonus.svg", "Future research: gain better rewards from captured objectives.", [4, 8, 14], Vector2(870, 390), [_require(FASTER_CAPTURE)], false, 270),
-		_definition(CAPTURE_RADIUS, "Capture Radius", BRANCH_MISC, "res://assets/ui/research/capture_radius.svg", "Future research: increase objective capture radius.", [4, 9, 15], Vector2(1070, 390), [_require(CAPTURE_BONUS)], false, 280),
+		_definition(FASTER_CAPTURE, "Faster Capture", BRANCH_MISC, "res://assets/ui/research/faster_capture.svg", "Capture airdrops 15%, 30% or 45% faster.", [3, 7, 12], Vector2(670, 390), [_require(RAGE)], true, 260),
+		_definition(CAPTURE_BONUS, "Capture Bonus", BRANCH_MISC, "res://assets/ui/research/capture_bonus.svg", "Captured airdrops award 6, 7 or 8 Research Points instead of 5.", [4, 8, 14], Vector2(870, 390), [_require(FASTER_CAPTURE)], true, 270),
+		_definition(CAPTURE_RADIUS, "Capture Radius", BRANCH_MISC, "res://assets/ui/research/capture_radius.svg", "Increase airdrop capture radius by 20, 42 or 68 units.", [4, 9, 15], Vector2(1070, 390), [_require(CAPTURE_BONUS)], true, 280),
 	]
 	for entry in entries:
 		definitions[str(entry.get("id", ""))] = entry

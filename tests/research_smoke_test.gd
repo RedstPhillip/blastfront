@@ -15,7 +15,7 @@ func _ready() -> void:
 	assert(ResearchManager.is_research_available(ResearchManager.RECYCLING))
 	assert(not ResearchManager.is_research_available(ResearchManager.DASHING))
 	assert(not ResearchManager.is_research_available(ResearchManager.TIME_CONTROL))
-	assert(not ResearchManager.is_research_available(ResearchManager.FASTER_CAPTURE))
+	assert(ResearchManager.is_research_available(ResearchManager.FASTER_CAPTURE))
 
 	assert(ResearchManager.can_purchase(ResearchManager.RECYCLING))
 	assert(not ResearchManager.can_purchase(ResearchManager.BLUEPRINT_STORAGE))
@@ -40,6 +40,13 @@ func _ready() -> void:
 	assert(is_equal_approx(ResearchManager.get_bonus_mark_chance(), 0.26))
 	assert(ResearchManager.get_luck_level() == 3)
 	assert(is_equal_approx(ResearchManager.get_research_point_multiplier(), 1.65))
+
+	ResearchManager._local_marks[str(ResearchManager.FASTER_CAPTURE)] = 3
+	ResearchManager._local_marks[str(ResearchManager.CAPTURE_BONUS)] = 3
+	ResearchManager._local_marks[str(ResearchManager.CAPTURE_RADIUS)] = 3
+	assert(is_equal_approx(ResearchManager.get_capture_time_multiplier(), 0.55))
+	assert(is_equal_approx(ResearchManager.get_capture_radius(), GameSettings.AIRDROP_BASE_CAPTURE_RADIUS + 68.0))
+	assert(ResearchManager.get_capture_research_reward() == 8)
 
 	ResearchManager._local_marks[str(ResearchManager.LIFE_STEAL)] = 3
 	ResearchManager._local_marks[str(ResearchManager.RAGE)] = 3
@@ -112,9 +119,16 @@ func _ready() -> void:
 	var intermission_research: Control = intermission.find_child("ResearchPage", true, false) as Control
 	var intermission_status: Control = intermission.find_child("StatusPage", true, false) as Control
 	var intermission_loadout: Control = intermission.find_child("LoadoutPage", true, false) as Control
+	var intermission_quests: ResearchQuestPanel = intermission.find_child("QuestPanel", true, false) as ResearchQuestPanel
+	assert(intermission_quests != null)
 	assert(intermission_research.visible)
 	assert(not intermission_status.visible)
 	assert(not intermission_loadout.visible)
+	intermission.call("_set_page", 0)
+	await get_tree().process_frame
+	var ready_card: PanelContainer = intermission.find_child("ReadyCard", true, false) as PanelContainer
+	assert(ready_card != null)
+	assert(intermission_quests.get_global_rect().end.y <= ready_card.get_global_rect().end.y + 1.0)
 	intermission.call("_set_page", -1)
 	assert(intermission_loadout.visible)
 	assert(not intermission_research.visible)
@@ -184,6 +198,79 @@ func _ready() -> void:
 	assert(int(balanced_poison.get("tick_count", 0)) == 3)
 	projectile_sync.free()
 
+	assert(ResearchQuestManager.get_definitions_for_tier(ResearchQuestManager.TIER_EASY).size() >= 5)
+	assert(ResearchQuestManager.get_definitions_for_tier(ResearchQuestManager.TIER_MEDIUM).size() >= 5)
+	assert(ResearchQuestManager.get_definitions_for_tier(ResearchQuestManager.TIER_HARD).size() >= 5)
+	ResearchQuestManager.reset_match()
+	ResearchQuestManager.assign_quests_for_next_set()
+	var assigned_quests: Array[Dictionary] = ResearchQuestManager.get_local_quests()
+	assert(assigned_quests.size() == 3)
+	assert(StringName(str(assigned_quests[0].get("tier", ""))) == ResearchQuestManager.TIER_EASY)
+	assert(StringName(str(assigned_quests[1].get("tier", ""))) == ResearchQuestManager.TIER_MEDIUM)
+	assert(StringName(str(assigned_quests[2].get("tier", ""))) == ResearchQuestManager.TIER_HARD)
+	var quest_reward_start: int = ResearchManager.research_points
+	ResearchQuestManager._assignments_by_slot[NetworkSession.local_player_slot] = [{
+		"id": "jump_test",
+		"title": "Jump Test",
+		"description": "Test quest",
+		"tier": str(ResearchQuestManager.TIER_EASY),
+		"event": str(ResearchQuestManager.EVENT_JUMP),
+		"target": 2.0,
+		"reward": 1,
+		"progress": 0.0,
+		"completed": false,
+		"failed": false,
+	}]
+	ResearchQuestManager._active_set_has_quests = true
+	ResearchQuestManager._apply_progress(NetworkSession.local_player_slot, ResearchQuestManager.EVENT_JUMP, 1.0)
+	ResearchQuestManager._apply_progress(NetworkSession.local_player_slot, ResearchQuestManager.EVENT_JUMP, 1.0)
+	assert(ResearchManager.research_points == quest_reward_start + 2)
+	ResearchQuestManager._last_awarded_by_slot[NetworkSession.local_player_slot] = 6
+	ResearchQuestManager._active_set_has_quests = false
+	ResearchQuestManager._previous_phase = GameSettings.MATCH_PHASE_KILL_BANNER
+	ResearchQuestManager._on_phase_changed(GameSettings.MATCH_PHASE_INTERMISSION)
+	assert(ResearchQuestManager.get_last_awarded_points() == 6)
+
+	var airdrop_scene: PackedScene = load("res://scenes/objectives/airdrop_crate.tscn") as PackedScene
+	var airdrop: AirdropCrate = airdrop_scene.instantiate() as AirdropCrate
+	add_child(airdrop)
+	await get_tree().process_frame
+	airdrop.apply_state({
+		"phase": "landed",
+		"capture_progress": 0.5,
+		"local_capture_radius": 120.0,
+		"local_reward": 7,
+	})
+	await get_tree().process_frame
+	var capture_bar: ProgressBar = airdrop.find_child("CaptureBar", true, false) as ProgressBar
+	var capture_ring: Line2D = airdrop.find_child("CaptureRing", true, false) as Line2D
+	assert(capture_bar != null and is_equal_approx(capture_bar.value, 50.0))
+	assert(capture_ring != null and capture_ring.points.size() == 65)
+	airdrop.queue_free()
+
+	var capture_player: Player = player_scene.instantiate() as Player
+	capture_player.player_slot = GameSettings.PLAYER_ONE_SLOT
+	_test_player = capture_player
+	add_child(capture_player)
+	await get_tree().process_frame
+	capture_player.global_position = Vector2.ZERO
+	var airdrop_manager_script: Script = load("res://scenes/objectives/airdrop_manager.gd") as Script
+	var airdrop_manager: AirdropManager = airdrop_manager_script.new() as AirdropManager
+	add_child(airdrop_manager)
+	await get_tree().process_frame
+	airdrop_manager._phase = &"landed"
+	airdrop_manager._target_position = Vector2.ZERO
+	airdrop_manager._capture_progress = 0.0
+	var capture_reward_start: int = ResearchManager.research_points
+	airdrop_manager._update_capture(GameSettings.AIRDROP_BASE_CAPTURE_SECONDS)
+	assert(airdrop_manager._phase == &"captured")
+	assert(airdrop_manager._drop_completed)
+	assert(ResearchManager.research_points == capture_reward_start + ResearchManager.get_capture_research_reward())
+	await get_tree().create_timer(1.5).timeout
+	airdrop_manager.queue_free()
+	capture_player.queue_free()
+	_test_player = null
+
 	ResearchManager._local_marks[str(ResearchManager.RECYCLING)] = 1
 	var original_offers: Array[Dictionary] = RoundRewardInventory.offers.duplicate(true)
 	var original_balances: Dictionary = OnlineMatch.coin_balances.duplicate()
@@ -208,6 +295,7 @@ func _ready() -> void:
 
 	ResearchManager._local_marks = original_marks
 	ResearchManager.research_points = original_points
+	ResearchQuestManager.reset_match()
 	RoundRewardInventory._on_research_changed()
 	await get_tree().process_frame
 	await get_tree().process_frame

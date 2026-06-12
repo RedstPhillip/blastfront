@@ -1,0 +1,136 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://scenes/objectives/airdrop_crate.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/airdrop/airdrop_crate.svg" id="2_crate"]
+[ext_resource type="Texture2D" path="res://assets/airdrop/airdrop_parachute.svg" id="3_chute"]
+[ext_resource type="Texture2D" path="res://assets/airdrop/airdrop_marker.svg" id="4_marker"]
+[ext_resource type="Font" path="res://assets/fonts/blastfront_hud_font.tres" id="5_font"]
+
+[sub_resource type="Gradient" id="Gradient_light"]
+colors = PackedColorArray(0.92, 0.58, 0.2, 0.72, 0.92, 0.58, 0.2, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture_light"]
+gradient = SubResource("Gradient_light")
+width = 128
+height = 128
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+
+[sub_resource type="StyleBoxFlat" id="Style_capture_panel"]
+content_margin_left = 7.0
+content_margin_top = 5.0
+content_margin_right = 7.0
+content_margin_bottom = 5.0
+bg_color = Color(0.07, 0.055, 0.035, 0.94)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.82, 0.57, 0.25, 0.9)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="Style_bar_bg"]
+bg_color = Color(0.02, 0.018, 0.014, 1)
+
+[sub_resource type="StyleBoxFlat" id="Style_bar_fill"]
+bg_color = Color(0.88, 0.55, 0.2, 1)
+
+[node name="AirdropCrate" type="Node2D"]
+z_index = 4
+script = ExtResource("1_script")
+
+[node name="Marker" type="Sprite2D" parent="."]
+unique_name_in_owner = true
+z_index = -2
+texture = ExtResource("4_marker")
+scale = Vector2(0.78, 0.23)
+modulate = Color(1, 1, 1, 0.52)
+
+[node name="CaptureRing" type="Line2D" parent="."]
+unique_name_in_owner = true
+z_index = -1
+width = 3.0
+default_color = Color(0.94, 0.63, 0.25, 0.56)
+closed = true
+antialiased = true
+
+[node name="PointLight2D" type="PointLight2D" parent="."]
+unique_name_in_owner = true
+position = Vector2(0, -28)
+energy = 0.7
+texture_scale = 2.2
+texture = SubResource("GradientTexture_light")
+
+[node name="Rig" type="Node2D" parent="."]
+unique_name_in_owner = true
+position = Vector2(0, -520)
+
+[node name="Ropes" type="Node2D" parent="Rig"]
+unique_name_in_owner = true
+
+[node name="LeftRope" type="Line2D" parent="Rig/Ropes"]
+points = PackedVector2Array(-68, -82, -42, -4)
+width = 2.0
+default_color = Color(0.83, 0.73, 0.53, 0.9)
+
+[node name="RightRope" type="Line2D" parent="Rig/Ropes"]
+points = PackedVector2Array(68, -82, 42, -4)
+width = 2.0
+default_color = Color(0.83, 0.73, 0.53, 0.9)
+
+[node name="Parachute" type="Sprite2D" parent="Rig"]
+unique_name_in_owner = true
+position = Vector2(0, -112)
+texture = ExtResource("3_chute")
+scale = Vector2(0.8, 0.8)
+
+[node name="Crate" type="Sprite2D" parent="Rig"]
+unique_name_in_owner = true
+position = Vector2(0, -40)
+texture = ExtResource("2_crate")
+scale = Vector2(0.68, 0.68)
+
+[node name="CapturePanel" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+offset_left = -78.0
+offset_top = -114.0
+offset_right = 78.0
+offset_bottom = -61.0
+theme_override_styles/panel = SubResource("Style_capture_panel")
+
+[node name="VBox" type="VBoxContainer" parent="CapturePanel"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="Labels" type="HBoxContainer" parent="CapturePanel/VBox"]
+layout_mode = 2
+
+[node name="CaptureLabel" type="Label" parent="CapturePanel/VBox/Labels"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.94, 0.82, 0.59, 1)
+theme_override_fonts/font = ExtResource("5_font")
+theme_override_font_sizes/font_size = 10
+text = "HOLD THE AREA"
+
+[node name="RewardLabel" type="Label" parent="CapturePanel/VBox/Labels"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 1, 0.66, 1)
+theme_override_fonts/font = ExtResource("5_font")
+theme_override_font_sizes/font_size = 9
+text = "+5 RESEARCH"
+horizontal_alignment = 2
+
+[node name="CaptureBar" type="ProgressBar" parent="CapturePanel/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+mouse_filter = 2
+show_percentage = false
+theme_override_styles/background = SubResource("Style_bar_bg")
+theme_override_styles/fill = SubResource("Style_bar_fill")
