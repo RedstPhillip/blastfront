@@ -3,6 +3,7 @@ extends Node2D
 const PROJECTILE_SCENE: PackedScene = preload("res://scenes/projectiles/projectile.tscn")
 const MUZZLE_WORLD_COLLISION_MASK: int = 1
 const MUZZLE_WALL_CLEARANCE: float = 6.0
+const LASER_MUZZLE_OCCLUSION_EPSILON: float = 1.0
 
 @export var orbit_radius: float = GameSettings.GUN_ORBIT_RADIUS
 @export var aim_angle_offset_degrees: float = GameSettings.GUN_AIM_ANGLE_OFFSET_DEGREES
@@ -32,6 +33,8 @@ var _reload_timer: float = 0.0
 @onready var _muzzle: Marker2D = $VisualRoot/Muzzle
 @onready var _extension_visuals: WeaponExtensionVisuals = $VisualRoot/ExtensionVisuals
 @onready var _laser_sight: Line2D = $LaserSight
+@onready var _laser_beam: Line2D = $LaserSight/LaserBeam
+@onready var _laser_core: Line2D = $LaserSight/LaserCore
 
 
 func _ready() -> void:
@@ -48,10 +51,19 @@ func _update_laser_sight() -> void:
 		return
 	_laser_sight.show()
 	var direction: Vector2 = get_shot_direction()
-	var laser_origin: Vector2 = get_projectile_spawn_position(direction)
+	var laser_origin: Vector2 = get_muzzle_global_position()
+	if _is_muzzle_occluded(laser_origin, direction):
+		_laser_sight.hide()
+		return
 	_laser_sight.global_position = laser_origin
 	_laser_sight.global_rotation = 0.0
-	_laser_sight.points = _build_laser_trajectory(laser_origin, direction)
+	_laser_sight.global_scale = Vector2.ONE
+	var trajectory: PackedVector2Array = _build_laser_trajectory(laser_origin, direction)
+	_laser_sight.points = trajectory
+	if _laser_beam != null:
+		_laser_beam.points = trajectory
+	if _laser_core != null:
+		_laser_core.points = trajectory
 
 
 # Simulate the projectile arc and stop the preview at the first physics hit.
@@ -114,8 +126,7 @@ func _build_laser_trajectory(world_start: Vector2, direction: Vector2) -> Packed
 			points.append(hit_position - world_start)
 			break
 		distance_travelled += (next_position - local_position).length()
-		if step_index % 3 == 0:
-			points.append(next_position)
+		points.append(next_position)
 		local_position = next_position
 		if distance_travelled >= max_distance:
 			if points[points.size() - 1] != local_position:
@@ -132,6 +143,11 @@ func _can_show_laser_sight() -> bool:
 	if NetworkSession.is_steam_match_active() and int(_player.player_slot) != NetworkSession.local_player_slot:
 		return false
 	return true
+
+
+func _is_muzzle_occluded(muzzle_position: Vector2, direction: Vector2) -> bool:
+	var safe_spawn_position: Vector2 = get_projectile_spawn_position(direction)
+	return muzzle_position.distance_squared_to(safe_spawn_position) > LASER_MUZZLE_OCCLUSION_EPSILON
 
 
 func _reset_ammo() -> void:
