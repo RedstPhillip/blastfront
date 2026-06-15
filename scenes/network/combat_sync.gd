@@ -280,6 +280,10 @@ func _set_player_health(slot: int, health: int) -> void:
 	var player: Player = _get_player(slot)
 	if player != null and player.health_component != null:
 		player.health_component.health = health
+		if player.health_component.health <= 0:
+			player.set_eliminated(true)
+		elif OnlineMatch.phase == GameSettings.MATCH_PHASE_PLAYING_SET:
+			player.set_eliminated(false)
 
 
 func _apply_remote_hit_feedback(target_slot: int, source_slot: int, damage: int) -> void:

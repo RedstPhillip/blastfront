@@ -406,6 +406,9 @@ func get_gun() -> Variant:
 
 func set_eliminated(eliminated: bool) -> void:
 	if _is_eliminated == eliminated:
+		visible = not eliminated
+		collision_layer = 0 if eliminated else _default_collision_layer
+		collision_mask = 0 if eliminated else _default_collision_mask
 		return
 
 	_is_eliminated = eliminated

@@ -170,6 +170,28 @@ func _ready() -> void:
 	assert(progressed_cooldown_ratio > 0.0)
 	remote_player.apply_remote_block_state(false, Vector2.LEFT, 0.0)
 	assert(remote_player.get_block_cooldown_ratio() >= progressed_cooldown_ratio)
+	remote_player.visible = false
+	remote_player.set_eliminated(false)
+	assert(remote_player.visible)
+	remote_player.health_component.health = 0
+	assert(remote_player.is_eliminated())
+	assert(not remote_player.visible)
+	_test_player = remote_player
+	var health_sync_original_phase: StringName = OnlineMatch.phase
+	OnlineMatch.phase = GameSettings.MATCH_PHASE_PLAYING_SET
+	var combat_sync_script: Script = load("res://scenes/network/combat_sync.gd") as Script
+	var combat_sync: Node = combat_sync_script.new() as Node
+	combat_sync.set("game", self)
+	combat_sync.call(
+		"_set_player_health",
+		GameSettings.PLAYER_TWO_SLOT,
+		remote_player.health_component.max_health
+	)
+	assert(not remote_player.is_eliminated())
+	assert(remote_player.visible)
+	combat_sync.free()
+	_test_player = null
+	OnlineMatch.phase = health_sync_original_phase
 	remote_player.queue_free()
 
 	var status_parent: Node = Node.new()
@@ -295,18 +317,25 @@ func _ready() -> void:
 	await get_tree().process_frame
 	assert(airdrop_manager._phase == AirdropManager.PHASE_INACTIVE)
 	assert(not OnlineMatch.airdrop_deployed)
+	OnlineMatch.phase = GameSettings.MATCH_PHASE_KILL_BANNER
 	OnlineMatch.set_kills = {
 		GameSettings.PLAYER_ONE_SLOT: GameSettings.ONLINE_SET_KILLS_TO_WIN - 1,
 		GameSettings.PLAYER_TWO_SLOT: GameSettings.ONLINE_SET_KILLS_TO_WIN - 1,
 	}
-	airdrop_manager._try_start_decision_drop()
+	airdrop_manager._on_phase_changed(GameSettings.MATCH_PHASE_KILL_BANNER)
 	assert(airdrop_manager._phase == AirdropManager.PHASE_WARNING)
 	assert(airdrop_manager._target_position.is_equal_approx(center_marker.global_position))
 	assert(OnlineMatch.airdrop_deployed)
+	airdrop_manager._warning_complete = true
+	OnlineMatch.phase = GameSettings.MATCH_PHASE_PLAYING_SET
+	airdrop_manager._on_phase_changed(GameSettings.MATCH_PHASE_PLAYING_SET)
+	airdrop_manager._process_authority(0.016)
+	assert(airdrop_manager._phase == AirdropManager.PHASE_FALLING)
 
 	airdrop_manager._clear_airdrop()
 	airdrop_manager._drop_completed = false
 	OnlineMatch.airdrop_deployed = false
+	OnlineMatch.phase = GameSettings.MATCH_PHASE_PLAYING_SET
 	OnlineMatch.match_points = {
 		GameSettings.PLAYER_ONE_SLOT: 0,
 		GameSettings.PLAYER_TWO_SLOT: 1,

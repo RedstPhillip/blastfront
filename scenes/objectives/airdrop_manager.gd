@@ -23,6 +23,7 @@ var _siren_pulses_remaining: int = 0
 var _remote_descent_target: float = 0.0
 var _remote_capture_target: float = 0.0
 var _last_remote_packet_msec: int = 0
+var _warning_complete: bool = false
 
 @onready var _warning_timer: Timer = get_node_or_null("WarningTimer") as Timer
 @onready var _siren_timer: Timer = get_node_or_null("SirenTimer") as Timer
@@ -59,6 +60,12 @@ func _process(delta: float) -> void:
 
 
 func _process_authority(delta: float) -> void:
+	if NetworkSession.is_steam_match_active():
+		_round_running = OnlineMatch.phase == GameSettings.MATCH_PHASE_PLAYING_SET
+	if _phase == PHASE_INACTIVE:
+		_try_start_decision_drop()
+	if _phase == PHASE_WARNING and _warning_complete and _round_running:
+		_begin_fall()
 	if not _round_running:
 		return
 	if _phase == PHASE_FALLING:
@@ -110,6 +117,8 @@ func _on_phase_changed(next_phase: StringName) -> void:
 			_try_start_decision_drop()
 	elif next_phase == GameSettings.MATCH_PHASE_KILL_BANNER:
 		_round_running = false
+		if _has_authority():
+			_try_start_decision_drop()
 	elif next_phase in [
 		GameSettings.MATCH_PHASE_INTERMISSION,
 		GameSettings.MATCH_PHASE_FINAL,
@@ -126,10 +135,16 @@ func _start_new_set() -> void:
 	_round_running = true
 	_capture_finish_pending = false
 	_drop_completed = false
+	_warning_complete = false
 
 
 func _try_start_decision_drop() -> void:
-	if not _round_running or _phase != PHASE_INACTIVE or _drop_completed:
+	if _phase != PHASE_INACTIVE or _drop_completed:
+		return
+	if OnlineMatch.phase not in [
+		GameSettings.MATCH_PHASE_KILL_BANNER,
+		GameSettings.MATCH_PHASE_PLAYING_SET,
+	]:
 		return
 	if OnlineMatch.airdrop_deployed:
 		return
@@ -145,6 +160,14 @@ func _try_start_decision_drop() -> void:
 	_capture_progress = 0.0
 	_capturing_slot = 0
 	_set_phase(PHASE_WARNING)
+	_send_state(true)
+
+
+func _begin_fall() -> void:
+	if _phase != PHASE_WARNING:
+		return
+	_warning_complete = false
+	_set_phase(PHASE_FALLING)
 	_send_state(true)
 
 
@@ -230,10 +253,12 @@ func _play_siren_pulse() -> void:
 
 
 func _on_warning_timer_timeout() -> void:
-	if not _has_authority() or not _round_running or _phase != PHASE_WARNING:
+	if not _has_authority() or _phase != PHASE_WARNING:
 		return
-	_set_phase(PHASE_FALLING)
-	_send_state(true)
+	if _round_running:
+		_begin_fall()
+	else:
+		_warning_complete = true
 
 
 func _update_capture(delta: float) -> void:
@@ -297,6 +322,7 @@ func _clear_airdrop() -> void:
 	_remote_descent_target = 0.0
 	_remote_capture_target = 0.0
 	_capturing_slot = 0
+	_warning_complete = false
 	if _airdrop != null and is_instance_valid(_airdrop):
 		_airdrop.queue_free()
 	_airdrop = null
