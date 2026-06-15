@@ -5,6 +5,9 @@ const BLUE_BODY_TEXTURE: Texture2D = preload("res://assets/player/blue_ball.png"
 const BLUE_BODY_TEXTURE_MIRRORED: Texture2D = preload("res://assets/player/blue_ball_mirrored.png")
 const RED_BODY_TEXTURE: Texture2D = preload("res://assets/player/red_ball.png")
 const RED_BODY_TEXTURE_MIRRORED: Texture2D = preload("res://assets/player/red_ball_mirrored.png")
+const HEALING_AREA_SEGMENTS: int = 72
+const HEALING_AREA_FILL_COLOR: Color = Color(0.34, 1.0, 0.58, 0.14)
+const HEALING_AREA_RING_COLOR: Color = Color(0.58, 1.0, 0.72, 0.72)
 
 static var _body_texture_cache: Dictionary = {}
 static var _body_texture_exists_cache: Dictionary = {}
@@ -116,8 +119,16 @@ var _base_block_cone_degrees: float = GameSettings.PLAYER_BLOCK_CONE_DEGREES
 var _base_max_health: int = GameSettings.DEFAULT_MAX_HEALTH
 var _adrenaline_timer: float = 0.0
 var _healing_field_progress: float = 0.0
+var _healing_field_timer: float = 0.0
+var _healing_field_radius: float = 0.0
+var _healing_field_rate: float = 0.0
+var _healing_area_visual_radius: float = 0.0
+var _healing_area_visual_phase: float = 0.0
 var _frosty_aura_timer: float = 0.0
 
+@onready var _healing_area: Node2D = $HealingArea
+@onready var _healing_area_fill: Polygon2D = $HealingArea/Fill
+@onready var _healing_area_ring: Line2D = $HealingArea/Ring
 @onready var _body_sprite: Sprite2D = $Sprite2D
 @onready var _shield: Sprite2D = $ArmRenderer/Shield
 @onready var _armor_visual_root: ArmorVisualRoot = $ArmorVisualRoot
@@ -418,6 +429,9 @@ func set_eliminated(eliminated: bool) -> void:
 	velocity = Vector2.ZERO
 	_hit_flash_timer = 0.0
 	_hit_feedback_guard_timer = 0.0
+	_healing_field_timer = 0.0
+	_healing_field_progress = 0.0
+	_update_healing_area_visual(0.0, 0.0)
 
 	if eliminated:
 		movement_enabled = false
@@ -1009,13 +1023,28 @@ func _apply_block_start_armor_effects() -> void:
 
 
 func _update_block_armor_effects(delta: float) -> void:
-	if not _block_active:
+	var healing_radius: float = _get_armor_attribute(&"healing_radius")
+	var healing_rate: float = _get_armor_attribute(&"healing_rate")
+
+	if _block_active and healing_radius > 0.0 and healing_rate > 0.0:
+		_healing_field_timer = GameSettings.PLAYER_HEALING_FIELD_DURATION
+		_healing_field_radius = healing_radius
+		_healing_field_rate = healing_rate
+	elif _healing_field_timer > 0.0:
+		_healing_field_timer = maxf(_healing_field_timer - delta, 0.0)
+	else:
 		_healing_field_progress = 0.0
+
+	var field_active: bool = _healing_field_timer > 0.0
+	_update_healing_area_visual(_healing_field_radius if field_active else 0.0, delta)
+	if field_active:
+		_update_healing_shield(delta, _healing_field_radius, _healing_field_rate)
+
+	if not _block_active:
 		_frosty_aura_timer = 0.0
 		return
 
 	_update_frosty_shield(delta)
-	_update_healing_shield(delta)
 	_update_pull_shield(delta)
 
 
@@ -1040,9 +1069,7 @@ func _update_frosty_shield(delta: float) -> void:
 		})
 
 
-func _update_healing_shield(delta: float) -> void:
-	var radius: float = _get_armor_attribute(&"healing_radius")
-	var heal_rate: float = _get_armor_attribute(&"healing_rate")
+func _update_healing_shield(delta: float, radius: float, heal_rate: float) -> void:
 	if radius <= 0.0 or heal_rate <= 0.0:
 		_healing_field_progress = 0.0
 		return
@@ -1059,6 +1086,51 @@ func _update_healing_shield(delta: float) -> void:
 		if target.health_component != null:
 			target.health_component.heal(heal_amount)
 			GameJuice.spawn_burst(&"spawn", target.global_position, Vector2.UP, Color(0.48, 1.0, 0.62, 0.45))
+
+
+func _update_healing_area_visual(radius: float, delta: float) -> void:
+	if _healing_area == null or _healing_area_fill == null or _healing_area_ring == null:
+		return
+
+	if radius <= 0.0:
+		_healing_area.hide()
+		_healing_area_visual_radius = 0.0
+		return
+
+	_healing_area.show()
+	_healing_area.global_rotation = 0.0
+	_healing_area.global_scale = Vector2.ONE
+	_healing_area_visual_phase += delta * 4.0
+
+	if not is_equal_approx(_healing_area_visual_radius, radius):
+		_healing_area_visual_radius = radius
+		_healing_area_fill.polygon = _build_circle_points(radius)
+		var ring_points: PackedVector2Array = _build_circle_points(radius)
+		ring_points.append(ring_points[0])
+		_healing_area_ring.points = ring_points
+
+	var pulse: float = 0.5 + sin(_healing_area_visual_phase) * 0.5
+	_healing_area_fill.color = Color(
+		HEALING_AREA_FILL_COLOR.r,
+		HEALING_AREA_FILL_COLOR.g,
+		HEALING_AREA_FILL_COLOR.b,
+		lerpf(0.10, 0.18, pulse)
+	)
+	_healing_area_ring.default_color = Color(
+		HEALING_AREA_RING_COLOR.r,
+		HEALING_AREA_RING_COLOR.g,
+		HEALING_AREA_RING_COLOR.b,
+		lerpf(0.48, 0.82, pulse)
+	)
+	_healing_area_ring.width = lerpf(2.0, 4.0, pulse)
+
+
+func _build_circle_points(radius: float) -> PackedVector2Array:
+	var points: PackedVector2Array = PackedVector2Array()
+	for point_index in range(HEALING_AREA_SEGMENTS):
+		var angle: float = TAU * float(point_index) / float(HEALING_AREA_SEGMENTS)
+		points.append(Vector2(cos(angle), sin(angle)) * radius)
+	return points
 
 
 func _update_pull_shield(delta: float) -> void:

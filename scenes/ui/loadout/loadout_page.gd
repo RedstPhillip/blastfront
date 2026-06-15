@@ -66,8 +66,13 @@ var _merge_warning_dialog: AcceptDialog = null
 var _merge_accent_bar: ColorRect = null
 var _merge_kind_label: Label = null
 var _merge_title_label: Label = null
-var _merge_item_label: Label = null
-var _merge_result_label: Label = null
+var _merge_source_name_label: Label = null
+var _merge_source_meta_label: Label = null
+var _merge_target_name_label: Label = null
+var _merge_target_meta_label: Label = null
+var _merge_result_name_label: Label = null
+var _merge_result_meta_label: Label = null
+var _merge_condition_label: Label = null
 var _merge_cost_label: Label = null
 var _merge_balance_label: Label = null
 var _merge_hint_label: Label = null
@@ -879,7 +884,12 @@ func _on_armor_merge_requested(source_item: ArmorItemData, target_item: ArmorIte
 		"ARMOR FUSION",
 		"Merge Armor",
 		source_item.get_hover_title(),
+		target_item.get_hover_title(),
+		source_item.get_mark(),
+		target_item.get_mark(),
 		next_mark,
+		source_item.condition,
+		target_item.condition,
 		merge_cost,
 		OnlineMatch.get_local_coin_balance(),
 		MERGE_ACCENT_ARMOR
@@ -912,7 +922,12 @@ func _on_weapon_extension_merge_requested(source_item: WeaponExtensionItem, targ
 		"WEAPON FUSION",
 		"Merge Extensions",
 		source_item.get_display_name(),
+		target_item.get_display_name(),
+		source_item.mark,
+		target_item.mark,
 		next_mark,
+		source_item.condition,
+		target_item.condition,
 		merge_cost,
 		OnlineMatch.get_local_coin_balance(),
 		MERGE_ACCENT_EXTENSION
@@ -1000,16 +1015,22 @@ func _show_not_enough_merge_coins_warning(next_mark: int, merge_cost: int, item_
 func _show_merge_confirmation(
 	kind_text: String,
 	title_text: String,
-	item_name: String,
+	source_name: String,
+	target_name: String,
+	source_mark: int,
+	target_mark: int,
 	next_mark: int,
+	source_condition: float,
+	target_condition: float,
 	merge_cost: int,
 	balance: int,
 	accent: Color
 ) -> void:
 	_merge_dialog.title = title_text
 	_merge_dialog.dialog_text = ""
-	_merge_dialog.ok_button_text = "MERGE  -%d C" % merge_cost
+	_merge_dialog.ok_button_text = "FORGE MK%d  -%d C" % [next_mark, merge_cost]
 	_merge_dialog.cancel_button_text = "CANCEL"
+	var result_condition: float = (source_condition + target_condition) * 0.5
 
 	if _merge_accent_bar != null:
 		_merge_accent_bar.color = accent
@@ -1017,11 +1038,26 @@ func _show_merge_confirmation(
 		_merge_kind_label.text = kind_text
 		_merge_kind_label.add_theme_color_override("font_color", accent)
 	if _merge_title_label != null:
-		_merge_title_label.text = "Build MK%d" % next_mark
-	if _merge_item_label != null:
-		_merge_item_label.text = "%s x2" % item_name
-	if _merge_result_label != null:
-		_merge_result_label.text = "Result: MK%d item with averaged condition" % next_mark
+		_merge_title_label.text = "Forge MK%d Upgrade" % next_mark
+	if _merge_source_name_label != null:
+		_merge_source_name_label.text = _trim_merge_item_name(source_name)
+	if _merge_source_meta_label != null:
+		_merge_source_meta_label.text = "MK%d  |  %.0f%%" % [source_mark, source_condition]
+	if _merge_target_name_label != null:
+		_merge_target_name_label.text = _trim_merge_item_name(target_name)
+	if _merge_target_meta_label != null:
+		_merge_target_meta_label.text = "MK%d  |  %.0f%%" % [target_mark, target_condition]
+	if _merge_result_name_label != null:
+		_merge_result_name_label.text = _trim_merge_item_name(source_name)
+	if _merge_result_meta_label != null:
+		_merge_result_meta_label.text = "MK%d  |  %.0f%%" % [next_mark, result_condition]
+		_merge_result_meta_label.add_theme_color_override("font_color", accent)
+	if _merge_condition_label != null:
+		_merge_condition_label.text = "Condition %.0f%% + %.0f%% -> %.0f%%" % [
+			source_condition,
+			target_condition,
+			result_condition,
+		]
 	if _merge_cost_label != null:
 		_merge_cost_label.text = "Cost\n%d coins" % merge_cost
 		_merge_cost_label.add_theme_color_override("font_color", Color8(255, 214, 112, 255))
@@ -1029,7 +1065,7 @@ func _show_merge_confirmation(
 		_merge_balance_label.text = "Balance\n%d coins" % balance
 		_merge_balance_label.add_theme_color_override("font_color", Color8(180, 230, 210, 255) if balance >= merge_cost else Color8(255, 120, 100, 255))
 	if _merge_hint_label != null:
-		_merge_hint_label.text = "Consumes both matching items and creates the next MK tier."
+		_merge_hint_label.text = "The two matching MK%d items are consumed." % source_mark
 
 	_style_merge_button(_merge_dialog.get_ok_button(), true, accent)
 	_style_merge_button(_merge_dialog.get_cancel_button(), false, accent)
@@ -1039,12 +1075,12 @@ func _show_merge_confirmation(
 func _setup_merge_dialog() -> void:
 	_merge_dialog = ConfirmationDialog.new()
 	_merge_dialog.name = "MergeDialog"
-	_merge_dialog.min_size = Vector2i(500, 0)
+	_merge_dialog.min_size = Vector2i(660, 0)
 	_merge_dialog.exclusive = true
 	_merge_dialog.dialog_text = ""
 	_merge_dialog.add_theme_stylebox_override(
 		"panel",
-		_create_merge_style(Color8(16, 15, 13, 248), Color8(176, 130, 66, 210), 3, 18, 8)
+		_create_merge_style(Color8(14, 15, 16, 250), Color8(138, 151, 138, 220), 4, 20, 9)
 	)
 	add_child(_merge_dialog)
 	_merge_dialog.confirmed.connect(_confirm_pending_extension_merge)
@@ -1064,27 +1100,28 @@ func _setup_merge_dialog() -> void:
 
 func _build_merge_dialog_content() -> void:
 	var margin: MarginContainer = MarginContainer.new()
-	margin.custom_minimum_size = Vector2(460, 232)
-	margin.add_theme_constant_override("margin_left", 18)
-	margin.add_theme_constant_override("margin_top", 14)
-	margin.add_theme_constant_override("margin_right", 18)
-	margin.add_theme_constant_override("margin_bottom", 10)
+	margin.custom_minimum_size = Vector2(620, 318)
+	margin.add_theme_constant_override("margin_left", 20)
+	margin.add_theme_constant_override("margin_top", 16)
+	margin.add_theme_constant_override("margin_right", 20)
+	margin.add_theme_constant_override("margin_bottom", 12)
 	_merge_dialog.add_child(margin)
 
 	var root: VBoxContainer = VBoxContainer.new()
-	root.add_theme_constant_override("separation", 10)
+	root.add_theme_constant_override("separation", 12)
 	margin.add_child(root)
 
 	var header: HBoxContainer = HBoxContainer.new()
-	header.add_theme_constant_override("separation", 10)
+	header.add_theme_constant_override("separation", 12)
 	root.add_child(header)
 
 	_merge_accent_bar = ColorRect.new()
-	_merge_accent_bar.custom_minimum_size = Vector2(5, 50)
+	_merge_accent_bar.custom_minimum_size = Vector2(6, 58)
 	header.add_child(_merge_accent_bar)
 
 	var header_text: VBoxContainer = VBoxContainer.new()
-	header_text.add_theme_constant_override("separation", 1)
+	header_text.add_theme_constant_override("separation", 2)
+	header_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(header_text)
 
 	_merge_kind_label = _create_merge_label("", 13, Color8(255, 194, 92, 255), true)
@@ -1093,29 +1130,55 @@ func _build_merge_dialog_content() -> void:
 	_merge_title_label = _create_merge_label("", 26, Color8(242, 246, 236, 255), true)
 	header_text.add_child(_merge_title_label)
 
-	var item_panel: PanelContainer = PanelContainer.new()
-	item_panel.add_theme_stylebox_override(
-		"panel",
-		_create_merge_style(Color8(8, 8, 7, 214), Color8(111, 94, 68, 150), 2, 0, 0)
+	var forge_row: HBoxContainer = HBoxContainer.new()
+	forge_row.add_theme_constant_override("separation", 8)
+	root.add_child(forge_row)
+
+	var source_labels: Array[Label] = _create_merge_item_tile(
+		forge_row,
+		"SOURCE A",
+		Color8(30, 34, 36, 238),
+		Color8(84, 96, 98, 185)
 	)
-	root.add_child(item_panel)
+	_merge_source_name_label = source_labels[0]
+	_merge_source_meta_label = source_labels[1]
 
-	var item_margin: MarginContainer = MarginContainer.new()
-	item_margin.add_theme_constant_override("margin_left", 12)
-	item_margin.add_theme_constant_override("margin_top", 9)
-	item_margin.add_theme_constant_override("margin_right", 12)
-	item_margin.add_theme_constant_override("margin_bottom", 9)
-	item_panel.add_child(item_margin)
+	var plus_label: Label = _create_merge_operator_label("+")
+	forge_row.add_child(plus_label)
 
-	var item_box: VBoxContainer = VBoxContainer.new()
-	item_box.add_theme_constant_override("separation", 4)
-	item_margin.add_child(item_box)
+	var target_labels: Array[Label] = _create_merge_item_tile(
+		forge_row,
+		"SOURCE B",
+		Color8(30, 34, 36, 238),
+		Color8(84, 96, 98, 185)
+	)
+	_merge_target_name_label = target_labels[0]
+	_merge_target_meta_label = target_labels[1]
 
-	_merge_item_label = _create_merge_label("", 18, Color8(238, 230, 214, 255), true)
-	item_box.add_child(_merge_item_label)
+	var arrow_label: Label = _create_merge_operator_label(">")
+	forge_row.add_child(arrow_label)
 
-	_merge_result_label = _create_merge_label("", 12, Color8(166, 176, 170, 255), false)
-	item_box.add_child(_merge_result_label)
+	var result_labels: Array[Label] = _create_merge_item_tile(
+		forge_row,
+		"RESULT",
+		Color8(36, 34, 22, 242),
+		Color8(218, 172, 78, 210)
+	)
+	_merge_result_name_label = result_labels[0]
+	_merge_result_meta_label = result_labels[1]
+
+	var condition_panel: PanelContainer = PanelContainer.new()
+	condition_panel.add_theme_stylebox_override(
+		"panel",
+		_create_merge_style(Color8(8, 10, 11, 214), Color8(86, 96, 92, 150), 3, 0, 0)
+	)
+	root.add_child(condition_panel)
+
+	_merge_condition_label = _create_merge_label("", 15, Color8(205, 214, 207, 255), true)
+	_merge_condition_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_merge_condition_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_merge_condition_label.custom_minimum_size = Vector2(0, 34)
+	condition_panel.add_child(_merge_condition_label)
 
 	var stats: HBoxContainer = HBoxContainer.new()
 	stats.add_theme_constant_override("separation", 8)
@@ -1125,8 +1188,64 @@ func _build_merge_dialog_content() -> void:
 	_merge_balance_label = _create_merge_stat_badge(stats, Color8(18, 52, 45, 218), Color8(88, 184, 150, 170))
 
 	_merge_hint_label = _create_merge_label("", 11, Color8(132, 137, 130, 255), false)
+	_merge_hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_merge_hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	root.add_child(_merge_hint_label)
+
+
+func _create_merge_item_tile(
+	parent: Control,
+	caption: String,
+	bg_color: Color,
+	border_color: Color
+) -> Array[Label]:
+	var panel: PanelContainer = PanelContainer.new()
+	panel.custom_minimum_size = Vector2(142, 100)
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.add_theme_stylebox_override("panel", _create_merge_style(bg_color, border_color, 4, 0, 0))
+	parent.add_child(panel)
+
+	var margin: MarginContainer = MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 10)
+	margin.add_theme_constant_override("margin_top", 9)
+	margin.add_theme_constant_override("margin_right", 10)
+	margin.add_theme_constant_override("margin_bottom", 9)
+	panel.add_child(margin)
+
+	var stack: VBoxContainer = VBoxContainer.new()
+	stack.add_theme_constant_override("separation", 5)
+	margin.add_child(stack)
+
+	var caption_label: Label = _create_merge_label(caption, 11, Color8(145, 153, 150, 255), false)
+	caption_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	stack.add_child(caption_label)
+
+	var name_label: Label = _create_merge_label("", 15, Color8(238, 232, 220, 255), true)
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	name_label.custom_minimum_size = Vector2(0, 38)
+	stack.add_child(name_label)
+
+	var meta_label: Label = _create_merge_label("", 14, Color8(190, 207, 204, 255), true)
+	meta_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	stack.add_child(meta_label)
+
+	return [name_label, meta_label]
+
+
+func _create_merge_operator_label(text_value: String) -> Label:
+	var label: Label = _create_merge_label(text_value, 22, Color8(174, 180, 170, 255), true)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.custom_minimum_size = Vector2(28, 100)
+	return label
+
+
+func _trim_merge_item_name(item_name: String) -> String:
+	var trimmed: String = item_name.strip_edges()
+	if trimmed.length() <= 30:
+		return trimmed
+	return trimmed.substr(0, 27) + "..."
 
 
 func _create_merge_stat_badge(parent: Control, bg_color: Color, border_color: Color) -> Label:

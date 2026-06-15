@@ -19,6 +19,19 @@ collision_layer = 2
 collision_mask = 3
 script = ExtResource("1_onrkg")
 
+[node name="HealingArea" type="Node2D" parent="."]
+visible = false
+z_index = -8
+
+[node name="Fill" type="Polygon2D" parent="HealingArea"]
+color = Color(0.34, 1, 0.58, 0.14)
+
+[node name="Ring" type="Line2D" parent="HealingArea"]
+z_index = 1
+width = 3.0
+default_color = Color(0.58, 1, 0.72, 0.72)
+antialiased = true
+
 [node name="LegRenderer" type="Node2D" parent="." unique_id=878611532 node_paths=PackedStringArray("player_path")]
 z_index = -1
 script = ExtResource("3_gmlin")
