@@ -169,6 +169,71 @@ func get_definition(item_id: StringName) -> ArmorItemData:
 	return _definitions_by_id.get(str(item_id), null) as ArmorItemData
 
 
+func get_merge_cost_for_next_mark(next_mark: int) -> int:
+	var base_cost: int = 0
+	match next_mark:
+		2:
+			base_cost = GameSettings.ARMOR_MERGE_MK2_COST
+		3:
+			base_cost = GameSettings.ARMOR_MERGE_MK3_COST
+	if base_cost <= 0:
+		return 0
+	return maxi(1, int(roundf(float(base_cost) * ResearchManager.get_upgrade_cost_multiplier())))
+
+
+func get_merge_cost_for_items(first_item: ArmorItemData, second_item: ArmorItemData) -> int:
+	if not can_merge_items(first_item, second_item):
+		return 0
+	return get_merge_cost_for_next_mark(first_item.get_mark() + 1)
+
+
+func can_merge_items(first_item: ArmorItemData, second_item: ArmorItemData) -> bool:
+	if first_item == null or second_item == null:
+		return false
+	if first_item == second_item:
+		return false
+	if first_item.category != second_item.category:
+		return false
+	if _base_item_key(first_item) != _base_item_key(second_item):
+		return false
+	if first_item.get_mark() != second_item.get_mark():
+		return false
+	return first_item.get_mark() < ArmorItemData.MAX_MARK
+
+
+func has_merge_partner_for_local(item: ArmorItemData) -> bool:
+	if item == null:
+		return false
+	for candidate in inventory:
+		if can_merge_items(item, candidate):
+			return true
+	return false
+
+
+func try_merge_items_for_local(first_item: ArmorItemData, second_item: ArmorItemData) -> ArmorItemData:
+	if not can_merge_items(first_item, second_item):
+		return null
+
+	var first_index: int = inventory.find(first_item)
+	var second_index: int = inventory.find(second_item)
+	if first_index < 0 or second_index < 0:
+		return null
+
+	var merged_item: ArmorItemData = _create_merged_item(first_item, second_item)
+	if merged_item == null:
+		return null
+
+	var merge_cost: int = get_merge_cost_for_items(first_item, second_item)
+	if merge_cost <= 0 or not OnlineMatch.try_spend_local_coins(merge_cost):
+		return null
+
+	inventory.remove_at(maxi(first_index, second_index))
+	inventory.remove_at(mini(first_index, second_index))
+	inventory.append(merged_item)
+	inventory_changed.emit()
+	return merged_item
+
+
 func serialize_loadout_for_local() -> Dictionary:
 	var result: Dictionary = {}
 	for category_id in ArmorItemData.category_ids():
@@ -177,6 +242,7 @@ func serialize_loadout_for_local() -> Dictionary:
 			result[str(category_id)] = {
 				"id": str(item.item_id),
 				"condition": item.condition,
+				"mark": item.get_mark(),
 			}
 	return result
 
@@ -262,7 +328,55 @@ func _create_item_from_loadout_data(loadout_data: Dictionary) -> ArmorItemData:
 	if item == null:
 		return null
 	item.condition = float(loadout_data.get("condition", definition.condition))
+	var mark_value: int = int(loadout_data.get("mark", definition.get_mark()))
+	item.metadata = _metadata_with_mark(item.metadata, mark_value)
 	return item
+
+
+func _create_merged_item(first_item: ArmorItemData, second_item: ArmorItemData) -> ArmorItemData:
+	var next_mark: int = first_item.get_mark() + 1
+	var definition: ArmorItemData = _get_next_mark_definition(first_item, next_mark)
+	var merged_item: ArmorItemData = null
+	if definition != null:
+		merged_item = definition.duplicate(true) as ArmorItemData
+	else:
+		merged_item = first_item.duplicate(true) as ArmorItemData
+	if merged_item == null:
+		return null
+
+	merged_item.condition = (first_item.condition + second_item.condition) * 0.5
+	merged_item.metadata = _metadata_with_mark(merged_item.metadata, next_mark)
+	return merged_item
+
+
+func _get_next_mark_definition(item: ArmorItemData, next_mark: int) -> ArmorItemData:
+	if item == null:
+		return null
+	var item_id_text: String = str(item.item_id)
+	var current_mark: int = item.get_mark()
+	var current_suffix: String = "_mk%d" % current_mark
+	if item_id_text.ends_with(current_suffix):
+		var next_id: StringName = StringName(item_id_text.substr(0, item_id_text.length() - current_suffix.length()) + "_mk%d" % next_mark)
+		var next_definition: ArmorItemData = get_definition(next_id)
+		if next_definition != null:
+			return next_definition
+	return item
+
+
+func _base_item_key(item: ArmorItemData) -> String:
+	var item_id_text: String = str(item.item_id)
+	var current_suffix: String = "_mk%d" % item.get_mark()
+	if item_id_text.ends_with(current_suffix):
+		return item_id_text.substr(0, item_id_text.length() - current_suffix.length())
+	return item_id_text
+
+
+func _metadata_with_mark(metadata_variant: Variant, mark: int) -> Dictionary:
+	var result: Dictionary = {}
+	if metadata_variant is Dictionary:
+		result = (metadata_variant as Dictionary).duplicate(true)
+	result["mark"] = clampi(mark, 1, ArmorItemData.MAX_MARK)
+	return result
 
 
 func _owns_item_id(item_id: StringName) -> bool:

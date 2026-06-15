@@ -3,9 +3,11 @@ class_name ArmorItemCard
 
 signal armor_hovered(item: ArmorItemData)
 signal armor_selected(item: ArmorItemData)
+signal armor_merge_requested(source_item: ArmorItemData, target_item: ArmorItemData)
 
 var item: ArmorItemData = null
 var _is_hovered: bool = false
+var _has_merge_partner: bool = false
 var _mark_label: Label = null
 
 @onready var _background: TextureRect = %Background
@@ -30,6 +32,31 @@ func setup(armor_item: ArmorItemData) -> void:
 		_refresh()
 
 
+func set_merge_partner_available(is_available: bool) -> void:
+	_has_merge_partner = is_available
+	if is_node_ready() and item != null:
+		_apply_background_gradient(item.get_condition_color())
+
+
+func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
+	if item == null or not (data is Dictionary):
+		return false
+	var drop_data: Dictionary = data
+	if drop_data.get("type", &"") != &"armor_item":
+		return false
+	if drop_data.get("source", &"") != &"inventory":
+		return false
+	var dropped_item: ArmorItemData = drop_data.get("item", null) as ArmorItemData
+	return ArmorInventory.can_merge_items(dropped_item, item)
+
+
+func _drop_data(_at_position: Vector2, data: Variant) -> void:
+	var drop_data: Dictionary = data
+	var dropped_item: ArmorItemData = drop_data.get("item", null) as ArmorItemData
+	if ArmorInventory.can_merge_items(dropped_item, item):
+		armor_merge_requested.emit(dropped_item, item)
+
+
 func _get_drag_data(_at_position: Vector2) -> Variant:
 	if item == null:
 		return null
@@ -39,6 +66,7 @@ func _get_drag_data(_at_position: Vector2) -> Variant:
 		set_drag_preview(preview)
 	return {
 		"type": &"armor_item",
+		"source": &"inventory",
 		"item": item,
 	}
 
@@ -67,7 +95,9 @@ func _refresh() -> void:
 
 
 func _apply_background_gradient(base_color: Color) -> void:
-	_background.texture = LoadoutPreviewFrame.create_condition_texture(54, 54, base_color, 0.82, LoadoutPreviewFrame.DEFAULT_CORNER_RADIUS, _is_hovered)
+	var card_color: Color = base_color.lightened(0.22) if _has_merge_partner else base_color
+	var alpha: float = 0.96 if _has_merge_partner else 0.82
+	_background.texture = LoadoutPreviewFrame.create_condition_texture(54, 54, card_color, alpha, LoadoutPreviewFrame.DEFAULT_CORNER_RADIUS, _is_hovered)
 
 
 func _ensure_mark_label() -> void:

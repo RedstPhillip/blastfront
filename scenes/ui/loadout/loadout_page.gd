@@ -49,6 +49,8 @@ const DEFAULT_WEAPON_STATS: Array[StringName] = [
 const HOVER_CLEAR_DELAY: float = 0.12
 const MIN_WEAPON_INVENTORY_SLOTS: int = 30
 const MIN_ARMOR_INVENTORY_SLOTS: int = 18
+const MERGE_ACCENT_EXTENSION: Color = Color8(120, 224, 255, 255)
+const MERGE_ACCENT_ARMOR: Color = Color8(255, 194, 92, 255)
 
 var _weapon_slots: Dictionary = {}
 var _armor_slots: Dictionary = {}
@@ -57,8 +59,18 @@ var _saved_reward_slots: Array[RoundRewardSlot] = []
 var _inspecting_item: bool = false
 var _pending_merge_source: WeaponExtensionItem = null
 var _pending_merge_target: WeaponExtensionItem = null
+var _pending_armor_merge_source: ArmorItemData = null
+var _pending_armor_merge_target: ArmorItemData = null
 var _merge_dialog: ConfirmationDialog = null
 var _merge_warning_dialog: AcceptDialog = null
+var _merge_accent_bar: ColorRect = null
+var _merge_kind_label: Label = null
+var _merge_title_label: Label = null
+var _merge_item_label: Label = null
+var _merge_result_label: Label = null
+var _merge_cost_label: Label = null
+var _merge_balance_label: Label = null
+var _merge_hint_label: Label = null
 var _saved_reward_spacer: Control = null
 var _hover_clear_timer: float = 0.0
 
@@ -283,8 +295,10 @@ func _refresh_armor_inventory() -> void:
 		if card == null:
 			continue
 		card.setup(item)
+		card.set_merge_partner_available(ArmorInventory.has_merge_partner_for_local(item))
 		card.armor_hovered.connect(_show_armor_description)
 		card.armor_selected.connect(_on_armor_selected)
+		card.armor_merge_requested.connect(_on_armor_merge_requested)
 		_armor_inventory_grid.add_child(card)
 		visible_item_count += 1
 
@@ -398,6 +412,10 @@ func _show_armor_description(item: ArmorItemData) -> void:
 		item.get_condition_name().to_upper(),
 	]
 	_description_body.text = _short_description(item.description)
+	if ArmorInventory.has_merge_partner_for_local(item):
+		var merge_cost: int = ArmorInventory.get_merge_cost_for_next_mark(item.get_mark() + 1)
+		if merge_cost > 0:
+			_description_body.text += " Merge cost: %d coins." % merge_cost
 	_set_description_condition(item.condition, item.get_condition_color(), true)
 	var current_modifiers: Dictionary = ArmorInventory.get_scaled_attributes()
 	var preview_modifiers: Dictionary = _build_armor_preview_modifiers(item, current_modifiers)
@@ -843,6 +861,31 @@ func _on_armor_cleared(category_id: StringName) -> void:
 	_show_default_weapon_stats(current_modifiers)
 
 
+func _on_armor_merge_requested(source_item: ArmorItemData, target_item: ArmorItemData) -> void:
+	if not ArmorInventory.can_merge_items(source_item, target_item):
+		_show_merge_error("Invalid merge", "Only two copies of the same armor and same MK can be merged.")
+		return
+	var next_mark: int = source_item.get_mark() + 1
+	var merge_cost: int = ArmorInventory.get_merge_cost_for_items(source_item, target_item)
+	if OnlineMatch.get_local_coin_balance() < merge_cost:
+		_show_not_enough_merge_coins_warning(next_mark, merge_cost, "armor")
+		return
+
+	_pending_merge_source = null
+	_pending_merge_target = null
+	_pending_armor_merge_source = source_item
+	_pending_armor_merge_target = target_item
+	_show_merge_confirmation(
+		"ARMOR FUSION",
+		"Merge Armor",
+		source_item.get_hover_title(),
+		next_mark,
+		merge_cost,
+		OnlineMatch.get_local_coin_balance(),
+		MERGE_ACCENT_ARMOR
+	)
+
+
 func _on_weapon_extension_selected(item: WeaponExtensionItem) -> void:
 	if item == null:
 		return
@@ -858,24 +901,29 @@ func _on_weapon_extension_merge_requested(source_item: WeaponExtensionItem, targ
 	var next_mark: int = source_item.mark + 1
 	var merge_cost: int = ExtensionInventory.get_merge_cost_for_items(source_item, target_item)
 	if OnlineMatch.get_local_coin_balance() < merge_cost:
-		_show_not_enough_merge_coins_warning(next_mark, merge_cost)
+		_show_not_enough_merge_coins_warning(next_mark, merge_cost, "extensions")
 		return
 
+	_pending_armor_merge_source = null
+	_pending_armor_merge_target = null
 	_pending_merge_source = source_item
 	_pending_merge_target = target_item
-	_merge_dialog.title = "Merge Extensions"
-	_merge_dialog.dialog_text = "Merge two %s items into MK%d?\n\nCost: %d coins\nBalance: %d coins" % [
+	_show_merge_confirmation(
+		"WEAPON FUSION",
+		"Merge Extensions",
 		source_item.get_display_name(),
 		next_mark,
 		merge_cost,
 		OnlineMatch.get_local_coin_balance(),
-	]
-	_merge_dialog.ok_button_text = "Merge (%d C)" % merge_cost
-	_merge_dialog.cancel_button_text = "Cancel"
-	_merge_dialog.popup_centered()
+		MERGE_ACCENT_EXTENSION
+	)
 
 
 func _confirm_pending_extension_merge() -> void:
+	if _pending_armor_merge_source != null or _pending_armor_merge_target != null:
+		_confirm_pending_armor_merge()
+		return
+
 	var source_item: WeaponExtensionItem = _pending_merge_source
 	var target_item: WeaponExtensionItem = _pending_merge_target
 	_pending_merge_source = null
@@ -885,7 +933,7 @@ func _confirm_pending_extension_merge() -> void:
 	var merged_item: WeaponExtensionItem = ExtensionInventory.try_merge_items_for_local(source_item, target_item)
 	if merged_item == null:
 		if OnlineMatch.get_local_coin_balance() < merge_cost:
-			_show_not_enough_merge_coins_warning(source_item.mark + 1, merge_cost)
+			_show_not_enough_merge_coins_warning(source_item.mark + 1, merge_cost, "extensions")
 		else:
 			_show_merge_error("Merge failed", "The merge could not be completed. Check coins and matching MK tiers.")
 		return
@@ -900,6 +948,31 @@ func _confirm_pending_extension_merge() -> void:
 	]
 
 
+func _confirm_pending_armor_merge() -> void:
+	var source_item: ArmorItemData = _pending_armor_merge_source
+	var target_item: ArmorItemData = _pending_armor_merge_target
+	_pending_armor_merge_source = null
+	_pending_armor_merge_target = null
+
+	var merge_cost: int = ArmorInventory.get_merge_cost_for_items(source_item, target_item)
+	var merged_item: ArmorItemData = ArmorInventory.try_merge_items_for_local(source_item, target_item)
+	if merged_item == null:
+		if OnlineMatch.get_local_coin_balance() < merge_cost:
+			_show_not_enough_merge_coins_warning(source_item.get_mark() + 1, merge_cost, "armor")
+		else:
+			_show_merge_error("Merge failed", "The merge could not be completed. Check coins and matching MK tiers.")
+		return
+
+	_refresh_shop_state()
+	_show_armor_description(merged_item)
+	_description_title.text = "Armor merged"
+	_description_meta.text = "%s  |  MK%d  |  -%d COINS" % [
+		merged_item.get_category_display_name().to_upper(),
+		merged_item.get_mark(),
+		merge_cost,
+	]
+
+
 func _show_merge_error(title: String, body: String) -> void:
 	_description_title.text = title
 	_description_meta.text = "MERGE"
@@ -909,7 +982,7 @@ func _show_merge_error(title: String, body: String) -> void:
 	_show_default_weapon_stats(current_modifiers)
 
 
-func _show_not_enough_merge_coins_warning(next_mark: int, merge_cost: int) -> void:
+func _show_not_enough_merge_coins_warning(next_mark: int, merge_cost: int, item_label: String = "items") -> void:
 	var balance: int = OnlineMatch.get_local_coin_balance()
 	var body: String = "Merging into MK%d costs %d coins. You currently have %d." % [
 		next_mark,
@@ -920,20 +993,202 @@ func _show_not_enough_merge_coins_warning(next_mark: int, merge_cost: int) -> vo
 	if _merge_warning_dialog == null:
 		return
 	_merge_warning_dialog.title = "Not Enough Coins"
-	_merge_warning_dialog.dialog_text = "%s\n\nEarn more coins before merging these extensions." % body
+	_merge_warning_dialog.dialog_text = "%s\n\nEarn more coins before merging these %s." % [body, item_label]
 	_merge_warning_dialog.popup_centered()
+
+
+func _show_merge_confirmation(
+	kind_text: String,
+	title_text: String,
+	item_name: String,
+	next_mark: int,
+	merge_cost: int,
+	balance: int,
+	accent: Color
+) -> void:
+	_merge_dialog.title = title_text
+	_merge_dialog.dialog_text = ""
+	_merge_dialog.ok_button_text = "MERGE  -%d C" % merge_cost
+	_merge_dialog.cancel_button_text = "CANCEL"
+
+	if _merge_accent_bar != null:
+		_merge_accent_bar.color = accent
+	if _merge_kind_label != null:
+		_merge_kind_label.text = kind_text
+		_merge_kind_label.add_theme_color_override("font_color", accent)
+	if _merge_title_label != null:
+		_merge_title_label.text = "Build MK%d" % next_mark
+	if _merge_item_label != null:
+		_merge_item_label.text = "%s x2" % item_name
+	if _merge_result_label != null:
+		_merge_result_label.text = "Result: MK%d item with averaged condition" % next_mark
+	if _merge_cost_label != null:
+		_merge_cost_label.text = "Cost\n%d coins" % merge_cost
+		_merge_cost_label.add_theme_color_override("font_color", Color8(255, 214, 112, 255))
+	if _merge_balance_label != null:
+		_merge_balance_label.text = "Balance\n%d coins" % balance
+		_merge_balance_label.add_theme_color_override("font_color", Color8(180, 230, 210, 255) if balance >= merge_cost else Color8(255, 120, 100, 255))
+	if _merge_hint_label != null:
+		_merge_hint_label.text = "Consumes both matching items and creates the next MK tier."
+
+	_style_merge_button(_merge_dialog.get_ok_button(), true, accent)
+	_style_merge_button(_merge_dialog.get_cancel_button(), false, accent)
+	_merge_dialog.popup_centered()
 
 
 func _setup_merge_dialog() -> void:
 	_merge_dialog = ConfirmationDialog.new()
-	_merge_dialog.name = "ExtensionMergeDialog"
+	_merge_dialog.name = "MergeDialog"
+	_merge_dialog.min_size = Vector2i(500, 0)
+	_merge_dialog.exclusive = true
+	_merge_dialog.dialog_text = ""
+	_merge_dialog.add_theme_stylebox_override(
+		"panel",
+		_create_merge_style(Color8(16, 15, 13, 248), Color8(176, 130, 66, 210), 3, 18, 8)
+	)
 	add_child(_merge_dialog)
 	_merge_dialog.confirmed.connect(_confirm_pending_extension_merge)
+	_build_merge_dialog_content()
 
 	_merge_warning_dialog = AcceptDialog.new()
-	_merge_warning_dialog.name = "ExtensionMergeWarningDialog"
+	_merge_warning_dialog.name = "MergeWarningDialog"
 	_merge_warning_dialog.ok_button_text = "OK"
+	_merge_warning_dialog.min_size = Vector2i(420, 0)
+	_merge_warning_dialog.add_theme_stylebox_override(
+		"panel",
+		_create_merge_style(Color8(22, 15, 14, 248), Color8(225, 82, 72, 220), 3, 16, 7)
+	)
 	add_child(_merge_warning_dialog)
+	_style_merge_button(_merge_warning_dialog.get_ok_button(), true, Color8(225, 82, 72, 255))
+
+
+func _build_merge_dialog_content() -> void:
+	var margin: MarginContainer = MarginContainer.new()
+	margin.custom_minimum_size = Vector2(460, 232)
+	margin.add_theme_constant_override("margin_left", 18)
+	margin.add_theme_constant_override("margin_top", 14)
+	margin.add_theme_constant_override("margin_right", 18)
+	margin.add_theme_constant_override("margin_bottom", 10)
+	_merge_dialog.add_child(margin)
+
+	var root: VBoxContainer = VBoxContainer.new()
+	root.add_theme_constant_override("separation", 10)
+	margin.add_child(root)
+
+	var header: HBoxContainer = HBoxContainer.new()
+	header.add_theme_constant_override("separation", 10)
+	root.add_child(header)
+
+	_merge_accent_bar = ColorRect.new()
+	_merge_accent_bar.custom_minimum_size = Vector2(5, 50)
+	header.add_child(_merge_accent_bar)
+
+	var header_text: VBoxContainer = VBoxContainer.new()
+	header_text.add_theme_constant_override("separation", 1)
+	header.add_child(header_text)
+
+	_merge_kind_label = _create_merge_label("", 13, Color8(255, 194, 92, 255), true)
+	header_text.add_child(_merge_kind_label)
+
+	_merge_title_label = _create_merge_label("", 26, Color8(242, 246, 236, 255), true)
+	header_text.add_child(_merge_title_label)
+
+	var item_panel: PanelContainer = PanelContainer.new()
+	item_panel.add_theme_stylebox_override(
+		"panel",
+		_create_merge_style(Color8(8, 8, 7, 214), Color8(111, 94, 68, 150), 2, 0, 0)
+	)
+	root.add_child(item_panel)
+
+	var item_margin: MarginContainer = MarginContainer.new()
+	item_margin.add_theme_constant_override("margin_left", 12)
+	item_margin.add_theme_constant_override("margin_top", 9)
+	item_margin.add_theme_constant_override("margin_right", 12)
+	item_margin.add_theme_constant_override("margin_bottom", 9)
+	item_panel.add_child(item_margin)
+
+	var item_box: VBoxContainer = VBoxContainer.new()
+	item_box.add_theme_constant_override("separation", 4)
+	item_margin.add_child(item_box)
+
+	_merge_item_label = _create_merge_label("", 18, Color8(238, 230, 214, 255), true)
+	item_box.add_child(_merge_item_label)
+
+	_merge_result_label = _create_merge_label("", 12, Color8(166, 176, 170, 255), false)
+	item_box.add_child(_merge_result_label)
+
+	var stats: HBoxContainer = HBoxContainer.new()
+	stats.add_theme_constant_override("separation", 8)
+	root.add_child(stats)
+
+	_merge_cost_label = _create_merge_stat_badge(stats, Color8(80, 58, 22, 220), Color8(214, 158, 64, 180))
+	_merge_balance_label = _create_merge_stat_badge(stats, Color8(18, 52, 45, 218), Color8(88, 184, 150, 170))
+
+	_merge_hint_label = _create_merge_label("", 11, Color8(132, 137, 130, 255), false)
+	_merge_hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	root.add_child(_merge_hint_label)
+
+
+func _create_merge_stat_badge(parent: Control, bg_color: Color, border_color: Color) -> Label:
+	var panel: PanelContainer = PanelContainer.new()
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.add_theme_stylebox_override("panel", _create_merge_style(bg_color, border_color, 2, 0, 0))
+	parent.add_child(panel)
+
+	var label: Label = _create_merge_label("", 14, Color.WHITE, true)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.custom_minimum_size = Vector2(0, 46)
+	panel.add_child(label)
+	return label
+
+
+func _create_merge_label(text_value: String, font_size: int, font_color: Color, bold_shadow: bool) -> Label:
+	var label: Label = Label.new()
+	label.text = text_value
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", font_color)
+	if bold_shadow:
+		label.add_theme_color_override("font_shadow_color", Color8(0, 0, 0, 210))
+		label.add_theme_constant_override("shadow_offset_x", 1)
+		label.add_theme_constant_override("shadow_offset_y", 2)
+	return label
+
+
+func _style_merge_button(button: Button, is_primary: bool, accent: Color) -> void:
+	if button == null:
+		return
+	button.custom_minimum_size = Vector2(128, 38)
+	button.add_theme_font_size_override("font_size", 16 if is_primary else 14)
+	button.add_theme_color_override("font_color", Color8(18, 18, 16, 255) if is_primary else Color8(218, 220, 212, 255))
+	button.add_theme_color_override("font_hover_color", Color8(12, 14, 14, 255) if is_primary else Color8(248, 250, 240, 255))
+	button.add_theme_color_override("font_pressed_color", Color8(245, 248, 238, 255))
+	var normal_color: Color = accent if is_primary else Color8(42, 40, 35, 242)
+	var hover_color: Color = accent.lightened(0.18) if is_primary else Color8(58, 55, 48, 248)
+	var pressed_color: Color = accent.darkened(0.22) if is_primary else Color8(30, 29, 26, 250)
+	button.add_theme_stylebox_override("normal", _create_merge_style(normal_color, accent.lightened(0.18), 3, 0, 0))
+	button.add_theme_stylebox_override("hover", _create_merge_style(hover_color, accent.lightened(0.35), 3, 0, 0))
+	button.add_theme_stylebox_override("pressed", _create_merge_style(pressed_color, accent.darkened(0.1), 3, 0, 0))
+	button.add_theme_stylebox_override("focus", _create_merge_style(hover_color, accent.lightened(0.35), 3, 0, 0))
+
+
+func _create_merge_style(bg_color: Color, border_color: Color, radius: int, shadow_size: int, shadow_y: int) -> StyleBoxFlat:
+	var style: StyleBoxFlat = StyleBoxFlat.new()
+	style.bg_color = bg_color
+	style.border_color = border_color
+	style.border_width_left = 1
+	style.border_width_top = 1
+	style.border_width_right = 1
+	style.border_width_bottom = 1
+	style.corner_radius_top_left = radius
+	style.corner_radius_top_right = radius
+	style.corner_radius_bottom_right = radius
+	style.corner_radius_bottom_left = radius
+	if shadow_size > 0:
+		style.shadow_color = Color(0, 0, 0, 0.48)
+		style.shadow_size = shadow_size
+		style.shadow_offset = Vector2(0, shadow_y)
+	return style
 
 
 func _on_weapon_extension_cleared(slot_key: StringName) -> void:

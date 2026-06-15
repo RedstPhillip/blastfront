@@ -285,6 +285,7 @@ func _ready() -> void:
 
 	ResearchManager._local_marks[str(ResearchManager.UPGRADE_DISCOUNT)] = 3
 	assert(ExtensionInventory.get_merge_cost_for_next_mark(3) == 13)
+	_verify_armor_merging()
 
 	ResearchManager._local_marks[str(ResearchManager.RECYCLING)] = 3
 	ResearchManager._local_marks[str(ResearchManager.BLUEPRINT_STORAGE)] = 3
@@ -337,6 +338,47 @@ func _verify_world_scene_contract() -> void:
 
 	locker.queue_free()
 	await get_tree().process_frame
+
+
+func _verify_armor_merging() -> void:
+	var original_armor_inventory: Array[ArmorItemData] = ArmorInventory.inventory.duplicate()
+	var original_balances: Dictionary = OnlineMatch.coin_balances.duplicate()
+	OnlineMatch.coin_balances[NetworkSession.local_player_slot] = 100
+
+	var mk1_definition: ArmorItemData = ArmorInventory.get_definition(&"adrenaline_boots_mk1")
+	var mk2_definition: ArmorItemData = ArmorInventory.get_definition(&"adrenaline_boots_mk2")
+	assert(mk1_definition != null)
+	assert(mk2_definition != null)
+
+	var first_mk1: ArmorItemData = mk1_definition.duplicate(true) as ArmorItemData
+	var second_mk1: ArmorItemData = mk1_definition.duplicate(true) as ArmorItemData
+	first_mk1.condition = 80.0
+	second_mk1.condition = 60.0
+	ArmorInventory.inventory.clear()
+	ArmorInventory.inventory.append(first_mk1)
+	ArmorInventory.inventory.append(second_mk1)
+
+	assert(ArmorInventory.can_merge_items(first_mk1, second_mk1))
+	var mk2_item: ArmorItemData = ArmorInventory.try_merge_items_for_local(first_mk1, second_mk1)
+	assert(mk2_item != null)
+	assert(mk2_item.get_mark() == 2)
+	assert(mk2_item.item_id == &"adrenaline_boots_mk2")
+	assert(is_equal_approx(mk2_item.condition, 70.0))
+	assert(ArmorInventory.inventory.size() == 1)
+	assert(ArmorInventory.inventory[0] == mk2_item)
+
+	var second_mk2: ArmorItemData = mk2_definition.duplicate(true) as ArmorItemData
+	second_mk2.condition = 90.0
+	ArmorInventory.inventory.append(second_mk2)
+	var mk3_item: ArmorItemData = ArmorInventory.try_merge_items_for_local(mk2_item, second_mk2)
+	assert(mk3_item != null)
+	assert(mk3_item.get_mark() == 3)
+	assert(mk3_item.item_id == &"adrenaline_boots_mk3")
+	assert(is_equal_approx(mk3_item.condition, 80.0))
+	assert(not ArmorInventory.can_merge_items(mk3_item, mk3_item.duplicate(true) as ArmorItemData))
+
+	ArmorInventory.inventory = original_armor_inventory
+	OnlineMatch.coin_balances = original_balances
 
 
 func _finish_test() -> void:

@@ -799,7 +799,7 @@ func _apply_coin_add_request(slot: int, amount: int) -> void:
 
 
 func _max_coin_spend() -> int:
-	return maxi(GameSettings.SHOP_MAX_PRICE, GameSettings.EXTENSION_MERGE_MK3_COST)
+	return maxi(GameSettings.SHOP_MAX_PRICE, maxi(GameSettings.EXTENSION_MERGE_MK3_COST, GameSettings.ARMOR_MERGE_MK3_COST))
 
 
 func _on_peer_changed() -> void:
