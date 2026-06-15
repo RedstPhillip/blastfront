@@ -1,4 +1,5 @@
 extends Node2D
+class_name LegRenderer
 
 @export var upper_len: float = GameSettings.LEG_UPPER_LENGTH
 @export var lower_len: float = GameSettings.LEG_LOWER_LENGTH
@@ -10,6 +11,7 @@ extends Node2D
 @export var wall_foot_x: float = GameSettings.LEG_WALL_FOOT_X
 @export var wall_foot_gap: float = GameSettings.LEG_WALL_FOOT_GAP
 @export var wall_min_y_velocity: float = GameSettings.LEG_WALL_MIN_Y_VELOCITY
+@export var player_path: NodePath = NodePath("..")
 
 var _p: Player
 var _knee_dir_smoothed: float = 1.0
@@ -19,7 +21,7 @@ var _rendered_foot_r: Vector2 = Vector2.ZERO
 
 
 func _ready() -> void:
-	_p = get_parent() as Player
+	_p = get_node_or_null(player_path) as Player
 	var mat: CanvasItemMaterial = CanvasItemMaterial.new()
 	mat.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
 	material = mat

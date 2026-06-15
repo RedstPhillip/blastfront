@@ -23,20 +23,7 @@ func _rebuild_inventory() -> void:
 	for child in _inventory_row.get_children():
 		child.queue_free()
 
-	var inventory_node: Node = get_node_or_null("/root/ExtensionInventory")
-	if inventory_node == null or not inventory_node.has_method("get_inventory_for_local"):
-		return
-
-	var inventory_variant: Variant = inventory_node.call("get_inventory_for_local")
-	if not (inventory_variant is Array):
-		return
-
-	var inventory_items: Array = inventory_variant
-	for item_variant in inventory_items:
-		var item: WeaponExtensionItem = item_variant as WeaponExtensionItem
-		if item == null:
-			continue
-
+	for item in ExtensionInventory.get_inventory_for_local():
 		var card: ExtensionInventoryCard = CARD_SCENE.instantiate() as ExtensionInventoryCard
 		_inventory_row.add_child(card)
 		card.setup(item)
@@ -52,19 +39,13 @@ func _position_weapon_preview() -> void:
 
 
 func _connect_extension_inventory() -> void:
-	var inventory_node: Node = get_node_or_null("/root/ExtensionInventory")
-	if inventory_node == null:
-		return
+	var inventory_callback: Callable = Callable(self, "_on_inventory_changed")
+	if not ExtensionInventory.inventory_changed.is_connected(inventory_callback):
+		ExtensionInventory.inventory_changed.connect(inventory_callback)
 
-	if inventory_node.has_signal("inventory_changed"):
-		var inventory_callback: Callable = Callable(self, "_on_inventory_changed")
-		if not inventory_node.is_connected("inventory_changed", inventory_callback):
-			inventory_node.connect("inventory_changed", inventory_callback)
-
-	if inventory_node.has_signal("loadout_changed"):
-		var loadout_callback: Callable = Callable(self, "_on_loadout_changed")
-		if not inventory_node.is_connected("loadout_changed", loadout_callback):
-			inventory_node.connect("loadout_changed", loadout_callback)
+	var loadout_callback: Callable = Callable(self, "_on_loadout_changed")
+	if not ExtensionInventory.loadout_changed.is_connected(loadout_callback):
+		ExtensionInventory.loadout_changed.connect(loadout_callback)
 
 
 func _on_inventory_changed(_player_slot: int) -> void:

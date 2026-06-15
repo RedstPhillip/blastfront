@@ -71,27 +71,17 @@ func enter_locker(reset_scores: bool = true) -> void:
 		match_generation += 1
 		_reset_match_scores()
 		_reset_match_economy()
-		var reward_inventory: Node = get_node_or_null("/root/RoundRewardInventory")
-		if reward_inventory != null and reward_inventory.has_method("reset_match"):
-			reward_inventory.call("reset_match")
-		var extension_inventory: Node = get_node_or_null("/root/ExtensionInventory")
-		if extension_inventory != null and extension_inventory.has_method("reset_match"):
-			extension_inventory.call("reset_match")
-		var armor_inventory: Node = get_node_or_null("/root/ArmorInventory")
-		if armor_inventory != null and armor_inventory.has_method("reset_match"):
-			armor_inventory.call("reset_match")
-		var quest_manager: Node = get_node_or_null("/root/ResearchQuestManager")
-		if quest_manager != null and quest_manager.has_method("reset_match"):
-			quest_manager.call("reset_match")
+		RoundRewardInventory.reset_match()
+		ExtensionInventory.reset_match()
+		ArmorInventory.reset_match()
+		ResearchQuestManager.reset_match()
 	locker_ready = GameSettings.default_ready_state()
 	intermission_ready = GameSettings.default_ready_state()
 	extension_loadouts = GameSettings.default_extension_loadouts()
 	armor_loadouts = GameSettings.default_armor_loadouts()
 	research_profiles = {}
 	if reset_scores:
-		var research_manager: Node = get_node_or_null("/root/ResearchManager")
-		if research_manager != null and research_manager.has_method("reset_for_new_game"):
-			research_manager.call("reset_for_new_game")
+		ResearchManager.reset_for_new_game()
 	last_winner_slot = 0
 	final_winner_slot = 0
 	_kill_banner_remaining = 0.0
@@ -166,9 +156,7 @@ func record_damage(source_slot: int, target_slot: int, amount: int) -> void:
 		_first_hit_recorded = true
 		stats["first_hit"] = true
 	_current_set_stats[source_slot] = stats
-	var quest_manager: Node = get_node_or_null("/root/ResearchQuestManager")
-	if quest_manager != null and quest_manager.has_method("record_damage"):
-		quest_manager.call("record_damage", source_slot, target_slot, amount, was_first_hit)
+	ResearchQuestManager.record_damage(source_slot, target_slot, amount, was_first_hit)
 
 
 func record_block(blocking_slot: int, blocked_damage: int) -> void:
@@ -180,9 +168,7 @@ func record_block(blocking_slot: int, blocked_damage: int) -> void:
 	var stats: Dictionary = _get_current_stats(blocking_slot)
 	stats["blocked_damage"] = int(stats.get("blocked_damage", 0)) + blocked_damage
 	_current_set_stats[blocking_slot] = stats
-	var quest_manager: Node = get_node_or_null("/root/ResearchQuestManager")
-	if quest_manager != null and quest_manager.has_method("record_block"):
-		quest_manager.call("record_block", blocking_slot, blocked_damage)
+	ResearchQuestManager.record_block(blocking_slot, blocked_damage)
 
 
 func get_coin_balance(slot: int) -> int:
@@ -632,21 +618,11 @@ func _apply_state(state: Dictionary) -> void:
 
 
 func _reset_local_client_progression() -> void:
-	var reward_inventory: Node = get_node_or_null("/root/RoundRewardInventory")
-	if reward_inventory != null and reward_inventory.has_method("reset_match"):
-		reward_inventory.call("reset_match")
-	var extension_inventory: Node = get_node_or_null("/root/ExtensionInventory")
-	if extension_inventory != null and extension_inventory.has_method("reset_match"):
-		extension_inventory.call("reset_match")
-	var armor_inventory: Node = get_node_or_null("/root/ArmorInventory")
-	if armor_inventory != null and armor_inventory.has_method("reset_match"):
-		armor_inventory.call("reset_match")
-	var research_manager: Node = get_node_or_null("/root/ResearchManager")
-	if research_manager != null and research_manager.has_method("reset_for_new_game"):
-		research_manager.call("reset_for_new_game")
-	var quest_manager: Node = get_node_or_null("/root/ResearchQuestManager")
-	if quest_manager != null and quest_manager.has_method("reset_match"):
-		quest_manager.call("reset_match")
+	RoundRewardInventory.reset_match()
+	ExtensionInventory.reset_match()
+	ArmorInventory.reset_match()
+	ResearchManager.reset_for_new_game()
+	ResearchQuestManager.reset_match()
 
 
 func _apply_dictionary(source_variant: Variant, target: Dictionary, stores_color_ids: bool) -> void:
@@ -716,19 +692,11 @@ func _apply_research_profiles(source_variant: Variant) -> void:
 
 
 func _apply_research_profiles_to_manager() -> void:
-	var research_manager: Node = get_node_or_null("/root/ResearchManager")
-	if research_manager != null and research_manager.has_method("apply_online_profiles"):
-		research_manager.call("apply_online_profiles", research_profiles)
+	ResearchManager.apply_online_profiles(research_profiles)
 
 
 func _request_local_research_profile() -> void:
-	var research_manager: Node = get_node_or_null("/root/ResearchManager")
-	if research_manager == null or not research_manager.has_method("get_local_profile"):
-		return
-	var profile_variant: Variant = research_manager.call("get_local_profile")
-	if profile_variant is Dictionary:
-		var profile: Dictionary = profile_variant
-		set_local_research_profile(profile)
+	set_local_research_profile(ResearchManager.get_local_profile())
 
 
 func _apply_nested_dictionary(source_variant: Variant, target: Dictionary) -> void:

@@ -1,4 +1,5 @@
 extends Node2D
+class_name HandsRenderer
 
 @export var upper_len: float = GameSettings.ARM_UPPER_LENGTH
 @export var lower_len: float = GameSettings.ARM_LOWER_LENGTH
@@ -14,8 +15,12 @@ extends Node2D
 @export var shield_rotation_offset_degrees: float = GameSettings.ARM_SHIELD_ROTATION_OFFSET_DEGREES
 @export var block_hand_distance: float = GameSettings.ARM_BLOCK_HAND_DISTANCE
 @export var block_hand_lerp_speed: float = GameSettings.ARM_BLOCK_HAND_LERP_SPEED
+@export var player_path: NodePath = NodePath("..")
+@export var gun_path: NodePath = NodePath("../Gun")
+@export var shield_path: NodePath = NodePath("Shield")
+@export var shield_visual_root_path: NodePath = NodePath("Shield/ShieldVisualRoot")
 
-var _p: CharacterBody2D
+var _p: Player
 var _gun: Node2D
 var _shield: Sprite2D
 var _shield_visual_root: Node2D
@@ -35,11 +40,10 @@ var _has_guard_hand_pose: bool = false
 
 
 func _ready() -> void:
-	_p = get_parent() as CharacterBody2D
-	if _p != null:
-		_gun = _p.get_node_or_null("Gun") as Node2D
-	_shield = get_node_or_null("Shield") as Sprite2D
-	_shield_visual_root = get_node_or_null("Shield/ShieldVisualRoot") as Node2D
+	_p = get_node_or_null(player_path) as Player
+	_gun = get_node_or_null(gun_path) as Node2D
+	_shield = get_node_or_null(shield_path) as Sprite2D
+	_shield_visual_root = get_node_or_null(shield_visual_root_path) as Node2D
 
 	var mat: CanvasItemMaterial = CanvasItemMaterial.new()
 	mat.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
@@ -53,17 +57,12 @@ func _ready() -> void:
 
 func set_shield_visual_scene(visual_scene: PackedScene) -> void:
 	_clear_shield_visual()
-	if _shield == null:
-		return
-	if _shield_visual_root == null:
-		_shield_visual_root = Node2D.new()
-		_shield_visual_root.name = "ShieldVisualRoot"
-		_shield.add_child(_shield_visual_root)
-	if visual_scene == null:
-		_shield.texture = null
+	if _shield == null or _shield_visual_root == null:
 		return
 
 	_shield.texture = null
+	if visual_scene == null:
+		return
 	_shield_visual_instance = visual_scene.instantiate()
 	_shield_visual_root.add_child(_shield_visual_instance)
 

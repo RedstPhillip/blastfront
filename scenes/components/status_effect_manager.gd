@@ -9,11 +9,9 @@ var _active_effects: Dictionary = {}
 
 func apply_effect(name: StringName, params: Dictionary) -> void:
 	var adjusted_params: Dictionary = params
-	var parent: Node = get_parent()
-	if parent != null and parent.has_method("adjust_status_effect_data"):
-		var adjusted_variant: Variant = parent.call("adjust_status_effect_data", name, params)
-		if adjusted_variant is Dictionary:
-			adjusted_params = adjusted_variant
+	var player: Player = get_parent() as Player
+	if player != null:
+		adjusted_params = player.adjust_status_effect_data(name, params)
 
 	var duration: float = float(adjusted_params.get("duration", 0.0))
 	if duration <= 0.0:
@@ -138,32 +136,22 @@ func _process(delta: float) -> void:
 
 # Tick effects delegate health and stun behavior to the owning Player components.
 func _tick_instance(instance: Dictionary) -> void:
-	var parent: Node = get_parent()
-	if parent == null:
+	var player: Player = get_parent() as Player
+	if player == null:
 		return
 
 	var damage: int = instance.get("damage_per_tick", 0) as int
 	if damage > 0:
-		var health: Node = parent.get_node_or_null("HealthComponent")
-		if parent.has_method("apply_incoming_damage"):
-			var armor_source_slot: int = int(instance.get("source_slot", 0))
-			var modified_damage: int = ResearchManager.apply_rage_to_damage(armor_source_slot, damage)
-			var applied_damage: int = int(parent.call("apply_incoming_damage", modified_damage, armor_source_slot, parent.get("global_position"), false))
-			if armor_source_slot > 0 and applied_damage > 0:
-				ResearchManager.apply_local_life_steal(armor_source_slot, applied_damage)
-				_notify_damage_dealt(armor_source_slot, applied_damage)
-		elif health != null and health.has_method("damage"):
-			var source_slot: int = int(instance.get("source_slot", 0))
-			damage = ResearchManager.apply_rage_to_damage(source_slot, damage)
-			var old_health: int = int(health.get("health"))
-			health.damage(damage)
-			var target_player: Player = parent as Player
-			if source_slot > 0 and (target_player == null or target_player.player_slot != source_slot):
-				ResearchManager.apply_local_life_steal(source_slot, mini(damage, old_health))
+		var armor_source_slot: int = int(instance.get("source_slot", 0))
+		var modified_damage: int = ResearchManager.apply_rage_to_damage(armor_source_slot, damage)
+		var applied_damage: int = player.apply_incoming_damage(modified_damage, armor_source_slot, player.global_position, false)
+		if armor_source_slot > 0 and applied_damage > 0:
+			ResearchManager.apply_local_life_steal(armor_source_slot, applied_damage)
+			_notify_damage_dealt(armor_source_slot, applied_damage)
 
 	var stun: float = instance.get("stun_duration", 0.0) as float
-	if stun > 0.0 and parent.has_method("apply_stun"):
-		parent.apply_stun(stun)
+	if stun > 0.0:
+		player.apply_stun(stun)
 
 
 func _notify_damage_dealt(source_slot: int, applied_damage: int) -> void:

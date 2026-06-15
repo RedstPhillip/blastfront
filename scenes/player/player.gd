@@ -6,6 +6,9 @@ const BLUE_BODY_TEXTURE_MIRRORED: Texture2D = preload("res://assets/player/blue_
 const RED_BODY_TEXTURE: Texture2D = preload("res://assets/player/red_ball.png")
 const RED_BODY_TEXTURE_MIRRORED: Texture2D = preload("res://assets/player/red_ball_mirrored.png")
 
+static var _body_texture_cache: Dictionary = {}
+static var _body_texture_exists_cache: Dictionary = {}
+
 @export var gravity: float = GameSettings.PLAYER_GRAVITY
 @export var wall_slide_speed: float = GameSettings.PLAYER_WALL_SLIDE_SPEED
 @export var air_speed: float = GameSettings.PLAYER_AIR_SPEED
@@ -118,10 +121,9 @@ var _frosty_aura_timer: float = 0.0
 @onready var _body_sprite: Sprite2D = $Sprite2D
 @onready var _shield: Sprite2D = $ArmRenderer/Shield
 @onready var _armor_visual_root: ArmorVisualRoot = $ArmorVisualRoot
-
-var _leg_renderer: Node = null
-var _arm_renderer: Node = null
-
+@onready var _leg_renderer: Node = $LegRenderer
+@onready var _arm_renderer: Node = $ArmRenderer
+@onready var _gun: Variant = $Gun
 @onready var _ray_l: RayCast2D = $RayL
 @onready var _ray_r: RayCast2D = $RayR
 @onready var _state_machine: StateMachine = $State
@@ -130,8 +132,6 @@ var _arm_renderer: Node = null
 
 
 func _ready() -> void:
-	_leg_renderer = get_node_or_null("LegRenderer")
-	_arm_renderer = get_node_or_null("ArmRenderer")
 	_capture_base_stats()
 	_default_collision_layer = collision_layer
 	_default_collision_mask = collision_mask
@@ -252,10 +252,7 @@ func _refresh_armor_visuals() -> void:
 	if _armor_visual_root == null:
 		return
 	var effective_slot: int = _get_effective_armor_player_slot()
-	if ArmorInventory.has_method("get_loadout_for_player"):
-		_armor_visual_root.apply_loadout(ArmorInventory.get_loadout_for_player(effective_slot))
-	else:
-		_armor_visual_root.apply_loadout(ArmorInventory.loadout)
+	_armor_visual_root.apply_loadout(ArmorInventory.get_loadout_for_player(effective_slot))
 
 
 func _capture_base_stats() -> void:
@@ -273,10 +270,7 @@ func _capture_base_stats() -> void:
 func _refresh_armor_stats() -> void:
 	var loadout: ArmorLoadout = null
 	var effective_slot: int = _get_effective_armor_player_slot()
-	if ArmorInventory.has_method("get_loadout_for_player"):
-		loadout = ArmorInventory.get_loadout_for_player(effective_slot)
-	else:
-		loadout = ArmorInventory.loadout
+	loadout = ArmorInventory.get_loadout_for_player(effective_slot)
 
 	_armor_attributes = {}
 	if loadout != null:
@@ -310,9 +304,7 @@ func _refresh_armor_stats() -> void:
 func _get_effective_armor_player_slot() -> int:
 	if player_slot != 0:
 		return player_slot
-	if ArmorInventory != null and ArmorInventory.has_method("get_local_player_slot"):
-		return ArmorInventory.get_local_player_slot()
-	return GameSettings.PLAYER_ONE_SLOT
+	return ArmorInventory.get_local_player_slot()
 
 
 func get_visual_tint() -> Color:
@@ -408,6 +400,10 @@ func is_eliminated() -> bool:
 	return _is_eliminated
 
 
+func get_gun() -> Variant:
+	return _gun
+
+
 func set_eliminated(eliminated: bool) -> void:
 	if _is_eliminated == eliminated:
 		return
@@ -454,23 +450,23 @@ func apply_remote_snapshot(snapshot: Dictionary) -> void:
 	var snapshot_reloading: bool = snapshot.get("reloading", false) == true
 	var snapshot_reload_ratio: float = float(snapshot.get("reload_ratio", 1.0))
 	var had_network_target: bool = _has_network_target
+	var aim_origin: Vector2 = _network_target_position
 
 	if snapshot_position is Vector2:
 		_network_target_position = snapshot_position
+		aim_origin = snapshot_position
 	if snapshot_velocity is Vector2:
 		_network_target_velocity = snapshot_velocity
+		_network_target_position += _network_target_velocity * GameSettings.PLAYER_REMOTE_EXTRAPOLATION_SECONDS
 	if snapshot_aim is Vector2:
 		_network_aim_world_position = snapshot_aim
-		var aim_vector: Vector2 = snapshot_aim - _network_target_position
+		var aim_vector: Vector2 = snapshot_aim - aim_origin
 		if aim_vector.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
-			var gun: Node = get_node_or_null("Gun")
-			if gun != null and gun.has_method("set_aim_direction"):
-				gun.call("set_aim_direction", aim_vector.normalized())
+			_gun.set_aim_direction(aim_vector.normalized())
 	if (snapshot_facing is float or snapshot_facing is int) and absf(float(snapshot_facing)) > 0.0:
 		last_dir = signf(float(snapshot_facing))
-	var gun: Node = get_node_or_null("Gun")
-	if snapshot.has("ammo") and gun != null and gun.has_method("apply_remote_ammo_state"):
-		gun.call("apply_remote_ammo_state", snapshot_ammo, snapshot_reloading, snapshot_reload_ratio)
+	if snapshot.has("ammo"):
+		_gun.apply_remote_ammo_state(snapshot_ammo, snapshot_reloading, snapshot_reload_ratio)
 
 	_has_network_target = true
 	if not had_network_target:
@@ -627,7 +623,12 @@ func _physics_process_remote(delta: float) -> void:
 		return
 
 	var interpolation_weight: float = clampf(delta * remote_interpolation_speed, 0.0, 1.0)
-	global_position = global_position.lerp(_network_target_position, interpolation_weight)
+	var distance_to_target_squared: float = global_position.distance_squared_to(_network_target_position)
+	var snap_distance: float = GameSettings.PLAYER_REMOTE_SNAP_DISTANCE
+	if distance_to_target_squared > snap_distance * snap_distance:
+		global_position = _network_target_position
+	else:
+		global_position = global_position.lerp(_network_target_position, interpolation_weight)
 	velocity = _network_target_velocity
 	if absf(velocity.x) > GameSettings.PLAYER_REMOTE_FACING_SPEED_THRESHOLD:
 		last_dir = signf(velocity.x)
@@ -1001,9 +1002,7 @@ func _refresh_block_direction() -> void:
 func _apply_block_start_armor_effects() -> void:
 	if _get_armor_attribute(&"instant_reload_on_block") <= 0.0:
 		return
-	var gun: Node = get_node_or_null("Gun")
-	if gun != null and gun.has_method("instant_reload"):
-		gun.call("instant_reload")
+	_gun.instant_reload()
 
 
 func _update_block_armor_effects(delta: float) -> void:
@@ -1089,10 +1088,10 @@ func _get_players_in_radius(radius: float, include_self: bool) -> Array[Player]:
 
 
 func _notify_block_state(active: bool) -> void:
-	var world: Node = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)
-	if world == null or not world.has_method("request_block_state"):
+	var world: Variant = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)
+	if world == null:
 		return
-	world.call("request_block_state", self, active, get_block_direction(), get_block_cooldown_ratio())
+	world.request_block_state(self, active, get_block_direction(), get_block_cooldown_ratio())
 
 
 func _initialize_feet() -> void:
@@ -1177,9 +1176,11 @@ func _get_effective_color_id() -> StringName:
 
 
 func _get_body_texture(color_id: StringName, facing_left: bool) -> Texture2D:
-	if _has_body_texture(color_id, facing_left):
-		var texture_path: String = _get_body_texture_path(color_id, facing_left)
-		var texture: Texture2D = load(texture_path) as Texture2D
+	var texture_path: String = _get_body_texture_path(color_id, facing_left)
+	if _has_body_texture_path(texture_path):
+		if not _body_texture_cache.has(texture_path):
+			_body_texture_cache[texture_path] = load(texture_path)
+		var texture: Texture2D = _body_texture_cache.get(texture_path, null) as Texture2D
 		if texture != null:
 			return texture
 
@@ -1189,7 +1190,13 @@ func _get_body_texture(color_id: StringName, facing_left: bool) -> Texture2D:
 
 
 func _has_body_texture(color_id: StringName, facing_left: bool) -> bool:
-	return ResourceLoader.exists(_get_body_texture_path(color_id, facing_left))
+	return _has_body_texture_path(_get_body_texture_path(color_id, facing_left))
+
+
+func _has_body_texture_path(texture_path: String) -> bool:
+	if not _body_texture_exists_cache.has(texture_path):
+		_body_texture_exists_cache[texture_path] = ResourceLoader.exists(texture_path)
+	return bool(_body_texture_exists_cache.get(texture_path, false))
 
 
 func _get_body_texture_path(color_id: StringName, facing_left: bool) -> String:

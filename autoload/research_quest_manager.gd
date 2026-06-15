@@ -438,10 +438,10 @@ func _has_authority() -> bool:
 
 
 func _get_player(slot: int) -> Player:
-	var world: Node = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)
-	if world == null or not world.has_method("get_player_by_slot"):
+	var world: Variant = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)
+	if world == null:
 		return null
-	return world.call("get_player_by_slot", slot) as Player
+	return world.get_player_by_slot(slot)
 
 
 func _make_packet(packet_type: StringName, payload: Dictionary) -> Dictionary:

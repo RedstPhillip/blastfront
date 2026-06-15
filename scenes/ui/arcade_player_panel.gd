@@ -21,7 +21,7 @@ const AMMO_BULLET_ICON_SCENE: PackedScene = preload("res://scenes/ui/ammo_bullet
 
 var _player: Player = null
 var _health: HealthComponent = null
-var _gun: Node = null
+var _gun: Variant = null
 var _block_fill_style: StyleBoxFlat = null
 var _health_fill_style: StyleBoxFlat = null
 var _last_health: int = -1
@@ -47,7 +47,7 @@ func bind_player(player: Player) -> void:
 		return
 
 	_health = _player.health_component
-	_gun = _player.get_node_or_null("Gun")
+	_gun = _player.get_gun()
 	show()
 	_refresh_identity()
 	_refresh_values(true)
@@ -130,15 +130,15 @@ func _refresh_block() -> void:
 
 
 func _refresh_ammo() -> void:
-	if _gun == null or not _gun.has_method("get_current_ammo"):
+	if _gun == null:
 		_ammo_status_label.text = "NO AMMO"
 		_ammo_status_label.show()
 		_ammo_icons.hide()
 		return
 
-	var current_ammo: int = int(_gun.call("get_current_ammo"))
-	var max_ammo: int = int(_gun.call("get_max_ammo"))
-	var reloading: bool = bool(_gun.call("is_reloading"))
+	var current_ammo: int = _gun.get_current_ammo()
+	var max_ammo: int = _gun.get_max_ammo()
+	var reloading: bool = _gun.is_reloading()
 	if max_ammo != _last_max_ammo:
 		_rebuild_ammo_icons(max_ammo)
 

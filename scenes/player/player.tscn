@@ -19,18 +19,21 @@ collision_layer = 2
 collision_mask = 3
 script = ExtResource("1_onrkg")
 
-[node name="LegRenderer" type="Node2D" parent="." unique_id=878611532]
+[node name="LegRenderer" type="Node2D" parent="." unique_id=878611532 node_paths=PackedStringArray("player_path")]
 z_index = -1
 script = ExtResource("3_gmlin")
+player_path = NodePath("..")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1037254364]
 light_mask = 2
 scale = Vector2(0.016, 0.016)
 texture = ExtResource("1_4flbx")
 
-[node name="ArmorVisualRoot" type="Node2D" parent="." unique_id=7788001]
+[node name="ArmorVisualRoot" type="Node2D" parent="." unique_id=7788001 node_paths=PackedStringArray("leg_renderer_path", "arm_renderer_path")]
 z_index = 2
 script = ExtResource("16_armor_visual")
+leg_renderer_path = NodePath("../LegRenderer")
+arm_renderer_path = NodePath("../ArmRenderer")
 
 [node name="BootsAnchor" type="Node2D" parent="ArmorVisualRoot" unique_id=7788002]
 unique_name_in_owner = true
@@ -44,12 +47,18 @@ position = Vector2(0, -1)
 unique_name_in_owner = true
 position = Vector2(18, -2)
 
-[node name="ArmRenderer" type="Node2D" parent="." unique_id=1955011683]
+[node name="ArmRenderer" type="Node2D" parent="." unique_id=1955011683 node_paths=PackedStringArray("player_path", "gun_path", "shield_path", "shield_visual_root_path")]
 z_index = -1
 script = ExtResource("5_u0tt0")
+player_path = NodePath("..")
+gun_path = NodePath("../Gun")
+shield_path = NodePath("Shield")
+shield_visual_root_path = NodePath("Shield/ShieldVisualRoot")
 
 [node name="Shield" type="Sprite2D" parent="ArmRenderer" unique_id=745453030]
 z_index = 1
+
+[node name="ShieldVisualRoot" type="Node2D" parent="ArmRenderer/Shield"]
 
 [node name="RayL" type="RayCast2D" parent="." unique_id=1267503647]
 position = Vector2(-12, 8)

@@ -149,6 +149,30 @@ func spawn_projectile(projectile: Node2D, spawn_position: Vector2) -> void:
 	projectile.global_position = spawn_position
 
 
+func get_player_by_slot(slot: int) -> Player:
+	return _get_player_by_slot(slot)
+
+
+func get_local_player() -> Player:
+	return _local_player
+
+
+func get_score_for_slot(_slot: int) -> int:
+	return 0
+
+
+func is_match_over() -> bool:
+	return false
+
+
+func get_winner_slot() -> int:
+	return 0
+
+
+func request_block_state(_owner: Node, _active: bool, _direction: Vector2, _cooldown_ratio: float) -> void:
+	pass
+
+
 # Locker projectiles affect color and ready targets, never player health.
 func request_shot(owner: Node, spawn_position: Vector2, direction: Vector2, projectile_data: Dictionary) -> void:
 	if _help_popup.visible:
@@ -156,20 +180,13 @@ func request_shot(owner: Node, spawn_position: Vector2, direction: Vector2, proj
 	if _is_pointer_over_invite_button():
 		return
 
-	var projectile: Node2D = PROJECTILE_SCENE.instantiate() as Node2D
+	var projectile: Projectile = PROJECTILE_SCENE.instantiate() as Projectile
 	var owner_slot: int = 0
 	if owner != null:
 		owner_slot = int(owner.get("player_slot"))
 
-	var muzzle_speed: float = float(projectile_data.get("muzzle_speed", projectile.get("muzzle_speed")))
-	projectile.set("owner_slot", owner_slot)
-	projectile.set("collision_mask", LOCKER_PROJECTILE_COLLISION_MASK)
-	projectile.set("direction", direction)
-	projectile.set("muzzle_speed", muzzle_speed)
-	projectile.set("gravity", float(projectile_data.get("gravity", projectile.get("gravity"))))
-	projectile.set("linear_damping", float(projectile_data.get("linear_damping", projectile.get("linear_damping"))))
-	projectile.set("max_distance", float(projectile_data.get("max_distance", projectile.get("max_distance"))))
-	projectile.set("initial_velocity", projectile_data.get("initial_velocity", direction * muzzle_speed))
+	projectile.configure_from_data(0, owner_slot, direction, projectile_data)
+	projectile.collision_mask = LOCKER_PROJECTILE_COLLISION_MASK
 	if projectile.has_signal("despawn_requested"):
 		projectile.connect("despawn_requested", Callable(self, "_on_locker_projectile_despawn_requested"))
 	spawn_projectile(projectile, spawn_position)

@@ -226,10 +226,10 @@ func _on_packet_received(packet: Dictionary, _sender_id: int) -> void:
 
 
 func _get_player(slot: int) -> Player:
-	var game: Node = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)
-	if game == null or not game.has_method("get_player_by_slot"):
+	var game: Variant = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)
+	if game == null:
 		return null
-	return game.call("get_player_by_slot", slot) as Player
+	return game.get_player_by_slot(slot)
 
 
 func _has_authority() -> bool:

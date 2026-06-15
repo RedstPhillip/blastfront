@@ -353,7 +353,7 @@ func _read_p2p_packets(channel: int) -> void:
 func _read_coalesced_state_packets(channel: int) -> void:
 	var packets_read: int = 0
 	var latest_packets: Dictionary = {}
-	while packets_read < GameSettings.NETWORK_PACKET_READ_LIMIT:
+	while packets_read < GameSettings.NETWORK_STATE_PACKET_READ_LIMIT:
 		var packet_size: int = Steam.getAvailableP2PPacketSize(channel)
 		if packet_size <= 0:
 			break
@@ -493,27 +493,13 @@ func _set_status(message: String) -> void:
 
 
 func _reset_equipment_progression(persist_research: bool = true) -> void:
-	var research_manager: Node = get_node_or_null("/root/ResearchManager")
-	if research_manager != null and research_manager.has_method("reset_for_new_game"):
-		research_manager.call("reset_for_new_game", persist_research)
-	var reward_inventory: Node = get_node_or_null("/root/RoundRewardInventory")
-	if reward_inventory != null and reward_inventory.has_method("reset_match"):
-		reward_inventory.call("reset_match")
-	var extension_inventory: Node = get_node_or_null("/root/ExtensionInventory")
-	if extension_inventory != null and extension_inventory.has_method("reset_match"):
-		extension_inventory.call("reset_match")
-	var armor_inventory: Node = get_node_or_null("/root/ArmorInventory")
-	if armor_inventory != null and armor_inventory.has_method("reset_match"):
-		armor_inventory.call("reset_match")
-	var quest_manager: Node = get_node_or_null("/root/ResearchQuestManager")
-	if quest_manager != null and quest_manager.has_method("reset_match"):
-		quest_manager.call("reset_match")
+	ResearchManager.reset_for_new_game(persist_research)
+	RoundRewardInventory.reset_match()
+	ExtensionInventory.reset_match()
+	ArmorInventory.reset_match()
+	ResearchQuestManager.reset_match()
 
 
 func _seed_training_extension_inventory() -> void:
-	var extension_inventory: Node = get_node_or_null("/root/ExtensionInventory")
-	if extension_inventory != null and extension_inventory.has_method("add_all_definitions_for_local"):
-		extension_inventory.call("add_all_definitions_for_local")
-	var armor_inventory: Node = get_node_or_null("/root/ArmorInventory")
-	if armor_inventory != null and armor_inventory.has_method("add_all_definitions_for_local"):
-		armor_inventory.call("add_all_definitions_for_local")
+	ExtensionInventory.add_all_definitions_for_local()
+	ArmorInventory.add_all_definitions_for_local()

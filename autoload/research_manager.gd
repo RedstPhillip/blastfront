@@ -326,10 +326,10 @@ func apply_local_life_steal(source_slot: int, applied_damage: int) -> int:
 	var ratio: float = get_life_steal_ratio(source_slot)
 	if ratio <= 0.0:
 		return 0
-	var world: Node = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)
-	if world == null or not world.has_method("get_player_by_slot"):
+	var world: Variant = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)
+	if world == null:
 		return 0
-	var source_player: Player = world.call("get_player_by_slot", source_slot) as Player
+	var source_player: Player = world.get_player_by_slot(source_slot)
 	if source_player == null or source_player.health_component == null or source_player.is_eliminated():
 		return 0
 	var old_health: int = source_player.health_component.health
@@ -340,10 +340,10 @@ func apply_local_life_steal(source_slot: int, applied_damage: int) -> int:
 func apply_rage_to_damage(source_slot: int, base_damage: int) -> int:
 	if base_damage <= 0:
 		return 0
-	var world: Node = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)
-	if world == null or not world.has_method("get_player_by_slot"):
+	var world: Variant = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)
+	if world == null:
 		return base_damage
-	var source_player: Player = world.call("get_player_by_slot", source_slot) as Player
+	var source_player: Player = world.get_player_by_slot(source_slot)
 	if source_player == null or source_player.health_component == null:
 		return base_damage
 	var health_ratio: float = float(source_player.health_component.health) / maxf(float(source_player.health_component.max_health), 1.0)
@@ -420,9 +420,7 @@ func _save_progress() -> void:
 
 
 func _publish_local_profile() -> void:
-	var online_match: Node = get_node_or_null("/root/OnlineMatch")
-	if online_match != null and online_match.has_method("set_local_research_profile"):
-		online_match.call("set_local_research_profile", get_local_profile())
+	OnlineMatch.set_local_research_profile(get_local_profile())
 
 
 func _definition(

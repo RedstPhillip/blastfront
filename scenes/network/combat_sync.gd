@@ -302,6 +302,6 @@ func _apply_remote_status_effect(target_slot: int, effect_name: StringName, effe
 
 
 func _get_player(slot: int) -> Player:
-	if game == null or not game.has_method("get_player_by_slot"):
+	if game == null:
 		return null
 	return game.get_player_by_slot(slot)

@@ -1,4 +1,5 @@
 extends Node2D
+class_name Gun
 
 const PROJECTILE_SCENE: PackedScene = preload("res://scenes/projectiles/projectile.tscn")
 const MUZZLE_WORLD_COLLISION_MASK: int = 1
@@ -218,42 +219,13 @@ func _build_shot_directions(base_direction: Vector2) -> Array[Vector2]:
 
 # The game-world request API provides one entry point for online and offline shots.
 func _fire_projectile(direction: Vector2, muzzle_position: Vector2, projectile_data: Dictionary) -> void:
-	var world: Node = get_tree().get_first_node_in_group("game_world")
-	if world == null:
+	var world: Variant = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)
+	if world == null and _player != null:
 		world = _player.get_parent()
-	if world != null and world.has_method("request_shot"):
-		world.request_shot(_player, muzzle_position, direction, projectile_data)
+	if world == null:
 		return
 
-	if world == null or not world.has_method("spawn_projectile"):
-		return
-
-	var shot_directions: Array[Vector2] = []
-	var directions_variant: Variant = projectile_data.get("volley_directions", [])
-	if directions_variant is Array:
-		for raw_direction in directions_variant:
-			if raw_direction is Vector2:
-				var volley_direction: Vector2 = raw_direction
-				if volley_direction.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
-					shot_directions.append(volley_direction.normalized())
-	if shot_directions.is_empty():
-		shot_directions.append(direction.normalized())
-
-	for shot_direction in shot_directions:
-		var muzzle_speed: float = float(projectile_data.get("muzzle_speed", projectile_speed))
-		var projectile: Node2D = PROJECTILE_SCENE.instantiate() as Node2D
-		projectile.set("direction", shot_direction)
-		projectile.set("muzzle_speed", muzzle_speed)
-		projectile.set("gravity", float(projectile_data.get("gravity", projectile_gravity)))
-		projectile.set("linear_damping", float(projectile_data.get("linear_damping", projectile_linear_damping)))
-		projectile.set("max_distance", float(projectile_data.get("max_distance", projectile_max_distance)))
-		projectile.set("damage", int(projectile_data.get("damage", GameSettings.PROJECTILE_DAMAGE)))
-		projectile.set("projectile_scale", float(projectile_data.get("projectile_scale", 1.0)))
-		projectile.set("extension_tags", projectile_data.get("extension_tags", []))
-		projectile.set("extension_effects", projectile_data.get("extension_effects", {}))
-		projectile.set("source_extensions", projectile_data.get("source_extensions", []))
-		projectile.set("initial_velocity", shot_direction * muzzle_speed)
-		world.spawn_projectile(projectile, muzzle_position)
+	world.request_shot(_player, muzzle_position, direction, projectile_data)
 
 
 func build_shot_data() -> Dictionary:
@@ -419,13 +391,8 @@ func apply_remote_ammo_state(current_ammo: int, reloading: bool, reload_ratio: f
 
 
 func _connect_extension_inventory() -> void:
-	var inventory_node: Node = get_node_or_null("/root/ExtensionInventory")
-	if inventory_node == null or not inventory_node.has_signal("loadout_changed"):
-		return
-
-	var callback: Callable = Callable(self, "_on_extension_loadout_changed")
-	if not inventory_node.is_connected("loadout_changed", callback):
-		inventory_node.connect("loadout_changed", callback)
+	if not ExtensionInventory.loadout_changed.is_connected(_on_extension_loadout_changed):
+		ExtensionInventory.loadout_changed.connect(_on_extension_loadout_changed)
 
 
 func _on_extension_loadout_changed(player_slot: int) -> void:
@@ -443,25 +410,10 @@ func _refresh_extension_loadout() -> void:
 	_extension_player_slot = int(_player.player_slot)
 	_extension_stats = {}
 
-	var inventory_node: Node = get_node_or_null("/root/ExtensionInventory")
-	if inventory_node == null:
-		_has_laser_scope = false
-		if _laser_sight != null:
-			_laser_sight.visible = false
-		if _extension_visuals != null:
-			_extension_visuals.clear_all()
-		return
+	_extension_stats = ExtensionInventory.build_effective_stats_for_player(_extension_player_slot)
 
-	if inventory_node.has_method("build_effective_stats_for_player"):
-		var stats_variant: Variant = inventory_node.call("build_effective_stats_for_player", _extension_player_slot)
-		if stats_variant is Dictionary:
-			_extension_stats = stats_variant
-
-	if _extension_visuals != null and inventory_node.has_method("get_equipped_for_player"):
-		var equipped_variant: Variant = inventory_node.call("get_equipped_for_player", _extension_player_slot)
-		if equipped_variant is Dictionary:
-			var equipped: Dictionary = equipped_variant
-			_extension_visuals.set_extensions_by_slot(equipped)
+	if _extension_visuals != null:
+		_extension_visuals.set_extensions_by_slot(ExtensionInventory.get_equipped_for_player(_extension_player_slot))
 
 	_has_laser_scope = _get_source_extensions().has("laser_scope_mk1")
 	if _laser_sight != null:

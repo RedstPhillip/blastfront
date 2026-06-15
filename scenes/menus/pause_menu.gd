@@ -113,9 +113,9 @@ func _on_main_menu_pressed() -> void:
 	get_tree().paused = false
 	NetworkSession.leave_round()
 
-	var main_node: Node = get_node_or_null("/root/Main")
-	if main_node != null and main_node.has_method("show_menu"):
-		main_node.call("show_menu")
+	var main_node: Variant = get_node_or_null("/root/Main")
+	if main_node != null:
+		main_node.show_menu()
 
 	hide()
 

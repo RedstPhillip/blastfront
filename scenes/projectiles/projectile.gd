@@ -28,6 +28,44 @@ var _drill_visual_timer: float = 0.0
 var _drill_clear_distance_remaining: float = 0.0
 
 
+func configure_from_data(
+	network_id: int,
+	shot_owner_slot: int,
+	shot_direction: Vector2,
+	projectile_data: Dictionary,
+	authority: bool = true
+) -> void:
+	net_id = network_id
+	owner_slot = shot_owner_slot
+	is_network_authority = authority
+	direction = _normalized_or_fallback(shot_direction, Vector2.LEFT)
+	muzzle_speed = float(projectile_data.get("muzzle_speed", muzzle_speed))
+	gravity = float(projectile_data.get("gravity", gravity))
+	linear_damping = float(projectile_data.get("linear_damping", linear_damping))
+	max_distance = float(projectile_data.get("max_distance", max_distance))
+	damage = int(projectile_data.get("damage", damage))
+	projectile_scale = float(projectile_data.get("projectile_scale", projectile_scale))
+	extension_tags = _string_array_from(projectile_data.get("extension_tags", extension_tags))
+	extension_effects = _dictionary_from(projectile_data.get("extension_effects", extension_effects))
+	source_extensions = _string_array_from(projectile_data.get("source_extensions", source_extensions))
+	initial_velocity = _vector2_from(projectile_data.get("initial_velocity", direction * muzzle_speed), direction * muzzle_speed)
+
+
+static func extract_shot_directions(projectile_data: Dictionary, fallback_direction: Vector2) -> Array[Vector2]:
+	var result: Array[Vector2] = []
+	var directions_variant: Variant = projectile_data.get("volley_directions", [])
+	if directions_variant is Array:
+		var raw_directions: Array = directions_variant
+		for raw_direction in raw_directions:
+			if raw_direction is Vector2:
+				var shot_direction: Vector2 = raw_direction
+				if shot_direction.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
+					result.append(shot_direction.normalized())
+	if result.is_empty():
+		result.append(_normalized_or_fallback(fallback_direction, Vector2.LEFT))
+	return result
+
+
 func _ready() -> void:
 	if direction.length_squared() <= GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
 		direction = Vector2.LEFT
@@ -284,3 +322,29 @@ func _apply_hover_collision_avoidance(collision: KinematicCollision2D) -> void:
 	velocity = velocity.slide(normal)
 	if velocity.y > 0.0:
 		velocity.y = 0.0
+
+
+static func _normalized_or_fallback(value: Vector2, fallback: Vector2) -> Vector2:
+	if value.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
+		return value.normalized()
+	return fallback.normalized()
+
+
+static func _vector2_from(value: Variant, fallback: Vector2) -> Vector2:
+	if value is Vector2:
+		return value
+	return fallback
+
+
+static func _dictionary_from(value: Variant) -> Dictionary:
+	if value is Dictionary:
+		return (value as Dictionary).duplicate(true)
+	return {}
+
+
+static func _string_array_from(value: Variant) -> Array[String]:
+	var result: Array[String] = []
+	if value is Array:
+		for raw_value in value:
+			result.append(str(raw_value))
+	return result

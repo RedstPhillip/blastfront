@@ -3,6 +3,7 @@ extends "res://scenes/network/sync_module.gd"
 var _send_timer: float = 0.0
 var _last_sent_by_slot: Dictionary = {}
 var _last_sent_time_by_slot: Dictionary = {}
+var _last_received_tick_by_slot: Dictionary = {}
 
 
 func get_module_name() -> StringName:
@@ -36,6 +37,7 @@ func handle_packet(packet: Dictionary) -> void:
 	var payload: Dictionary = _get_payload(packet)
 	var sender_slot: int = int(packet.get("from_slot", 0))
 	var slot: int = int(payload.get("slot", sender_slot))
+	var packet_tick: int = int(packet.get("tick", 0))
 
 	if game_sync.is_host():
 		slot = sender_slot
@@ -46,7 +48,7 @@ func handle_packet(packet: Dictionary) -> void:
 	if slot == game_sync.get_local_slot():
 		return
 
-	_apply_player_snapshot(slot, payload)
+	_apply_player_snapshot(slot, payload, packet_tick)
 
 
 func build_snapshot() -> Dictionary:
@@ -76,14 +78,12 @@ func _build_player_snapshot(player: Player) -> Dictionary:
 		"velocity": player.velocity,
 		"aim": player.get_aim_world_position(),
 		"facing": player.last_dir,
-		"grounded": player.update_grounded(),
-		"on_wall": player.is_on_wall(),
 	}
-	var gun: Node = player.get_node_or_null("Gun")
-	if gun != null and gun.has_method("get_current_ammo"):
-		snapshot["ammo"] = int(gun.call("get_current_ammo"))
-		snapshot["reloading"] = bool(gun.call("is_reloading"))
-		snapshot["reload_ratio"] = float(gun.call("get_reload_ratio"))
+	var gun: Variant = player.get_gun()
+	if gun != null:
+		snapshot["ammo"] = gun.get_current_ammo()
+		snapshot["reloading"] = gun.is_reloading()
+		snapshot["reload_ratio"] = gun.get_reload_ratio()
 	return snapshot
 
 
@@ -130,7 +130,13 @@ func _remember_sent_snapshot(slot: int, snapshot: Dictionary) -> void:
 	_last_sent_time_by_slot[slot] = Time.get_ticks_msec() / GameSettings.MILLISECONDS_PER_SECOND
 
 
-func _apply_player_snapshot(slot: int, snapshot: Dictionary) -> void:
+func _apply_player_snapshot(slot: int, snapshot: Dictionary, packet_tick: int = 0) -> void:
+	if packet_tick > 0:
+		var last_tick: int = int(_last_received_tick_by_slot.get(slot, -1))
+		if packet_tick <= last_tick:
+			return
+		_last_received_tick_by_slot[slot] = packet_tick
+
 	var player: Player = _get_player(slot)
 	if player == null:
 		return
@@ -139,6 +145,6 @@ func _apply_player_snapshot(slot: int, snapshot: Dictionary) -> void:
 
 
 func _get_player(slot: int) -> Player:
-	if game == null or not game.has_method("get_player_by_slot"):
+	if game == null:
 		return null
 	return game.get_player_by_slot(slot)

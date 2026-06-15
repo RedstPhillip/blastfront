@@ -134,6 +134,6 @@ func _apply_block_state(slot: int, active: bool, direction_variant: Variant, coo
 
 
 func _get_player(slot: int) -> Player:
-	if game == null or not game.has_method("get_player_by_slot"):
+	if game == null:
 		return null
 	return game.get_player_by_slot(slot)

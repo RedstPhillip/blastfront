@@ -1,4 +1,5 @@
 extends Control
+class_name ResearchConnectionLayer
 
 var definitions: Array[Dictionary] = []
 var root_position: Vector2 = Vector2(55, 252)

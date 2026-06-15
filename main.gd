@@ -1,4 +1,5 @@
 extends Node
+class_name Main
 
 const GAME_SCENE: PackedScene = preload("res://scenes/game.tscn")
 const MAIN_MENU_SCENE: PackedScene = preload("res://scenes/menus/main_menu.tscn")

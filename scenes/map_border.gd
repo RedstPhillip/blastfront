@@ -10,6 +10,7 @@ extends Node2D
 @export var bottom_knockback_speed: float = GameSettings.MAP_BORDER_BOTTOM_KNOCKBACK_SPEED
 @export var damage_amount: int = GameSettings.MAP_BORDER_DAMAGE
 @export var hit_cooldown: float = GameSettings.MAP_BORDER_HIT_COOLDOWN
+@export var game_sync_path: NodePath = NodePath("../GameSync")
 
 var _bounds: Rect2 = GameSettings.DEFAULT_MAP_BOUNDS
 var _last_hit_time: Dictionary = {}
@@ -37,7 +38,7 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	var players: Array[Node2D] = _get_tracked_players()
+	var players: Array[Player] = _get_tracked_players()
 	if players.is_empty():
 		_hide_all_lines()
 		return
@@ -93,25 +94,20 @@ func _process(_delta: float) -> void:
 
 
 func _physics_process(_delta: float) -> void:
-	for player_node in _get_tracked_players():
-		var player: Player = player_node as Player
-		if player == null:
-			continue
-		var check_position: Vector2 = player.global_position
-		if player.has_method("get_border_check_position"):
-			check_position = player.call("get_border_check_position")
+	for player in _get_tracked_players():
+		var check_position: Vector2 = player.get_border_check_position()
 		var side: StringName = _get_overlapping_border_side(check_position)
 		if side != &"":
 			_try_apply_border_hit(player, side)
 
 
-func _get_tracked_players() -> Array[Node2D]:
-	var players: Array[Node2D] = []
+func _get_tracked_players() -> Array[Player]:
+	var players: Array[Player] = []
 	for node in get_tree().get_nodes_in_group(GameSettings.PLAYERS_GROUP):
-		if node is Node2D:
-			if node.has_method("is_eliminated") and node.call("is_eliminated") == true:
-				continue
-			players.append(node)
+		var player: Player = node as Player
+		if player == null or player.is_eliminated():
+			continue
+		players.append(player)
 	return players
 
 
@@ -122,7 +118,7 @@ func _hide_all_lines() -> void:
 			border.hide_warning()
 
 
-func _update_vertical(side: StringName, player: Node2D) -> void:
+func _update_vertical(side: StringName, player: Player) -> void:
 	var border: MapBorderSide = _get_border(side)
 	if border == null:
 		return
@@ -139,7 +135,7 @@ func _update_vertical(side: StringName, player: Node2D) -> void:
 	border.set_warning(warning_rect, _get_particle_amount())
 
 
-func _update_horizontal(side: StringName, player: Node2D, map_y: float) -> void:
+func _update_horizontal(side: StringName, player: Player, map_y: float) -> void:
 	var border: MapBorderSide = _get_border(side)
 	if border == null:
 		return
@@ -198,13 +194,10 @@ func _try_apply_border_hit(player: Player, side: StringName) -> void:
 		if _game_sync != null and _game_sync.is_host():
 			var source_slot: int = GameSettings.PLAYER_TWO_SLOT if player.player_slot == GameSettings.PLAYER_ONE_SLOT else GameSettings.PLAYER_ONE_SLOT
 			var combat_sync: Variant = _game_sync.get_module(GameSettings.MODULE_COMBAT)
-			if combat_sync != null and combat_sync.has_method("apply_hit"):
-				combat_sync.call("apply_hit", player.player_slot, source_slot, 0, damage_amount)
+			if combat_sync != null:
+				combat_sync.apply_hit(player.player_slot, source_slot, 0, damage_amount)
 	else:
-		if player.has_method("apply_incoming_damage"):
-			player.call("apply_incoming_damage", damage_amount, 0, player.global_position, true)
-		elif player.health_component != null:
-			player.health_component.damage(damage_amount)
+		player.apply_incoming_damage(damage_amount, 0, player.global_position, true)
 
 
 func _get_overlapping_border_side(position: Vector2) -> StringName:
@@ -252,7 +245,7 @@ func _get_map_bounds() -> Rect2:
 
 
 func _get_game_sync() -> GameSync:
-	return get_node_or_null("../GameSync") as GameSync
+	return get_node_or_null(game_sync_path) as GameSync
 
 
 func _get_border(side: StringName) -> MapBorderSide:

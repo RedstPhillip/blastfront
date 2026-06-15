@@ -109,25 +109,25 @@ func shake(strength: float, duration: float) -> void:
 
 # Effects live under the active scene while retaining their world coordinates.
 func spawn_burst(kind: StringName, world_position: Vector2, direction: Vector2 = Vector2.UP, tint: Color = Color.WHITE) -> void:
-	var effect: Node2D = BURST_EFFECT_SCENE.instantiate() as Node2D
-	if effect == null:
+	var effect_node: Node2D = BURST_EFFECT_SCENE.instantiate() as Node2D
+	if effect_node == null:
 		return
 	var root_node: Node = _effect_root()
-	_place_effect(effect, root_node, world_position)
-	if effect.has_method("configure"):
-		effect.call("configure", kind, direction, tint)
-	root_node.add_child(effect)
+	_place_effect(effect_node, root_node, world_position)
+	var effect: Variant = effect_node
+	effect.configure(kind, direction, tint)
+	root_node.add_child(effect_node)
 
 
 func spawn_muzzle(world_position: Vector2, direction: Vector2, tint: Color = Color(1.0, 0.82, 0.38, 1.0)) -> void:
-	var effect: Node2D = MUZZLE_EFFECT_SCENE.instantiate() as Node2D
-	if effect == null:
+	var effect_node: Node2D = MUZZLE_EFFECT_SCENE.instantiate() as Node2D
+	if effect_node == null:
 		return
 	var root_node: Node = _effect_root()
-	_place_effect(effect, root_node, world_position)
-	if effect.has_method("configure"):
-		effect.call("configure", direction, tint)
-	root_node.add_child(effect)
+	_place_effect(effect_node, root_node, world_position)
+	var effect: Variant = effect_node
+	effect.configure(direction, tint)
+	root_node.add_child(effect_node)
 
 
 func play_sound(sound_id: StringName, volume_db: float = 0.0, pitch_variation: float = 0.05) -> void:

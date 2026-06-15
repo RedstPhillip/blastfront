@@ -14,7 +14,7 @@ const ROUND_SCORE_DOT_SCENE: PackedScene = preload("res://scenes/ui/round_score_
 @onready var _play_again_button: Button = %PlayAgainButton
 @onready var _main_menu_button: Button = %MainMenuButton
 
-var _game: Node = null
+var _game: Game = null
 var _last_banner_text: String = ""
 var _round_dot_target: int = 0
 
@@ -40,12 +40,12 @@ func _process(_delta: float) -> void:
 
 
 func _bind_game() -> void:
-	_game = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)
-	if _game == null or not _game.has_method("get_player_by_slot"):
+	_game = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP) as Game
+	if _game == null:
 		return
 
-	var player_one: Player = _game.call("get_player_by_slot", GameSettings.PLAYER_ONE_SLOT) as Player
-	var player_two: Player = _game.call("get_player_by_slot", GameSettings.PLAYER_TWO_SLOT) as Player
+	var player_one: Player = _game.get_player_by_slot(GameSettings.PLAYER_ONE_SLOT)
+	var player_two: Player = _game.get_player_by_slot(GameSettings.PLAYER_TWO_SLOT)
 	_left_player_panel.bind_player(player_one)
 	_right_player_panel.bind_player(player_two)
 
@@ -90,9 +90,9 @@ func _refresh_offline_score() -> void:
 	_banner_panel.hide()
 	var left_score: int = 0
 	var right_score: int = 0
-	if _game != null and _game.has_method("get_score_for_slot"):
-		left_score = int(_game.call("get_score_for_slot", GameSettings.PLAYER_ONE_SLOT))
-		right_score = int(_game.call("get_score_for_slot", GameSettings.PLAYER_TWO_SLOT))
+	if _game != null:
+		left_score = _game.get_score_for_slot(GameSettings.PLAYER_ONE_SLOT)
+		right_score = _game.get_score_for_slot(GameSettings.PLAYER_TWO_SLOT)
 
 	_apply_scoreboard(
 		left_score,
@@ -104,8 +104,8 @@ func _refresh_offline_score() -> void:
 		GameSettings.player_color_value(GameSettings.ONLINE_DEFAULT_REMOTE_COLOR)
 	)
 
-	if _game != null and _game.has_method("is_match_over") and _game.call("is_match_over") == true:
-		var winner_slot: int = int(_game.call("get_winner_slot")) if _game.has_method("get_winner_slot") else 0
+	if _game != null and _game.is_match_over():
+		var winner_slot: int = _game.get_winner_slot()
 		var winner_color: Color = GameSettings.player_color_value(
 			GameSettings.ONLINE_DEFAULT_REMOTE_COLOR if winner_slot == GameSettings.PLAYER_TWO_SLOT else GameSettings.ONLINE_DEFAULT_LOCAL_COLOR
 		)
@@ -202,18 +202,18 @@ func _on_play_again_pressed() -> void:
 		NetworkSession.start_training()
 	else:
 		NetworkSession.start_offline()
-	var main_node: Node = get_node_or_null("/root/Main")
-	if main_node != null and main_node.has_method("start_game"):
-		main_node.call("start_game")
+	var main_node: Variant = get_node_or_null("/root/Main")
+	if main_node != null:
+		main_node.start_game()
 
 
 func _on_main_menu_pressed() -> void:
 	GameJuice.play_sound(&"ui_click", -8.0, 0.03)
 	get_tree().paused = false
 	NetworkSession.leave_round()
-	var main_node: Node = get_node_or_null("/root/Main")
-	if main_node != null and main_node.has_method("show_menu"):
-		main_node.call("show_menu")
+	var main_node: Variant = get_node_or_null("/root/Main")
+	if main_node != null:
+		main_node.show_menu()
 
 
 func _play_banner_animation() -> void:

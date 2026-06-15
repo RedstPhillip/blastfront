@@ -1,7 +1,7 @@
 extends Node
 class_name GameSync
 
-var game: Node = null
+var game: Variant = null
 var tick: int = 0
 
 var _sequence: int = 0
@@ -19,10 +19,9 @@ func setup(game_world: Node) -> void:
 	_modules_by_name.clear()
 	_packet_handlers.clear()
 
-	if game != null and game.has_method("get_config"):
-		var config: Variant = game.call("get_config")
-		if config is Dictionary:
-			_snapshot_rate = config.get("snapshot_rate", GameSettings.DEFAULT_WORLD_SNAPSHOT_RATE)
+	if game != null:
+		var config: Dictionary = game.get_config()
+		_snapshot_rate = config.get("snapshot_rate", GameSettings.DEFAULT_WORLD_SNAPSHOT_RATE)
 
 	if not NetworkSession.packet_received.is_connected(_on_packet_received):
 		NetworkSession.packet_received.connect(_on_packet_received)
@@ -106,14 +105,14 @@ func send_unreliable(packet_type: StringName, payload: Dictionary, channel: int 
 
 func request_shot(owner_slot: int, spawn_position: Vector2, direction: Vector2, projectile_data: Dictionary) -> void:
 	var projectile_sync: Variant = get_module(&"projectile")
-	if projectile_sync != null and projectile_sync.has_method("request_shot"):
-		projectile_sync.call("request_shot", owner_slot, spawn_position, direction, projectile_data)
+	if projectile_sync != null:
+		projectile_sync.request_shot(owner_slot, spawn_position, direction, projectile_data)
 
 
 func request_block_state(owner_slot: int, active: bool, direction: Vector2, cooldown_ratio: float) -> void:
 	var block_sync: Variant = get_module(GameSettings.MODULE_BLOCK)
-	if block_sync != null and block_sync.has_method("request_block_state"):
-		block_sync.call("request_block_state", owner_slot, active, direction, cooldown_ratio)
+	if block_sync != null:
+		block_sync.request_block_state(owner_slot, active, direction, cooldown_ratio)
 
 
 func _make_packet(packet_type: StringName, payload: Dictionary) -> Dictionary:

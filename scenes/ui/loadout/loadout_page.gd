@@ -85,7 +85,7 @@ var _hover_clear_timer: float = 0.0
 @onready var _shield_slot: ArmorOverlaySlot = %ShieldSlot
 @onready var _coin_balance_label: Label = %CoinBalanceLabel
 @onready var _offer_grid: GridContainer = %OfferGrid
-@onready var _recycler_drop_target: Control = %RecyclerDropTarget
+@onready var _recycler_drop_target: RecyclerDropTarget = %RecyclerDropTarget
 
 
 # This controller joins owned items, equipped loadout and current round rewards.
@@ -219,10 +219,9 @@ func _connect_inventory_signals() -> void:
 		OnlineMatch.state_changed.connect(_refresh_shop_state)
 	if not ResearchManager.research_changed.is_connected(_refresh_research_unlocks):
 		ResearchManager.research_changed.connect(_refresh_research_unlocks)
-	if _recycler_drop_target.has_signal("reward_recycled"):
-		var recycle_callback: Callable = Callable(self, "_on_reward_recycled")
-		if not _recycler_drop_target.is_connected("reward_recycled", recycle_callback):
-			_recycler_drop_target.connect("reward_recycled", recycle_callback)
+	var recycle_callback: Callable = Callable(self, "_on_reward_recycled")
+	if not _recycler_drop_target.reward_recycled.is_connected(recycle_callback):
+		_recycler_drop_target.reward_recycled.connect(recycle_callback)
 
 
 func _refresh_weapon_inventory() -> void:
@@ -327,8 +326,7 @@ func _refresh_research_unlocks() -> void:
 		saved_slot.modulate = Color(0.72, 0.76, 0.78, 1.0)
 	if _saved_reward_spacer != null:
 		_saved_reward_spacer.visible = saved_count > 0 and saved_count % 2 == 1
-	if _recycler_drop_target.has_method("refresh"):
-		_recycler_drop_target.call("refresh")
+	_recycler_drop_target.refresh()
 
 
 func _setup_saved_reward_spacer() -> void:

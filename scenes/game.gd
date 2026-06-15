@@ -1,4 +1,5 @@
 extends Node2D
+class_name Game
 
 const PROJECTILE_SCENE: PackedScene = preload("res://scenes/projectiles/projectile.tscn")
 const PLAYER_SCENE: PackedScene = preload("res://scenes/player/player.tscn")
@@ -93,38 +94,11 @@ func request_shot(owner: Node, spawn_position: Vector2, direction: Vector2, proj
 		_game_sync.request_shot(owner_slot, spawn_position, direction, projectile_data)
 		return
 
-	var directions: Array[Vector2] = _extract_volley_directions(projectile_data, direction)
+	var directions: Array[Vector2] = Projectile.extract_shot_directions(projectile_data, direction)
 	for shot_direction in directions:
-		var projectile: Node2D = PROJECTILE_SCENE.instantiate() as Node2D
-		var muzzle_speed: float = float(projectile_data.get("muzzle_speed", projectile.get("muzzle_speed")))
-		projectile.set("owner_slot", owner_slot)
-		projectile.set("direction", shot_direction)
-		projectile.set("muzzle_speed", muzzle_speed)
-		projectile.set("gravity", float(projectile_data.get("gravity", projectile.get("gravity"))))
-		projectile.set("linear_damping", float(projectile_data.get("linear_damping", projectile.get("linear_damping"))))
-		projectile.set("max_distance", float(projectile_data.get("max_distance", projectile.get("max_distance"))))
-		projectile.set("damage", int(projectile_data.get("damage", projectile.get("damage"))))
-		projectile.set("projectile_scale", float(projectile_data.get("projectile_scale", 1.0)))
-		projectile.set("extension_tags", projectile_data.get("extension_tags", []))
-		projectile.set("extension_effects", projectile_data.get("extension_effects", {}))
-		projectile.set("source_extensions", projectile_data.get("source_extensions", []))
-		projectile.set("initial_velocity", shot_direction * muzzle_speed)
+		var projectile: Projectile = PROJECTILE_SCENE.instantiate() as Projectile
+		projectile.configure_from_data(0, owner_slot, shot_direction, projectile_data)
 		spawn_projectile(projectile, spawn_position)
-
-
-func _extract_volley_directions(projectile_data: Dictionary, fallback_direction: Vector2) -> Array[Vector2]:
-	var result: Array[Vector2] = []
-	var directions_variant: Variant = projectile_data.get("volley_directions", [])
-	if directions_variant is Array:
-		var raw_directions: Array = directions_variant
-		for raw_direction in raw_directions:
-			if raw_direction is Vector2:
-				var shot_direction: Vector2 = raw_direction
-				if shot_direction.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
-					result.append(shot_direction.normalized())
-	if result.is_empty():
-		result.append(fallback_direction.normalized())
-	return result
 
 
 func request_block_state(owner: Node, active: bool, direction: Vector2, cooldown_ratio: float) -> void:
@@ -150,11 +124,11 @@ func build_authoritative_shot(owner_slot: int) -> Dictionary:
 	if player == null:
 		return {}
 
-	var gun: Node = player.get_node_or_null("Gun")
-	if gun == null or not gun.has_method("build_shot_data"):
+	var gun: Variant = player.get_gun()
+	if gun == null:
 		return {}
 
-	var shot_data: Dictionary = gun.call("build_shot_data")
+	var shot_data: Dictionary = gun.build_shot_data()
 	if shot_data.is_empty():
 		return {}
 

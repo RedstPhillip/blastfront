@@ -287,13 +287,9 @@ func _ensure_online_loadouts() -> void:
 
 
 func _connect_online_match() -> void:
-	var online_match: Node = get_node_or_null("/root/OnlineMatch")
-	if online_match == null or not online_match.has_signal("state_changed"):
-		return
-
 	var callback: Callable = Callable(self, "_on_online_match_state_changed")
-	if not online_match.is_connected("state_changed", callback):
-		online_match.connect("state_changed", callback)
+	if not OnlineMatch.state_changed.is_connected(callback):
+		OnlineMatch.state_changed.connect(callback)
 
 
 func _on_online_match_state_changed() -> void:
@@ -301,13 +297,7 @@ func _on_online_match_state_changed() -> void:
 
 
 func _apply_online_match_loadouts() -> void:
-	var online_match: Node = get_node_or_null("/root/OnlineMatch")
-	if online_match == null or not online_match.has_method("get_armor_loadouts"):
-		return
-
-	var loadouts_variant: Variant = online_match.call("get_armor_loadouts")
-	if loadouts_variant is Dictionary:
-		apply_online_loadouts(loadouts_variant)
+	apply_online_loadouts(OnlineMatch.get_armor_loadouts())
 
 
 func _publish_local_loadout_if_needed(player_slot: int) -> void:
@@ -318,11 +308,7 @@ func _publish_local_loadout_if_needed(player_slot: int) -> void:
 	if player_slot != get_local_player_slot():
 		return
 
-	var online_match: Node = get_node_or_null("/root/OnlineMatch")
-	if online_match == null or not online_match.has_method("set_local_armor_loadout"):
-		return
-
-	online_match.call("set_local_armor_loadout", serialize_loadout_for_local())
+	OnlineMatch.set_local_armor_loadout(serialize_loadout_for_local())
 
 
 func _is_player_slot(player_slot: int) -> bool:

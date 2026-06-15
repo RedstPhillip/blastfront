@@ -57,6 +57,7 @@ func _ready() -> void:
 	assert(is_equal_approx(ResearchManager.get_passive_healing_cap(), 1.0))
 	assert(is_equal_approx(ResearchManager.get_passive_healing_rate(), 4.0))
 	assert(ResearchManager.has_phoenix())
+	await _verify_world_scene_contract()
 
 	var base_rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	base_rng.seed = 8128
@@ -307,6 +308,35 @@ func get_player_by_slot(slot: int) -> Player:
 	if _test_player != null and _test_player.player_slot == slot:
 		return _test_player
 	return null
+
+
+func _verify_world_scene_contract() -> void:
+	var locker_scene: PackedScene = load("res://scenes/menus/online_locker_room.tscn") as PackedScene
+	var locker: Variant = locker_scene.instantiate()
+	add_child(locker as Node)
+	await get_tree().process_frame
+
+	assert(locker.get_player_by_slot(GameSettings.PLAYER_ONE_SLOT) is Player)
+	assert(locker.get_player_by_slot(GameSettings.PLAYER_TWO_SLOT) is Player)
+	assert(locker.get_local_player() is Player)
+	assert(locker.get_score_for_slot(GameSettings.PLAYER_ONE_SLOT) == 0)
+	assert(not locker.is_match_over())
+	assert(locker.get_winner_slot() == 0)
+	locker.request_block_state(
+		locker.get_local_player(),
+		false,
+		Vector2.LEFT,
+		GameSettings.PLAYER_BLOCK_REMOTE_COOLDOWN_RATIO
+	)
+	locker.request_shot(
+		locker.get_local_player(),
+		Vector2(320.0, 430.0),
+		Vector2.RIGHT,
+		{"muzzle_speed": 120.0, "damage": 1, "max_distance": 20.0}
+	)
+
+	locker.queue_free()
+	await get_tree().process_frame
 
 
 func _finish_test() -> void:

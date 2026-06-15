@@ -44,9 +44,7 @@ func _drop_data(_at_position: Vector2, data: Variant) -> void:
 	if item == null:
 		return
 
-	var inventory_node: Node = get_node_or_null("/root/ExtensionInventory")
-	if inventory_node != null and inventory_node.has_method("equip_item_for_local"):
-		inventory_node.call("equip_item_for_local", item)
+	ExtensionInventory.equip_item_for_local(item)
 
 
 func _extract_item(data: Variant) -> WeaponExtensionItem:
@@ -61,20 +59,13 @@ func _extract_item(data: Variant) -> WeaponExtensionItem:
 
 
 func _get_equipped_item() -> WeaponExtensionItem:
-	var inventory_node: Node = get_node_or_null("/root/ExtensionInventory")
-	if inventory_node == null or not inventory_node.has_method("get_equipped_item_for_local"):
-		return null
-	return inventory_node.call("get_equipped_item_for_local", StringName(slot_key)) as WeaponExtensionItem
+	return ExtensionInventory.get_equipped_item_for_local(StringName(slot_key))
 
 
 func _connect_extension_inventory() -> void:
-	var inventory_node: Node = get_node_or_null("/root/ExtensionInventory")
-	if inventory_node == null or not inventory_node.has_signal("loadout_changed"):
-		return
-
 	var callback: Callable = Callable(self, "_on_loadout_changed")
-	if not inventory_node.is_connected("loadout_changed", callback):
-		inventory_node.connect("loadout_changed", callback)
+	if not ExtensionInventory.loadout_changed.is_connected(callback):
+		ExtensionInventory.loadout_changed.connect(callback)
 
 
 func _on_loadout_changed(_player_slot: int) -> void:
@@ -82,6 +73,4 @@ func _on_loadout_changed(_player_slot: int) -> void:
 
 
 func _on_clear_pressed() -> void:
-	var inventory_node: Node = get_node_or_null("/root/ExtensionInventory")
-	if inventory_node != null and inventory_node.has_method("unequip_local"):
-		inventory_node.call("unequip_local", StringName(slot_key))
+	ExtensionInventory.unequip_local(StringName(slot_key))
