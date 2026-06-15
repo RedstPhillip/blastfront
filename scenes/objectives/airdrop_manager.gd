@@ -148,10 +148,10 @@ func _try_start_decision_drop() -> void:
 		return
 	if OnlineMatch.airdrop_deployed:
 		return
-	var decision_score: int = GameSettings.ONLINE_SET_KILLS_TO_WIN - 1
 	var player_one_kills: int = int(OnlineMatch.set_kills.get(GameSettings.PLAYER_ONE_SLOT, 0))
 	var player_two_kills: int = int(OnlineMatch.set_kills.get(GameSettings.PLAYER_TWO_SLOT, 0))
-	if player_one_kills != decision_score or player_two_kills != decision_score:
+	var completed_rounds: int = player_one_kills + player_two_kills
+	if completed_rounds != 1:
 		return
 	if not OnlineMatch.mark_airdrop_deployed():
 		return

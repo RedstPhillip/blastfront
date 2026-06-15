@@ -99,6 +99,7 @@ func start_next_set() -> void:
 		return
 
 	set_kills = GameSettings.default_score()
+	airdrop_deployed = false
 	locker_ready = GameSettings.default_ready_state()
 	intermission_ready = GameSettings.default_ready_state()
 	last_winner_slot = 0

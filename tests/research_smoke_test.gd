@@ -319,8 +319,8 @@ func _ready() -> void:
 	assert(not OnlineMatch.airdrop_deployed)
 	OnlineMatch.phase = GameSettings.MATCH_PHASE_KILL_BANNER
 	OnlineMatch.set_kills = {
-		GameSettings.PLAYER_ONE_SLOT: GameSettings.ONLINE_SET_KILLS_TO_WIN - 1,
-		GameSettings.PLAYER_TWO_SLOT: GameSettings.ONLINE_SET_KILLS_TO_WIN - 1,
+		GameSettings.PLAYER_ONE_SLOT: 1,
+		GameSettings.PLAYER_TWO_SLOT: 0,
 	}
 	airdrop_manager._on_phase_changed(GameSettings.MATCH_PHASE_KILL_BANNER)
 	assert(airdrop_manager._phase == AirdropManager.PHASE_WARNING)
@@ -336,12 +336,31 @@ func _ready() -> void:
 	airdrop_manager._drop_completed = false
 	OnlineMatch.airdrop_deployed = false
 	OnlineMatch.phase = GameSettings.MATCH_PHASE_PLAYING_SET
+	OnlineMatch.set_kills = {
+		GameSettings.PLAYER_ONE_SLOT: 0,
+		GameSettings.PLAYER_TWO_SLOT: 1,
+	}
 	OnlineMatch.match_points = {
 		GameSettings.PLAYER_ONE_SLOT: 0,
 		GameSettings.PLAYER_TWO_SLOT: 1,
 	}
 	airdrop_manager._try_start_decision_drop()
 	assert(airdrop_manager._target_position.is_equal_approx(left_marker.global_position))
+
+	airdrop_manager._clear_airdrop()
+	airdrop_manager._drop_completed = false
+	OnlineMatch.airdrop_deployed = false
+	OnlineMatch.set_kills = {
+		GameSettings.PLAYER_ONE_SLOT: 1,
+		GameSettings.PLAYER_TWO_SLOT: 1,
+	}
+	airdrop_manager._try_start_decision_drop()
+	assert(airdrop_manager._phase == AirdropManager.PHASE_INACTIVE)
+
+	OnlineMatch.airdrop_deployed = true
+	OnlineMatch.start_next_set()
+	assert(not OnlineMatch.airdrop_deployed)
+	assert(OnlineMatch.set_kills == GameSettings.default_score())
 
 	airdrop_manager._clear_airdrop()
 	NetworkSession.mode = GameSettings.NETWORK_MODE_CLIENT
