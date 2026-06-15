@@ -278,8 +278,8 @@ func _on_research_changed() -> void:
 
 func _apply_round_condition_wear() -> void:
 	var wear_multiplier: float = ResearchManager.get_condition_wear_multiplier()
-	ExtensionInventory.apply_condition_wear_for_local(4.0 * wear_multiplier)
-	ArmorInventory.apply_condition_wear_for_local(4.0 * wear_multiplier)
+	ExtensionInventory.apply_condition_wear_for_local(8.0 * wear_multiplier)
+	ArmorInventory.apply_condition_wear_for_local(8.0 * wear_multiplier)
 
 
 func _shuffle_array(items: Array) -> void:

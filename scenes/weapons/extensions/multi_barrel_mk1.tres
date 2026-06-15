@@ -8,11 +8,11 @@ script = ExtResource("1_definition")
 extension_id = "multi_barrel_mk1"
 display_name = "Multi Barrel MK1"
 slot_key = "front"
-description = "Dual-barrel attachment. Fires 2 projectiles per shot with a slightly uneven spread. Damage -4, Fire Rate +0.32s, Spread 6 degrees, Reload +0.15s."
+description = "Dual-barrel attachment. Fires 2 projectiles per shot with a slightly uneven spread. Damage -10, Fire Rate +0.32s, Spread 6 degrees, Reload +0.15s."
 default_condition = 100.0
 minimum_condition_factor = 0.25
 attribute_modifiers = {
-"damage": -4.0,
+"damage": -10.0,
 "fire_interval": 0.32,
 "shots_per_fire": 1.0,
 "shot_spread_degrees": 6.0,

@@ -8,11 +8,11 @@ script = ExtResource("1_definition")
 extension_id = "ground_hover_mk1"
 display_name = "Ground Hover MK1"
 slot_key = "middle"
-description = "Terrain-following projector. Bullets keep their normal trajectory, then ease into a smooth hover 22px above nearby ground. Damage -1."
+description = "Terrain-following projector. Bullets keep their normal trajectory, then ease into a smooth hover 22px above nearby ground. Damage -3."
 default_condition = 100.0
 minimum_condition_factor = 0.25
 attribute_modifiers = {
-"damage": -1.0
+"damage": -3.0
 }
 projectile_tags = Array[String](["hover"])
 projectile_effects = {}

@@ -481,7 +481,7 @@ func _get_balanced_extension_effects(effects: Dictionary) -> Dictionary:
 	var poison_data: Dictionary = poison_variant
 	var base_damage_per_tick: int = int(poison_data.get("damage_per_tick", 0))
 	var base_tick_count: int = int(poison_data.get("tick_count", 1))
-	poison_data["damage_per_tick"] = clampi(base_damage_per_tick, 0, 3)
+	poison_data["damage_per_tick"] = clampi(base_damage_per_tick, 0, 8)
 	poison_data["tick_count"] = mini(base_tick_count, 3)
 	poison_data["duration"] = minf(float(poison_data.get("duration", 3.0)), 3.0)
 	balanced_effects["poison"] = poison_data

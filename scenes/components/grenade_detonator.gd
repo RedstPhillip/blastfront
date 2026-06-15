@@ -4,7 +4,7 @@ extends Node
 var origin: Vector2
 var delay: float = 0.5
 var radius: float = 80.0
-var damage: int = 10
+var damage: int = GameSettings.PROJECTILE_DAMAGE
 var owner_slot: int = 0
 var _elapsed: float = 0.0
 

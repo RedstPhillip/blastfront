@@ -13,7 +13,7 @@ func apply(target: Player, effect_data: Dictionary, projectile: Node = null) -> 
 
 	var delay: float = float(effect_data.get("delay", 0.5))
 	var radius: float = float(effect_data.get("radius", 80.0))
-	var damage: int = int(effect_data.get("damage_per_hit", effect_data.get("damage", 10)))
+	var damage: int = int(effect_data.get("damage_per_hit", effect_data.get("damage", GameSettings.PROJECTILE_DAMAGE)))
 
 	var tree: SceneTree = target.get_tree() if target != null else projectile.get_tree()
 	if tree == null:

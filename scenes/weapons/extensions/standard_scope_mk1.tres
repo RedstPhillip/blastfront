@@ -8,12 +8,12 @@ script = ExtResource("1_definition")
 extension_id = "standard_scope_mk1"
 display_name = "Standard Scope MK1"
 slot_key = "middle"
-description = "Optical scope that steadies the aim by reducing recoil rotation for more consistent follow-up shots. Recoil -3 degrees, Damage -1."
+description = "Optical scope that steadies the aim by reducing recoil rotation for more consistent follow-up shots. Recoil -3 degrees, Damage -3."
 default_condition = 100.0
 minimum_condition_factor = 0.25
 attribute_modifiers = {
 "recoil_rotation_degrees": -3.0,
-"damage": -1.0
+"damage": -3.0
 }
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.55, 0.6, 0.65, 1)

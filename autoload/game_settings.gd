@@ -133,7 +133,7 @@ const INPUT_P2_BLOCK: StringName = &"p2_block"
 
 const DEFAULT_MAX_HEALTH: int = 100
 const MIN_MAX_HEALTH: int = 1
-const PROJECTILE_DAMAGE: int = 10
+const PROJECTILE_DAMAGE: int = 25
 
 const PLAYER_GRAVITY: float = 1350.0
 const PLAYER_WALL_SLIDE_SPEED: float = 80.0

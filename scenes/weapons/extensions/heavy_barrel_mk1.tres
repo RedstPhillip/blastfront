@@ -8,11 +8,11 @@ script = ExtResource("1_definition")
 extension_id = "heavy_barrel_mk1"
 display_name = "Heavy Barrel MK1"
 slot_key = "front"
-description = "Reinforced barrel that increases damage per shot at the cost of a slower fire rate. Damage +3, Fire Rate +0.24s, Speed -50, Reload +0.15s."
+description = "Reinforced barrel that increases damage per shot at the cost of a slower fire rate. Damage +8, Fire Rate +0.24s, Speed -50, Reload +0.15s."
 default_condition = 100.0
 minimum_condition_factor = 0.25
 attribute_modifiers = {
-"damage": 3.0,
+"damage": 8.0,
 "fire_interval": 0.24,
 "projectile_speed": -50.0,
 "reload_time": 0.15

@@ -11,7 +11,6 @@ slot_key = "ammo"
 description = "Sticky grenades that detonate 0.5s after impact with an 80px blast radius. Speed -200, Fire Rate +0.20s, Ammo -1, Reload +0.2s."
 default_condition = 100.0
 minimum_condition_factor = 0.25
-condition_scales_projectile_effects = false
 attribute_modifiers = {
 "projectile_speed": -200.0,
 "fire_interval": 0.20,
@@ -23,7 +22,7 @@ projectile_effects = {
 "grenade": {
 "delay": 0.5,
 "radius": 80.0,
-"damage_per_hit": 10
+"damage_per_hit": 25
 }
 }
 visual_scene = ExtResource("2_visual")

@@ -358,7 +358,7 @@ func _apply_authoritative_extension_effects(projectile: Projectile, direct_targe
 					origin,
 					owner_slot,
 					float(effect_data.get("radius", 80.0)),
-					int(effect_data.get("splash_damage", effect_data.get("damage", 10)))
+					int(effect_data.get("splash_damage", effect_data.get("damage", GameSettings.PROJECTILE_DAMAGE)))
 				)
 			&"grenade":
 				_schedule_grenade_explosion(origin, owner_slot, effect_data)
@@ -379,7 +379,7 @@ func _get_balanced_status_effect_data(
 
 	var base_damage_per_tick: int = int(balanced_data.get("damage_per_tick", 0))
 	var base_tick_count: int = int(balanced_data.get("tick_count", 1))
-	balanced_data["damage_per_tick"] = clampi(base_damage_per_tick, 0, 3)
+	balanced_data["damage_per_tick"] = clampi(base_damage_per_tick, 0, 8)
 	balanced_data["tick_count"] = mini(base_tick_count, 3)
 	balanced_data["duration"] = minf(float(balanced_data.get("duration", 3.0)), 3.0)
 	return balanced_data
@@ -388,7 +388,7 @@ func _get_balanced_status_effect_data(
 func _schedule_grenade_explosion(origin: Vector2, owner_slot: int, effect_data: Dictionary) -> void:
 	var delay: float = maxf(float(effect_data.get("delay", 0.5)), 0.0)
 	var radius: float = float(effect_data.get("radius", 80.0))
-	var damage: int = int(effect_data.get("damage_per_hit", effect_data.get("damage", 10)))
+	var damage: int = int(effect_data.get("damage_per_hit", effect_data.get("damage", GameSettings.PROJECTILE_DAMAGE)))
 	await get_tree().create_timer(delay, false).timeout
 	if game_sync == null or not game_sync.is_host() or not OnlineMatch.is_playing_set():
 		return

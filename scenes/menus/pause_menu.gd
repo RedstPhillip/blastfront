@@ -2,6 +2,16 @@ extends Control
 
 const SETTINGS_MENU_SCENE: PackedScene = preload("res://scenes/menus/settings_menu.tscn")
 const LOADOUT_PAGE_SCENE: PackedScene = preload("res://scenes/ui/loadout/loadout_page.tscn")
+const MENU_BUTTON_HEIGHT: float = 58.0
+const MENU_SMALL_BUTTON_HEIGHT: float = 52.0
+const RESUME_BUTTON_TOP: float = 174.0
+const LOADOUT_BUTTON_TOP: float = 242.0
+const SETTINGS_BUTTON_TOP_WITH_LOADOUT: float = 310.0
+const MAIN_MENU_BUTTON_TOP_WITH_LOADOUT: float = 378.0
+const EXIT_BUTTON_TOP_WITH_LOADOUT: float = 442.0
+const SETTINGS_BUTTON_TOP_COMPACT: float = 242.0
+const MAIN_MENU_BUTTON_TOP_COMPACT: float = 310.0
+const EXIT_BUTTON_TOP_COMPACT: float = 374.0
 
 @onready var _menu_container: Control = %MenuRoot
 @onready var _resume_button: Button = %ResumeButton
@@ -128,6 +138,23 @@ func _on_exit_pressed() -> void:
 func _refresh_training_ui() -> void:
 	var is_training: bool = NetworkSession.is_training()
 	_loadout_button.visible = is_training
+	_set_button_vertical_bounds(_resume_button, RESUME_BUTTON_TOP, MENU_BUTTON_HEIGHT)
+	_set_button_vertical_bounds(_loadout_button, LOADOUT_BUTTON_TOP, MENU_BUTTON_HEIGHT)
+	if is_training:
+		_set_button_vertical_bounds(_settings_button, SETTINGS_BUTTON_TOP_WITH_LOADOUT, MENU_BUTTON_HEIGHT)
+		_set_button_vertical_bounds(_main_menu_button, MAIN_MENU_BUTTON_TOP_WITH_LOADOUT, MENU_SMALL_BUTTON_HEIGHT)
+		_set_button_vertical_bounds(_exit_button, EXIT_BUTTON_TOP_WITH_LOADOUT, MENU_SMALL_BUTTON_HEIGHT - 2.0)
+	else:
+		_set_button_vertical_bounds(_settings_button, SETTINGS_BUTTON_TOP_COMPACT, MENU_BUTTON_HEIGHT)
+		_set_button_vertical_bounds(_main_menu_button, MAIN_MENU_BUTTON_TOP_COMPACT, MENU_SMALL_BUTTON_HEIGHT)
+		_set_button_vertical_bounds(_exit_button, EXIT_BUTTON_TOP_COMPACT, MENU_SMALL_BUTTON_HEIGHT - 2.0)
+
+
+func _set_button_vertical_bounds(button: Button, top: float, height: float) -> void:
+	if button == null:
+		return
+	button.position.y = top
+	button.size.y = height
 
 
 func _set_local_controls_enabled(enabled: bool) -> void:

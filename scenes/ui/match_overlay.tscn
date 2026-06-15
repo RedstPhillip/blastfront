@@ -47,75 +47,75 @@ script = ExtResource("1_overlay")
 
 [node name="ScoreBoard" type="PanelContainer" parent="."]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(300, 96)
+custom_minimum_size = Vector2(226, 72)
 layout_mode = 1
 anchors_preset = 10
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = -150.0
+offset_left = -113.0
 offset_top = 10.0
-offset_right = 150.0
-offset_bottom = 106.0
+offset_right = 113.0
+offset_bottom = 82.0
 grow_horizontal = 2
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_score_panel")
 
 [node name="ScoreMargin" type="MarginContainer" parent="ScoreBoard"]
 layout_mode = 2
-theme_override_constants/margin_left = 18
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 18
-theme_override_constants/margin_bottom = 8
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 6
 
 [node name="ScoreRows" type="VBoxContainer" parent="ScoreBoard/ScoreMargin"]
 layout_mode = 2
-theme_override_constants/separation = 3
+theme_override_constants/separation = 1
 
 [node name="MainScore" type="HBoxContainer" parent="ScoreBoard/ScoreMargin/ScoreRows"]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 6
 
 [node name="LeftScore" type="Label" parent="ScoreBoard/ScoreMargin/ScoreRows/MainScore"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(92, 52)
+custom_minimum_size = Vector2(64, 38)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.31, 0.67, 1, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 0.9)
-theme_override_constants/outline_size = 5
+theme_override_constants/outline_size = 4
 theme_override_fonts/font = ExtResource("3_hud_font")
-theme_override_font_sizes/font_size = 36
+theme_override_font_sizes/font_size = 28
 text = "0"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="ScoreDivider" type="Label" parent="ScoreBoard/ScoreMargin/ScoreRows/MainScore"]
-custom_minimum_size = Vector2(40, 0)
+custom_minimum_size = Vector2(28, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 0.58)
 theme_override_fonts/font = ExtResource("3_hud_font")
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 14
 text = "VS"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="RightScore" type="Label" parent="ScoreBoard/ScoreMargin/ScoreRows/MainScore"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(92, 52)
+custom_minimum_size = Vector2(64, 38)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.92, 0.31, 0.31, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 0.9)
-theme_override_constants/outline_size = 5
+theme_override_constants/outline_size = 4
 theme_override_fonts/font = ExtResource("3_hud_font")
-theme_override_font_sizes/font_size = 36
+theme_override_font_sizes/font_size = 28
 text = "0"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="RoundDots" type="HBoxContainer" parent="ScoreBoard/ScoreMargin/ScoreRows"]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 6
 
 [node name="LeftRoundDots" type="HBoxContainer" parent="ScoreBoard/ScoreMargin/ScoreRows/RoundDots"]
 unique_name_in_owner = true
@@ -123,14 +123,15 @@ layout_mode = 2
 size_flags_horizontal = 3
 alignment = 1
 theme_override_constants/separation = 5
+scale = Vector2(0.75, 0.75)
 
 [node name="DotDivider" type="Control" parent="ScoreBoard/ScoreMargin/ScoreRows/RoundDots"]
-custom_minimum_size = Vector2(40, 16)
+custom_minimum_size = Vector2(28, 12)
 layout_mode = 2
 mouse_filter = 2
 
 [node name="Diamond" type="Polygon2D" parent="ScoreBoard/ScoreMargin/ScoreRows/RoundDots/DotDivider"]
-position = Vector2(20, 8)
+position = Vector2(14, 6)
 polygon = PackedVector2Array(0, -3, 5, 0, 0, 3, -5, 0)
 color = Color(1, 1, 1, 0.2)
 
@@ -140,6 +141,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 alignment = 1
 theme_override_constants/separation = 5
+scale = Vector2(0.75, 0.75)
 
 [node name="LeftPlayerPanel" parent="." instance=ExtResource("2_player_panel")]
 unique_name_in_owner = true

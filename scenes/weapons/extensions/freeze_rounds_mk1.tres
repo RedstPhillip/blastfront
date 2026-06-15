@@ -8,12 +8,11 @@ script = ExtResource("1_definition")
 extension_id = "freeze_rounds_mk1"
 display_name = "Freeze Rounds MK1"
 slot_key = "ammo"
-description = "Cryogenic ammo that slows enemies to 40% speed for 3 seconds. Damage -1, Speed -50, Reload +0.1s."
+description = "Cryogenic ammo that slows enemies to 40% speed for up to 3 seconds. Damage -3, Speed -50, Reload +0.1s."
 default_condition = 78.0
 minimum_condition_factor = 0.25
-condition_scales_projectile_effects = false
 attribute_modifiers = {
-"damage": -1.0,
+"damage": -3.0,
 "projectile_speed": -50.0,
 "reload_time": 0.1
 }

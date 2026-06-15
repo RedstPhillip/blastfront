@@ -14,7 +14,7 @@ func apply(target: Player, effect_data: Dictionary, projectile: Node = null) -> 
 	var radius: float = float(effect_data.get("radius", 80.0))
 	var splash_damage: int = int(effect_data.get("splash_damage", effect_data.get("damage_per_hit", 0)))
 	if splash_damage <= 0:
-		splash_damage = int(effect_data.get("damage", 10))
+		splash_damage = int(effect_data.get("damage", GameSettings.PROJECTILE_DAMAGE))
 
 	var tree: SceneTree = target.get_tree() if target != null else projectile.get_tree()
 	if tree == null:

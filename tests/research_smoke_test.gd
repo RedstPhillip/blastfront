@@ -146,7 +146,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 	var gun: Node = player.get_node("Gun")
 	player.health_component.health = 20
-	assert(int(gun.call("_get_modified_damage")) == 15)
+	assert(int(gun.call("_get_modified_damage")) == 38)
 	player.health_component.health = 50
 	assert(ResearchManager.apply_local_life_steal(player.player_slot, 10) == 2)
 	assert(player.health_component.health == 52)
@@ -217,7 +217,7 @@ func _ready() -> void:
 		{"damage_per_tick": 4, "tick_count": 4, "duration": 3.2},
 		["poison_rounds_mk1", "shotgun_mk1"]
 	)
-	assert(int(balanced_poison.get("damage_per_tick", 0)) == 3)
+	assert(int(balanced_poison.get("damage_per_tick", 0)) == 4)
 	assert(int(balanced_poison.get("tick_count", 0)) == 3)
 	projectile_sync.free()
 

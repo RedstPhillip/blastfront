@@ -6,6 +6,7 @@ const BARELY_USED: StringName = &"barely_used"
 const FIELD_TESTED: StringName = &"field_tested"
 const WELL_WORN: StringName = &"well_worn"
 const BATTLE_SCARRED: StringName = &"battle_scarred"
+const CONDITION_POWER_CURVE: float = 1.35
 
 
 static func clamp_value(value: float) -> float:
@@ -68,7 +69,7 @@ static func get_grade_probability(value: float) -> float:
 
 
 static func get_scale(value: float, minimum: float = 0.0) -> float:
-	var normalized: float = clamp_value(value) / 100.0
+	var normalized: float = pow(clamp_value(value) / 100.0, CONDITION_POWER_CURVE)
 	var safe_min: float = clampf(minimum, 0.0, 1.0)
 	return lerpf(safe_min, 1.0, normalized)
 

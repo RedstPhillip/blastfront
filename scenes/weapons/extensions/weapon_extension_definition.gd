@@ -1,6 +1,8 @@
 class_name WeaponExtensionDefinition
 extends Resource
 
+const MAX_CONDITION_DRAWBACK_PENALTY: float = 1.25
+
 const SLOT_MIDDLE: StringName = &"middle"
 const SLOT_AMMO: StringName = &"ammo"
 const SLOT_FRONT: StringName = &"front"
@@ -72,7 +74,7 @@ func get_effective_attribute_modifiers(condition: float, item_mark: int = mark) 
 		if raw_value is float or raw_value is int:
 			var numeric_value: float = float(raw_value)
 			if condition_scales_attributes:
-				numeric_value *= condition_multiplier
+				numeric_value *= _get_condition_attribute_factor(attribute_name, numeric_value, condition_multiplier)
 			result[attribute_name] = numeric_value
 		else:
 			result[attribute_name] = raw_value
@@ -91,7 +93,7 @@ func get_effective_projectile_effects(condition: float, item_mark: int = mark) -
 	var effects_copy: Dictionary = get_projectile_effects_for_mark(item_mark).duplicate(true)
 	if not condition_scales_projectile_effects:
 		return effects_copy
-	return _scale_dictionary_numbers(effects_copy, get_condition_multiplier(condition))
+	return _scale_projectile_effects(effects_copy, get_condition_multiplier(condition))
 
 
 func get_attribute_modifiers_for_mark(item_mark: int) -> Dictionary:
@@ -144,9 +146,19 @@ func _build_default_attribute_modifiers(item_mark: int) -> Dictionary:
 func _scale_default_attribute(attribute: StringName, value: float, item_mark: int) -> float:
 	var benefit_factor: float = 1.6 if item_mark == 2 else 2.35
 	var drawback_factor: float = 1.15 if item_mark == 2 else 1.35
-	var lower_is_better: bool = _attribute_lower_is_better(attribute)
-	var is_benefit: bool = value < 0.0 if lower_is_better else value > 0.0
+	var is_benefit: bool = _is_attribute_benefit(attribute, value)
 	return value * (benefit_factor if is_benefit else drawback_factor)
+
+
+func _get_condition_attribute_factor(attribute: StringName, value: float, condition_multiplier: float) -> float:
+	if _is_attribute_benefit(attribute, value):
+		return condition_multiplier
+	return lerpf(MAX_CONDITION_DRAWBACK_PENALTY, 1.0, condition_multiplier)
+
+
+func _is_attribute_benefit(attribute: StringName, value: float) -> bool:
+	var lower_is_better: bool = _attribute_lower_is_better(attribute)
+	return value < 0.0 if lower_is_better else value > 0.0
 
 
 func _attribute_lower_is_better(attribute: StringName) -> bool:
@@ -159,27 +171,49 @@ func _attribute_lower_is_better(attribute: StringName) -> bool:
 		or attribute == &"recoil_rotation_degrees"
 
 
-func _scale_dictionary_numbers(source: Dictionary, factor: float) -> Dictionary:
+func _scale_projectile_effects(source: Dictionary, factor: float) -> Dictionary:
 	var result: Dictionary = {}
 	for raw_key in source.keys():
-		result[raw_key] = _scale_variant(source[raw_key], factor)
+		var effect_data: Variant = source[raw_key]
+		if effect_data is Dictionary:
+			result[raw_key] = _scale_projectile_effect_data(effect_data, factor)
+		else:
+			result[raw_key] = _scale_projectile_effect_value(StringName(str(raw_key)), effect_data, factor)
 	return result
 
 
-func _scale_array_numbers(source: Array, factor: float) -> Array:
+func _scale_projectile_effect_data(source: Dictionary, factor: float) -> Dictionary:
+	var result: Dictionary = {}
+	for raw_key in source.keys():
+		result[raw_key] = _scale_projectile_effect_value(StringName(str(raw_key)), source[raw_key], factor)
+	return result
+
+
+func _scale_projectile_effect_array(parameter: StringName, source: Array, factor: float) -> Array:
 	var result: Array = []
 	for value in source:
-		result.append(_scale_variant(value, factor))
+		result.append(_scale_projectile_effect_value(parameter, value, factor))
 	return result
 
 
-func _scale_variant(value: Variant, factor: float) -> Variant:
+func _scale_projectile_effect_value(parameter: StringName, value: Variant, factor: float) -> Variant:
 	if value is float or value is int:
-		return float(value) * factor
+		var numeric_value: float = float(value)
+		match parameter:
+			&"delay", &"tick_interval":
+				return value
+			&"speed_multiplier":
+				return clampf(lerpf(1.0, numeric_value, factor), 0.05, 1.0)
+			&"tick_count":
+				return maxi(1, int(roundf(numeric_value * factor)))
+			&"wall_passes":
+				return maxi(0, int(roundf(numeric_value * factor)))
+			_:
+				return numeric_value * factor
 	if value is Dictionary:
 		var dictionary_value: Dictionary = value
-		return _scale_dictionary_numbers(dictionary_value, factor)
+		return _scale_projectile_effect_data(dictionary_value, factor)
 	if value is Array:
 		var array_value: Array = value
-		return _scale_array_numbers(array_value, factor)
+		return _scale_projectile_effect_array(parameter, array_value, factor)
 	return value
