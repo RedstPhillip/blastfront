@@ -122,6 +122,8 @@ var _healing_field_progress: float = 0.0
 var _healing_field_timer: float = 0.0
 var _healing_field_radius: float = 0.0
 var _healing_field_rate: float = 0.0
+var _healing_field_position: Vector2 = Vector2.ZERO
+var _healing_field_has_position: bool = false
 var _healing_area_visual_radius: float = 0.0
 var _healing_area_visual_phase: float = 0.0
 var _frosty_aura_timer: float = 0.0
@@ -431,6 +433,7 @@ func set_eliminated(eliminated: bool) -> void:
 	_hit_feedback_guard_timer = 0.0
 	_healing_field_timer = 0.0
 	_healing_field_progress = 0.0
+	_healing_field_has_position = false
 	_update_healing_area_visual(0.0, 0.0)
 
 	if eliminated:
@@ -602,6 +605,7 @@ func apply_remote_block_state(active: bool, direction_variant: Variant = Vector2
 	if _block_active:
 		if not was_active:
 			_block_timer = block_duration
+			_healing_field_has_position = false
 		_block_cooldown_timer = 0.0
 	else:
 		_block_timer = 0.0
@@ -990,6 +994,7 @@ func _begin_block() -> void:
 	_block_active = true
 	_block_timer = block_duration
 	_block_cooldown_timer = 0.0
+	_healing_field_has_position = false
 	if control_mode == GameSettings.CONTROL_LOCAL:
 		ResearchQuestManager.record_local_action(ResearchQuestManager.EVENT_BLOCK_ATTEMPT)
 	_apply_block_start_armor_effects()
@@ -1027,6 +1032,9 @@ func _update_block_armor_effects(delta: float) -> void:
 	var healing_rate: float = _get_armor_attribute(&"healing_rate")
 
 	if _block_active and healing_radius > 0.0 and healing_rate > 0.0:
+		if not _healing_field_has_position:
+			_healing_field_position = global_position
+			_healing_field_has_position = true
 		_healing_field_timer = GameSettings.PLAYER_HEALING_FIELD_DURATION
 		_healing_field_radius = healing_radius
 		_healing_field_rate = healing_rate
@@ -1034,6 +1042,7 @@ func _update_block_armor_effects(delta: float) -> void:
 		_healing_field_timer = maxf(_healing_field_timer - delta, 0.0)
 	else:
 		_healing_field_progress = 0.0
+		_healing_field_has_position = false
 
 	var field_active: bool = _healing_field_timer > 0.0
 	_update_healing_area_visual(_healing_field_radius if field_active else 0.0, delta)
@@ -1080,12 +1089,9 @@ func _update_healing_shield(delta: float, radius: float, heal_rate: float) -> vo
 		return
 	_healing_field_progress -= float(heal_amount)
 
-	for target in _get_players_in_radius(radius, true):
-		if target.player_slot != player_slot:
-			continue
+	for target in _get_players_in_radius_from(_healing_field_position, radius, true):
 		if target.health_component != null:
 			target.health_component.heal(heal_amount)
-			GameJuice.spawn_burst(&"spawn", target.global_position, Vector2.UP, Color(0.48, 1.0, 0.62, 0.45))
 
 
 func _update_healing_area_visual(radius: float, delta: float) -> void:
@@ -1098,9 +1104,10 @@ func _update_healing_area_visual(radius: float, delta: float) -> void:
 		return
 
 	_healing_area.show()
+	_healing_area.global_position = _healing_field_position if _healing_field_has_position else global_position
 	_healing_area.global_rotation = 0.0
 	_healing_area.global_scale = Vector2.ONE
-	_healing_area_visual_phase += delta * 4.0
+	_healing_area_visual_phase += delta * 1.4
 
 	if not is_equal_approx(_healing_area_visual_radius, radius):
 		_healing_area_visual_radius = radius
@@ -1114,15 +1121,15 @@ func _update_healing_area_visual(radius: float, delta: float) -> void:
 		HEALING_AREA_FILL_COLOR.r,
 		HEALING_AREA_FILL_COLOR.g,
 		HEALING_AREA_FILL_COLOR.b,
-		lerpf(0.10, 0.18, pulse)
+		lerpf(0.08, 0.12, pulse)
 	)
 	_healing_area_ring.default_color = Color(
 		HEALING_AREA_RING_COLOR.r,
 		HEALING_AREA_RING_COLOR.g,
 		HEALING_AREA_RING_COLOR.b,
-		lerpf(0.48, 0.82, pulse)
+		lerpf(0.44, 0.58, pulse)
 	)
-	_healing_area_ring.width = lerpf(2.0, 4.0, pulse)
+	_healing_area_ring.width = lerpf(2.0, 2.8, pulse)
 
 
 func _build_circle_points(radius: float) -> PackedVector2Array:
@@ -1149,6 +1156,10 @@ func _update_pull_shield(delta: float) -> void:
 
 
 func _get_players_in_radius(radius: float, include_self: bool) -> Array[Player]:
+	return _get_players_in_radius_from(global_position, radius, include_self)
+
+
+func _get_players_in_radius_from(center: Vector2, radius: float, include_self: bool) -> Array[Player]:
 	var result: Array[Player] = []
 	var radius_sq: float = radius * radius
 	for node in get_tree().get_nodes_in_group(GameSettings.PLAYERS_GROUP):
@@ -1157,7 +1168,7 @@ func _get_players_in_radius(radius: float, include_self: bool) -> Array[Player]:
 			continue
 		if player_node == self and not include_self:
 			continue
-		if global_position.distance_squared_to(player_node.global_position) <= radius_sq:
+		if center.distance_squared_to(player_node.global_position) <= radius_sq:
 			result.append(player_node)
 	return result
 
