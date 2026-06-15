@@ -61,7 +61,8 @@ var _pending_merge_source: WeaponExtensionItem = null
 var _pending_merge_target: WeaponExtensionItem = null
 var _pending_armor_merge_source: ArmorItemData = null
 var _pending_armor_merge_target: ArmorItemData = null
-var _merge_dialog: ConfirmationDialog = null
+var _merge_overlay: Control = null
+var _merge_dialog_panel: PanelContainer = null
 var _merge_warning_dialog: AcceptDialog = null
 var _merge_accent_bar: ColorRect = null
 var _merge_kind_label: Label = null
@@ -76,6 +77,8 @@ var _merge_condition_label: Label = null
 var _merge_cost_label: Label = null
 var _merge_balance_label: Label = null
 var _merge_hint_label: Label = null
+var _merge_confirm_button: Button = null
+var _merge_cancel_button: Button = null
 var _saved_reward_spacer: Control = null
 var _hover_clear_timer: float = 0.0
 
@@ -1026,10 +1029,10 @@ func _show_merge_confirmation(
 	balance: int,
 	accent: Color
 ) -> void:
-	_merge_dialog.title = title_text
-	_merge_dialog.dialog_text = ""
-	_merge_dialog.ok_button_text = "FORGE MK%d  -%d C" % [next_mark, merge_cost]
-	_merge_dialog.cancel_button_text = "CANCEL"
+	_merge_overlay.visible = true
+	_merge_overlay.move_to_front()
+	_merge_confirm_button.text = "FORGE MK%d  -%d C" % [next_mark, merge_cost]
+	_merge_cancel_button.text = "CANCEL"
 	var result_condition: float = (source_condition + target_condition) * 0.5
 
 	if _merge_accent_bar != null:
@@ -1067,23 +1070,37 @@ func _show_merge_confirmation(
 	if _merge_hint_label != null:
 		_merge_hint_label.text = "The two matching MK%d items are consumed." % source_mark
 
-	_style_merge_button(_merge_dialog.get_ok_button(), true, accent)
-	_style_merge_button(_merge_dialog.get_cancel_button(), false, accent)
-	_merge_dialog.popup_centered()
+	_style_merge_button(_merge_confirm_button, true, accent)
+	_style_merge_button(_merge_cancel_button, false, accent)
 
 
 func _setup_merge_dialog() -> void:
-	_merge_dialog = ConfirmationDialog.new()
-	_merge_dialog.name = "MergeDialog"
-	_merge_dialog.min_size = Vector2i(660, 0)
-	_merge_dialog.exclusive = true
-	_merge_dialog.dialog_text = ""
-	_merge_dialog.add_theme_stylebox_override(
+	_merge_overlay = Control.new()
+	_merge_overlay.name = "MergeDialog"
+	_merge_overlay.visible = false
+	_merge_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	_merge_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(_merge_overlay)
+
+	var scrim: ColorRect = ColorRect.new()
+	scrim.color = Color(0, 0, 0, 0.42)
+	scrim.mouse_filter = Control.MOUSE_FILTER_STOP
+	scrim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_merge_overlay.add_child(scrim)
+
+	var center: CenterContainer = CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_merge_overlay.add_child(center)
+
+	_merge_dialog_panel = PanelContainer.new()
+	_merge_dialog_panel.name = "MergeDialogPanel"
+	_merge_dialog_panel.custom_minimum_size = Vector2(560, 0)
+	_merge_dialog_panel.add_theme_stylebox_override(
 		"panel",
 		_create_merge_style(Color8(14, 15, 16, 250), Color8(138, 151, 138, 220), 4, 20, 9)
 	)
-	add_child(_merge_dialog)
-	_merge_dialog.confirmed.connect(_confirm_pending_extension_merge)
+	center.add_child(_merge_dialog_panel)
 	_build_merge_dialog_content()
 
 	_merge_warning_dialog = AcceptDialog.new()
@@ -1100,23 +1117,23 @@ func _setup_merge_dialog() -> void:
 
 func _build_merge_dialog_content() -> void:
 	var margin: MarginContainer = MarginContainer.new()
-	margin.custom_minimum_size = Vector2(620, 318)
-	margin.add_theme_constant_override("margin_left", 20)
-	margin.add_theme_constant_override("margin_top", 16)
-	margin.add_theme_constant_override("margin_right", 20)
-	margin.add_theme_constant_override("margin_bottom", 12)
-	_merge_dialog.add_child(margin)
+	margin.custom_minimum_size = Vector2(540, 232)
+	margin.add_theme_constant_override("margin_left", 14)
+	margin.add_theme_constant_override("margin_top", 10)
+	margin.add_theme_constant_override("margin_right", 14)
+	margin.add_theme_constant_override("margin_bottom", 8)
+	_merge_dialog_panel.add_child(margin)
 
 	var root: VBoxContainer = VBoxContainer.new()
-	root.add_theme_constant_override("separation", 12)
+	root.add_theme_constant_override("separation", 7)
 	margin.add_child(root)
 
 	var header: HBoxContainer = HBoxContainer.new()
-	header.add_theme_constant_override("separation", 12)
+	header.add_theme_constant_override("separation", 10)
 	root.add_child(header)
 
 	_merge_accent_bar = ColorRect.new()
-	_merge_accent_bar.custom_minimum_size = Vector2(6, 58)
+	_merge_accent_bar.custom_minimum_size = Vector2(5, 44)
 	header.add_child(_merge_accent_bar)
 
 	var header_text: VBoxContainer = VBoxContainer.new()
@@ -1127,11 +1144,11 @@ func _build_merge_dialog_content() -> void:
 	_merge_kind_label = _create_merge_label("", 13, Color8(255, 194, 92, 255), true)
 	header_text.add_child(_merge_kind_label)
 
-	_merge_title_label = _create_merge_label("", 26, Color8(242, 246, 236, 255), true)
+	_merge_title_label = _create_merge_label("", 22, Color8(242, 246, 236, 255), true)
 	header_text.add_child(_merge_title_label)
 
 	var forge_row: HBoxContainer = HBoxContainer.new()
-	forge_row.add_theme_constant_override("separation", 8)
+	forge_row.add_theme_constant_override("separation", 6)
 	root.add_child(forge_row)
 
 	var source_labels: Array[Label] = _create_merge_item_tile(
@@ -1177,11 +1194,11 @@ func _build_merge_dialog_content() -> void:
 	_merge_condition_label = _create_merge_label("", 15, Color8(205, 214, 207, 255), true)
 	_merge_condition_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_merge_condition_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_merge_condition_label.custom_minimum_size = Vector2(0, 34)
+	_merge_condition_label.custom_minimum_size = Vector2(0, 28)
 	condition_panel.add_child(_merge_condition_label)
 
 	var stats: HBoxContainer = HBoxContainer.new()
-	stats.add_theme_constant_override("separation", 8)
+	stats.add_theme_constant_override("separation", 6)
 	root.add_child(stats)
 
 	_merge_cost_label = _create_merge_stat_badge(stats, Color8(80, 58, 22, 220), Color8(214, 158, 64, 180))
@@ -1192,6 +1209,19 @@ func _build_merge_dialog_content() -> void:
 	_merge_hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	root.add_child(_merge_hint_label)
 
+	var buttons: HBoxContainer = HBoxContainer.new()
+	buttons.alignment = BoxContainer.ALIGNMENT_END
+	buttons.add_theme_constant_override("separation", 8)
+	root.add_child(buttons)
+
+	_merge_cancel_button = Button.new()
+	_merge_cancel_button.pressed.connect(_cancel_pending_merge)
+	buttons.add_child(_merge_cancel_button)
+
+	_merge_confirm_button = Button.new()
+	_merge_confirm_button.pressed.connect(_confirm_merge_from_overlay)
+	buttons.add_child(_merge_confirm_button)
+
 
 func _create_merge_item_tile(
 	parent: Control,
@@ -1200,33 +1230,33 @@ func _create_merge_item_tile(
 	border_color: Color
 ) -> Array[Label]:
 	var panel: PanelContainer = PanelContainer.new()
-	panel.custom_minimum_size = Vector2(142, 100)
+	panel.custom_minimum_size = Vector2(122, 76)
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.add_theme_stylebox_override("panel", _create_merge_style(bg_color, border_color, 4, 0, 0))
 	parent.add_child(panel)
 
 	var margin: MarginContainer = MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 10)
-	margin.add_theme_constant_override("margin_top", 9)
-	margin.add_theme_constant_override("margin_right", 10)
-	margin.add_theme_constant_override("margin_bottom", 9)
+	margin.add_theme_constant_override("margin_left", 8)
+	margin.add_theme_constant_override("margin_top", 6)
+	margin.add_theme_constant_override("margin_right", 8)
+	margin.add_theme_constant_override("margin_bottom", 6)
 	panel.add_child(margin)
 
 	var stack: VBoxContainer = VBoxContainer.new()
-	stack.add_theme_constant_override("separation", 5)
+	stack.add_theme_constant_override("separation", 3)
 	margin.add_child(stack)
 
-	var caption_label: Label = _create_merge_label(caption, 11, Color8(145, 153, 150, 255), false)
+	var caption_label: Label = _create_merge_label(caption, 10, Color8(145, 153, 150, 255), false)
 	caption_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	stack.add_child(caption_label)
 
-	var name_label: Label = _create_merge_label("", 15, Color8(238, 232, 220, 255), true)
+	var name_label: Label = _create_merge_label("", 13, Color8(238, 232, 220, 255), true)
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	name_label.custom_minimum_size = Vector2(0, 38)
+	name_label.custom_minimum_size = Vector2(0, 30)
 	stack.add_child(name_label)
 
-	var meta_label: Label = _create_merge_label("", 14, Color8(190, 207, 204, 255), true)
+	var meta_label: Label = _create_merge_label("", 13, Color8(190, 207, 204, 255), true)
 	meta_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	stack.add_child(meta_label)
 
@@ -1234,10 +1264,10 @@ func _create_merge_item_tile(
 
 
 func _create_merge_operator_label(text_value: String) -> Label:
-	var label: Label = _create_merge_label(text_value, 22, Color8(174, 180, 170, 255), true)
+	var label: Label = _create_merge_label(text_value, 18, Color8(174, 180, 170, 255), true)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.custom_minimum_size = Vector2(28, 100)
+	label.custom_minimum_size = Vector2(22, 76)
 	return label
 
 
@@ -1257,9 +1287,24 @@ func _create_merge_stat_badge(parent: Control, bg_color: Color, border_color: Co
 	var label: Label = _create_merge_label("", 14, Color.WHITE, true)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.custom_minimum_size = Vector2(0, 46)
+	label.custom_minimum_size = Vector2(0, 36)
 	panel.add_child(label)
 	return label
+
+
+func _confirm_merge_from_overlay() -> void:
+	if _merge_overlay != null:
+		_merge_overlay.visible = false
+	_confirm_pending_extension_merge()
+
+
+func _cancel_pending_merge() -> void:
+	_pending_merge_source = null
+	_pending_merge_target = null
+	_pending_armor_merge_source = null
+	_pending_armor_merge_target = null
+	if _merge_overlay != null:
+		_merge_overlay.visible = false
 
 
 func _create_merge_label(text_value: String, font_size: int, font_color: Color, bold_shadow: bool) -> Label:
