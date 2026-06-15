@@ -4,6 +4,17 @@ const PROJECTILE_SCENE: PackedScene = preload("res://scenes/projectiles/projecti
 const LOCKER_PROJECTILE_COLLISION_MASK: int = 1
 const PLAYER_ONE_LOCKER_STATION: Vector2 = Vector2(320.0, 430.0)
 const PLAYER_TWO_LOCKER_STATION: Vector2 = Vector2(960.0, 430.0)
+const COLOR_TARGET_POINTS: int = 96
+const READY_TARGET_POINTS: int = 128
+const COLOR_RING_POINTS: int = 160
+const COLOR_TARGET_RADIUS: float = 24.0
+const COLOR_HALO_RADIUS: float = 38.0
+const COLOR_SELECTED_RADIUS: float = 34.0
+const READY_OUTER_RADIUS: float = 58.0
+const READY_HALO_RADIUS: float = 72.0
+const PLAYER_ONE_COLOR_RING_CENTER: Vector2 = Vector2(320.0, 426.5)
+const PLAYER_TWO_COLOR_RING_CENTER: Vector2 = Vector2(960.0, 426.5)
+const COLOR_RING_RADIUS: float = 183.0
 
 @onready var _player_one: Player = %PlayerOne
 @onready var _player_two: Player = %PlayerTwo
@@ -25,6 +36,7 @@ var _local_player: Player = null
 var _remote_player: Player = null
 var _send_timer: float = 0.0
 var _last_locker_countdown_sound_second: int = -1
+var _visual_time: float = 0.0
 
 
 func _ready() -> void:
@@ -32,6 +44,7 @@ func _ready() -> void:
 	_local_slot = NetworkSession.local_player_slot
 	_remote_slot = NetworkSession.get_remote_slot()
 	_configure_players()
+	_style_locker_selection_visuals()
 
 	_invite_button.pressed.connect(_on_invite_pressed)
 	_help_dismiss_button.pressed.connect(_on_help_dismiss_pressed)
@@ -41,6 +54,11 @@ func _ready() -> void:
 	NetworkSession.peer_changed.connect(_refresh)
 	NetworkSession.packet_received.connect(_on_packet_received)
 	_refresh("")
+
+
+func _process(delta: float) -> void:
+	_visual_time += delta
+	_update_locker_selection_motion()
 
 
 func _exit_tree() -> void:
@@ -287,10 +305,19 @@ func _get_player_by_slot(slot: int) -> Player:
 func _update_ready_target_visual(target: StaticBody2D, is_ready: bool) -> void:
 	var fill: CanvasItem = target.get_node_or_null("Fill") as CanvasItem
 	var check: CanvasItem = target.get_node_or_null("Check") as CanvasItem
+	var play: CanvasItem = target.get_node_or_null("PlayIcon") as CanvasItem
+	var halo: CanvasItem = target.get_node_or_null("ReadyHalo") as CanvasItem
+	var rim: CanvasItem = target.get_node_or_null("ReadyRim") as CanvasItem
 	if fill != null:
 		fill.visible = is_ready
 	if check != null:
 		check.visible = is_ready
+	if play != null:
+		play.visible = not is_ready
+	if halo != null:
+		halo.modulate.a = 0.18 if is_ready else 0.1
+	if rim != null:
+		rim.modulate = Color(0.72, 1.0, 0.84, 0.95) if is_ready else Color(0.5, 0.92, 0.72, 0.72)
 
 
 func _update_color_target_visuals(targets_root: Node2D, owner_slot: int) -> void:
@@ -301,16 +328,226 @@ func _update_color_target_visuals(targets_root: Node2D, owner_slot: int) -> void
 
 		var color_id: StringName = StringName(str(target.get_meta("color_id", "")))
 		var is_unavailable: bool = OnlineMatch.is_color_taken_by_other(owner_slot, color_id)
-		_update_color_target_visual(target, is_unavailable)
+		var is_selected: bool = OnlineMatch.get_player_color_id(owner_slot) == color_id
+		_update_color_target_visual(target, is_unavailable, is_selected)
 
 
-func _update_color_target_visual(target: StaticBody2D, is_unavailable: bool) -> void:
-	var circle: CanvasItem = target.get_node_or_null("Circle") as CanvasItem
+func _update_color_target_visual(target: StaticBody2D, is_unavailable: bool, is_selected: bool) -> void:
+	var circle: Polygon2D = target.get_node_or_null("Circle") as Polygon2D
 	var blocked_ring: CanvasItem = target.get_node_or_null("BlockedRing") as CanvasItem
+	var halo: Polygon2D = target.get_node_or_null("Halo") as Polygon2D
+	var selected_ring: CanvasItem = target.get_node_or_null("SelectedRing") as CanvasItem
+	var edge: Line2D = target.get_node_or_null("Edge") as Line2D
 	if circle != null:
-		circle.modulate = Color.WHITE
+		circle.modulate = Color(0.42, 0.42, 0.42, 0.72) if is_unavailable else Color.WHITE
+	if halo != null and circle != null:
+		halo.color = Color(circle.color.r, circle.color.g, circle.color.b, 0.18 if is_selected else 0.08)
+	if selected_ring != null:
+		selected_ring.visible = is_selected
+	if edge != null and circle != null:
+		edge.default_color = circle.color.lightened(0.45) if is_selected else Color(0.9, 0.96, 1.0, 0.62)
+		edge.width = 3.5 if is_selected else 2.0
 	if blocked_ring != null:
-		blocked_ring.visible = is_unavailable
+		blocked_ring.visible = false
+
+
+func _style_locker_selection_visuals() -> void:
+	_style_color_ring($LockerWorld/PlayerOneTargetRing as Line2D, PLAYER_ONE_COLOR_RING_CENTER)
+	_style_color_ring($LockerWorld/PlayerTwoTargetRing as Line2D, PLAYER_TWO_COLOR_RING_CENTER)
+	_style_color_targets(_player_one_color_targets)
+	_style_color_targets(_player_two_color_targets)
+	_style_ready_target(_player_one_ready_target)
+	_style_ready_target(_player_two_ready_target)
+
+
+func _style_color_ring(ring: Line2D, center: Vector2) -> void:
+	if ring == null:
+		return
+	ring.points = _closed_circle_points_at(center, COLOR_RING_RADIUS, COLOR_RING_POINTS)
+	ring.width = 5.0
+	ring.default_color = Color(0.55, 0.95, 0.9, 0.22)
+	ring.antialiased = true
+
+
+func _style_color_targets(targets_root: Node2D) -> void:
+	for child in targets_root.get_children():
+		var target: StaticBody2D = child as StaticBody2D
+		if target == null:
+			continue
+		_style_color_target(target)
+
+
+func _style_color_target(target: StaticBody2D) -> void:
+	var circle: Polygon2D = target.get_node_or_null("Circle") as Polygon2D
+	var contrast_border: Polygon2D = target.get_node_or_null("ContrastBorder") as Polygon2D
+	var blocked_ring: Line2D = target.get_node_or_null("BlockedRing") as Line2D
+	if circle == null:
+		return
+
+	circle.polygon = _circle_points(COLOR_TARGET_RADIUS, COLOR_TARGET_POINTS)
+	circle.z_index = 1
+	if contrast_border != null:
+		contrast_border.polygon = _circle_points(COLOR_TARGET_RADIUS + 3.0, COLOR_TARGET_POINTS)
+		contrast_border.color = Color(0.03, 0.04, 0.05, 0.9)
+		contrast_border.z_index = 0
+
+	var halo: Polygon2D = _ensure_polygon(target, "Halo")
+	halo.polygon = _circle_points(COLOR_HALO_RADIUS, COLOR_TARGET_POINTS)
+	halo.color = Color(circle.color.r, circle.color.g, circle.color.b, 0.09)
+	halo.z_index = -3
+
+	var inner_shadow: Polygon2D = _ensure_polygon(target, "InnerShadow")
+	inner_shadow.polygon = _circle_points(COLOR_TARGET_RADIUS - 6.0, COLOR_TARGET_POINTS)
+	inner_shadow.color = Color(0.02, 0.025, 0.03, 0.2)
+	inner_shadow.z_index = 2
+
+	var shine: Polygon2D = _ensure_polygon(target, "Shine")
+	shine.polygon = PackedVector2Array([
+		Vector2(-9.0, -14.0),
+		Vector2(4.0, -18.0),
+		Vector2(17.0, -6.0),
+		Vector2(7.0, -1.0),
+		Vector2(-8.0, -5.0),
+	])
+	shine.color = Color(1.0, 1.0, 1.0, 0.16)
+	shine.z_index = 3
+
+	var edge: Line2D = _ensure_line(target, "Edge")
+	edge.points = _closed_circle_points(COLOR_TARGET_RADIUS + 4.0, COLOR_TARGET_POINTS)
+	edge.width = 2.0
+	edge.default_color = Color(0.9, 0.96, 1.0, 0.62)
+	edge.antialiased = true
+	edge.z_index = 4
+
+	var selected_ring: Line2D = _ensure_line(target, "SelectedRing")
+	selected_ring.points = _closed_circle_points(COLOR_SELECTED_RADIUS, COLOR_TARGET_POINTS)
+	selected_ring.width = 5.0
+	selected_ring.default_color = Color(1.0, 1.0, 1.0, 0.92)
+	selected_ring.antialiased = true
+	selected_ring.visible = false
+	selected_ring.z_index = 5
+
+	if blocked_ring != null:
+		blocked_ring.points = _closed_circle_points(COLOR_SELECTED_RADIUS + 3.0, COLOR_TARGET_POINTS)
+		blocked_ring.width = 4.0
+		blocked_ring.default_color = Color(1.0, 0.18, 0.14, 0.95)
+		blocked_ring.antialiased = true
+		blocked_ring.visible = false
+		blocked_ring.z_index = 6
+
+
+func _style_ready_target(target: StaticBody2D) -> void:
+	var outline: Polygon2D = target.get_node_or_null("Outline") as Polygon2D
+	var empty: Polygon2D = target.get_node_or_null("Empty") as Polygon2D
+	var fill: Polygon2D = target.get_node_or_null("Fill") as Polygon2D
+	var check: Line2D = target.get_node_or_null("Check") as Line2D
+	if outline != null:
+		outline.polygon = _circle_points(READY_OUTER_RADIUS, READY_TARGET_POINTS)
+		outline.color = Color(0.16, 0.94, 0.58, 0.92)
+		outline.z_index = 1
+	if empty != null:
+		empty.polygon = _circle_points(READY_OUTER_RADIUS - 11.0, READY_TARGET_POINTS)
+		empty.color = Color(0.02, 0.025, 0.03, 0.82)
+		empty.z_index = 2
+	if fill != null:
+		fill.polygon = _circle_points(READY_OUTER_RADIUS - 11.0, READY_TARGET_POINTS)
+		fill.color = Color(0.14, 0.92, 0.56, 0.92)
+		fill.z_index = 3
+	if check != null:
+		check.default_color = Color(0.96, 1.0, 0.92, 1.0)
+		check.width = 7.0
+		check.antialiased = true
+		check.z_index = 5
+
+	var halo: Polygon2D = _ensure_polygon(target, "ReadyHalo")
+	halo.polygon = _circle_points(READY_HALO_RADIUS, READY_TARGET_POINTS)
+	halo.color = Color(0.16, 1.0, 0.66, 0.16)
+	halo.z_index = -3
+
+	var rim: Line2D = _ensure_line(target, "ReadyRim")
+	rim.points = _closed_circle_points(READY_OUTER_RADIUS + 5.0, READY_TARGET_POINTS)
+	rim.width = 4.0
+	rim.default_color = Color(0.5, 0.92, 0.72, 0.72)
+	rim.antialiased = true
+	rim.z_index = 4
+
+	var play_icon: Polygon2D = _ensure_polygon(target, "PlayIcon")
+	play_icon.polygon = PackedVector2Array([
+		Vector2(-13.0, -19.0),
+		Vector2(-13.0, 19.0),
+		Vector2(22.0, 0.0),
+	])
+	play_icon.color = Color(0.72, 1.0, 0.84, 0.95)
+	play_icon.z_index = 5
+
+
+func _update_locker_selection_motion() -> void:
+	var selected_scale: float = 1.0 + sin(_visual_time * 4.2) * 0.055
+	var halo_scale: float = 1.0 + sin(_visual_time * 2.4) * 0.045
+	for targets_root in [_player_one_color_targets, _player_two_color_targets]:
+		for child in targets_root.get_children():
+			var target: Node2D = child as Node2D
+			if target == null:
+				continue
+			var selected_ring: Node2D = target.get_node_or_null("SelectedRing") as Node2D
+			var halo: Node2D = target.get_node_or_null("Halo") as Node2D
+			if selected_ring != null and selected_ring.visible:
+				selected_ring.scale = Vector2.ONE * selected_scale
+			if halo != null:
+				halo.scale = Vector2.ONE * halo_scale
+
+	for target in [_player_one_ready_target, _player_two_ready_target]:
+		var ready_halo: Node2D = target.get_node_or_null("ReadyHalo") as Node2D
+		var ready_rim: Node2D = target.get_node_or_null("ReadyRim") as Node2D
+		if ready_halo != null:
+			ready_halo.scale = Vector2.ONE * (1.0 + sin(_visual_time * 2.0) * 0.035)
+		if ready_rim != null:
+			ready_rim.rotation = _visual_time * 0.35
+
+
+func _ensure_polygon(parent: Node, node_name: String) -> Polygon2D:
+	var existing: Polygon2D = parent.get_node_or_null(node_name) as Polygon2D
+	if existing != null:
+		return existing
+	var polygon: Polygon2D = Polygon2D.new()
+	polygon.name = node_name
+	parent.add_child(polygon)
+	return polygon
+
+
+func _ensure_line(parent: Node, node_name: String) -> Line2D:
+	var existing: Line2D = parent.get_node_or_null(node_name) as Line2D
+	if existing != null:
+		return existing
+	var line: Line2D = Line2D.new()
+	line.name = node_name
+	parent.add_child(line)
+	return line
+
+
+func _circle_points(radius: float, point_count: int) -> PackedVector2Array:
+	var points: PackedVector2Array = PackedVector2Array()
+	for index in range(point_count):
+		var angle: float = TAU * float(index) / float(point_count)
+		points.append(Vector2(cos(angle), sin(angle)) * radius)
+	return points
+
+
+func _closed_circle_points(radius: float, point_count: int) -> PackedVector2Array:
+	var points: PackedVector2Array = _circle_points(radius, point_count)
+	if not points.is_empty():
+		points.append(points[0])
+	return points
+
+
+func _closed_circle_points_at(center: Vector2, radius: float, point_count: int) -> PackedVector2Array:
+	var points: PackedVector2Array = PackedVector2Array()
+	for index in range(point_count):
+		var angle: float = TAU * float(index) / float(point_count)
+		points.append(center + Vector2(cos(angle), sin(angle)) * radius)
+	if not points.is_empty():
+		points.append(points[0])
+	return points
 
 
 func _update_countdown_label() -> void:
