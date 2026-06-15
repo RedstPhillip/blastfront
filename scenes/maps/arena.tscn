@@ -120,6 +120,17 @@ position = Vector2(1140, 350)
 [node name="AirdropManager" type="Node2D" parent="."]
 script = ExtResource("9_airdrop_manager")
 
+[node name="WarningTimer" type="Timer" parent="AirdropManager"]
+wait_time = 2.25
+one_shot = true
+
+[node name="SirenTimer" type="Timer" parent="AirdropManager"]
+wait_time = 0.72
+
+[node name="SirenPlayer" type="AudioStreamPlayer" parent="AirdropManager"]
+volume_db = -7.0
+bus = &"SFX"
+
 [node name="AirdropPointLeft" type="Marker2D" parent="." groups=["airdrop_spawn"]]
 position = Vector2(764, 420)
 

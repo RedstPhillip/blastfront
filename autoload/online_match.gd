@@ -20,6 +20,7 @@ var final_winner_slot: int = 0
 var intermission_remaining: float = GameSettings.ONLINE_INTERMISSION_SECONDS
 var locker_countdown_remaining: float = -1.0
 var match_generation: int = 0
+var airdrop_deployed: bool = false
 
 var _current_set_stats: Dictionary = {}
 var _first_hit_recorded: bool = false
@@ -416,6 +417,15 @@ func is_playing_set() -> bool:
 	return phase == GameSettings.MATCH_PHASE_PLAYING_SET
 
 
+func mark_airdrop_deployed() -> bool:
+	if not _has_authority() or airdrop_deployed:
+		return false
+	airdrop_deployed = true
+	state_changed.emit()
+	_broadcast_state()
+	return true
+
+
 # This complete host snapshot is the source of truth for synchronized match state.
 func build_state() -> Dictionary:
 	return {
@@ -435,12 +445,14 @@ func build_state() -> Dictionary:
 		"intermission_remaining": intermission_remaining,
 		"locker_countdown_remaining": locker_countdown_remaining,
 		"match_generation": match_generation,
+		"airdrop_deployed": airdrop_deployed,
 	}
 
 
 func _reset_match_scores() -> void:
 	set_kills = GameSettings.default_score()
 	match_points = GameSettings.default_score()
+	airdrop_deployed = false
 
 
 func _reset_match_economy() -> void:
@@ -605,6 +617,7 @@ func _apply_state(state: Dictionary) -> void:
 	final_winner_slot = int(state.get("final_winner_slot", final_winner_slot))
 	intermission_remaining = float(state.get("intermission_remaining", intermission_remaining))
 	locker_countdown_remaining = float(state.get("locker_countdown_remaining", locker_countdown_remaining))
+	airdrop_deployed = state.get("airdrop_deployed", airdrop_deployed) == true
 
 	var next_phase: StringName = StringName(str(state.get("phase", str(phase))))
 	var previous_phase: StringName = phase

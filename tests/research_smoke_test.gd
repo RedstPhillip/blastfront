@@ -202,6 +202,11 @@ func _ready() -> void:
 	assert(ResearchQuestManager.get_definitions_for_tier(ResearchQuestManager.TIER_EASY).size() >= 5)
 	assert(ResearchQuestManager.get_definitions_for_tier(ResearchQuestManager.TIER_MEDIUM).size() >= 5)
 	assert(ResearchQuestManager.get_definitions_for_tier(ResearchQuestManager.TIER_HARD).size() >= 5)
+	var easy_quest_definition: Dictionary = ResearchQuestManager.get_definitions_for_tier(
+		ResearchQuestManager.TIER_EASY
+	)[0]
+	assert(str(easy_quest_definition.get("title", "")).contains(" "))
+	assert(str(easy_quest_definition.get("description", "")).is_empty())
 	ResearchQuestManager.reset_match()
 	ResearchQuestManager.assign_quests_for_next_set()
 	var assigned_quests: Array[Dictionary] = ResearchQuestManager.get_local_quests()
@@ -245,9 +250,38 @@ func _ready() -> void:
 	await get_tree().process_frame
 	var capture_bar: ProgressBar = airdrop.find_child("CaptureBar", true, false) as ProgressBar
 	var capture_ring: Line2D = airdrop.find_child("CaptureRing", true, false) as Line2D
+	var crate_sprite: Sprite2D = airdrop.find_child("Crate", true, false) as Sprite2D
 	assert(capture_bar != null and is_equal_approx(capture_bar.value, 50.0))
 	assert(capture_ring != null and capture_ring.points.size() == 65)
+	airdrop.apply_state({"phase": "captured"})
+	assert(crate_sprite != null and not crate_sprite.visible)
 	airdrop.queue_free()
+
+	var original_network_mode: StringName = NetworkSession.mode
+	var original_match_active: bool = NetworkSession._match_active
+	var original_phase: StringName = OnlineMatch.phase
+	var original_set_kills: Dictionary = OnlineMatch.set_kills.duplicate()
+	var original_match_points: Dictionary = OnlineMatch.match_points.duplicate()
+	var original_airdrop_deployed: bool = OnlineMatch.airdrop_deployed
+	NetworkSession.mode = GameSettings.NETWORK_MODE_HOST
+	NetworkSession._match_active = true
+	OnlineMatch.phase = GameSettings.MATCH_PHASE_PLAYING_SET
+	OnlineMatch.set_kills = GameSettings.default_score()
+	OnlineMatch.match_points = GameSettings.default_score()
+	OnlineMatch.airdrop_deployed = false
+
+	var left_marker: Marker2D = Marker2D.new()
+	left_marker.name = "AirdropPointLeft"
+	left_marker.position = Vector2(-100.0, 0.0)
+	add_child(left_marker)
+	var center_marker: Marker2D = Marker2D.new()
+	center_marker.name = "AirdropPointCenter"
+	center_marker.position = Vector2.ZERO
+	add_child(center_marker)
+	var right_marker: Marker2D = Marker2D.new()
+	right_marker.name = "AirdropPointRight"
+	right_marker.position = Vector2(100.0, 0.0)
+	add_child(right_marker)
 
 	var capture_player: Player = player_scene.instantiate() as Player
 	capture_player.player_slot = GameSettings.PLAYER_ONE_SLOT
@@ -259,6 +293,37 @@ func _ready() -> void:
 	var airdrop_manager: AirdropManager = airdrop_manager_script.new() as AirdropManager
 	add_child(airdrop_manager)
 	await get_tree().process_frame
+	assert(airdrop_manager._phase == AirdropManager.PHASE_INACTIVE)
+	assert(not OnlineMatch.airdrop_deployed)
+	OnlineMatch.set_kills = {
+		GameSettings.PLAYER_ONE_SLOT: GameSettings.ONLINE_SET_KILLS_TO_WIN - 1,
+		GameSettings.PLAYER_TWO_SLOT: GameSettings.ONLINE_SET_KILLS_TO_WIN - 1,
+	}
+	airdrop_manager._try_start_decision_drop()
+	assert(airdrop_manager._phase == AirdropManager.PHASE_WARNING)
+	assert(airdrop_manager._target_position.is_equal_approx(center_marker.global_position))
+	assert(OnlineMatch.airdrop_deployed)
+
+	airdrop_manager._clear_airdrop()
+	airdrop_manager._drop_completed = false
+	OnlineMatch.airdrop_deployed = false
+	OnlineMatch.match_points = {
+		GameSettings.PLAYER_ONE_SLOT: 0,
+		GameSettings.PLAYER_TWO_SLOT: 1,
+	}
+	airdrop_manager._try_start_decision_drop()
+	assert(airdrop_manager._target_position.is_equal_approx(left_marker.global_position))
+
+	airdrop_manager._clear_airdrop()
+	NetworkSession.mode = GameSettings.NETWORK_MODE_CLIENT
+	airdrop_manager._phase = AirdropManager.PHASE_FALLING
+	airdrop_manager._descent_progress = 0.1
+	airdrop_manager._remote_descent_target = 0.55
+	airdrop_manager._last_remote_packet_msec = Time.get_ticks_msec()
+	airdrop_manager._process_remote(0.1)
+	assert(airdrop_manager._descent_progress > 0.1)
+	NetworkSession.mode = GameSettings.NETWORK_MODE_HOST
+
 	airdrop_manager._phase = &"landed"
 	airdrop_manager._target_position = Vector2.ZERO
 	airdrop_manager._capture_progress = 0.0
@@ -270,7 +335,16 @@ func _ready() -> void:
 	await get_tree().create_timer(1.5).timeout
 	airdrop_manager.queue_free()
 	capture_player.queue_free()
+	left_marker.queue_free()
+	center_marker.queue_free()
+	right_marker.queue_free()
 	_test_player = null
+	NetworkSession.mode = original_network_mode
+	NetworkSession._match_active = original_match_active
+	OnlineMatch.phase = original_phase
+	OnlineMatch.set_kills = original_set_kills
+	OnlineMatch.match_points = original_match_points
+	OnlineMatch.airdrop_deployed = original_airdrop_deployed
 
 	ResearchManager._local_marks[str(ResearchManager.RECYCLING)] = 1
 	var original_offers: Array[Dictionary] = RoundRewardInventory.offers.duplicate(true)

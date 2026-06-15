@@ -388,23 +388,23 @@ func _quest(
 func _build_definitions() -> Dictionary:
 	var definitions: Dictionary = {}
 	var entries: Array[Dictionary] = [
-		_quest(&"jump_5", "Light Feet", "Jump 5 times.", TIER_EASY, EVENT_JUMP, 5.0, 1),
-		_quest(&"fire_8", "Trigger Check", "Fire 8 shots.", TIER_EASY, EVENT_SHOT, 8.0, 1),
-		_quest(&"damage_20", "Warm-Up", "Deal 20 damage.", TIER_EASY, &"damage", 20.0, 1),
-		_quest(&"block_attempt_3", "Guard Drill", "Raise your shield 3 times.", TIER_EASY, EVENT_BLOCK_ATTEMPT, 3.0, 1),
-		_quest(&"survive_15", "Stay Mobile", "Stay alive for 15 seconds.", TIER_EASY, &"survive_seconds", 15.0, 1),
+		_quest(&"jump_5", "Jump 5 times", "", TIER_EASY, EVENT_JUMP, 5.0, 1),
+		_quest(&"fire_8", "Fire 8 shots", "", TIER_EASY, EVENT_SHOT, 8.0, 1),
+		_quest(&"damage_20", "Deal 20 damage", "", TIER_EASY, &"damage", 20.0, 1),
+		_quest(&"block_attempt_3", "Raise your shield 3 times", "", TIER_EASY, EVENT_BLOCK_ATTEMPT, 3.0, 1),
+		_quest(&"survive_15", "Stay alive for 15 seconds", "", TIER_EASY, &"survive_seconds", 15.0, 1),
 
-		_quest(&"first_hit", "Opening Shot", "Land the first hit of the set.", TIER_MEDIUM, &"first_hit", 1.0, 2),
-		_quest(&"jump_12", "Airborne", "Jump 12 times.", TIER_MEDIUM, EVENT_JUMP, 12.0, 2),
-		_quest(&"damage_50", "Pressure", "Deal 50 damage.", TIER_MEDIUM, &"damage", 50.0, 2),
-		_quest(&"hit_4", "On Target", "Damage the opponent 4 times.", TIER_MEDIUM, &"hits", 4.0, 2),
-		_quest(&"block_20", "Hold Fast", "Block 20 incoming damage.", TIER_MEDIUM, &"blocked_damage", 20.0, 2),
+		_quest(&"first_hit", "Land the first hit", "", TIER_MEDIUM, &"first_hit", 1.0, 2),
+		_quest(&"jump_12", "Jump 12 times", "", TIER_MEDIUM, EVENT_JUMP, 12.0, 2),
+		_quest(&"damage_50", "Deal 50 damage", "", TIER_MEDIUM, &"damage", 50.0, 2),
+		_quest(&"hit_4", "Hit the opponent 4 times", "", TIER_MEDIUM, &"hits", 4.0, 2),
+		_quest(&"block_20", "Block 20 damage", "", TIER_MEDIUM, &"blocked_damage", 20.0, 2),
 
-		_quest(&"no_hit", "Untouchable", "Finish the set without taking damage.", TIER_HARD, &"no_hit", 1.0, 4),
-		_quest(&"win_set", "Take the Set", "Win the set.", TIER_HARD, &"win_set", 1.0, 4),
-		_quest(&"damage_100", "Heavy Hitter", "Deal 100 damage.", TIER_HARD, &"damage", 100.0, 4),
-		_quest(&"block_50", "Iron Wall", "Block 50 incoming damage.", TIER_HARD, &"blocked_damage", 50.0, 4),
-		_quest(&"healthy_finish", "Combat Ready", "Finish the set with at least 60% health.", TIER_HARD, &"healthy_finish", 1.0, 4),
+		_quest(&"no_hit", "Take no damage this set", "", TIER_HARD, &"no_hit", 1.0, 4),
+		_quest(&"win_set", "Win this set", "", TIER_HARD, &"win_set", 1.0, 4),
+		_quest(&"damage_100", "Deal 100 damage", "", TIER_HARD, &"damage", 100.0, 4),
+		_quest(&"block_50", "Block 50 damage", "", TIER_HARD, &"blocked_damage", 50.0, 4),
+		_quest(&"healthy_finish", "Finish above 60% health", "", TIER_HARD, &"healthy_finish", 1.0, 4),
 	]
 	for entry in entries:
 		definitions[str(entry.get("id", ""))] = entry

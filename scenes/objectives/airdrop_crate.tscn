@@ -46,8 +46,8 @@ script = ExtResource("1_script")
 unique_name_in_owner = true
 z_index = -2
 texture = ExtResource("4_marker")
-scale = Vector2(0.78, 0.23)
-modulate = Color(1, 1, 1, 0.52)
+scale = Vector2(0.56, 0.16)
+modulate = Color(1, 1, 1, 0.42)
 
 [node name="CaptureRing" type="Line2D" parent="."]
 unique_name_in_owner = true
@@ -60,8 +60,8 @@ antialiased = true
 [node name="PointLight2D" type="PointLight2D" parent="."]
 unique_name_in_owner = true
 position = Vector2(0, -28)
-energy = 0.7
-texture_scale = 2.2
+energy = 0.52
+texture_scale = 1.8
 texture = SubResource("GradientTexture_light")
 
 [node name="Rig" type="Node2D" parent="."]
@@ -72,33 +72,33 @@ position = Vector2(0, -520)
 unique_name_in_owner = true
 
 [node name="LeftRope" type="Line2D" parent="Rig/Ropes"]
-points = PackedVector2Array(-68, -82, -42, -4)
+points = PackedVector2Array(-54, -134, -34, -69)
 width = 2.0
 default_color = Color(0.83, 0.73, 0.53, 0.9)
 
 [node name="RightRope" type="Line2D" parent="Rig/Ropes"]
-points = PackedVector2Array(68, -82, 42, -4)
+points = PackedVector2Array(54, -134, 34, -69)
 width = 2.0
 default_color = Color(0.83, 0.73, 0.53, 0.9)
 
 [node name="Parachute" type="Sprite2D" parent="Rig"]
 unique_name_in_owner = true
-position = Vector2(0, -112)
+position = Vector2(0, -168)
 texture = ExtResource("3_chute")
-scale = Vector2(0.8, 0.8)
+scale = Vector2(0.64, 0.64)
 
 [node name="Crate" type="Sprite2D" parent="Rig"]
 unique_name_in_owner = true
-position = Vector2(0, -40)
+position = Vector2(0, -35)
 texture = ExtResource("2_crate")
-scale = Vector2(0.68, 0.68)
+scale = Vector2(0.58, 0.58)
 
 [node name="CapturePanel" type="PanelContainer" parent="."]
 unique_name_in_owner = true
-offset_left = -78.0
-offset_top = -114.0
-offset_right = 78.0
-offset_bottom = -61.0
+offset_left = -74.0
+offset_top = -139.0
+offset_right = 74.0
+offset_bottom = -98.0
 theme_override_styles/panel = SubResource("Style_capture_panel")
 
 [node name="VBox" type="VBoxContainer" parent="CapturePanel"]

@@ -6,6 +6,7 @@ class_name ResearchQuestRow
 @onready var _progress_label: Label = %ProgressLabel
 @onready var _reward_label: Label = %RewardLabel
 @onready var _progress_bar: ProgressBar = %ProgressBar
+@onready var _margin: MarginContainer = %Margin
 
 
 func set_quest(quest: Dictionary) -> void:
@@ -36,7 +37,29 @@ func set_quest(quest: Dictionary) -> void:
 	else:
 		_progress_label.text = "%d / %d" % [int(floor(progress)), int(target)]
 		_progress_label.add_theme_color_override("font_color", Color(0.82, 0.82, 0.76, 1.0))
-	tooltip_text = str(quest.get("description", ""))
+	tooltip_text = ""
+
+
+func set_compact(compact: bool) -> void:
+	if not compact:
+		return
+	custom_minimum_size = Vector2(232.0, 31.0)
+	_tier_label.hide()
+	_margin.add_theme_constant_override("margin_left", 5)
+	_margin.add_theme_constant_override("margin_top", 3)
+	_margin.add_theme_constant_override("margin_right", 5)
+	_margin.add_theme_constant_override("margin_bottom", 3)
+	_title_label.add_theme_font_size_override("font_size", 9)
+	_reward_label.add_theme_font_size_override("font_size", 8)
+	_progress_label.add_theme_font_size_override("font_size", 8)
+	_progress_label.custom_minimum_size.x = 48.0
+	_progress_bar.custom_minimum_size.y = 4.0
+	var base_style: StyleBox = get_theme_stylebox("panel")
+	var compact_style: StyleBoxFlat = base_style.duplicate() as StyleBoxFlat
+	if compact_style != null:
+		compact_style.bg_color = Color(0.045, 0.04, 0.032, 0.72)
+		compact_style.border_color = Color(0.42, 0.33, 0.22, 0.48)
+		add_theme_stylebox_override("panel", compact_style)
 
 
 func _tier_color(tier: StringName) -> Color:

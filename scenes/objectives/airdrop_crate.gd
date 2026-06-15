@@ -51,49 +51,43 @@ func _process(delta: float) -> void:
 	_capture_ring.modulate.a = 0.34 + sin(_visual_time * 2.4) * 0.08
 	if _phase == &"falling":
 		var eased_progress: float = 1.0 - pow(1.0 - _descent_progress, 2.2)
-		_rig.position.y = lerpf(-520.0, 0.0, eased_progress)
-		_rig.position.x = sin(_visual_time * 2.1) * (10.0 * (1.0 - _descent_progress))
-		_rig.rotation = sin(_visual_time * 1.8) * 0.035
+		_rig.position.y = lerpf(-470.0, 0.0, eased_progress)
+		_rig.position.x = sin(_visual_time * 2.1) * (7.0 * (1.0 - _descent_progress))
+		_rig.rotation = sin(_visual_time * 1.8) * 0.025
 	elif _phase == &"landed":
 		_rig.position = _rig.position.lerp(Vector2.ZERO, clampf(delta * 12.0, 0.0, 1.0))
 		_rig.rotation = lerpf(_rig.rotation, 0.0, clampf(delta * 12.0, 0.0, 1.0))
 	_capture_bar.value = _capture_progress * 100.0
-	_light.energy = 0.65 + sin(_visual_time * 4.0) * 0.12
+	if _light.visible:
+		_light.energy = 0.52 + sin(_visual_time * 4.0) * 0.08
 
 
 func _apply_visual_state() -> void:
+	var warning: bool = _phase == &"warning"
 	var falling: bool = _phase == &"falling"
 	var landed: bool = _phase == &"landed"
-	var captured: bool = _phase == &"captured"
 	_parachute.visible = falling
 	_ropes.visible = falling
 	_capture_ring.visible = landed
 	_capture_panel.visible = landed
-	_marker.visible = falling or landed
-	_crate.visible = falling or landed or captured
+	_marker.visible = warning or falling
+	_crate.visible = falling or landed
+	_light.visible = warning or falling or landed
 	_reward_label.visible = landed
 	_capture_label.text = "SECURING" if _capturing_slot > 0 else "HOLD THE AREA"
-	if captured:
-		_capture_label.text = "SECURED"
 
 
 func _on_phase_transition(_previous_phase: StringName, next_phase: StringName) -> void:
-	if next_phase == &"falling":
-		GameJuice.play_sound_2d(&"spawn", global_position, -1.0, 0.03)
-	elif next_phase == &"landed" and not _land_feedback_played:
+	if next_phase == &"landed" and not _land_feedback_played:
 		_land_feedback_played = true
 		GameJuice.spawn_burst(&"impact", global_position, Vector2.UP, Color(0.92, 0.62, 0.24, 0.9))
-		GameJuice.play_sound_2d(&"impact", global_position, -1.0, 0.04)
-		GameJuice.shake(3.2, 0.16)
+		GameJuice.play_sound_2d(&"impact", global_position, -3.0, 0.03)
+		GameJuice.shake(2.2, 0.12)
 	elif next_phase == &"captured" and not _capture_feedback_played:
 		_capture_feedback_played = true
 		GameJuice.spawn_burst(&"spawn", global_position, Vector2.UP, Color(0.95, 0.75, 0.3, 0.95))
-		GameJuice.play_sound_2d(&"spawn", global_position, 2.0, 0.02)
-		GameJuice.shake(2.0, 0.12)
-		var tween: Tween = create_tween()
-		tween.set_parallel(true)
-		tween.tween_property(_crate, "scale", Vector2(1.22, 1.22), 0.16).set_trans(Tween.TRANS_BACK)
-		tween.tween_property(_crate, "modulate", Color(1.35, 1.12, 0.58, 1.0), 0.18)
+		GameJuice.play_sound_2d(&"spawn", global_position, -1.0, 0.02)
+		GameJuice.shake(1.5, 0.09)
 
 
 func _build_capture_ring() -> void:

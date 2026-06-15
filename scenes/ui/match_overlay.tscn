@@ -173,10 +173,10 @@ right_aligned = true
 [node name="QuestPanel" parent="." instance=ExtResource("4_quests")]
 layout_mode = 1
 anchors_preset = 0
-offset_left = 14.0
-offset_top = 14.0
-offset_right = 300.0
-offset_bottom = 205.0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 268.0
+offset_bottom = 130.0
 compact = true
 
 [node name="Center" type="CenterContainer" parent="."]
