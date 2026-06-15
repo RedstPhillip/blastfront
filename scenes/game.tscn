@@ -25,20 +25,20 @@ position = Vector2(1100, 116)
 
 [node name="Projectiles" type="Node2D" parent="." unique_id=640378572]
 
-[node name="GameSync" type="Node" parent="."]
+[node name="GameSync" type="Node" parent="." unique_id=254651774]
 process_mode = 4
 script = ExtResource("8_game_sync")
 
-[node name="PlayerSync" type="Node" parent="GameSync"]
+[node name="PlayerSync" type="Node" parent="GameSync" unique_id=773600840]
 script = ExtResource("9_player_sync")
 
-[node name="ProjectileSync" type="Node" parent="GameSync"]
+[node name="ProjectileSync" type="Node" parent="GameSync" unique_id=253918347]
 script = ExtResource("10_projectile_sync")
 
-[node name="CombatSync" type="Node" parent="GameSync"]
+[node name="CombatSync" type="Node" parent="GameSync" unique_id=683476968]
 script = ExtResource("11_combat_sync")
 
-[node name="BlockSync" type="Node" parent="GameSync"]
+[node name="BlockSync" type="Node" parent="GameSync" unique_id=1491433811]
 script = ExtResource("12_block_sync")
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=597088379]

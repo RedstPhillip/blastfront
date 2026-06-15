@@ -8,7 +8,7 @@
 [ext_resource type="PackedScene" uid="uid://ccva00o58sb32" path="res://scenes/maps/platforms/long_platform.tscn" id="5_4w2pl"]
 [ext_resource type="PackedScene" uid="uid://dol6a502uukfn" path="res://scenes/maps/platforms/small_platform.tscn" id="7_23d8d"]
 [ext_resource type="PackedScene" path="res://scenes/effects/ambient_atmosphere.tscn" id="8_atmo"]
-[ext_resource type="Script" path="res://scenes/objectives/airdrop_manager.gd" id="9_airdrop_manager"]
+[ext_resource type="Script" uid="uid://burr2od1hnn0u" path="res://scenes/objectives/airdrop_manager.gd" id="9_airdrop_manager"]
 
 [sub_resource type="Gradient" id="Gradient_og561"]
 offsets = PackedFloat32Array(0.16346154, 0.71794873)
@@ -117,28 +117,27 @@ texture = ExtResource("2_23d8d")
 [node name="AmbientAtmosphere" parent="." unique_id=1381221742 instance=ExtResource("8_atmo")]
 position = Vector2(1140, 350)
 
-[node name="AirdropManager" type="Node2D" parent="."]
+[node name="AirdropManager" type="Node2D" parent="." unique_id=116337313]
 script = ExtResource("9_airdrop_manager")
 
-[node name="WarningTimer" type="Timer" parent="AirdropManager"]
+[node name="WarningTimer" type="Timer" parent="AirdropManager" unique_id=91398948]
 wait_time = 2.25
 one_shot = true
 
-[node name="SirenTimer" type="Timer" parent="AirdropManager"]
+[node name="SirenTimer" type="Timer" parent="AirdropManager" unique_id=118075536]
 wait_time = 0.72
 
-[node name="SirenPlayer" type="AudioStreamPlayer" parent="AirdropManager"]
+[node name="SirenPlayer" type="AudioStreamPlayer" parent="AirdropManager" unique_id=1912350131]
 volume_db = -7.0
-bus = &"SFX"
 
-[node name="AirdropPointLeft" type="Marker2D" parent="." groups=["airdrop_spawn"]]
-position = Vector2(764, 420)
+[node name="AirdropPointLeft" type="Marker2D" parent="." unique_id=381402665 groups=["airdrop_spawn"]]
+position = Vector2(764, 284)
 
-[node name="AirdropPointCenter" type="Marker2D" parent="." groups=["airdrop_spawn"]]
-position = Vector2(1140, 438)
+[node name="AirdropPointCenter" type="Marker2D" parent="." unique_id=757990574 groups=["airdrop_spawn"]]
+position = Vector2(1140, 163)
 
-[node name="AirdropPointRight" type="Marker2D" parent="." groups=["airdrop_spawn"]]
-position = Vector2(1516, 420)
+[node name="AirdropPointRight" type="Marker2D" parent="." unique_id=1571464988 groups=["airdrop_spawn"]]
+position = Vector2(1516, 278)
 
 [node name="StaticBody2D" type="StaticBody2D" parent="." unique_id=252369944]
 

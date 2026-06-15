@@ -55,7 +55,6 @@ func _ready() -> void:
 	NetworkSession.packet_received.connect(_on_packet_received)
 	_refresh("")
 
-
 func _process(delta: float) -> void:
 	_visual_time += delta
 	_update_locker_selection_motion()
