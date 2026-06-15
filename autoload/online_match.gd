@@ -21,6 +21,7 @@ var intermission_remaining: float = GameSettings.ONLINE_INTERMISSION_SECONDS
 var locker_countdown_remaining: float = -1.0
 var match_generation: int = 0
 var airdrop_deployed: bool = false
+var small_round_number: int = 1
 
 var _current_set_stats: Dictionary = {}
 var _first_hit_recorded: bool = false
@@ -100,6 +101,7 @@ func start_next_set() -> void:
 
 	set_kills = GameSettings.default_score()
 	airdrop_deployed = false
+	small_round_number = 1
 	locker_ready = GameSettings.default_ready_state()
 	intermission_ready = GameSettings.default_ready_state()
 	last_winner_slot = 0
@@ -122,6 +124,7 @@ func record_kill(winner_slot: int) -> void:
 		return
 
 	set_kills[winner_slot] = int(set_kills.get(winner_slot, 0)) + 1
+	small_round_number += 1
 	last_winner_slot = winner_slot
 	_kill_banner_remaining = GameSettings.ONLINE_KILL_BANNER_SECONDS
 	_kill_banner_deadline_msec = Time.get_ticks_msec() + int(roundf(GameSettings.ONLINE_KILL_BANNER_SECONDS * GameSettings.MILLISECONDS_PER_SECOND))
@@ -447,6 +450,7 @@ func build_state() -> Dictionary:
 		"locker_countdown_remaining": locker_countdown_remaining,
 		"match_generation": match_generation,
 		"airdrop_deployed": airdrop_deployed,
+		"small_round_number": small_round_number,
 	}
 
 
@@ -454,6 +458,7 @@ func _reset_match_scores() -> void:
 	set_kills = GameSettings.default_score()
 	match_points = GameSettings.default_score()
 	airdrop_deployed = false
+	small_round_number = 1
 
 
 func _reset_match_economy() -> void:
@@ -619,6 +624,7 @@ func _apply_state(state: Dictionary) -> void:
 	intermission_remaining = float(state.get("intermission_remaining", intermission_remaining))
 	locker_countdown_remaining = float(state.get("locker_countdown_remaining", locker_countdown_remaining))
 	airdrop_deployed = state.get("airdrop_deployed", airdrop_deployed) == true
+	small_round_number = maxi(1, int(state.get("small_round_number", small_round_number)))
 
 	var next_phase: StringName = StringName(str(state.get("phase", str(phase))))
 	var previous_phase: StringName = phase

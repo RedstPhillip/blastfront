@@ -7,6 +7,9 @@ class_name ResearchQuestRow
 @onready var _reward_label: Label = %RewardLabel
 @onready var _progress_bar: ProgressBar = %ProgressBar
 @onready var _margin: MarginContainer = %Margin
+@onready var _compact_progress_label: Label = %CompactProgressLabel
+@onready var _progress_row: HBoxContainer = %ProgressRow
+@onready var _tier_stripe: ColorRect = %TierStripe
 
 
 func set_quest(quest: Dictionary) -> void:
@@ -19,47 +22,52 @@ func set_quest(quest: Dictionary) -> void:
 	var target: float = maxf(float(quest.get("target", 1.0)), 1.0)
 	var completed: bool = quest.get("completed", false) == true
 	var failed: bool = quest.get("failed", false) == true
+	var progress_text: String = ""
+	var progress_color: Color = Color(0.82, 0.82, 0.76, 1.0)
 	_tier_label.text = str(tier).to_upper()
-	_tier_label.add_theme_color_override("font_color", _tier_color(tier))
+	var tier_color: Color = _tier_color(tier)
+	_tier_label.add_theme_color_override("font_color", tier_color)
+	_tier_stripe.color = tier_color
 	_title_label.text = str(quest.get("title", "Quest"))
 	_reward_label.text = "+%d RP" % int(quest.get("reward", 0))
 	_progress_bar.max_value = target
 	_progress_bar.value = progress
 	if completed:
-		_progress_label.text = "COMPLETE"
-		_progress_label.add_theme_color_override("font_color", Color(0.55, 1.0, 0.62, 1.0))
+		progress_text = "DONE"
+		progress_color = Color(0.55, 1.0, 0.62, 1.0)
 	elif failed:
-		_progress_label.text = "FAILED"
-		_progress_label.add_theme_color_override("font_color", Color(1.0, 0.38, 0.28, 1.0))
+		progress_text = "FAILED"
+		progress_color = Color(1.0, 0.38, 0.28, 1.0)
 	elif StringName(str(quest.get("event", ""))) == &"no_hit":
-		_progress_label.text = "UNTOUCHED"
-		_progress_label.add_theme_color_override("font_color", Color(0.86, 0.79, 0.62, 1.0))
+		progress_text = "SAFE"
+		progress_color = Color(0.86, 0.79, 0.62, 1.0)
 	else:
-		_progress_label.text = "%d / %d" % [int(floor(progress)), int(target)]
-		_progress_label.add_theme_color_override("font_color", Color(0.82, 0.82, 0.76, 1.0))
+		progress_text = "%d/%d" % [int(floor(progress)), int(target)]
+	_progress_label.text = progress_text
+	_progress_label.add_theme_color_override("font_color", progress_color)
+	_compact_progress_label.text = progress_text
+	_compact_progress_label.add_theme_color_override("font_color", progress_color)
 	tooltip_text = ""
 
 
 func set_compact(compact: bool) -> void:
 	if not compact:
 		return
-	custom_minimum_size = Vector2(232.0, 31.0)
+	custom_minimum_size = Vector2(210.0, 21.0)
 	_tier_label.hide()
-	_margin.add_theme_constant_override("margin_left", 5)
-	_margin.add_theme_constant_override("margin_top", 3)
-	_margin.add_theme_constant_override("margin_right", 5)
-	_margin.add_theme_constant_override("margin_bottom", 3)
-	_title_label.add_theme_font_size_override("font_size", 9)
-	_reward_label.add_theme_font_size_override("font_size", 8)
-	_progress_label.add_theme_font_size_override("font_size", 8)
-	_progress_label.custom_minimum_size.x = 48.0
-	_progress_bar.custom_minimum_size.y = 4.0
-	var base_style: StyleBox = get_theme_stylebox("panel")
-	var compact_style: StyleBoxFlat = base_style.duplicate() as StyleBoxFlat
-	if compact_style != null:
-		compact_style.bg_color = Color(0.045, 0.04, 0.032, 0.72)
-		compact_style.border_color = Color(0.42, 0.33, 0.22, 0.48)
-		add_theme_stylebox_override("panel", compact_style)
+	_tier_stripe.show()
+	_progress_row.hide()
+	_compact_progress_label.show()
+	_margin.add_theme_constant_override("margin_left", 4)
+	_margin.add_theme_constant_override("margin_top", 1)
+	_margin.add_theme_constant_override("margin_right", 4)
+	_margin.add_theme_constant_override("margin_bottom", 1)
+	_title_label.add_theme_font_size_override("font_size", 10)
+	_reward_label.add_theme_font_size_override("font_size", 9)
+	_compact_progress_label.add_theme_font_size_override("font_size", 9)
+	var compact_style := StyleBoxFlat.new()
+	compact_style.bg_color = Color(0.035, 0.032, 0.026, 0.16)
+	add_theme_stylebox_override("panel", compact_style)
 
 
 func _tier_color(tier: StringName) -> Color:

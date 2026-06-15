@@ -285,12 +285,14 @@ func _ready() -> void:
 	var original_set_kills: Dictionary = OnlineMatch.set_kills.duplicate()
 	var original_match_points: Dictionary = OnlineMatch.match_points.duplicate()
 	var original_airdrop_deployed: bool = OnlineMatch.airdrop_deployed
+	var original_small_round_number: int = OnlineMatch.small_round_number
 	NetworkSession.mode = GameSettings.NETWORK_MODE_HOST
 	NetworkSession._match_active = true
 	OnlineMatch.phase = GameSettings.MATCH_PHASE_PLAYING_SET
 	OnlineMatch.set_kills = GameSettings.default_score()
 	OnlineMatch.match_points = GameSettings.default_score()
 	OnlineMatch.airdrop_deployed = false
+	OnlineMatch.small_round_number = 1
 
 	var left_marker: Marker2D = Marker2D.new()
 	left_marker.name = "AirdropPointLeft"
@@ -322,6 +324,7 @@ func _ready() -> void:
 		GameSettings.PLAYER_ONE_SLOT: 1,
 		GameSettings.PLAYER_TWO_SLOT: 0,
 	}
+	OnlineMatch.small_round_number = 2
 	airdrop_manager._on_phase_changed(GameSettings.MATCH_PHASE_KILL_BANNER)
 	assert(airdrop_manager._phase == AirdropManager.PHASE_WARNING)
 	assert(airdrop_manager._target_position.is_equal_approx(center_marker.global_position))
@@ -340,6 +343,7 @@ func _ready() -> void:
 		GameSettings.PLAYER_ONE_SLOT: 0,
 		GameSettings.PLAYER_TWO_SLOT: 1,
 	}
+	OnlineMatch.small_round_number = 2
 	OnlineMatch.match_points = {
 		GameSettings.PLAYER_ONE_SLOT: 0,
 		GameSettings.PLAYER_TWO_SLOT: 1,
@@ -350,10 +354,22 @@ func _ready() -> void:
 	airdrop_manager._clear_airdrop()
 	airdrop_manager._drop_completed = false
 	OnlineMatch.airdrop_deployed = false
+	OnlineMatch.small_round_number = 2
+	OnlineMatch.match_points = {
+		GameSettings.PLAYER_ONE_SLOT: 2,
+		GameSettings.PLAYER_TWO_SLOT: 1,
+	}
+	airdrop_manager._try_start_decision_drop()
+	assert(airdrop_manager._target_position.is_equal_approx(right_marker.global_position))
+
+	airdrop_manager._clear_airdrop()
+	airdrop_manager._drop_completed = false
+	OnlineMatch.airdrop_deployed = false
 	OnlineMatch.set_kills = {
 		GameSettings.PLAYER_ONE_SLOT: 1,
 		GameSettings.PLAYER_TWO_SLOT: 1,
 	}
+	OnlineMatch.small_round_number = 3
 	airdrop_manager._try_start_decision_drop()
 	assert(airdrop_manager._phase == AirdropManager.PHASE_INACTIVE)
 
@@ -361,6 +377,7 @@ func _ready() -> void:
 	OnlineMatch.start_next_set()
 	assert(not OnlineMatch.airdrop_deployed)
 	assert(OnlineMatch.set_kills == GameSettings.default_score())
+	assert(OnlineMatch.small_round_number == 1)
 
 	airdrop_manager._clear_airdrop()
 	NetworkSession.mode = GameSettings.NETWORK_MODE_CLIENT
@@ -393,6 +410,7 @@ func _ready() -> void:
 	OnlineMatch.set_kills = original_set_kills
 	OnlineMatch.match_points = original_match_points
 	OnlineMatch.airdrop_deployed = original_airdrop_deployed
+	OnlineMatch.small_round_number = original_small_round_number
 
 	ResearchManager._local_marks[str(ResearchManager.RECYCLING)] = 1
 	var original_offers: Array[Dictionary] = RoundRewardInventory.offers.duplicate(true)

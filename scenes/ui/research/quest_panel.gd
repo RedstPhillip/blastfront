@@ -37,7 +37,7 @@ func _refresh() -> void:
 		var quest: Dictionary = quests[row_index] if row_index < quests.size() else {}
 		_rows[row_index].set_quest(quest)
 	var last_awarded: int = ResearchQuestManager.get_last_awarded_points()
-	_last_reward_label.visible = last_awarded > 0
+	_last_reward_label.visible = not compact and last_awarded > 0
 	_last_reward_label.text = "LAST SET  +%d RP" % last_awarded
 
 
@@ -47,6 +47,9 @@ func _on_reward_awarded(amount: int, reason: String) -> void:
 	var tween: Tween = create_tween()
 	_last_reward_label.modulate = Color(1.0, 0.85, 0.35, 1.0)
 	tween.tween_property(_last_reward_label, "modulate", Color.WHITE, 0.5)
+	if compact:
+		tween.tween_interval(0.8)
+		tween.tween_callback(_last_reward_label.hide)
 
 
 func _apply_layout() -> void:
@@ -55,19 +58,19 @@ func _apply_layout() -> void:
 		row.set_compact(compact)
 	if not compact:
 		return
-	custom_minimum_size = Vector2(246.0, 0.0)
-	_vbox.add_theme_constant_override("separation", 2)
-	_title_label.add_theme_font_size_override("font_size", 10)
-	_last_reward_label.add_theme_font_size_override("font_size", 8)
-	_empty_label.add_theme_font_size_override("font_size", 9)
+	custom_minimum_size = Vector2(218.0, 0.0)
+	_vbox.add_theme_constant_override("separation", 1)
+	_title_label.add_theme_font_size_override("font_size", 9)
+	_last_reward_label.add_theme_font_size_override("font_size", 9)
+	_empty_label.add_theme_font_size_override("font_size", 10)
 	var base_style: StyleBox = get_theme_stylebox("panel")
 	var compact_style: StyleBoxFlat = base_style.duplicate() as StyleBoxFlat
 	if compact_style != null:
-		compact_style.bg_color = Color(0.055, 0.047, 0.035, 0.78)
-		compact_style.border_color = Color(0.48, 0.37, 0.24, 0.5)
+		compact_style.bg_color = Color(0.04, 0.034, 0.026, 0.48)
+		compact_style.border_color = Color(0.48, 0.37, 0.24, 0.25)
 		compact_style.content_margin_left = 5.0
-		compact_style.content_margin_top = 4.0
+		compact_style.content_margin_top = 3.0
 		compact_style.content_margin_right = 5.0
-		compact_style.content_margin_bottom = 5.0
-		compact_style.shadow_size = 3
+		compact_style.content_margin_bottom = 3.0
+		compact_style.shadow_size = 1
 		add_theme_stylebox_override("panel", compact_style)
