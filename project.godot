@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Blastfront"
-run/main_scene="res://main.tscn"
+run/main_scene="res://scenes/app/main.tscn"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 config/icon="res://icon.svg"
 
@@ -33,7 +33,7 @@ window/size/viewport_width=1280
 window/size/viewport_height=720
 window/size/mode=2
 window/stretch/mode="canvas_items"
-mouse_cursor/custom_image="uid://dqx51sseai86a"
+mouse_cursor/custom_image="res://assets/cursor.png"
 mouse_cursor/custom_image_hotspot=Vector2(37.5, 37.5)
 
 [editor_plugins]

@@ -187,7 +187,7 @@ func get_winner_slot() -> int:
 
 
 func request_block_state(_owner: Node, _active: bool, _direction: Vector2, _cooldown_ratio: float) -> void:
-	pass
+	return
 
 
 # Locker projectiles affect color and ready targets, never player health.

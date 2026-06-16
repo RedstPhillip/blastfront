@@ -1,4 +1,5 @@
 extends Node2D
+class_name MapBorder
 
 @export var warn_distance: float = GameSettings.MAP_BORDER_WARN_DISTANCE
 @export var line_length: float = GameSettings.MAP_BORDER_LINE_LENGTH

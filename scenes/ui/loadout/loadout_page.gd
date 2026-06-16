@@ -46,6 +46,82 @@ const DEFAULT_WEAPON_STATS: Array[StringName] = [
 	&"reload_time",
 	&"ammo_max",
 ]
+const WEAPON_ATTRIBUTE_NAMES: Dictionary = {
+	&"damage": "Damage",
+	&"fire_interval": "Fire rate",
+	&"reload_time": "Reload time",
+	&"ammo_max": "Ammo",
+	&"projectile_speed": "Projectile speed",
+	&"projectile_gravity": "Bullet drop",
+	&"projectile_linear_damping": "Air resistance",
+	&"projectile_max_distance": "Range",
+	&"projectile_scale": "Projectile size",
+	&"shots_per_fire": "Projectiles",
+	&"shot_spread_degrees": "Spread",
+	&"shot_random_spread_degrees": "Random spread",
+	&"recoil_rotation_degrees": "Recoil",
+}
+const ARMOR_ATTRIBUTE_NAMES: Dictionary = {
+	&"max_health": "Health",
+	&"move_speed": "Movement speed",
+	&"air_speed": "Air speed",
+	&"jump_velocity": "Jump power",
+	&"damage_reduction": "Protection",
+	&"stationary_damage_reduction": "Still protection",
+	&"freeze_resistance": "Freeze resist",
+	&"reflect_chance": "Reflect chance",
+	&"delayed_damage_duration": "Damage delay",
+	&"block_strength": "Block strength",
+	&"frosty_radius": "Frost radius",
+	&"frosty_duration": "Frost duration",
+	&"frosty_speed_multiplier": "Enemy speed",
+	&"healing_radius": "Heal radius",
+	&"healing_rate": "Healing",
+	&"pull_radius": "Pull radius",
+	&"pull_strength": "Pull force",
+	&"instant_reload_on_block": "Block reload",
+	&"adrenaline_duration": "Adrenaline time",
+	&"adrenaline_speed_bonus": "Adrenaline speed",
+	&"escape_speed_bonus": "Low HP speed",
+	&"chase_speed_bonus": "Chase speed",
+}
+const WEAPON_ATTRIBUTE_SUFFIXES: Dictionary = {
+	&"fire_interval": "/s",
+	&"reload_time": "s",
+	&"shot_spread_degrees": " deg",
+	&"shot_random_spread_degrees": " deg",
+	&"recoil_rotation_degrees": " deg",
+}
+const ARMOR_ATTRIBUTE_SUFFIXES: Dictionary = {
+	&"freeze_resistance": "%",
+	&"reflect_chance": "%",
+	&"frosty_speed_multiplier": "%",
+	&"delayed_damage_duration": "s",
+	&"frosty_duration": "s",
+	&"adrenaline_duration": "s",
+	&"healing_rate": "/s",
+}
+const WEAPON_ATTRIBUTE_DECIMALS: Dictionary = {
+	&"fire_interval": 2,
+	&"reload_time": 2,
+	&"projectile_scale": 2,
+}
+const ARMOR_ATTRIBUTE_DECIMALS: Dictionary = {
+	&"delayed_damage_duration": 1,
+	&"frosty_duration": 1,
+	&"adrenaline_duration": 1,
+}
+const WEAPON_LOWER_IS_BETTER: Array[StringName] = [
+	&"reload_time",
+	&"projectile_gravity",
+	&"projectile_linear_damping",
+	&"shot_spread_degrees",
+	&"shot_random_spread_degrees",
+	&"recoil_rotation_degrees",
+]
+const ARMOR_LOWER_IS_BETTER: Array[StringName] = [
+	&"frosty_speed_multiplier",
+]
 const HOVER_CLEAR_DELAY: float = 0.12
 const MIN_WEAPON_INVENTORY_SLOTS: int = 30
 const MIN_ARMOR_INVENTORY_SLOTS: int = 18
@@ -61,24 +137,6 @@ var _pending_merge_source: WeaponExtensionItem = null
 var _pending_merge_target: WeaponExtensionItem = null
 var _pending_armor_merge_source: ArmorItemData = null
 var _pending_armor_merge_target: ArmorItemData = null
-var _merge_overlay: Control = null
-var _merge_dialog_panel: PanelContainer = null
-var _merge_warning_dialog: AcceptDialog = null
-var _merge_accent_bar: ColorRect = null
-var _merge_kind_label: Label = null
-var _merge_title_label: Label = null
-var _merge_source_name_label: Label = null
-var _merge_source_meta_label: Label = null
-var _merge_target_name_label: Label = null
-var _merge_target_meta_label: Label = null
-var _merge_result_name_label: Label = null
-var _merge_result_meta_label: Label = null
-var _merge_condition_label: Label = null
-var _merge_cost_label: Label = null
-var _merge_balance_label: Label = null
-var _merge_hint_label: Label = null
-var _merge_confirm_button: Button = null
-var _merge_cancel_button: Button = null
 var _saved_reward_spacer: Control = null
 var _hover_clear_timer: float = 0.0
 
@@ -106,6 +164,7 @@ var _hover_clear_timer: float = 0.0
 @onready var _coin_balance_label: Label = %CoinBalanceLabel
 @onready var _offer_grid: GridContainer = %OfferGrid
 @onready var _recycler_drop_target: RecyclerDropTarget = %RecyclerDropTarget
+@onready var _merge_dialog: LoadoutMergeDialog = %MergeDialog
 
 
 # This controller joins owned items, equipped loadout and current round rewards.
@@ -139,7 +198,7 @@ func _ready() -> void:
 	_setup_armor_slots()
 	_setup_reward_slots()
 	_setup_saved_reward_spacer()
-	_setup_merge_dialog()
+	_setup_merge_dialog_signals()
 	_connect_inventory_signals()
 	_refresh_weapon_inventory()
 	_refresh_weapon_slots()
@@ -242,6 +301,13 @@ func _connect_inventory_signals() -> void:
 	var recycle_callback: Callable = Callable(self, "_on_reward_recycled")
 	if not _recycler_drop_target.reward_recycled.is_connected(recycle_callback):
 		_recycler_drop_target.reward_recycled.connect(recycle_callback)
+
+
+func _setup_merge_dialog_signals() -> void:
+	if not _merge_dialog.confirmed.is_connected(_confirm_merge_from_overlay):
+		_merge_dialog.confirmed.connect(_confirm_merge_from_overlay)
+	if not _merge_dialog.cancelled.is_connected(_cancel_pending_merge):
+		_merge_dialog.cancelled.connect(_cancel_pending_merge)
 
 
 func _refresh_weapon_inventory() -> void:
@@ -685,138 +751,39 @@ func _armor_display_value(attribute: StringName, modifiers: Dictionary) -> float
 
 
 func _weapon_attribute_name(attribute: StringName) -> String:
-	match attribute:
-		&"damage":
-			return "Damage"
-		&"fire_interval":
-			return "Fire rate"
-		&"reload_time":
-			return "Reload time"
-		&"ammo_max":
-			return "Ammo"
-		&"projectile_speed":
-			return "Projectile speed"
-		&"projectile_gravity":
-			return "Bullet drop"
-		&"projectile_linear_damping":
-			return "Air resistance"
-		&"projectile_max_distance":
-			return "Range"
-		&"projectile_scale":
-			return "Projectile size"
-		&"shots_per_fire":
-			return "Projectiles"
-		&"shot_spread_degrees":
-			return "Spread"
-		&"shot_random_spread_degrees":
-			return "Random spread"
-		&"recoil_rotation_degrees":
-			return "Recoil"
-		_:
-			return str(attribute).replace("_", " ").capitalize()
+	return str(WEAPON_ATTRIBUTE_NAMES.get(attribute, _humanize_attribute(attribute)))
 
 
 func _armor_attribute_name(attribute: StringName) -> String:
-	match attribute:
-		&"max_health":
-			return "Health"
-		&"move_speed":
-			return "Movement speed"
-		&"air_speed":
-			return "Air speed"
-		&"jump_velocity":
-			return "Jump power"
-		&"damage_reduction":
-			return "Protection"
-		&"stationary_damage_reduction":
-			return "Still protection"
-		&"freeze_resistance":
-			return "Freeze resist"
-		&"reflect_chance":
-			return "Reflect chance"
-		&"delayed_damage_duration":
-			return "Damage delay"
-		&"block_strength":
-			return "Block strength"
-		&"frosty_radius":
-			return "Frost radius"
-		&"frosty_duration":
-			return "Frost duration"
-		&"frosty_speed_multiplier":
-			return "Enemy speed"
-		&"healing_radius":
-			return "Heal radius"
-		&"healing_rate":
-			return "Healing"
-		&"pull_radius":
-			return "Pull radius"
-		&"pull_strength":
-			return "Pull force"
-		&"instant_reload_on_block":
-			return "Block reload"
-		&"adrenaline_duration":
-			return "Adrenaline time"
-		&"adrenaline_speed_bonus":
-			return "Adrenaline speed"
-		&"escape_speed_bonus":
-			return "Low HP speed"
-		&"chase_speed_bonus":
-			return "Chase speed"
-		_:
-			return str(attribute).replace("_", " ").capitalize()
+	return str(ARMOR_ATTRIBUTE_NAMES.get(attribute, _humanize_attribute(attribute)))
 
 
 func _weapon_attribute_suffix(attribute: StringName) -> String:
-	match attribute:
-		&"fire_interval":
-			return "/s"
-		&"reload_time":
-			return "s"
-		&"shot_spread_degrees", &"shot_random_spread_degrees", &"recoil_rotation_degrees":
-			return " deg"
-		_:
-			return ""
+	return str(WEAPON_ATTRIBUTE_SUFFIXES.get(attribute, ""))
 
 
 func _weapon_attribute_decimals(attribute: StringName) -> int:
-	if attribute == &"fire_interval" or attribute == &"reload_time" or attribute == &"projectile_scale":
-		return 2
-	return 0
+	return int(WEAPON_ATTRIBUTE_DECIMALS.get(attribute, 0))
 
 
 func _armor_attribute_suffix(attribute: StringName) -> String:
-	match attribute:
-		&"freeze_resistance", &"reflect_chance", &"frosty_speed_multiplier":
-			return "%"
-		&"delayed_damage_duration", &"frosty_duration", &"adrenaline_duration":
-			return "s"
-		&"healing_rate":
-			return "/s"
-		_:
-			return ""
+	return str(ARMOR_ATTRIBUTE_SUFFIXES.get(attribute, ""))
 
 
 func _armor_attribute_decimals(attribute: StringName) -> int:
-	if attribute == &"freeze_resistance" or attribute == &"reflect_chance":
-		return 0
-	if attribute == &"delayed_damage_duration" \
-			or attribute == &"frosty_duration" \
-			or attribute == &"adrenaline_duration":
-		return 1
-	return 0
+	return int(ARMOR_ATTRIBUTE_DECIMALS.get(attribute, 0))
 
 
 func _armor_attribute_lower_is_better(attribute: StringName) -> bool:
-	return attribute == &"frosty_speed_multiplier"
+	return ARMOR_LOWER_IS_BETTER.has(attribute)
 
 
 func _weapon_attribute_lower_is_better(attribute: StringName) -> bool:
-	return attribute == &"reload_time" \
-		or attribute == &"projectile_gravity" \
-		or attribute == &"projectile_linear_damping" \
-		or attribute == &"shot_spread_degrees" \
-		or attribute == &"shot_random_spread_degrees" \
-		or attribute == &"recoil_rotation_degrees"
+	return WEAPON_LOWER_IS_BETTER.has(attribute)
+
+
+func _humanize_attribute(attribute: StringName) -> String:
+	return str(attribute).replace("_", " ").capitalize()
 
 
 func _is_inspectable_control(control: Control) -> bool:
@@ -1008,11 +975,7 @@ func _show_not_enough_merge_coins_warning(next_mark: int, merge_cost: int, item_
 		balance,
 	]
 	_show_merge_error("Not enough coins", body)
-	if _merge_warning_dialog == null:
-		return
-	_merge_warning_dialog.title = "Not Enough Coins"
-	_merge_warning_dialog.dialog_text = "%s\n\nEarn more coins before merging these %s." % [body, item_label]
-	_merge_warning_dialog.popup_centered()
+	_merge_dialog.show_coin_warning(body, item_label)
 
 
 func _show_merge_confirmation(
@@ -1029,272 +992,23 @@ func _show_merge_confirmation(
 	balance: int,
 	accent: Color
 ) -> void:
-	_merge_overlay.visible = true
-	_merge_overlay.move_to_front()
-	_merge_confirm_button.text = "FORGE MK%d  -%d C" % [next_mark, merge_cost]
-	_merge_cancel_button.text = "CANCEL"
-	var result_condition: float = (source_condition + target_condition) * 0.5
-
-	if _merge_accent_bar != null:
-		_merge_accent_bar.color = accent
-	if _merge_kind_label != null:
-		_merge_kind_label.text = kind_text
-		_merge_kind_label.add_theme_color_override("font_color", accent)
-	if _merge_title_label != null:
-		_merge_title_label.text = "Forge MK%d Upgrade" % next_mark
-	if _merge_source_name_label != null:
-		_merge_source_name_label.text = _trim_merge_item_name(source_name)
-	if _merge_source_meta_label != null:
-		_merge_source_meta_label.text = "MK%d  |  %.0f%%" % [source_mark, source_condition]
-	if _merge_target_name_label != null:
-		_merge_target_name_label.text = _trim_merge_item_name(target_name)
-	if _merge_target_meta_label != null:
-		_merge_target_meta_label.text = "MK%d  |  %.0f%%" % [target_mark, target_condition]
-	if _merge_result_name_label != null:
-		_merge_result_name_label.text = _trim_merge_item_name(source_name)
-	if _merge_result_meta_label != null:
-		_merge_result_meta_label.text = "MK%d  |  %.0f%%" % [next_mark, result_condition]
-		_merge_result_meta_label.add_theme_color_override("font_color", accent)
-	if _merge_condition_label != null:
-		_merge_condition_label.text = "Condition %.0f%% + %.0f%% -> %.0f%%" % [
-			source_condition,
-			target_condition,
-			result_condition,
-		]
-	if _merge_cost_label != null:
-		_merge_cost_label.text = "Cost\n%d coins" % merge_cost
-		_merge_cost_label.add_theme_color_override("font_color", Color8(255, 214, 112, 255))
-	if _merge_balance_label != null:
-		_merge_balance_label.text = "Balance\n%d coins" % balance
-		_merge_balance_label.add_theme_color_override("font_color", Color8(180, 230, 210, 255) if balance >= merge_cost else Color8(255, 120, 100, 255))
-	if _merge_hint_label != null:
-		_merge_hint_label.text = "The two matching MK%d items are consumed." % source_mark
-
-	_style_merge_button(_merge_confirm_button, true, accent)
-	_style_merge_button(_merge_cancel_button, false, accent)
-
-
-func _setup_merge_dialog() -> void:
-	_merge_overlay = Control.new()
-	_merge_overlay.name = "MergeDialog"
-	_merge_overlay.visible = false
-	_merge_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	_merge_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(_merge_overlay)
-
-	var scrim: ColorRect = ColorRect.new()
-	scrim.color = Color(0, 0, 0, 0.42)
-	scrim.mouse_filter = Control.MOUSE_FILTER_STOP
-	scrim.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_merge_overlay.add_child(scrim)
-
-	var center: CenterContainer = CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_merge_overlay.add_child(center)
-
-	_merge_dialog_panel = PanelContainer.new()
-	_merge_dialog_panel.name = "MergeDialogPanel"
-	_merge_dialog_panel.custom_minimum_size = Vector2(560, 0)
-	_merge_dialog_panel.add_theme_stylebox_override(
-		"panel",
-		_create_merge_style(Color8(14, 15, 16, 250), Color8(138, 151, 138, 220), 4, 20, 9)
+	_merge_dialog.show_merge(
+		kind_text,
+		title_text,
+		source_name,
+		target_name,
+		source_mark,
+		target_mark,
+		next_mark,
+		source_condition,
+		target_condition,
+		merge_cost,
+		balance,
+		accent
 	)
-	center.add_child(_merge_dialog_panel)
-	_build_merge_dialog_content()
-
-	_merge_warning_dialog = AcceptDialog.new()
-	_merge_warning_dialog.name = "MergeWarningDialog"
-	_merge_warning_dialog.ok_button_text = "OK"
-	_merge_warning_dialog.min_size = Vector2i(420, 0)
-	_merge_warning_dialog.add_theme_stylebox_override(
-		"panel",
-		_create_merge_style(Color8(22, 15, 14, 248), Color8(225, 82, 72, 220), 3, 16, 7)
-	)
-	add_child(_merge_warning_dialog)
-	_style_merge_button(_merge_warning_dialog.get_ok_button(), true, Color8(225, 82, 72, 255))
-
-
-func _build_merge_dialog_content() -> void:
-	var margin: MarginContainer = MarginContainer.new()
-	margin.custom_minimum_size = Vector2(540, 232)
-	margin.add_theme_constant_override("margin_left", 14)
-	margin.add_theme_constant_override("margin_top", 10)
-	margin.add_theme_constant_override("margin_right", 14)
-	margin.add_theme_constant_override("margin_bottom", 8)
-	_merge_dialog_panel.add_child(margin)
-
-	var root: VBoxContainer = VBoxContainer.new()
-	root.add_theme_constant_override("separation", 7)
-	margin.add_child(root)
-
-	var header: HBoxContainer = HBoxContainer.new()
-	header.add_theme_constant_override("separation", 10)
-	root.add_child(header)
-
-	_merge_accent_bar = ColorRect.new()
-	_merge_accent_bar.custom_minimum_size = Vector2(5, 44)
-	header.add_child(_merge_accent_bar)
-
-	var header_text: VBoxContainer = VBoxContainer.new()
-	header_text.add_theme_constant_override("separation", 2)
-	header_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.add_child(header_text)
-
-	_merge_kind_label = _create_merge_label("", 13, Color8(255, 194, 92, 255), true)
-	header_text.add_child(_merge_kind_label)
-
-	_merge_title_label = _create_merge_label("", 22, Color8(242, 246, 236, 255), true)
-	header_text.add_child(_merge_title_label)
-
-	var forge_row: HBoxContainer = HBoxContainer.new()
-	forge_row.add_theme_constant_override("separation", 6)
-	root.add_child(forge_row)
-
-	var source_labels: Array[Label] = _create_merge_item_tile(
-		forge_row,
-		"SOURCE A",
-		Color8(30, 34, 36, 238),
-		Color8(84, 96, 98, 185)
-	)
-	_merge_source_name_label = source_labels[0]
-	_merge_source_meta_label = source_labels[1]
-
-	var plus_label: Label = _create_merge_operator_label("+")
-	forge_row.add_child(plus_label)
-
-	var target_labels: Array[Label] = _create_merge_item_tile(
-		forge_row,
-		"SOURCE B",
-		Color8(30, 34, 36, 238),
-		Color8(84, 96, 98, 185)
-	)
-	_merge_target_name_label = target_labels[0]
-	_merge_target_meta_label = target_labels[1]
-
-	var arrow_label: Label = _create_merge_operator_label(">")
-	forge_row.add_child(arrow_label)
-
-	var result_labels: Array[Label] = _create_merge_item_tile(
-		forge_row,
-		"RESULT",
-		Color8(36, 34, 22, 242),
-		Color8(218, 172, 78, 210)
-	)
-	_merge_result_name_label = result_labels[0]
-	_merge_result_meta_label = result_labels[1]
-
-	var condition_panel: PanelContainer = PanelContainer.new()
-	condition_panel.add_theme_stylebox_override(
-		"panel",
-		_create_merge_style(Color8(8, 10, 11, 214), Color8(86, 96, 92, 150), 3, 0, 0)
-	)
-	root.add_child(condition_panel)
-
-	_merge_condition_label = _create_merge_label("", 15, Color8(205, 214, 207, 255), true)
-	_merge_condition_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_merge_condition_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_merge_condition_label.custom_minimum_size = Vector2(0, 28)
-	condition_panel.add_child(_merge_condition_label)
-
-	var stats: HBoxContainer = HBoxContainer.new()
-	stats.add_theme_constant_override("separation", 6)
-	root.add_child(stats)
-
-	_merge_cost_label = _create_merge_stat_badge(stats, Color8(80, 58, 22, 220), Color8(214, 158, 64, 180))
-	_merge_balance_label = _create_merge_stat_badge(stats, Color8(18, 52, 45, 218), Color8(88, 184, 150, 170))
-
-	_merge_hint_label = _create_merge_label("", 11, Color8(132, 137, 130, 255), false)
-	_merge_hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_merge_hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	root.add_child(_merge_hint_label)
-
-	var buttons: HBoxContainer = HBoxContainer.new()
-	buttons.alignment = BoxContainer.ALIGNMENT_END
-	buttons.add_theme_constant_override("separation", 8)
-	root.add_child(buttons)
-
-	_merge_cancel_button = Button.new()
-	_merge_cancel_button.pressed.connect(_cancel_pending_merge)
-	buttons.add_child(_merge_cancel_button)
-
-	_merge_confirm_button = Button.new()
-	_merge_confirm_button.pressed.connect(_confirm_merge_from_overlay)
-	buttons.add_child(_merge_confirm_button)
-
-
-func _create_merge_item_tile(
-	parent: Control,
-	caption: String,
-	bg_color: Color,
-	border_color: Color
-) -> Array[Label]:
-	var panel: PanelContainer = PanelContainer.new()
-	panel.custom_minimum_size = Vector2(122, 76)
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.add_theme_stylebox_override("panel", _create_merge_style(bg_color, border_color, 4, 0, 0))
-	parent.add_child(panel)
-
-	var margin: MarginContainer = MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 8)
-	margin.add_theme_constant_override("margin_top", 6)
-	margin.add_theme_constant_override("margin_right", 8)
-	margin.add_theme_constant_override("margin_bottom", 6)
-	panel.add_child(margin)
-
-	var stack: VBoxContainer = VBoxContainer.new()
-	stack.add_theme_constant_override("separation", 3)
-	margin.add_child(stack)
-
-	var caption_label: Label = _create_merge_label(caption, 10, Color8(145, 153, 150, 255), false)
-	caption_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	stack.add_child(caption_label)
-
-	var name_label: Label = _create_merge_label("", 13, Color8(238, 232, 220, 255), true)
-	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	name_label.custom_minimum_size = Vector2(0, 30)
-	stack.add_child(name_label)
-
-	var meta_label: Label = _create_merge_label("", 13, Color8(190, 207, 204, 255), true)
-	meta_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	stack.add_child(meta_label)
-
-	return [name_label, meta_label]
-
-
-func _create_merge_operator_label(text_value: String) -> Label:
-	var label: Label = _create_merge_label(text_value, 18, Color8(174, 180, 170, 255), true)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.custom_minimum_size = Vector2(22, 76)
-	return label
-
-
-func _trim_merge_item_name(item_name: String) -> String:
-	var trimmed: String = item_name.strip_edges()
-	if trimmed.length() <= 30:
-		return trimmed
-	return trimmed.substr(0, 27) + "..."
-
-
-func _create_merge_stat_badge(parent: Control, bg_color: Color, border_color: Color) -> Label:
-	var panel: PanelContainer = PanelContainer.new()
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.add_theme_stylebox_override("panel", _create_merge_style(bg_color, border_color, 2, 0, 0))
-	parent.add_child(panel)
-
-	var label: Label = _create_merge_label("", 14, Color.WHITE, true)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.custom_minimum_size = Vector2(0, 36)
-	panel.add_child(label)
-	return label
 
 
 func _confirm_merge_from_overlay() -> void:
-	if _merge_overlay != null:
-		_merge_overlay.visible = false
 	_confirm_pending_extension_merge()
 
 
@@ -1303,56 +1017,7 @@ func _cancel_pending_merge() -> void:
 	_pending_merge_target = null
 	_pending_armor_merge_source = null
 	_pending_armor_merge_target = null
-	if _merge_overlay != null:
-		_merge_overlay.visible = false
-
-
-func _create_merge_label(text_value: String, font_size: int, font_color: Color, bold_shadow: bool) -> Label:
-	var label: Label = Label.new()
-	label.text = text_value
-	label.add_theme_font_size_override("font_size", font_size)
-	label.add_theme_color_override("font_color", font_color)
-	if bold_shadow:
-		label.add_theme_color_override("font_shadow_color", Color8(0, 0, 0, 210))
-		label.add_theme_constant_override("shadow_offset_x", 1)
-		label.add_theme_constant_override("shadow_offset_y", 2)
-	return label
-
-
-func _style_merge_button(button: Button, is_primary: bool, accent: Color) -> void:
-	if button == null:
-		return
-	button.custom_minimum_size = Vector2(128, 38)
-	button.add_theme_font_size_override("font_size", 16 if is_primary else 14)
-	button.add_theme_color_override("font_color", Color8(18, 18, 16, 255) if is_primary else Color8(218, 220, 212, 255))
-	button.add_theme_color_override("font_hover_color", Color8(12, 14, 14, 255) if is_primary else Color8(248, 250, 240, 255))
-	button.add_theme_color_override("font_pressed_color", Color8(245, 248, 238, 255))
-	var normal_color: Color = accent if is_primary else Color8(42, 40, 35, 242)
-	var hover_color: Color = accent.lightened(0.18) if is_primary else Color8(58, 55, 48, 248)
-	var pressed_color: Color = accent.darkened(0.22) if is_primary else Color8(30, 29, 26, 250)
-	button.add_theme_stylebox_override("normal", _create_merge_style(normal_color, accent.lightened(0.18), 3, 0, 0))
-	button.add_theme_stylebox_override("hover", _create_merge_style(hover_color, accent.lightened(0.35), 3, 0, 0))
-	button.add_theme_stylebox_override("pressed", _create_merge_style(pressed_color, accent.darkened(0.1), 3, 0, 0))
-	button.add_theme_stylebox_override("focus", _create_merge_style(hover_color, accent.lightened(0.35), 3, 0, 0))
-
-
-func _create_merge_style(bg_color: Color, border_color: Color, radius: int, shadow_size: int, shadow_y: int) -> StyleBoxFlat:
-	var style: StyleBoxFlat = StyleBoxFlat.new()
-	style.bg_color = bg_color
-	style.border_color = border_color
-	style.border_width_left = 1
-	style.border_width_top = 1
-	style.border_width_right = 1
-	style.border_width_bottom = 1
-	style.corner_radius_top_left = radius
-	style.corner_radius_top_right = radius
-	style.corner_radius_bottom_right = radius
-	style.corner_radius_bottom_left = radius
-	if shadow_size > 0:
-		style.shadow_color = Color(0, 0, 0, 0.48)
-		style.shadow_size = shadow_size
-		style.shadow_offset = Vector2(0, shadow_y)
-	return style
+	_merge_dialog.hide_dialog()
 
 
 func _on_weapon_extension_cleared(slot_key: StringName) -> void:

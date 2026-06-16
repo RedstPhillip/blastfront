@@ -6,20 +6,20 @@ var state_machine: StateMachine
 
 
 func enter() -> void:
-	pass
-	
+	return
+
 
 func exit() -> void:
-	pass
-	
+	return
+
 
 func physics_update(_delta: float) -> void:
-	pass
-	
+	return
+
 
 func update(_delta: float) -> void:
-	pass
-	
+	return
+
 
 func handle_input(_event: InputEvent) -> void:
-	pass
+	return

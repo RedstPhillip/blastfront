@@ -501,51 +501,39 @@ func get_border_check_position() -> Vector2:
 
 
 func get_move_direction() -> float:
-	if control_mode != GameSettings.CONTROL_LOCAL or not movement_enabled:
-		return 0.0
-	if _stun_timer > 0.0:
+	if not _can_read_input(movement_enabled):
 		return 0.0
 	return clampf(Input.get_action_strength(move_right_action) - Input.get_action_strength(move_left_action), -1.0, 1.0)
 
 
 func is_jump_pressed() -> bool:
-	if control_mode != GameSettings.CONTROL_LOCAL or not movement_enabled:
-		return false
-	if _stun_timer > 0.0:
-		return false
-	return Input.is_action_just_pressed(jump_action)
+	return _is_action_available(jump_action, movement_enabled, true)
 
 
 func is_jump_held() -> bool:
-	if control_mode != GameSettings.CONTROL_LOCAL or not movement_enabled:
-		return false
-	if _stun_timer > 0.0:
-		return false
-	return Input.is_action_pressed(jump_action)
+	return _is_action_available(jump_action, movement_enabled, false)
 
 
 func is_shoot_pressed() -> bool:
-	if control_mode != GameSettings.CONTROL_LOCAL or not shooting_enabled:
-		return false
-	if _stun_timer > 0.0:
-		return false
-	return Input.is_action_just_pressed(shoot_action)
+	return _is_action_available(shoot_action, shooting_enabled, true)
 
 
 func is_shoot_down() -> bool:
-	if control_mode != GameSettings.CONTROL_LOCAL or not shooting_enabled:
-		return false
-	if _stun_timer > 0.0:
-		return false
-	return Input.is_action_pressed(shoot_action)
+	return _is_action_available(shoot_action, shooting_enabled, false)
 
 
 func is_block_pressed() -> bool:
-	if control_mode != GameSettings.CONTROL_LOCAL or not movement_enabled:
+	return _is_action_available(block_action, movement_enabled, true)
+
+
+func _is_action_available(action: StringName, enabled: bool, just_pressed: bool) -> bool:
+	if not _can_read_input(enabled):
 		return false
-	if _stun_timer > 0.0:
-		return false
-	return Input.is_action_just_pressed(block_action)
+	return Input.is_action_just_pressed(action) if just_pressed else Input.is_action_pressed(action)
+
+
+func _can_read_input(enabled: bool) -> bool:
+	return control_mode == GameSettings.CONTROL_LOCAL and enabled and _stun_timer <= 0.0
 
 
 func is_blocking() -> bool:

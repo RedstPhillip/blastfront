@@ -19,7 +19,7 @@ func get_packet_types() -> Array[StringName]:
 
 
 func handle_packet(_packet: Dictionary) -> void:
-	pass
+	return
 
 
 func build_snapshot() -> Dictionary:
@@ -27,11 +27,11 @@ func build_snapshot() -> Dictionary:
 
 
 func apply_snapshot(_data: Dictionary) -> void:
-	pass
+	return
 
 
 func physics_sync_tick(_delta: float) -> void:
-	pass
+	return
 
 
 func _get_payload(packet: Dictionary) -> Dictionary:

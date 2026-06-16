@@ -1,0 +1,326 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/loadout/merge_dialog.gd" id="1_dialog"]
+
+[node name="MergeDialog" type="Control"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+script = ExtResource("1_dialog")
+
+[node name="Scrim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+color = Color(0, 0, 0, 0.42)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="DialogPanel" type="PanelContainer" parent="Center"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(560, 0)
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="Center/DialogPanel"]
+custom_minimum_size = Vector2(540, 232)
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 8
+
+[node name="Root" type="VBoxContainer" parent="Center/DialogPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 7
+
+[node name="Header" type="HBoxContainer" parent="Center/DialogPanel/Margin/Root"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="AccentBar" type="ColorRect" parent="Center/DialogPanel/Margin/Root/Header"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(5, 44)
+layout_mode = 2
+
+[node name="HeaderText" type="VBoxContainer" parent="Center/DialogPanel/Margin/Root/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 2
+
+[node name="KindLabel" type="Label" parent="Center/DialogPanel/Margin/Root/Header/HeaderText"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.823529)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 13
+
+[node name="TitleLabel" type="Label" parent="Center/DialogPanel/Margin/Root/Header/HeaderText"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94902, 0.964706, 0.92549, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.823529)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 22
+
+[node name="ForgeRow" type="HBoxContainer" parent="Center/DialogPanel/Margin/Root"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="SourceTile" type="PanelContainer" parent="Center/DialogPanel/Margin/Root/ForgeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(122, 76)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Margin" type="MarginContainer" parent="Center/DialogPanel/Margin/Root/ForgeRow/SourceTile"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 6
+
+[node name="Stack" type="VBoxContainer" parent="Center/DialogPanel/Margin/Root/ForgeRow/SourceTile/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="Caption" type="Label" parent="Center/DialogPanel/Margin/Root/ForgeRow/SourceTile/Margin/Stack"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.568627, 0.6, 0.588235, 1)
+theme_override_font_sizes/font_size = 10
+horizontal_alignment = 1
+text = "SOURCE A"
+
+[node name="SourceNameLabel" type="Label" parent="Center/DialogPanel/Margin/Root/ForgeRow/SourceTile/Margin/Stack"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.933333, 0.909804, 0.862745, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.823529)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 13
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="SourceMetaLabel" type="Label" parent="Center/DialogPanel/Margin/Root/ForgeRow/SourceTile/Margin/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.745098, 0.811765, 0.8, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.823529)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 13
+horizontal_alignment = 1
+
+[node name="Plus" type="Label" parent="Center/DialogPanel/Margin/Root/ForgeRow"]
+custom_minimum_size = Vector2(22, 76)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.682353, 0.705882, 0.666667, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.823529)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 18
+text = "+"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TargetTile" type="PanelContainer" parent="Center/DialogPanel/Margin/Root/ForgeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(122, 76)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Margin" type="MarginContainer" parent="Center/DialogPanel/Margin/Root/ForgeRow/TargetTile"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 6
+
+[node name="Stack" type="VBoxContainer" parent="Center/DialogPanel/Margin/Root/ForgeRow/TargetTile/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="Caption" type="Label" parent="Center/DialogPanel/Margin/Root/ForgeRow/TargetTile/Margin/Stack"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.568627, 0.6, 0.588235, 1)
+theme_override_font_sizes/font_size = 10
+text = "SOURCE B"
+horizontal_alignment = 1
+
+[node name="TargetNameLabel" type="Label" parent="Center/DialogPanel/Margin/Root/ForgeRow/TargetTile/Margin/Stack"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.933333, 0.909804, 0.862745, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.823529)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 13
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="TargetMetaLabel" type="Label" parent="Center/DialogPanel/Margin/Root/ForgeRow/TargetTile/Margin/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.745098, 0.811765, 0.8, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.823529)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 13
+horizontal_alignment = 1
+
+[node name="Arrow" type="Label" parent="Center/DialogPanel/Margin/Root/ForgeRow"]
+custom_minimum_size = Vector2(22, 76)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.682353, 0.705882, 0.666667, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.823529)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 18
+text = ">"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ResultTile" type="PanelContainer" parent="Center/DialogPanel/Margin/Root/ForgeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(122, 76)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Margin" type="MarginContainer" parent="Center/DialogPanel/Margin/Root/ForgeRow/ResultTile"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 6
+
+[node name="Stack" type="VBoxContainer" parent="Center/DialogPanel/Margin/Root/ForgeRow/ResultTile/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="Caption" type="Label" parent="Center/DialogPanel/Margin/Root/ForgeRow/ResultTile/Margin/Stack"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.568627, 0.6, 0.588235, 1)
+theme_override_font_sizes/font_size = 10
+text = "RESULT"
+horizontal_alignment = 1
+
+[node name="ResultNameLabel" type="Label" parent="Center/DialogPanel/Margin/Root/ForgeRow/ResultTile/Margin/Stack"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.933333, 0.909804, 0.862745, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.823529)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 13
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="ResultMetaLabel" type="Label" parent="Center/DialogPanel/Margin/Root/ForgeRow/ResultTile/Margin/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.823529)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 13
+horizontal_alignment = 1
+
+[node name="ConditionPanel" type="PanelContainer" parent="Center/DialogPanel/Margin/Root"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="ConditionLabel" type="Label" parent="Center/DialogPanel/Margin/Root/ConditionPanel"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.803922, 0.839216, 0.811765, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.823529)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 15
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Stats" type="HBoxContainer" parent="Center/DialogPanel/Margin/Root"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="CostBadge" type="PanelContainer" parent="Center/DialogPanel/Margin/Root/Stats"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CostLabel" type="Label" parent="Center/DialogPanel/Margin/Root/Stats/CostBadge"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.839216, 0.439216, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.823529)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 14
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BalanceBadge" type="PanelContainer" parent="Center/DialogPanel/Margin/Root/Stats"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="BalanceLabel" type="Label" parent="Center/DialogPanel/Margin/Root/Stats/BalanceBadge"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.705882, 0.901961, 0.823529, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.823529)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 14
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HintLabel" type="Label" parent="Center/DialogPanel/Margin/Root"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.517647, 0.537255, 0.509804, 1)
+theme_override_font_sizes/font_size = 11
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Buttons" type="HBoxContainer" parent="Center/DialogPanel/Margin/Root"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 2
+
+[node name="CancelButton" type="Button" parent="Center/DialogPanel/Margin/Root/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(128, 38)
+layout_mode = 2
+
+[node name="ConfirmButton" type="Button" parent="Center/DialogPanel/Margin/Root/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(128, 38)
+layout_mode = 2
+
+[node name="MergeWarningDialog" type="AcceptDialog" parent="."]
+unique_name_in_owner = true
