@@ -16,6 +16,16 @@ attribute_modifiers = {
 "projectile_speed": -20.0,
 "ammo_max": -1.0
 }
+mk2_attribute_modifiers = {
+"damage": -4.0,
+"projectile_speed": -12.0,
+"ammo_max": -1.0
+}
+mk3_attribute_modifiers = {
+"damage": -3.0,
+"projectile_speed": -5.0,
+"ammo_max": -1.0
+}
 projectile_tags = Array[String](["drill"])
 projectile_effects = {
 "drill": {

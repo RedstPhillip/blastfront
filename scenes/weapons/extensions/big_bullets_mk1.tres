@@ -16,5 +16,15 @@ attribute_modifiers = {
 "projectile_scale": 1.0,
 "ammo_max": -1.0
 }
+mk2_attribute_modifiers = {
+"damage": 16.0,
+"projectile_scale": 1.6,
+"ammo_max": -1.0
+}
+mk3_attribute_modifiers = {
+"damage": 26.0,
+"projectile_scale": 2.3,
+"ammo_max": -1.0
+}
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.9, 0.4, 0.1, 1)

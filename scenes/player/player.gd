@@ -249,6 +249,17 @@ func reset_research_round_state() -> void:
 	_passive_heal_progress = 0.0
 
 
+func reset_network_state_to_current_transform() -> void:
+	var aim_dir: float = signf(last_dir)
+	if aim_dir == 0.0:
+		aim_dir = 1.0
+	_network_target_position = global_position
+	_network_target_velocity = Vector2.ZERO
+	_network_aim_world_position = global_position + Vector2(aim_dir, 0.0) * GameSettings.PLAYER_REMOTE_AIM_DISTANCE
+	if control_mode == GameSettings.CONTROL_REMOTE:
+		_has_network_target = true
+
+
 func set_player_color(color_id: StringName) -> void:
 	if not GameSettings.is_valid_player_color(color_id):
 		return

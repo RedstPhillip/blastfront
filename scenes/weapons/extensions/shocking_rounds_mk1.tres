@@ -16,6 +16,16 @@ attribute_modifiers = {
 "fire_interval": 0.08,
 "reload_time": 0.1
 }
+mk2_attribute_modifiers = {
+"damage": -4.0,
+"fire_interval": 0.06,
+"reload_time": 0.08
+}
+mk3_attribute_modifiers = {
+"damage": -3.0,
+"fire_interval": 0.04,
+"reload_time": 0.05
+}
 projectile_tags = Array[String](["shock"])
 projectile_effects = {
 "shock": {
@@ -23,6 +33,24 @@ projectile_effects = {
 "tick_count": 3,
 "tick_interval": 0.33,
 "stun_duration": 0.2,
+"tint_color": Color(1.0, 0.9, 0.3, 1)
+}
+}
+mk2_projectile_effects = {
+"shock": {
+"duration": 1.3,
+"tick_count": 4,
+"tick_interval": 0.33,
+"stun_duration": 0.28,
+"tint_color": Color(1.0, 0.9, 0.3, 1)
+}
+}
+mk3_projectile_effects = {
+"shock": {
+"duration": 1.6,
+"tick_count": 5,
+"tick_interval": 0.33,
+"stun_duration": 0.36,
 "tint_color": Color(1.0, 0.9, 0.3, 1)
 }
 }

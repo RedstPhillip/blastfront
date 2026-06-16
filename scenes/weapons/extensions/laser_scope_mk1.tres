@@ -13,5 +13,15 @@ attribute_modifiers = {
 "fire_interval": 0.08,
 "shot_spread_degrees": -3.0
 }
+mk2_attribute_modifiers = {
+"fire_interval": 0.06,
+"shot_spread_degrees": -6.0,
+"shot_random_spread_degrees": -2.0
+}
+mk3_attribute_modifiers = {
+"fire_interval": 0.04,
+"shot_spread_degrees": -10.0,
+"shot_random_spread_degrees": -4.0
+}
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.9, 0.2, 0.15, 1)

@@ -13,11 +13,11 @@ minimum_condition_scale = 0.3
 rarity = &"rare"
 visual_scene = ExtResource("3_visual")
 attributes = {
-"freeze_resistance": 0.75,
-"max_health": 20.0,
-"move_speed": -22.0
+"freeze_resistance": 0.82,
+"max_health": 8.0,
+"move_speed": -8.0
 }
-description = "Greatly reduces freeze duration and slow strength with a clear speed penalty."
+description = "Extreme freeze protection with some armor and a manageable speed penalty."
 metadata = {
 "mark": 3
 }

@@ -325,6 +325,7 @@ func get_projectiles_root() -> Node2D:
 func respawn_players() -> void:
 	_set_spawn_positions()
 	_player_1.reset_research_round_state()
+	_player_1.reset_network_state_to_current_transform()
 	_player_1.set_eliminated(false)
 	_player_1.set_controls_enabled(true)
 	_player_1.velocity = Vector2.ZERO
@@ -333,10 +334,12 @@ func respawn_players() -> void:
 		for dummy in _dummy_players:
 			if dummy != null and is_instance_valid(dummy):
 				dummy.reset_research_round_state()
+				dummy.reset_network_state_to_current_transform()
 				dummy.set_eliminated(false)
 				dummy.velocity = Vector2.ZERO
 	elif _has_player_two():
 		_player_2.reset_research_round_state()
+		_player_2.reset_network_state_to_current_transform()
 		_player_2.set_eliminated(false)
 		_player_2.set_controls_enabled(true)
 		_player_2.velocity = Vector2.ZERO

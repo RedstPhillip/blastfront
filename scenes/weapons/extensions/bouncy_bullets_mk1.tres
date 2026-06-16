@@ -15,7 +15,29 @@ attribute_modifiers = {
 "damage": -3.0,
 "projectile_speed": -30.0
 }
+mk2_attribute_modifiers = {
+"damage": -2.0,
+"projectile_speed": -15.0
+}
+mk3_attribute_modifiers = {
+"damage": -1.0,
+"projectile_speed": -5.0
+}
 projectile_tags = Array[String](["bouncy"])
-projectile_effects = {}
+projectile_effects = {
+"bouncy": {
+"bounces": 1.0
+}
+}
+mk2_projectile_effects = {
+"bouncy": {
+"bounces": 2.0
+}
+}
+mk3_projectile_effects = {
+"bouncy": {
+"bounces": 3.0
+}
+}
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.7, 0.9, 0.5, 1)

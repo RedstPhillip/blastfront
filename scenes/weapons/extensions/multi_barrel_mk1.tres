@@ -19,5 +19,21 @@ attribute_modifiers = {
 "shot_random_spread_degrees": 2.0,
 "reload_time": 0.15
 }
+mk2_attribute_modifiers = {
+"damage": -8.0,
+"fire_interval": 0.28,
+"shots_per_fire": 2.0,
+"shot_spread_degrees": 7.0,
+"shot_random_spread_degrees": 2.2,
+"reload_time": 0.12
+}
+mk3_attribute_modifiers = {
+"damage": -6.0,
+"fire_interval": 0.24,
+"shots_per_fire": 3.0,
+"shot_spread_degrees": 8.0,
+"shot_random_spread_degrees": 2.5,
+"reload_time": 0.1
+}
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.35, 0.35, 0.38, 1)

@@ -79,6 +79,8 @@ func _build_laser_trajectory(world_start: Vector2, direction: Vector2) -> Packed
 	)
 	var max_distance: float = maxf(50.0, projectile_max_distance + _get_extension_attribute(&"projectile_max_distance"))
 	var velocity: Vector2 = direction * speed
+	var extension_effects: Dictionary = _get_extension_effects()
+	var hover_effect_data: Dictionary = _get_effect_data(extension_effects, &"hover")
 	var physics_ticks: float = maxf(float(Engine.physics_ticks_per_second), 1.0)
 	var step_time: float = 1.0 / physics_ticks
 	var local_position: Vector2 = Vector2.ZERO
@@ -96,7 +98,12 @@ func _build_laser_trajectory(world_start: Vector2, direction: Vector2) -> Packed
 				gravity_value,
 				step_time,
 				space_state,
-				[_player.get_rid()]
+				[_player.get_rid()],
+				float(hover_effect_data.get("hover_height", HoverBehavior.HOVER_HEIGHT)),
+				float(hover_effect_data.get("detection_depth", HoverBehavior.GROUND_DETECTION_DEPTH)),
+				float(hover_effect_data.get("height_response", HoverBehavior.HEIGHT_RESPONSE)),
+				float(hover_effect_data.get("vertical_damping", HoverBehavior.VERTICAL_DAMPING)),
+				float(hover_effect_data.get("max_correction_speed", HoverBehavior.MAX_CORRECTION_SPEED))
 			)
 		velocity.y += gravity_value * step_time
 		if linear_damping_value > 0.0:
@@ -467,6 +474,14 @@ func _get_extension_effects() -> Dictionary:
 	if effects_variant is Dictionary:
 		var effects: Dictionary = effects_variant
 		return _get_balanced_extension_effects(effects)
+	return {}
+
+
+func _get_effect_data(effects: Dictionary, effect_name: StringName) -> Dictionary:
+	var effect_variant: Variant = effects.get(str(effect_name), effects.get(effect_name, {}))
+	if effect_variant is Dictionary:
+		var effect_data: Dictionary = effect_variant
+		return effect_data
 	return {}
 
 

@@ -14,7 +14,39 @@ minimum_condition_factor = 0.25
 attribute_modifiers = {
 "damage": -3.0
 }
+mk2_attribute_modifiers = {
+"damage": -2.0
+}
+mk3_attribute_modifiers = {
+"damage": -1.0
+}
 projectile_tags = Array[String](["hover"])
-projectile_effects = {}
+projectile_effects = {
+"hover": {
+"hover_height": 34.0,
+"detection_depth": 96.0,
+"height_response": 7.0,
+"vertical_damping": 5.0,
+"max_correction_speed": 420.0
+}
+}
+mk2_projectile_effects = {
+"hover": {
+"hover_height": 30.0,
+"detection_depth": 125.0,
+"height_response": 9.0,
+"vertical_damping": 6.0,
+"max_correction_speed": 500.0
+}
+}
+mk3_projectile_effects = {
+"hover": {
+"hover_height": 26.0,
+"detection_depth": 150.0,
+"height_response": 11.0,
+"vertical_damping": 7.0,
+"max_correction_speed": 600.0
+}
+}
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.3, 0.75, 0.6, 1)

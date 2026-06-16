@@ -75,7 +75,7 @@ func _ready() -> void:
 	_apply_projectile_visual_style()
 	_apply_projectile_scale()
 	if extension_tags.has("bouncy"):
-		_bounces_left = 1
+		_bounces_left = _get_bouncy_bounces()
 	if extension_tags.has("drill"):
 		_drill_walls_left = _get_drill_wall_passes()
 	_update_rotation()
@@ -487,6 +487,14 @@ func _get_drill_wall_passes() -> int:
 	if drill_variant is Dictionary:
 		var drill_effect: Dictionary = drill_variant
 		return maxi(0, int(roundf(float(drill_effect.get("wall_passes", 1.0)))))
+	return 1
+
+
+func _get_bouncy_bounces() -> int:
+	var bouncy_variant: Variant = extension_effects.get("bouncy", {})
+	if bouncy_variant is Dictionary:
+		var bouncy_effect: Dictionary = bouncy_variant
+		return maxi(1, int(roundf(float(bouncy_effect.get("bounces", 1.0)))))
 	return 1
 
 

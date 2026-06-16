@@ -17,5 +17,17 @@ attribute_modifiers = {
 "projectile_speed": 50.0,
 "reload_time": -0.1
 }
+mk2_attribute_modifiers = {
+"fire_interval": -0.2,
+"damage": -4.0,
+"projectile_speed": 120.0,
+"reload_time": -0.16
+}
+mk3_attribute_modifiers = {
+"fire_interval": -0.28,
+"damage": -3.0,
+"projectile_speed": 220.0,
+"reload_time": -0.22
+}
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.7, 0.7, 0.75, 1)

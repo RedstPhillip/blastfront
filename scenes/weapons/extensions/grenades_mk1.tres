@@ -17,12 +17,38 @@ attribute_modifiers = {
 "ammo_max": -1.0,
 "reload_time": 0.2
 }
+mk2_attribute_modifiers = {
+"projectile_speed": -150.0,
+"fire_interval": 0.16,
+"ammo_max": -1.0,
+"reload_time": 0.16
+}
+mk3_attribute_modifiers = {
+"projectile_speed": -100.0,
+"fire_interval": 0.12,
+"ammo_max": -1.0,
+"reload_time": 0.12
+}
 projectile_tags = Array[String](["grenade"])
 projectile_effects = {
 "grenade": {
 "delay": 0.5,
 "radius": 80.0,
 "damage_per_hit": 25
+}
+}
+mk2_projectile_effects = {
+"grenade": {
+"delay": 0.5,
+"radius": 105.0,
+"damage_per_hit": 34
+}
+}
+mk3_projectile_effects = {
+"grenade": {
+"delay": 0.5,
+"radius": 130.0,
+"damage_per_hit": 45
 }
 }
 visual_scene = ExtResource("2_visual")

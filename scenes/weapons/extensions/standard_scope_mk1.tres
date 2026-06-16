@@ -15,5 +15,15 @@ attribute_modifiers = {
 "recoil_rotation_degrees": -3.0,
 "damage": -3.0
 }
+mk2_attribute_modifiers = {
+"recoil_rotation_degrees": -6.0,
+"shot_spread_degrees": -2.0,
+"damage": -2.0
+}
+mk3_attribute_modifiers = {
+"recoil_rotation_degrees": -9.0,
+"shot_spread_degrees": -4.0,
+"damage": -1.0
+}
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.55, 0.6, 0.65, 1)

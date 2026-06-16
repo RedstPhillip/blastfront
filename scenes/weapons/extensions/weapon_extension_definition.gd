@@ -125,9 +125,11 @@ func get_projectile_effects_for_mark(item_mark: int) -> Dictionary:
 		2:
 			if not mk2_projectile_effects.is_empty():
 				return mk2_projectile_effects
+			return _build_default_projectile_effects(2)
 		3:
 			if not mk3_projectile_effects.is_empty():
 				return mk3_projectile_effects
+			return _build_default_projectile_effects(3)
 	return projectile_effects
 
 
@@ -144,10 +146,17 @@ func _build_default_attribute_modifiers(item_mark: int) -> Dictionary:
 
 
 func _scale_default_attribute(attribute: StringName, value: float, item_mark: int) -> float:
-	var benefit_factor: float = 1.6 if item_mark == 2 else 2.35
-	var drawback_factor: float = 1.15 if item_mark == 2 else 1.35
+	var benefit_factor: float = 2.0 if item_mark == 2 else 3.25
+	var drawback_factor: float = 0.85 if item_mark == 2 else 0.7
 	var is_benefit: bool = _is_attribute_benefit(attribute, value)
 	return value * (benefit_factor if is_benefit else drawback_factor)
+
+
+func _build_default_projectile_effects(item_mark: int) -> Dictionary:
+	if projectile_effects.is_empty():
+		return {}
+	var effect_factor: float = 1.65 if item_mark == 2 else 2.5
+	return _scale_projectile_effects(projectile_effects.duplicate(true), effect_factor)
 
 
 func _get_condition_attribute_factor(attribute: StringName, value: float, condition_multiplier: float) -> float:

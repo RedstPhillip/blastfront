@@ -22,5 +22,27 @@ attribute_modifiers = {
 "ammo_max": -1.0,
 "reload_time": 0.2
 }
+mk2_attribute_modifiers = {
+"shots_per_fire": 5.0,
+"shot_spread_degrees": 14.0,
+"shot_random_spread_degrees": 4.5,
+"damage": -11.0,
+"fire_interval": 0.22,
+"projectile_speed": -85.0,
+"projectile_max_distance": -900.0,
+"ammo_max": -1.0,
+"reload_time": 0.18
+}
+mk3_attribute_modifiers = {
+"shots_per_fire": 6.0,
+"shot_spread_degrees": 16.0,
+"shot_random_spread_degrees": 5.0,
+"damage": -9.0,
+"fire_interval": 0.2,
+"projectile_speed": -70.0,
+"projectile_max_distance": -800.0,
+"ammo_max": -1.0,
+"reload_time": 0.15
+}
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.55, 0.45, 0.35, 1)

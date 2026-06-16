@@ -11,10 +11,12 @@ class_name MapBorder
 @export var bottom_knockback_speed: float = GameSettings.MAP_BORDER_BOTTOM_KNOCKBACK_SPEED
 @export var damage_amount: int = GameSettings.MAP_BORDER_DAMAGE
 @export var hit_cooldown: float = GameSettings.MAP_BORDER_HIT_COOLDOWN
+@export var respawn_grace_seconds: float = 0.45
 @export var game_sync_path: NodePath = NodePath("../GameSync")
 
 var _bounds: Rect2 = GameSettings.DEFAULT_MAP_BOUNDS
 var _last_hit_time: Dictionary = {}
+var _disabled_until_time: float = 0.0
 var _game_sync: GameSync = null
 
 @onready var _borders: Dictionary = {
@@ -28,6 +30,8 @@ var _game_sync: GameSync = null
 func _ready() -> void:
 	_bounds = _get_map_bounds()
 	_game_sync = _get_game_sync()
+	if not OnlineMatch.phase_changed.is_connected(_on_online_phase_changed):
+		OnlineMatch.phase_changed.connect(_on_online_phase_changed)
 	for side in GameSettings.border_sides():
 		var border: MapBorderSide = _get_border(side)
 		if border == null:
@@ -36,6 +40,11 @@ func _ready() -> void:
 		border.body_entered.connect(_on_border_body_entered.bind(side))
 
 	_update_border_areas()
+
+
+func _exit_tree() -> void:
+	if OnlineMatch.phase_changed.is_connected(_on_online_phase_changed):
+		OnlineMatch.phase_changed.disconnect(_on_online_phase_changed)
 
 
 func _process(_delta: float) -> void:
@@ -95,6 +104,8 @@ func _process(_delta: float) -> void:
 
 
 func _physics_process(_delta: float) -> void:
+	if _are_border_hits_suspended():
+		return
 	for player in _get_tracked_players():
 		var check_position: Vector2 = player.get_border_check_position()
 		var side: StringName = _get_overlapping_border_side(check_position)
@@ -176,10 +187,14 @@ func _on_border_body_entered(body: Node, side: StringName) -> void:
 	var player: Player = body as Player
 	if player == null:
 		return
+	if _are_border_hits_suspended():
+		return
 	_try_apply_border_hit(player, side)
 
 
 func _try_apply_border_hit(player: Player, side: StringName) -> void:
+	if NetworkSession.is_steam_match_active() and not OnlineMatch.is_playing_set():
+		return
 	var now: float = Time.get_ticks_msec() / GameSettings.MILLISECONDS_PER_SECOND
 	var last_time: float = float(_last_hit_time.get(player, GameSettings.MAP_BORDER_INITIAL_HIT_TIME))
 	if now - last_time < hit_cooldown:
@@ -280,3 +295,18 @@ func _get_border(side: StringName) -> MapBorderSide:
 
 func _get_particle_amount() -> int:
 	return int(40.0 * GameJuice.particles_multiplier)
+
+
+func _on_online_phase_changed(next_phase: StringName) -> void:
+	_last_hit_time.clear()
+	if next_phase == GameSettings.MATCH_PHASE_PLAYING_SET:
+		_disabled_until_time = Time.get_ticks_msec() / GameSettings.MILLISECONDS_PER_SECOND + respawn_grace_seconds
+	else:
+		_disabled_until_time = INF
+
+
+func _are_border_hits_suspended() -> bool:
+	if NetworkSession.is_steam_match_active() and not OnlineMatch.is_playing_set():
+		return true
+	var now: float = Time.get_ticks_msec() / GameSettings.MILLISECONDS_PER_SECOND
+	return _disabled_until_time < INF and now < _disabled_until_time

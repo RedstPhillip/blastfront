@@ -16,11 +16,35 @@ attribute_modifiers = {
 "projectile_speed": -50.0,
 "reload_time": 0.1
 }
+mk2_attribute_modifiers = {
+"damage": -2.0,
+"projectile_speed": -35.0,
+"reload_time": 0.08
+}
+mk3_attribute_modifiers = {
+"damage": -1.0,
+"projectile_speed": -20.0,
+"reload_time": 0.05
+}
 projectile_tags = Array[String](["freeze"])
 projectile_effects = {
 "freeze": {
 "duration": 3.0,
 "speed_multiplier": 0.4,
+"tint_color": Color(0.4, 0.7, 1.0, 1)
+}
+}
+mk2_projectile_effects = {
+"freeze": {
+"duration": 4.2,
+"speed_multiplier": 0.28,
+"tint_color": Color(0.4, 0.7, 1.0, 1)
+}
+}
+mk3_projectile_effects = {
+"freeze": {
+"duration": 5.2,
+"speed_multiplier": 0.18,
 "tint_color": Color(0.4, 0.7, 1.0, 1)
 }
 }
