@@ -51,7 +51,7 @@ const CAMERA_MAX_ZOOM: float = 1.0
 const CAMERA_ONLINE_ZOOM: float = 0.86
 const CAMERA_DUEL_PADDING_X: float = 420.0
 const CAMERA_Y: float = 360.0
-const DEFAULT_MAP_BOUNDS: Rect2 = Rect2(0.0, 0.0, 2262.0, 720.0)
+const DEFAULT_MAP_BOUNDS: Rect2 = Rect2(0.0, 0.0, 2280.0, 720.0)
 const DEFAULT_WORLD_SNAPSHOT_RATE: float = 8.0
 
 const STEAM_APP_ID: int = 4714540
