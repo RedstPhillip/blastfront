@@ -64,6 +64,7 @@ func _get_drag_data(_at_position: Vector2) -> Variant:
 		"reward_type": StringName(str(reward.get("type", ""))),
 		"source_kind": source_kind,
 		"source_index": source_index,
+		"item": reward.get("item", null),
 	}
 
 

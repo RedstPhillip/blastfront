@@ -44,11 +44,14 @@ static func adjust_velocity_for_ground(
 		return current_velocity
 
 	var next_x: float = position.x + current_velocity.x * delta
-	var ray_start: Vector2 = Vector2(next_x, position.y - hover_height)
-	var ray_end: Vector2 = Vector2(next_x, position.y + detection_depth)
-	var query: PhysicsRayQueryParameters2D = PhysicsRayQueryParameters2D.create(ray_start, ray_end, 1)
-	query.exclude = exclude
-	var hit: Dictionary = space_state.intersect_ray(query)
+	var hit: Dictionary = _find_ground_hit(
+		position,
+		Vector2(next_x, position.y),
+		hover_height,
+		detection_depth,
+		space_state,
+		exclude
+	)
 	if hit.is_empty():
 		return current_velocity
 
@@ -57,13 +60,10 @@ static func adjust_velocity_for_ground(
 	if ground_normal.y > FLOOR_NORMAL_THRESHOLD:
 		return current_velocity
 
-	var hit_position_variant: Variant = hit.get("position", ray_end)
+	var hit_position_variant: Variant = hit.get("position", position + Vector2.DOWN * detection_depth)
 	var ground_position: Vector2 = hit_position_variant as Vector2
 	var target_y: float = ground_position.y - hover_height
-	var predicted_y: float = position.y + (current_velocity.y + gravity * delta) * delta
 	var height_error: float = target_y - position.y
-	if predicted_y < target_y and height_error > hover_height:
-		return current_velocity
 
 	var adjusted_velocity: Vector2 = current_velocity
 	var target_vertical_speed: float = clampf(
@@ -77,3 +77,40 @@ static func adjust_velocity_for_ground(
 		max_correction_speed * delta * vertical_damping
 	)
 	return adjusted_velocity
+
+
+static func _find_ground_hit(
+	position: Vector2,
+	next_position: Vector2,
+	hover_height: float,
+	detection_depth: float,
+	space_state: PhysicsDirectSpaceState2D,
+	exclude: Array[RID]
+) -> Dictionary:
+	var ray_top_offset: float = maxf(hover_height, 18.0)
+	var sample_x_positions: Array[float] = [
+		position.x,
+		lerpf(position.x, next_position.x, 0.5),
+		next_position.x,
+	]
+	var best_hit: Dictionary = {}
+	var best_error: float = INF
+	for sample_x in sample_x_positions:
+		var ray_start: Vector2 = Vector2(sample_x, position.y - ray_top_offset)
+		var ray_end: Vector2 = Vector2(sample_x, position.y + detection_depth)
+		var query: PhysicsRayQueryParameters2D = PhysicsRayQueryParameters2D.create(ray_start, ray_end, 1)
+		query.exclude = exclude
+		var hit: Dictionary = space_state.intersect_ray(query)
+		if hit.is_empty():
+			continue
+		var normal_variant: Variant = hit.get("normal", Vector2.UP)
+		var ground_normal: Vector2 = normal_variant as Vector2
+		if ground_normal.y > FLOOR_NORMAL_THRESHOLD:
+			continue
+		var hit_position_variant: Variant = hit.get("position", ray_end)
+		var ground_position: Vector2 = hit_position_variant as Vector2
+		var hover_error: float = absf((ground_position.y - hover_height) - position.y)
+		if best_hit.is_empty() or hover_error < best_error:
+			best_hit = hit
+			best_error = hover_error
+	return best_hit

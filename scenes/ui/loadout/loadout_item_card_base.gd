@@ -54,7 +54,7 @@ func _stars_for_mark(item_mark: int, max_mark: int) -> String:
 	var filled: int = clampi(item_mark, 1, max_mark)
 	var result: String = ""
 	for star_index in range(max_mark):
-		result += "*" if star_index < filled else "-"
+		result += "★" if star_index < filled else "☆"
 	return result
 
 

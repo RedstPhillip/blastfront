@@ -247,6 +247,7 @@ func _setup_weapon_placeholders() -> void:
 		slot_button.setup(slot_key, ExtensionInventory.get_equipped_item_for_local(slot_key))
 		slot_button.extension_hovered.connect(_show_weapon_extension_description)
 		slot_button.extension_dropped.connect(_on_weapon_extension_selected)
+		slot_button.extension_reward_dropped.connect(_on_weapon_extension_reward_dropped)
 		slot_button.extension_cleared.connect(_on_weapon_extension_cleared)
 
 
@@ -1070,6 +1071,32 @@ func _on_reward_dropped_to_inventory(payload: Dictionary) -> void:
 	var source_kind: StringName = StringName(str(payload.get("source_kind", "")))
 	var source_index: int = int(payload.get("source_index", -1))
 	_on_round_reward_claimed(source_kind, source_index)
+
+
+func _on_weapon_extension_reward_dropped(payload: Dictionary, target_slot: StringName) -> void:
+	var source_kind: StringName = StringName(str(payload.get("source_kind", "")))
+	var source_index: int = int(payload.get("source_index", -1))
+	var item: WeaponExtensionItem = payload.get("item", null) as WeaponExtensionItem
+	if item == null or item.get_slot() != target_slot:
+		return
+	var price: int = RoundRewardInventory.get_reward_price(source_kind, source_index)
+	if not RoundRewardInventory.can_afford_reward(source_kind, source_index):
+		_description_title.text = "Not enough coins"
+		_description_meta.text = "SHOP  |  %d COINS REQUIRED" % price
+		_description_body.text = "Earn coins through damage, survival, blocking and the first hit of a set."
+		_set_description_condition(0.0, Color8(225, 82, 72, 255), false)
+		var current_modifiers: Dictionary = _get_current_weapon_modifiers()
+		_show_default_weapon_stats(current_modifiers)
+		return
+	if not RoundRewardInventory.claim_reward(source_kind, source_index):
+		return
+	if ExtensionInventory.equip_item_for_local(item):
+		_description_title.text = "Item equipped"
+		_description_meta.text = "WEAPON SLOT  |  -%d COINS" % price
+		_description_body.text = "The blueprint was purchased and equipped in the matching slot."
+		_set_description_condition(item.condition, item.get_condition_color(), true)
+		var current_modifiers: Dictionary = _get_current_weapon_modifiers()
+		_show_default_weapon_stats(current_modifiers)
 
 
 func _on_reward_recycled(refund: int) -> void:

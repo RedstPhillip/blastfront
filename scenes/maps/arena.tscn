@@ -87,19 +87,19 @@ shader_parameter/layer3 = Color(0.12, 0.18, 0.12, 1)
 shader_parameter/layer4 = Color(0.08, 0.12, 0.08, 1)
 
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_farright"]
-polygon = PackedVector2Array(1560, 720, 1560, 536, 1490, 536, 1440, 560, 1390, 560, 1390, 608, 1390, 720)
+polygon = PackedVector2Array(1680, 720, 1680, 536, 1610, 536, 1560, 560, 1510, 560, 1510, 608, 1510, 720)
 
 [node name="Map03" type="Node2D" unique_id=865662757]
 
 [node name="MapBounds" type="Node" parent="." unique_id=1628206641]
 script = ExtResource("1_mapbounds")
-bounds = Rect2(0, 0, 2170, 720)
+bounds = Rect2(0, 0, 2280, 720)
 
 [node name="Spawn1" type="Marker2D" parent="." unique_id=831908945]
 position = Vector2(200, 480)
 
 [node name="Spawn2" type="Marker2D" parent="." unique_id=365786691]
-position = Vector2(2000, 480)
+position = Vector2(2080, 480)
 
 [node name="PointLight2D" type="PointLight2D" parent="." unique_id=1750659926]
 position = Vector2(1140, 0)
@@ -110,7 +110,7 @@ texture = SubResource("GradientTexture2D_wa6f0")
 
 [node name="TextureRect" type="TextureRect" parent="." unique_id=536264738]
 z_index = -1
-offset_right = 5564.1025
+offset_right = 5846.154
 offset_bottom = 1846.1538
 scale = Vector2(0.39, 0.39)
 texture = ExtResource("2_23d8d")
@@ -138,7 +138,7 @@ position = Vector2(764, 284)
 position = Vector2(1140, 163)
 
 [node name="AirdropPointRight" type="Marker2D" parent="." unique_id=1571464988 groups=["airdrop_spawn"]]
-position = Vector2(1516, 278)
+position = Vector2(1516, 284)
 
 [node name="StaticBody2D" type="StaticBody2D" parent="." unique_id=252369944]
 
@@ -220,7 +220,7 @@ position = Vector2(1516, 328)
 scale = Vector2(8, 8)
 
 [node name="SmallPlatform4" parent="." unique_id=1562509204 instance=ExtResource("7_23d8d")]
-position = Vector2(1301, 398)
+position = Vector2(1305, 397)
 scale = Vector2(3, 3)
 
 [node name="SmallPlatform6" parent="." unique_id=560003958 instance=ExtResource("7_23d8d")]
@@ -245,10 +245,10 @@ position = Vector2(500, 0)
 
 [node name="Polygon2D" type="Polygon2D" parent="StaticBody2D5" unique_id=1202360068]
 material = SubResource("ShaderMaterial_farright")
-polygon = PackedVector2Array(1560, 720, 1560, 536, 1490, 536, 1440, 560, 1390, 560, 1390, 608, 1390, 720)
+polygon = PackedVector2Array(1680, 720, 1680, 536, 1610, 536, 1560, 560, 1510, 560, 1510, 608, 1510, 720)
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="StaticBody2D5" unique_id=740919343]
-polygon = PackedVector2Array(1560, 720, 1560, 536, 1490, 536, 1440, 560, 1390, 560, 1390, 608, 1390, 720)
+polygon = PackedVector2Array(1680, 720, 1680, 536, 1610, 536, 1560, 560, 1510, 560, 1510, 608, 1510, 720)
 
 [node name="LightOccluder2D" type="LightOccluder2D" parent="StaticBody2D5" unique_id=1510497244]
 occluder = SubResource("OccluderPolygon2D_farright")
@@ -278,7 +278,7 @@ position = Vector2(1916, 328)
 scale = Vector2(8, 8)
 
 [node name="SmallPlatform10" parent="." unique_id=1946174900 instance=ExtResource("7_23d8d")]
-position = Vector2(1745.0001, 403)
+position = Vector2(1743, 406)
 scale = Vector2(3, 3)
 
 [node name="SmallPlatform12" parent="." unique_id=1434251662 instance=ExtResource("7_23d8d")]

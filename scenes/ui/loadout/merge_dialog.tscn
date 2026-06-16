@@ -1,8 +1,8 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://cmh7841gtn2d5"]
 
 [ext_resource type="Script" path="res://scenes/ui/loadout/merge_dialog.gd" id="1_dialog"]
 
-[node name="MergeDialog" type="Control"]
+[node name="MergeDialog" type="Control" unique_id=197790213]
 visible = false
 layout_mode = 3
 anchors_preset = 15
@@ -13,7 +13,7 @@ grow_vertical = 2
 mouse_filter = 1
 script = ExtResource("1_dialog")
 
-[node name="Scrim" type="ColorRect" parent="."]
+[node name="Scrim" type="ColorRect" parent="." unique_id=602262075]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -23,7 +23,7 @@ grow_vertical = 2
 mouse_filter = 1
 color = Color(0, 0, 0, 0.42)
 
-[node name="Center" type="CenterContainer" parent="."]
+[node name="Center" type="CenterContainer" parent="." unique_id=1074147709]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -32,12 +32,12 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="DialogPanel" type="PanelContainer" parent="Center"]
+[node name="DialogPanel" type="PanelContainer" parent="Center" unique_id=1922820693]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(560, 0)
 layout_mode = 2
 
-[node name="Margin" type="MarginContainer" parent="Center/DialogPanel"]
+[node name="Margin" type="MarginContainer" parent="Center/DialogPanel" unique_id=1512890908]
 custom_minimum_size = Vector2(540, 232)
 layout_mode = 2
 theme_override_constants/margin_left = 14
@@ -45,25 +45,25 @@ theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 14
 theme_override_constants/margin_bottom = 8
 
-[node name="Root" type="VBoxContainer" parent="Center/DialogPanel/Margin"]
+[node name="Root" type="VBoxContainer" parent="Center/DialogPanel/Margin" unique_id=1613444721]
 layout_mode = 2
 theme_override_constants/separation = 7
 
-[node name="Header" type="HBoxContainer" parent="Center/DialogPanel/Margin/Root"]
+[node name="Header" type="HBoxContainer" parent="Center/DialogPanel/Margin/Root" unique_id=1596419458]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="AccentBar" type="ColorRect" parent="Center/DialogPanel/Margin/Root/Header"]
+[node name="AccentBar" type="ColorRect" parent="Center/DialogPanel/Margin/Root/Header" unique_id=1991652299]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(5, 44)
 layout_mode = 2
 
-[node name="HeaderText" type="VBoxContainer" parent="Center/DialogPanel/Margin/Root/Header"]
+[node name="HeaderText" type="VBoxContainer" parent="Center/DialogPanel/Margin/Root/Header" unique_id=578239074]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 2
 
-[node name="KindLabel" type="Label" parent="Center/DialogPanel/Margin/Root/Header/HeaderText"]
+[node name="KindLabel" type="Label" parent="Center/DialogPanel/Margin/Root/Header/HeaderText" unique_id=1874083209]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.823529)
@@ -71,7 +71,7 @@ theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 2
 theme_override_font_sizes/font_size = 13
 
-[node name="TitleLabel" type="Label" parent="Center/DialogPanel/Margin/Root/Header/HeaderText"]
+[node name="TitleLabel" type="Label" parent="Center/DialogPanel/Margin/Root/Header/HeaderText" unique_id=1904464348]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.94902, 0.964706, 0.92549, 1)
@@ -80,35 +80,35 @@ theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 2
 theme_override_font_sizes/font_size = 22
 
-[node name="ForgeRow" type="HBoxContainer" parent="Center/DialogPanel/Margin/Root"]
+[node name="ForgeRow" type="HBoxContainer" parent="Center/DialogPanel/Margin/Root" unique_id=2089121308]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="SourceTile" type="PanelContainer" parent="Center/DialogPanel/Margin/Root/ForgeRow"]
+[node name="SourceTile" type="PanelContainer" parent="Center/DialogPanel/Margin/Root/ForgeRow" unique_id=364398484]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(122, 76)
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="Margin" type="MarginContainer" parent="Center/DialogPanel/Margin/Root/ForgeRow/SourceTile"]
+[node name="Margin" type="MarginContainer" parent="Center/DialogPanel/Margin/Root/ForgeRow/SourceTile" unique_id=1623416314]
 layout_mode = 2
 theme_override_constants/margin_left = 8
 theme_override_constants/margin_top = 6
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 6
 
-[node name="Stack" type="VBoxContainer" parent="Center/DialogPanel/Margin/Root/ForgeRow/SourceTile/Margin"]
+[node name="Stack" type="VBoxContainer" parent="Center/DialogPanel/Margin/Root/ForgeRow/SourceTile/Margin" unique_id=1351357809]
 layout_mode = 2
 theme_override_constants/separation = 3
 
-[node name="Caption" type="Label" parent="Center/DialogPanel/Margin/Root/ForgeRow/SourceTile/Margin/Stack"]
+[node name="Caption" type="Label" parent="Center/DialogPanel/Margin/Root/ForgeRow/SourceTile/Margin/Stack" unique_id=119187624]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.568627, 0.6, 0.588235, 1)
 theme_override_font_sizes/font_size = 10
-horizontal_alignment = 1
 text = "SOURCE A"
+horizontal_alignment = 1
 
-[node name="SourceNameLabel" type="Label" parent="Center/DialogPanel/Margin/Root/ForgeRow/SourceTile/Margin/Stack"]
+[node name="SourceNameLabel" type="Label" parent="Center/DialogPanel/Margin/Root/ForgeRow/SourceTile/Margin/Stack" unique_id=1744208122]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 30)
 layout_mode = 2
@@ -120,7 +120,7 @@ theme_override_font_sizes/font_size = 13
 horizontal_alignment = 1
 autowrap_mode = 3
 
-[node name="SourceMetaLabel" type="Label" parent="Center/DialogPanel/Margin/Root/ForgeRow/SourceTile/Margin/Stack"]
+[node name="SourceMetaLabel" type="Label" parent="Center/DialogPanel/Margin/Root/ForgeRow/SourceTile/Margin/Stack" unique_id=1932391236]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.745098, 0.811765, 0.8, 1)
@@ -130,7 +130,7 @@ theme_override_constants/shadow_offset_y = 2
 theme_override_font_sizes/font_size = 13
 horizontal_alignment = 1
 
-[node name="Plus" type="Label" parent="Center/DialogPanel/Margin/Root/ForgeRow"]
+[node name="Plus" type="Label" parent="Center/DialogPanel/Margin/Root/ForgeRow" unique_id=1233847719]
 custom_minimum_size = Vector2(22, 76)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.682353, 0.705882, 0.666667, 1)
@@ -142,31 +142,31 @@ text = "+"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="TargetTile" type="PanelContainer" parent="Center/DialogPanel/Margin/Root/ForgeRow"]
+[node name="TargetTile" type="PanelContainer" parent="Center/DialogPanel/Margin/Root/ForgeRow" unique_id=1880287950]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(122, 76)
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="Margin" type="MarginContainer" parent="Center/DialogPanel/Margin/Root/ForgeRow/TargetTile"]
+[node name="Margin" type="MarginContainer" parent="Center/DialogPanel/Margin/Root/ForgeRow/TargetTile" unique_id=1676079460]
 layout_mode = 2
 theme_override_constants/margin_left = 8
 theme_override_constants/margin_top = 6
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 6
 
-[node name="Stack" type="VBoxContainer" parent="Center/DialogPanel/Margin/Root/ForgeRow/TargetTile/Margin"]
+[node name="Stack" type="VBoxContainer" parent="Center/DialogPanel/Margin/Root/ForgeRow/TargetTile/Margin" unique_id=1240885607]
 layout_mode = 2
 theme_override_constants/separation = 3
 
-[node name="Caption" type="Label" parent="Center/DialogPanel/Margin/Root/ForgeRow/TargetTile/Margin/Stack"]
+[node name="Caption" type="Label" parent="Center/DialogPanel/Margin/Root/ForgeRow/TargetTile/Margin/Stack" unique_id=1696236436]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.568627, 0.6, 0.588235, 1)
 theme_override_font_sizes/font_size = 10
 text = "SOURCE B"
 horizontal_alignment = 1
 
-[node name="TargetNameLabel" type="Label" parent="Center/DialogPanel/Margin/Root/ForgeRow/TargetTile/Margin/Stack"]
+[node name="TargetNameLabel" type="Label" parent="Center/DialogPanel/Margin/Root/ForgeRow/TargetTile/Margin/Stack" unique_id=726279808]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 30)
 layout_mode = 2
@@ -178,7 +178,7 @@ theme_override_font_sizes/font_size = 13
 horizontal_alignment = 1
 autowrap_mode = 3
 
-[node name="TargetMetaLabel" type="Label" parent="Center/DialogPanel/Margin/Root/ForgeRow/TargetTile/Margin/Stack"]
+[node name="TargetMetaLabel" type="Label" parent="Center/DialogPanel/Margin/Root/ForgeRow/TargetTile/Margin/Stack" unique_id=802988233]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.745098, 0.811765, 0.8, 1)
@@ -188,7 +188,7 @@ theme_override_constants/shadow_offset_y = 2
 theme_override_font_sizes/font_size = 13
 horizontal_alignment = 1
 
-[node name="Arrow" type="Label" parent="Center/DialogPanel/Margin/Root/ForgeRow"]
+[node name="Arrow" type="Label" parent="Center/DialogPanel/Margin/Root/ForgeRow" unique_id=493332281]
 custom_minimum_size = Vector2(22, 76)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.682353, 0.705882, 0.666667, 1)
@@ -200,31 +200,31 @@ text = ">"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="ResultTile" type="PanelContainer" parent="Center/DialogPanel/Margin/Root/ForgeRow"]
+[node name="ResultTile" type="PanelContainer" parent="Center/DialogPanel/Margin/Root/ForgeRow" unique_id=67633878]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(122, 76)
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="Margin" type="MarginContainer" parent="Center/DialogPanel/Margin/Root/ForgeRow/ResultTile"]
+[node name="Margin" type="MarginContainer" parent="Center/DialogPanel/Margin/Root/ForgeRow/ResultTile" unique_id=228844740]
 layout_mode = 2
 theme_override_constants/margin_left = 8
 theme_override_constants/margin_top = 6
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 6
 
-[node name="Stack" type="VBoxContainer" parent="Center/DialogPanel/Margin/Root/ForgeRow/ResultTile/Margin"]
+[node name="Stack" type="VBoxContainer" parent="Center/DialogPanel/Margin/Root/ForgeRow/ResultTile/Margin" unique_id=768348937]
 layout_mode = 2
 theme_override_constants/separation = 3
 
-[node name="Caption" type="Label" parent="Center/DialogPanel/Margin/Root/ForgeRow/ResultTile/Margin/Stack"]
+[node name="Caption" type="Label" parent="Center/DialogPanel/Margin/Root/ForgeRow/ResultTile/Margin/Stack" unique_id=2103373466]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.568627, 0.6, 0.588235, 1)
 theme_override_font_sizes/font_size = 10
 text = "RESULT"
 horizontal_alignment = 1
 
-[node name="ResultNameLabel" type="Label" parent="Center/DialogPanel/Margin/Root/ForgeRow/ResultTile/Margin/Stack"]
+[node name="ResultNameLabel" type="Label" parent="Center/DialogPanel/Margin/Root/ForgeRow/ResultTile/Margin/Stack" unique_id=682763376]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 30)
 layout_mode = 2
@@ -236,7 +236,7 @@ theme_override_font_sizes/font_size = 13
 horizontal_alignment = 1
 autowrap_mode = 3
 
-[node name="ResultMetaLabel" type="Label" parent="Center/DialogPanel/Margin/Root/ForgeRow/ResultTile/Margin/Stack"]
+[node name="ResultMetaLabel" type="Label" parent="Center/DialogPanel/Margin/Root/ForgeRow/ResultTile/Margin/Stack" unique_id=849563363]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.823529)
@@ -245,11 +245,11 @@ theme_override_constants/shadow_offset_y = 2
 theme_override_font_sizes/font_size = 13
 horizontal_alignment = 1
 
-[node name="ConditionPanel" type="PanelContainer" parent="Center/DialogPanel/Margin/Root"]
+[node name="ConditionPanel" type="PanelContainer" parent="Center/DialogPanel/Margin/Root" unique_id=2129446400]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="ConditionLabel" type="Label" parent="Center/DialogPanel/Margin/Root/ConditionPanel"]
+[node name="ConditionLabel" type="Label" parent="Center/DialogPanel/Margin/Root/ConditionPanel" unique_id=1347998253]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 28)
 layout_mode = 2
@@ -261,16 +261,16 @@ theme_override_font_sizes/font_size = 15
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="Stats" type="HBoxContainer" parent="Center/DialogPanel/Margin/Root"]
+[node name="Stats" type="HBoxContainer" parent="Center/DialogPanel/Margin/Root" unique_id=1458818302]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="CostBadge" type="PanelContainer" parent="Center/DialogPanel/Margin/Root/Stats"]
+[node name="CostBadge" type="PanelContainer" parent="Center/DialogPanel/Margin/Root/Stats" unique_id=1185659121]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="CostLabel" type="Label" parent="Center/DialogPanel/Margin/Root/Stats/CostBadge"]
+[node name="CostLabel" type="Label" parent="Center/DialogPanel/Margin/Root/Stats/CostBadge" unique_id=605632017]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
@@ -282,12 +282,12 @@ theme_override_font_sizes/font_size = 14
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="BalanceBadge" type="PanelContainer" parent="Center/DialogPanel/Margin/Root/Stats"]
+[node name="BalanceBadge" type="PanelContainer" parent="Center/DialogPanel/Margin/Root/Stats" unique_id=1128616143]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="BalanceLabel" type="Label" parent="Center/DialogPanel/Margin/Root/Stats/BalanceBadge"]
+[node name="BalanceLabel" type="Label" parent="Center/DialogPanel/Margin/Root/Stats/BalanceBadge" unique_id=1167559173]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
@@ -299,7 +299,7 @@ theme_override_font_sizes/font_size = 14
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="HintLabel" type="Label" parent="Center/DialogPanel/Margin/Root"]
+[node name="HintLabel" type="Label" parent="Center/DialogPanel/Margin/Root" unique_id=1769592707]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.517647, 0.537255, 0.509804, 1)
@@ -307,20 +307,20 @@ theme_override_font_sizes/font_size = 11
 horizontal_alignment = 1
 autowrap_mode = 3
 
-[node name="Buttons" type="HBoxContainer" parent="Center/DialogPanel/Margin/Root"]
+[node name="Buttons" type="HBoxContainer" parent="Center/DialogPanel/Margin/Root" unique_id=828345425]
 layout_mode = 2
 theme_override_constants/separation = 8
 alignment = 2
 
-[node name="CancelButton" type="Button" parent="Center/DialogPanel/Margin/Root/Buttons"]
+[node name="CancelButton" type="Button" parent="Center/DialogPanel/Margin/Root/Buttons" unique_id=2030859252]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(128, 38)
 layout_mode = 2
 
-[node name="ConfirmButton" type="Button" parent="Center/DialogPanel/Margin/Root/Buttons"]
+[node name="ConfirmButton" type="Button" parent="Center/DialogPanel/Margin/Root/Buttons" unique_id=978883498]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(128, 38)
 layout_mode = 2
 
-[node name="MergeWarningDialog" type="AcceptDialog" parent="."]
+[node name="MergeWarningDialog" type="AcceptDialog" parent="." unique_id=2106065097]
 unique_name_in_owner = true

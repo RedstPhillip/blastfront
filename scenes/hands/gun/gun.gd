@@ -3,6 +3,7 @@ class_name Gun
 
 const PROJECTILE_SCENE: PackedScene = preload("res://scenes/projectiles/projectile.tscn")
 const MUZZLE_WORLD_COLLISION_MASK: int = 1
+const MUZZLE_PLAYER_COLLISION_MASK: int = 2
 const MUZZLE_WALL_CLEARANCE: float = 6.0
 const LASER_MUZZLE_OCCLUSION_EPSILON: float = 1.0
 
@@ -268,6 +269,10 @@ func get_projectile_spawn_position(direction: Vector2 = Vector2.ZERO) -> Vector2
 	if player_position.distance_squared_to(muzzle_position) <= 1.0:
 		return muzzle_position
 
+	var player_hit_position: Vector2 = _get_player_blocked_spawn_position(player_position, muzzle_position, shot_direction)
+	if player_hit_position != Vector2.INF:
+		return player_hit_position
+
 	var query: PhysicsRayQueryParameters2D = PhysicsRayQueryParameters2D.create(
 		player_position,
 		muzzle_position,
@@ -282,6 +287,25 @@ func get_projectile_spawn_position(direction: Vector2 = Vector2.ZERO) -> Vector2
 	var player_side: Vector2 = player_position - hit_position
 	if player_side.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
 		return hit_position + player_side.normalized() * MUZZLE_WALL_CLEARANCE
+	return hit_position - shot_direction * MUZZLE_WALL_CLEARANCE
+
+
+func _get_player_blocked_spawn_position(player_position: Vector2, muzzle_position: Vector2, shot_direction: Vector2) -> Vector2:
+	var query: PhysicsRayQueryParameters2D = PhysicsRayQueryParameters2D.create(
+		player_position,
+		muzzle_position,
+		MUZZLE_PLAYER_COLLISION_MASK
+	)
+	query.exclude = [_player.get_rid()]
+	var hit: Dictionary = get_world_2d().direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		return Vector2.INF
+
+	var hit_player: Player = hit.get("collider", null) as Player
+	if hit_player == null or hit_player == _player:
+		return Vector2.INF
+
+	var hit_position: Vector2 = hit.get("position", muzzle_position)
 	return hit_position - shot_direction * MUZZLE_WALL_CLEARANCE
 
 

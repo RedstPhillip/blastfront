@@ -3,6 +3,7 @@ class_name WeaponExtensionSlot
 
 signal extension_hovered(item: WeaponExtensionItem)
 signal extension_dropped(item: WeaponExtensionItem)
+signal extension_reward_dropped(payload: Dictionary, slot: StringName)
 signal extension_cleared(slot: StringName)
 
 @export var slot: StringName = WeaponExtensionDefinition.SLOT_MIDDLE
@@ -45,14 +46,24 @@ func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
 	if not (data is Dictionary):
 		return false
 	var drop_data: Dictionary = data
-	if drop_data.get("type", &"") != &"weapon_extension_item":
-		return false
-	var dropped_item: WeaponExtensionItem = drop_data.get("item", null) as WeaponExtensionItem
-	return dropped_item != null and dropped_item.get_slot() == slot
+	var drop_type: StringName = StringName(str(drop_data.get("type", "")))
+	if drop_type == &"weapon_extension_item":
+		var dropped_item: WeaponExtensionItem = drop_data.get("item", null) as WeaponExtensionItem
+		return dropped_item != null and dropped_item.get_slot() == slot
+	if drop_type == &"round_reward":
+		if StringName(str(drop_data.get("reward_type", ""))) != RoundRewardInventory.REWARD_EXTENSION:
+			return false
+		var reward_item: WeaponExtensionItem = drop_data.get("item", null) as WeaponExtensionItem
+		return reward_item != null and reward_item.get_slot() == slot
+	return false
 
 
 func _drop_data(_at_position: Vector2, data: Variant) -> void:
 	var drop_data: Dictionary = data
+	var drop_type: StringName = StringName(str(drop_data.get("type", "")))
+	if drop_type == &"round_reward":
+		extension_reward_dropped.emit(drop_data, slot)
+		return
 	var dropped_item: WeaponExtensionItem = drop_data.get("item", null) as WeaponExtensionItem
 	if dropped_item != null:
 		extension_dropped.emit(dropped_item)

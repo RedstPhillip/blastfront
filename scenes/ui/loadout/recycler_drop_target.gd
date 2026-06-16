@@ -7,6 +7,7 @@ signal reward_recycled(refund: int)
 
 
 func _ready() -> void:
+	mouse_filter = Control.MOUSE_FILTER_STOP
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	refresh()
 
