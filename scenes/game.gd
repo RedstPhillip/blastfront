@@ -1,6 +1,8 @@
 extends Node2D
 class_name Game
 
+signal point_awarded(winner_slot: int)
+
 const PROJECTILE_SCENE: PackedScene = preload("res://scenes/projectiles/projectile.tscn")
 const PLAYER_SCENE: PackedScene = preload("res://scenes/player/player.tscn")
 
@@ -450,6 +452,7 @@ func _on_offline_health_depleted(slot: int) -> void:
 
 	var source_slot: int = GameSettings.PLAYER_TWO_SLOT if slot == GameSettings.PLAYER_ONE_SLOT else GameSettings.PLAYER_ONE_SLOT
 	_offline_score[source_slot] = _offline_score.get(source_slot, 0) + 1
+	point_awarded.emit(source_slot)
 
 	if _offline_score[source_slot] >= GameSettings.MATCH_WINS_NEEDED:
 		_offline_match_over = true
