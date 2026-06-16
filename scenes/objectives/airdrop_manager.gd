@@ -410,9 +410,9 @@ func _ensure_feedback_nodes() -> void:
 	if _siren_player == null:
 		_siren_player = AudioStreamPlayer.new()
 		_siren_player.name = "SirenPlayer"
-		_siren_player.bus = &"SFX"
-		_siren_player.volume_db = -7.0
 		add_child(_siren_player)
+	_siren_player.bus = &"SFX"
+	_siren_player.volume_db = -4.5
 	if not _warning_timer.timeout.is_connected(_on_warning_timer_timeout):
 		_warning_timer.timeout.connect(_on_warning_timer_timeout)
 	if not _siren_timer.timeout.is_connected(_on_siren_timer_timeout):
@@ -421,21 +421,25 @@ func _ensure_feedback_nodes() -> void:
 
 
 func _build_siren_stream() -> AudioStreamWAV:
-	var mix_rate: int = 22050
-	var duration: float = 0.46
+	var mix_rate: int = 44100
+	var duration: float = 0.68
 	var sample_count: int = int(float(mix_rate) * duration)
 	var samples: PackedByteArray = PackedByteArray()
 	samples.resize(sample_count * 2)
 	for sample_index in range(sample_count):
 		var time_seconds: float = float(sample_index) / float(mix_rate)
 		var phase_ratio: float = time_seconds / duration
-		var frequency: float = lerpf(460.0, 760.0, sin(phase_ratio * PI))
-		var attack: float = clampf(time_seconds / 0.035, 0.0, 1.0)
-		var release: float = clampf((duration - time_seconds) / 0.08, 0.0, 1.0)
+		var wind: float = sin(phase_ratio * PI)
+		var frequency: float = lerpf(310.0, 690.0, wind)
+		var attack: float = clampf(time_seconds / 0.08, 0.0, 1.0)
+		var release: float = clampf((duration - time_seconds) / 0.14, 0.0, 1.0)
 		var envelope: float = minf(attack, release)
-		var wave: float = sin(TAU * frequency * time_seconds)
-		wave += sin(TAU * frequency * 0.5 * time_seconds) * 0.24
-		var sample_value: int = int(clampf(wave * envelope * 0.30, -1.0, 1.0) * 32767.0)
+		var rotor: float = 0.78 + 0.22 * sin(TAU * 18.0 * time_seconds)
+		var wave: float = sin(TAU * frequency * time_seconds) * 0.74
+		wave += sin(TAU * frequency * 2.01 * time_seconds) * 0.18
+		wave += sin(TAU * frequency * 0.51 * time_seconds) * 0.14
+		var grit: float = sin(TAU * 97.0 * time_seconds + sin(TAU * 5.0 * time_seconds)) * 0.035
+		var sample_value: int = int(clampf((wave * rotor + grit) * envelope * 0.36, -1.0, 1.0) * 32767.0)
 		samples.encode_s16(sample_index * 2, sample_value)
 	var stream: AudioStreamWAV = AudioStreamWAV.new()
 	stream.format = AudioStreamWAV.FORMAT_16_BITS

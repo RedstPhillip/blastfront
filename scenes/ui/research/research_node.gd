@@ -3,6 +3,7 @@ class_name ResearchNodeButton
 
 signal research_selected(research_id: StringName)
 signal research_hovered(research_id: StringName)
+signal research_unhovered
 
 const COLOR_ECONOMY: Color = Color8(205, 151, 65, 255)
 const COLOR_MOVEMENT: Color = Color8(137, 148, 101, 255)
@@ -17,12 +18,15 @@ var _loaded_icon_path: String = ""
 @onready var _icon_texture: TextureRect = %IconTexture
 @onready var _stars_label: Label = %StarsLabel
 @onready var _lock_label: Label = %LockLabel
+@onready var _cost_label: Label = %CostLabel
 
 
 func _ready() -> void:
 	pressed.connect(_on_pressed)
 	mouse_entered.connect(_on_mouse_entered)
 	focus_entered.connect(_on_mouse_entered)
+	mouse_exited.connect(_on_mouse_exited)
+	focus_exited.connect(_on_mouse_exited)
 	GameJuice.attach_button_feedback(self)
 	refresh()
 
@@ -41,6 +45,7 @@ func refresh() -> void:
 	var available: bool = definition.get("available", true) == true
 	var current_mark: int = ResearchManager.get_mark(research_id)
 	var max_mark: int = int(definition.get("max_mark", 1))
+	var next_cost: int = ResearchManager.get_next_cost(research_id)
 	var can_buy: bool = ResearchManager.can_purchase(research_id)
 	var requirements_met: bool = current_mark > 0 or _requirements_met()
 	var accent: Color = _branch_color(branch)
@@ -57,6 +62,9 @@ func refresh() -> void:
 	_stars_label.add_theme_color_override("font_color", star_color)
 	_lock_label.visible = not available or (current_mark <= 0 and not requirements_met)
 	_lock_label.text = "SOON" if not available else "LOCK"
+	_cost_label.visible = available and requirements_met and current_mark < max_mark and next_cost > 0
+	_cost_label.text = "%d RP" % next_cost
+	_cost_label.add_theme_color_override("font_color", Color(1.0, 0.82, 0.28, 1.0) if can_buy else Color(0.78, 0.66, 0.47, 0.92))
 	disabled = not available or current_mark >= max_mark or not requirements_met or not can_buy
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if not disabled else Control.CURSOR_ARROW
 	_apply_styles(accent, current_mark > 0, can_buy)
@@ -164,3 +172,7 @@ func _on_pressed() -> void:
 
 func _on_mouse_entered() -> void:
 	research_hovered.emit(research_id)
+
+
+func _on_mouse_exited() -> void:
+	research_unhovered.emit()

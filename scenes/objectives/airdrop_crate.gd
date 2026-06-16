@@ -46,8 +46,9 @@ func apply_state(state: Dictionary) -> void:
 
 func _process(delta: float) -> void:
 	_visual_time += delta
-	_marker.rotation += delta * 0.14
 	_marker.modulate.a = 0.48 + sin(_visual_time * 3.0) * 0.12
+	var marker_scale: float = 0.34 + sin(_visual_time * 2.2) * 0.012
+	_marker.scale = Vector2(marker_scale, marker_scale)
 	_capture_ring.modulate.a = 0.34 + sin(_visual_time * 2.4) * 0.08
 	if _phase == &"falling":
 		var eased_progress: float = 1.0 - pow(1.0 - _descent_progress, 2.2)
@@ -58,8 +59,7 @@ func _process(delta: float) -> void:
 		_rig.position = _rig.position.lerp(Vector2.ZERO, clampf(delta * 12.0, 0.0, 1.0))
 		_rig.rotation = lerpf(_rig.rotation, 0.0, clampf(delta * 12.0, 0.0, 1.0))
 	_capture_bar.value = _capture_progress * 100.0
-	if _light.visible:
-		_light.energy = 0.52 + sin(_visual_time * 4.0) * 0.08
+	_light.visible = false
 
 
 func _apply_visual_state() -> void:
@@ -72,7 +72,7 @@ func _apply_visual_state() -> void:
 	_capture_panel.visible = landed
 	_marker.visible = warning or falling
 	_crate.visible = falling or landed
-	_light.visible = warning or falling or landed
+	_light.visible = false
 	_reward_label.text = ""
 	_reward_label.visible = false
 	_capture_label.text = ""
@@ -102,5 +102,5 @@ func _build_capture_ring() -> void:
 	var segments: int = 64
 	for point_index in range(segments + 1):
 		var angle: float = TAU * float(point_index) / float(segments)
-		points.append(Vector2(cos(angle), sin(angle) * 0.28) * _capture_radius)
+		points.append(Vector2(cos(angle), sin(angle)) * _capture_radius)
 	_capture_ring.points = points

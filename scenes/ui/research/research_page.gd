@@ -8,6 +8,7 @@ var _nodes_by_id: Dictionary = {}
 @onready var _points_label: Label = %PointsLabel
 @onready var _tree_canvas: Control = %TreeCanvas
 @onready var _connection_layer: Variant = %ConnectionLayer
+@onready var _hover_card: PanelContainer = %HoverCard
 @onready var _details_title: Label = %DetailsTitle
 @onready var _details_body: Label = %DetailsBody
 @onready var _details_status: Label = %DetailsStatus
@@ -18,6 +19,11 @@ func _ready() -> void:
 	ResearchManager.research_changed.connect(_refresh)
 	ResearchManager.research_points_changed.connect(_on_points_changed)
 	_refresh()
+
+
+func _process(_delta: float) -> void:
+	if _hover_card.visible:
+		_position_hover_card()
 
 
 func _exit_tree() -> void:
@@ -39,6 +45,7 @@ func _build_tree() -> void:
 		node.setup(definition)
 		node.research_selected.connect(_on_research_selected)
 		node.research_hovered.connect(_show_research_details)
+		node.research_unhovered.connect(_hide_research_details)
 		_tree_canvas.add_child(node)
 		_nodes_by_id[str(research_id)] = node
 
@@ -76,8 +83,26 @@ func _show_research_details(research_id: StringName) -> void:
 	elif current_mark >= max_mark:
 		_details_status.text = "Fully researched - MK%d" % max_mark
 	else:
-		_details_status.text = "MK%d of MK%d - next level costs %d points" % [
+		_details_status.text = "MK%d / MK%d    NEXT COST: %d RP" % [
 			current_mark,
 			max_mark,
 			ResearchManager.get_next_cost(research_id),
 		]
+	_hover_card.show()
+	_position_hover_card()
+
+
+func _hide_research_details() -> void:
+	_hover_card.hide()
+
+
+func _position_hover_card() -> void:
+	var mouse_position: Vector2 = get_local_mouse_position()
+	var card_size: Vector2 = _hover_card.size
+	if card_size.x <= 0.0 or card_size.y <= 0.0:
+		card_size = _hover_card.custom_minimum_size
+	var target: Vector2 = mouse_position + Vector2(22.0, 18.0)
+	var page_size: Vector2 = size
+	target.x = clampf(target.x, 14.0, maxf(14.0, page_size.x - card_size.x - 14.0))
+	target.y = clampf(target.y, 14.0, maxf(14.0, page_size.y - card_size.y - 14.0))
+	_hover_card.position = target

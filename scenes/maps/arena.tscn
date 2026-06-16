@@ -129,16 +129,17 @@ one_shot = true
 wait_time = 0.72
 
 [node name="SirenPlayer" type="AudioStreamPlayer" parent="AirdropManager" unique_id=1912350131]
-volume_db = -7.0
+volume_db = -4.5
+bus = &"SFX"
 
 [node name="AirdropPointLeft" type="Marker2D" parent="." unique_id=381402665 groups=["airdrop_spawn"]]
-position = Vector2(764, 284)
+position = Vector2(764, 309)
 
 [node name="AirdropPointCenter" type="Marker2D" parent="." unique_id=757990574 groups=["airdrop_spawn"]]
-position = Vector2(1140, 163)
+position = Vector2(1140, 183)
 
 [node name="AirdropPointRight" type="Marker2D" parent="." unique_id=1571464988 groups=["airdrop_spawn"]]
-position = Vector2(1516, 284)
+position = Vector2(1516, 309)
 
 [node name="StaticBody2D" type="StaticBody2D" parent="." unique_id=252369944]
 

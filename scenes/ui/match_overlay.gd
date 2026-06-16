@@ -10,6 +10,8 @@ const ROUND_SCORE_DOT_SCENE: PackedScene = preload("res://scenes/ui/round_score_
 @onready var _right_round_dots: HBoxContainer = %RightRoundDots
 @onready var _banner_panel: PanelContainer = %BannerPanel
 @onready var _banner_label: Label = %BannerLabel
+@onready var _victory_kicker: Label = %VictoryKicker
+@onready var _victory_subtitle: Label = %VictorySubtitle
 @onready var _victory_actions: HBoxContainer = %VictoryActions
 @onready var _play_again_button: Button = %PlayAgainButton
 @onready var _main_menu_button: Button = %MainMenuButton
@@ -159,6 +161,8 @@ func _show_winner_banner(winner_slot: int) -> void:
 
 	_banner_panel.custom_minimum_size = Vector2(520, 140)
 	_victory_actions.hide()
+	_victory_kicker.hide()
+	_victory_subtitle.hide()
 	_banner_label.custom_minimum_size = Vector2(460, 100)
 	_banner_label.add_theme_font_size_override("font_size", 64)
 	var winner_name: String = OnlineMatch.get_player_color_name(winner_slot).to_upper()
@@ -175,14 +179,18 @@ func _show_victory_screen(winner_slot: int, winner_color: Color, winner_name: St
 		_banner_panel.hide()
 		return
 
-	_banner_panel.custom_minimum_size = Vector2(720, 260)
+	_banner_panel.custom_minimum_size = Vector2(820, 330)
 	_victory_actions.show()
+	_victory_kicker.show()
+	_victory_subtitle.show()
 	_play_again_button.disabled = NetworkSession.is_steam_match_active() and not NetworkSession.is_host()
 	_play_again_button.tooltip_text = "Only the host can restart an online match." if _play_again_button.disabled else ""
-	_banner_label.custom_minimum_size = Vector2(680, 150)
-	_banner_label.add_theme_font_size_override("font_size", 76)
-	_banner_label.text = "VICTORY\n%s WINS" % winner_name
-	_banner_label.add_theme_color_override("font_color", winner_color.lightened(0.12))
+	_banner_label.custom_minimum_size = Vector2(760, 155)
+	_banner_label.add_theme_font_size_override("font_size", 70)
+	_victory_kicker.text = "MATCH DECIDED"
+	_banner_label.text = "%s\nHOLDS THE FRONT" % winner_name
+	_banner_label.add_theme_color_override("font_color", winner_color.lightened(0.2))
+	_victory_subtitle.text = "VICTORY CLAIMED  -  THE ARENA IS YOURS"
 	if not _banner_panel.visible or _last_banner_text != _banner_label.text:
 		_play_banner_animation()
 		GameJuice.play_sound(&"spawn", -2.0, 0.02)

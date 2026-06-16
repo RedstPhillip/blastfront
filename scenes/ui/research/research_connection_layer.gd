@@ -16,9 +16,9 @@ func _draw() -> void:
 		positions[str(definition.get("id", ""))] = definition.get("position", Vector2.ZERO) + Vector2(37, 37)
 
 	var starters: Dictionary = {
-		str(ResearchManager.RECYCLING): Color8(205, 151, 65, 175),
-		str(ResearchManager.DASHING): Color8(137, 148, 101, 155),
-		str(ResearchManager.LIFE_STEAL): Color8(176, 91, 62, 165),
+		str(ResearchManager.RECYCLING): Color8(205, 151, 65, 255),
+		str(ResearchManager.DASHING): Color8(137, 148, 101, 255),
+		str(ResearchManager.LIFE_STEAL): Color8(176, 91, 62, 255),
 	}
 	for starter_id in starters.keys():
 		if positions.has(starter_id):
@@ -51,7 +51,8 @@ func _draw() -> void:
 
 
 func _draw_connection(from: Vector2, to: Vector2, color: Color, unlocked: bool) -> void:
-	var line_color: Color = color if unlocked else Color(color.r, color.g, color.b, 0.35)
+	var line_alpha: float = 0.56 if unlocked else 0.28
+	var line_color: Color = Color(color.r, color.g, color.b, line_alpha)
 	var midpoint_x: float = lerpf(from.x, to.x, 0.5)
 	var points: PackedVector2Array = PackedVector2Array([
 		from,
@@ -59,7 +60,7 @@ func _draw_connection(from: Vector2, to: Vector2, color: Color, unlocked: bool) 
 		Vector2(midpoint_x, to.y),
 		to,
 	])
-	draw_polyline(points, line_color, 2.5 if unlocked else 1.5, true)
+	draw_polyline(points, line_color, 2.1, true)
 
 
 func _branch_color(branch: StringName) -> Color:
