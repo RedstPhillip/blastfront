@@ -405,7 +405,7 @@ func _get_camera_target_zoom() -> float:
 		return maxf(GameSettings.CAMERA_ONLINE_ZOOM, _get_vertical_safe_zoom())
 
 	if NetworkSession.is_training():
-		return maxf(GameSettings.CAMERA_ONLINE_ZOOM, _get_vertical_safe_zoom())
+		return GameSettings.CAMERA_ONLINE_ZOOM
 
 	if not _has_player_two():
 		return GameSettings.CAMERA_MAX_ZOOM
@@ -416,7 +416,7 @@ func _get_camera_target_zoom() -> float:
 		get_viewport_rect().size.x
 	)
 	var target_zoom: float = get_viewport_rect().size.x / desired_world_width
-	return maxf(clampf(target_zoom, GameSettings.CAMERA_MIN_ZOOM, GameSettings.CAMERA_MAX_ZOOM), _get_vertical_safe_zoom())
+	return clampf(target_zoom, GameSettings.CAMERA_MIN_ZOOM, GameSettings.CAMERA_MAX_ZOOM)
 
 
 func _get_vertical_safe_zoom() -> float:

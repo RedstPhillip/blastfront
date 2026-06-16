@@ -29,7 +29,6 @@ func show_menu() -> void:
 	if menu == null:
 		return
 	menu.sandbox_requested.connect(_on_sandbox_requested)
-	menu.training_requested.connect(_on_training_requested)
 	menu.online_requested.connect(_on_online_requested)
 	menu.exit_requested.connect(_on_exit_requested)
 
@@ -45,11 +44,6 @@ func change_scene(scene: PackedScene) -> Node:
 
 
 func _on_sandbox_requested() -> void:
-	NetworkSession.start_offline()
-	start_game()
-
-
-func _on_training_requested() -> void:
 	NetworkSession.start_training()
 	start_game()
 

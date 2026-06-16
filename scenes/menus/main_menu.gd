@@ -2,14 +2,12 @@ extends Control
 class_name MainMenu
 
 signal sandbox_requested
-signal training_requested
 signal online_requested
 signal exit_requested
 
 const SETTINGS_MENU_SCENE: PackedScene = preload("res://scenes/menus/settings_menu.tscn")
 
 @onready var _sandbox_button: Button = %SandboxButton
-@onready var _training_button: Button = %TrainingButton
 @onready var _online_button: Button = %OnlineButton
 @onready var _settings_button: Button = %SettingsButton
 @onready var _exit_button: Button = %ExitButton
@@ -20,7 +18,6 @@ var _settings_instance: SettingsMenu = null
 
 func _ready() -> void:
 	_sandbox_button.pressed.connect(_on_sandbox_pressed)
-	_training_button.pressed.connect(_on_training_pressed)
 	_online_button.pressed.connect(_on_online_pressed)
 	_settings_button.pressed.connect(_on_settings_pressed)
 	_exit_button.pressed.connect(_on_exit_pressed)
@@ -39,11 +36,6 @@ func _exit_tree() -> void:
 func _on_sandbox_pressed() -> void:
 	GameJuice.play_sound(&"ui_click", -10.0, 0.04)
 	sandbox_requested.emit()
-
-
-func _on_training_pressed() -> void:
-	GameJuice.play_sound(&"ui_click", -10.0, 0.04)
-	training_requested.emit()
 
 
 func _on_online_pressed() -> void:
