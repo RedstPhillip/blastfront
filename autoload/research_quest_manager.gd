@@ -178,6 +178,8 @@ func _on_phase_changed(next_phase: StringName) -> void:
 		if previous_phase in [GameSettings.MATCH_PHASE_LOCKER, GameSettings.MATCH_PHASE_INTERMISSION]:
 			_last_awarded_by_slot.clear()
 			_survival_tick_timer = 0.0
+		if _assignments_by_slot.is_empty():
+			assign_quests_for_next_set()
 		_active_set_has_quests = not _assignments_by_slot.is_empty()
 		_broadcast_state(true)
 	elif next_phase == GameSettings.MATCH_PHASE_INTERMISSION:
