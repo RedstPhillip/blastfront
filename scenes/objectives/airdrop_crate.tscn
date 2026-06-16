@@ -73,12 +73,12 @@ position = Vector2(0, -520)
 unique_name_in_owner = true
 
 [node name="LeftRope" type="Line2D" parent="Rig/Ropes"]
-points = PackedVector2Array(-54, -154, -34, -42)
+points = PackedVector2Array(-54, -154, -34, -35)
 width = 2.0
 default_color = Color(0.83, 0.73, 0.53, 0.9)
 
 [node name="RightRope" type="Line2D" parent="Rig/Ropes"]
-points = PackedVector2Array(54, -154, 34, -42)
+points = PackedVector2Array(54, -154, 34, -35)
 width = 2.0
 default_color = Color(0.83, 0.73, 0.53, 0.9)
 
