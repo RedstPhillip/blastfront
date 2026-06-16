@@ -78,6 +78,34 @@ func move_to_saved(source_kind: StringName, source_index: int, target_index: int
 	return true
 
 
+func move_to_offer(source_kind: StringName, source_index: int, target_index: int) -> bool:
+	if target_index < 0 or target_index >= offers.size():
+		return false
+	var reward: Dictionary = _get_reward(source_kind, source_index)
+	if reward.is_empty():
+		return false
+	var reward_type: StringName = StringName(str(reward.get("type", "")))
+	if not can_place_reward_in_offer_slot(target_index, reward_type):
+		return false
+
+	var displaced_reward: Dictionary = offers[target_index]
+	offers[target_index] = reward
+	_set_reward(source_kind, source_index, displaced_reward)
+	rewards_changed.emit()
+	return true
+
+
+func can_place_reward_in_offer_slot(target_index: int, reward_type: StringName) -> bool:
+	if target_index < 0 or target_index >= offers.size():
+		return false
+	match reward_type:
+		REWARD_EXTENSION:
+			return target_index % 2 == 0
+		REWARD_ARMOR:
+			return target_index % 2 == 1
+	return false
+
+
 # Claims validate payment before moving the underlying Resource into inventory.
 func claim_reward(source_kind: StringName, source_index: int) -> bool:
 	var reward: Dictionary = _get_reward(source_kind, source_index)

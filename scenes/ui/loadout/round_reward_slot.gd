@@ -69,10 +69,19 @@ func _get_drag_data(_at_position: Vector2) -> Variant:
 
 
 func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
-	if not is_saved_slot or not (data is Dictionary):
+	if not (data is Dictionary):
 		return false
 	var payload: Dictionary = data
-	return payload.get("type", &"") == &"round_reward"
+	if payload.get("type", &"") != &"round_reward":
+		return false
+	if is_saved_slot:
+		return true
+	if source_kind != RoundRewardInventory.SOURCE_OFFER:
+		return false
+	if StringName(str(payload.get("source_kind", ""))) != RoundRewardInventory.SOURCE_SAVED:
+		return false
+	var reward_type: StringName = StringName(str(payload.get("reward_type", "")))
+	return RoundRewardInventory.can_place_reward_in_offer_slot(source_index, reward_type)
 
 
 func _drop_data(_at_position: Vector2, data: Variant) -> void:

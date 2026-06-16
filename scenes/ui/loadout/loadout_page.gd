@@ -271,6 +271,7 @@ func _setup_reward_slots() -> void:
 		offer_slot.setup(RoundRewardInventory.SOURCE_OFFER, offer_index, false)
 		offer_slot.reward_hovered.connect(_show_round_reward_description)
 		offer_slot.reward_claimed.connect(_on_round_reward_claimed)
+		offer_slot.reward_dropped.connect(_on_reward_dropped_to_offer)
 
 	for saved_index in range(_saved_reward_slots.size()):
 		var saved_slot: RoundRewardSlot = _saved_reward_slots[saved_index]
@@ -1065,6 +1066,12 @@ func _on_reward_dropped_to_saved(payload: Dictionary, target_index: int) -> void
 	var source_kind: StringName = StringName(str(payload.get("source_kind", "")))
 	var source_index: int = int(payload.get("source_index", -1))
 	RoundRewardInventory.move_to_saved(source_kind, source_index, target_index)
+
+
+func _on_reward_dropped_to_offer(payload: Dictionary, target_index: int) -> void:
+	var source_kind: StringName = StringName(str(payload.get("source_kind", "")))
+	var source_index: int = int(payload.get("source_index", -1))
+	RoundRewardInventory.move_to_offer(source_kind, source_index, target_index)
 
 
 func _on_reward_dropped_to_inventory(payload: Dictionary) -> void:
