@@ -11,7 +11,6 @@ extends Control
 @onready var _research_page: Control = %ResearchPage
 @onready var _left_page_button: Button = %LeftPageButton
 @onready var _right_page_button: Button = %RightPageButton
-@onready var _page_label: Label = %PageLabel
 @onready var _damage_earnings_label: Label = %DamageEarningsLabel
 @onready var _damage_coins_label: Label = %DamageCoinsLabel
 @onready var _survival_earnings_label: Label = %SurvivalEarningsLabel
@@ -128,13 +127,6 @@ func _set_page(next_page: int) -> void:
 	_research_page.visible = _page_index == 1
 	_left_page_button.visible = _page_index > -1
 	_right_page_button.visible = _page_index < 1
-	match _page_index:
-		-1:
-			_page_label.text = "LOADOUT"
-		1:
-			_page_label.text = "RESEARCH"
-		_:
-			_page_label.text = "INTERMISSION"
 
 
 func _is_page_left_event(event: InputEvent) -> bool:

@@ -51,7 +51,10 @@ func refresh() -> void:
 
 	_refresh_icon(accent, available, requirements_met)
 	_stars_label.text = _stars(current_mark, max_mark)
-	_stars_label.add_theme_color_override("font_color", accent.lightened(0.18))
+	var star_color: Color = Color(1.0, 0.82, 0.24, 1.0) if current_mark > 0 else Color(0.74, 0.65, 0.48, 0.95)
+	if not available or (current_mark <= 0 and not requirements_met):
+		star_color = Color(0.42, 0.40, 0.36, 0.9)
+	_stars_label.add_theme_color_override("font_color", star_color)
 	_lock_label.visible = not available or (current_mark <= 0 and not requirements_met)
 	_lock_label.text = "SOON" if not available else "LOCK"
 	disabled = not available or current_mark >= max_mark or not requirements_met or not can_buy

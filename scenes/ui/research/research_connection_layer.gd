@@ -2,7 +2,7 @@ extends Control
 class_name ResearchConnectionLayer
 
 var definitions: Array[Dictionary] = []
-var root_position: Vector2 = Vector2(55, 252)
+var root_position: Vector2 = Vector2(55, 280)
 
 
 func set_definitions(next_definitions: Array[Dictionary]) -> void:

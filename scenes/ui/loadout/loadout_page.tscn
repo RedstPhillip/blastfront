@@ -148,7 +148,7 @@ grow_vertical = 2
 theme_override_constants/margin_left = 24
 theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 24
-theme_override_constants/margin_bottom = 40
+theme_override_constants/margin_bottom = 14
 
 [node name="MainColumns" type="HBoxContainer" parent="RootMargin" unique_id=1183152494]
 layout_mode = 2
