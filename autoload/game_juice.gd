@@ -203,14 +203,14 @@ func _on_juice_button_hovered(button: Button) -> void:
 	if button.disabled:
 		return
 	play_sound(&"ui_hover", -18.0, 0.035)
-	_tween_juice_button(button, 1.04, 0.01, 0.10)
+	_tween_juice_button(button, 1.04, 0.01 * _get_button_rotation_multiplier(button), 0.10)
 
 
 func _on_juice_button_down(button: Button) -> void:
 	if button.disabled:
 		return
 	play_sound(&"ui_click", -12.0, 0.035)
-	_tween_juice_button(button, 0.965, -0.006, 0.055)
+	_tween_juice_button(button, 0.965, -0.006 * _get_button_rotation_multiplier(button), 0.055)
 
 
 func _on_juice_button_released(button: Button) -> void:
@@ -246,6 +246,13 @@ func _get_button_base_rotation(button: Button) -> float:
 	if value is float or value is int:
 		return float(value)
 	return 0.0
+
+
+func _get_button_rotation_multiplier(button: Button) -> float:
+	var value: Variant = button.get_meta("juice_rotation_multiplier", 1.0)
+	if value is float or value is int:
+		return maxf(0.0, float(value))
+	return 1.0
 
 
 func _effect_root() -> Node:

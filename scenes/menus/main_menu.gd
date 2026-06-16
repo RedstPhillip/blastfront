@@ -21,6 +21,7 @@ func _ready() -> void:
 	_online_button.pressed.connect(_on_online_pressed)
 	_settings_button.pressed.connect(_on_settings_pressed)
 	_exit_button.pressed.connect(_on_exit_pressed)
+	_stabilize_menu_buttons()
 	GameJuice.attach_button_feedback(self)
 	_play_intro_animation()
 
@@ -68,6 +69,12 @@ func _on_settings_back() -> void:
 
 func _refresh(_message: String) -> void:
 	_online_button.disabled = not SteamService.steam_enabled
+
+
+func _stabilize_menu_buttons() -> void:
+	for button in [_sandbox_button, _online_button, _settings_button, _exit_button]:
+		if button != null:
+			button.set_meta("juice_rotation_multiplier", 0.35)
 
 
 func _play_intro_animation() -> void:
