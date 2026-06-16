@@ -29,11 +29,13 @@ var _transition_title: Label = null
 var _transition_subtitle: Label = null
 var _transition_tween: Tween = null
 var _last_transition_key: String = ""
+var _base_banner_style: StyleBoxFlat = null
 
 
 func _ready() -> void:
 	if not OnlineMatch.state_changed.is_connected(_refresh_score):
 		OnlineMatch.state_changed.connect(_refresh_score)
+	_base_banner_style = _banner_panel.get_theme_stylebox("panel") as StyleBoxFlat
 	_play_again_button.pressed.connect(_on_play_again_pressed)
 	_main_menu_button.pressed.connect(_on_main_menu_pressed)
 	_build_round_transition_layer()
@@ -180,12 +182,14 @@ func _show_winner_banner(winner_slot: int) -> void:
 	_banner_label.add_theme_font_size_override("font_size", 64)
 	var winner_name: String = OnlineMatch.get_player_color_name(winner_slot).to_upper()
 	_banner_label.text = "%s WINS" % winner_name
-	_banner_label.add_theme_color_override("font_color", OnlineMatch.get_player_color(winner_slot).lightened(0.12))
+	var winner_color: Color = OnlineMatch.get_player_color(winner_slot)
+	_apply_banner_winner_style(winner_color)
+	_banner_label.add_theme_color_override("font_color", winner_color.lightened(0.12))
 	if not _banner_panel.visible or _last_banner_text != _banner_label.text:
 		_play_banner_animation()
 		_play_round_transition(
 			winner_slot,
-			OnlineMatch.get_player_color(winner_slot),
+			winner_color,
 			"%s SCORES" % winner_name,
 			"NEXT ROUND"
 		)
@@ -208,6 +212,7 @@ func _show_victory_screen(winner_slot: int, winner_color: Color, winner_name: St
 	_banner_label.add_theme_font_size_override("font_size", 70)
 	_victory_kicker.text = "MATCH DECIDED"
 	_banner_label.text = "%s\nHOLDS THE FRONT" % winner_name
+	_apply_banner_winner_style(winner_color)
 	_banner_label.add_theme_color_override("font_color", winner_color.lightened(0.2))
 	_victory_subtitle.text = "VICTORY CLAIMED  -  THE ARENA IS YOURS"
 	if not _banner_panel.visible or _last_banner_text != _banner_label.text:
@@ -264,6 +269,23 @@ func _play_banner_animation() -> void:
 	tween.set_parallel(true)
 	tween.tween_property(_banner_panel, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.tween_property(_banner_panel, "modulate:a", 1.0, 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+
+func _apply_banner_winner_style(winner_color: Color) -> void:
+	if _banner_panel == null:
+		return
+	var base_style: StyleBoxFlat = _base_banner_style
+	if base_style == null:
+		base_style = _banner_panel.get_theme_stylebox("panel") as StyleBoxFlat
+	if base_style == null:
+		return
+	var style: StyleBoxFlat = base_style.duplicate() as StyleBoxFlat
+	if style == null:
+		return
+	style.border_color = winner_color.lightened(0.22)
+	style.bg_color = winner_color.darkened(0.72)
+	style.bg_color.a = 0.97
+	_banner_panel.add_theme_stylebox_override("panel", style)
 
 
 func _build_round_transition_layer() -> void:
