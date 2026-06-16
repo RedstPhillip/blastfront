@@ -196,7 +196,15 @@ func _try_apply_border_hit(player: Player, side: StringName) -> void:
 			var source_slot: int = GameSettings.PLAYER_TWO_SLOT if player.player_slot == GameSettings.PLAYER_ONE_SLOT else GameSettings.PLAYER_ONE_SLOT
 			var combat_sync: Variant = _game_sync.get_module(GameSettings.MODULE_COMBAT)
 			if combat_sync != null:
-				combat_sync.apply_hit(player.player_slot, source_slot, 0, damage_amount)
+				combat_sync.apply_hit(
+					player.player_slot,
+					source_slot,
+					0,
+					damage_amount,
+					false,
+					_get_border_source_position(player, side),
+					_get_knockback_vector(side)
+				)
 	else:
 		player.apply_incoming_damage(damage_amount, 0, player.global_position, true)
 
@@ -234,6 +242,23 @@ func _get_knockback_vector(side: StringName) -> Vector2:
 	if side == GameSettings.MAP_BORDER_SIDE_BOTTOM:
 		return Vector2(0.0, -bottom_knockback_speed)
 	return Vector2.ZERO
+
+
+func _get_border_source_position(player: Player, side: StringName) -> Vector2:
+	var left_edge: float = _bounds.position.x
+	var right_edge: float = _bounds.position.x + _bounds.size.x
+	var top_edge: float = _bounds.position.y
+	var bottom_edge: float = _bounds.position.y + _bounds.size.y
+	var source_offset: float = maxf(border_thickness, 24.0)
+	if side == GameSettings.MAP_BORDER_SIDE_LEFT:
+		return Vector2(left_edge - source_offset, player.global_position.y)
+	if side == GameSettings.MAP_BORDER_SIDE_RIGHT:
+		return Vector2(right_edge + source_offset, player.global_position.y)
+	if side == GameSettings.MAP_BORDER_SIDE_TOP:
+		return Vector2(player.global_position.x, top_edge - source_offset)
+	if side == GameSettings.MAP_BORDER_SIDE_BOTTOM:
+		return Vector2(player.global_position.x, bottom_edge + source_offset)
+	return player.global_position
 
 
 func _get_map_bounds() -> Rect2:

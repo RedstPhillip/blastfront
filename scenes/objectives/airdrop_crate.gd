@@ -73,8 +73,13 @@ func _apply_visual_state() -> void:
 	_marker.visible = warning or falling
 	_crate.visible = falling or landed
 	_light.visible = warning or falling or landed
-	_reward_label.visible = landed
-	_capture_label.text = "SECURING" if _capturing_slot > 0 else "HOLD THE AREA"
+	_reward_label.text = ""
+	_reward_label.visible = false
+	_capture_label.text = ""
+	_capture_label.visible = false
+	var labels: Control = _capture_label.get_parent() as Control
+	if labels != null:
+		labels.visible = false
 
 
 func _on_phase_transition(_previous_phase: StringName, next_phase: StringName) -> void:

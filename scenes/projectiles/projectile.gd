@@ -72,6 +72,7 @@ func _ready() -> void:
 	direction = direction.normalized()
 
 	velocity = initial_velocity if initial_velocity.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED else direction * muzzle_speed
+	_apply_projectile_visual_style()
 	_apply_projectile_scale()
 	if extension_tags.has("bouncy"):
 		_bounces_left = 1
@@ -177,6 +178,308 @@ func _apply_projectile_scale() -> void:
 		var visual: Node2D = get_node_or_null(child_name) as Node2D
 		if visual != null:
 			visual.scale *= safe_scale
+
+
+func _apply_projectile_visual_style() -> void:
+	var style: Dictionary = _get_projectile_visual_style()
+	var body: Polygon2D = get_node_or_null("Polygon2D") as Polygon2D
+	var outline: Polygon2D = get_node_or_null("Outline") as Polygon2D
+	var trail: CPUParticles2D = get_node_or_null("Trail") as CPUParticles2D
+
+	var body_points: Variant = style.get("body_points", null)
+	if body != null:
+		body.color = style.get("body_color", body.color)
+		if body_points is PackedVector2Array:
+			body.polygon = body_points
+
+	var outline_points: Variant = style.get("outline_points", null)
+	if outline != null:
+		outline.color = style.get("outline_color", outline.color)
+		if outline_points is PackedVector2Array:
+			outline.polygon = outline_points
+
+	if trail != null:
+		trail.color = style.get("trail_color", trail.color)
+		trail.amount = int(style.get("trail_amount", trail.amount))
+		trail.lifetime = float(style.get("trail_lifetime", trail.lifetime))
+		trail.spread = float(style.get("trail_spread", trail.spread))
+		trail.scale_amount_min = float(style.get("trail_scale_min", trail.scale_amount_min))
+		trail.scale_amount_max = float(style.get("trail_scale_max", trail.scale_amount_max))
+
+
+func _get_projectile_visual_style() -> Dictionary:
+	match _get_visual_extension_id():
+		"big_bullets_mk1":
+			return _make_projectile_style(
+				Color(1.0, 0.52, 0.12, 1.0),
+				Color(0.16, 0.055, 0.018, 1.0),
+				Color(1.0, 0.32, 0.08, 0.42),
+				PackedVector2Array([Vector2(9.0, 0.0), Vector2(1.0, -4.6), Vector2(-6.0, -4.0), Vector2(-8.0, 0.0), Vector2(-6.0, 4.0), Vector2(1.0, 4.6)]),
+				PackedVector2Array([Vector2(12.0, 0.0), Vector2(1.5, -6.0), Vector2(-8.6, -5.2), Vector2(-11.0, 0.0), Vector2(-8.6, 5.2), Vector2(1.5, 6.0)]),
+				18,
+				0.14,
+				24.0
+			)
+		"bouncy_bullets_mk1":
+			return _make_projectile_style(
+				Color(0.54, 1.0, 0.28, 1.0),
+				Color(0.04, 0.12, 0.035, 1.0),
+				Color(0.52, 1.0, 0.22, 0.38),
+				PackedVector2Array([Vector2(6.2, 0.0), Vector2(3.6, -3.8), Vector2(-1.0, -4.5), Vector2(-5.8, -1.8), Vector2(-5.8, 1.8), Vector2(-1.0, 4.5), Vector2(3.6, 3.8)]),
+				PackedVector2Array([Vector2(8.8, 0.0), Vector2(5.1, -5.2), Vector2(-1.4, -6.2), Vector2(-8.2, -2.5), Vector2(-8.2, 2.5), Vector2(-1.4, 6.2), Vector2(5.1, 5.2)]),
+				16,
+				0.13,
+				34.0
+			)
+		"drill_bullets_mk1":
+			return _make_projectile_style(
+				Color(0.62, 0.74, 0.86, 1.0),
+				Color(0.08, 0.09, 0.12, 1.0),
+				Color(0.42, 0.7, 1.0, 0.36),
+				PackedVector2Array([Vector2(10.8, 0.0), Vector2(2.0, -2.4), Vector2(-2.2, -3.2), Vector2(-6.0, -1.2), Vector2(-6.0, 1.2), Vector2(-2.2, 3.2), Vector2(2.0, 2.4)]),
+				PackedVector2Array([Vector2(13.6, 0.0), Vector2(2.5, -4.1), Vector2(-3.0, -4.9), Vector2(-8.8, -2.2), Vector2(-8.8, 2.2), Vector2(-3.0, 4.9), Vector2(2.5, 4.1)]),
+				12,
+				0.10,
+				8.0
+			)
+		"explosive_bullet_mk1":
+			return _make_projectile_style(
+				Color(1.0, 0.2, 0.08, 1.0),
+				Color(0.18, 0.025, 0.018, 1.0),
+				Color(1.0, 0.2, 0.05, 0.55),
+				PackedVector2Array([Vector2(8.2, 0.0), Vector2(1.2, -4.1), Vector2(-4.9, -3.0), Vector2(-6.8, 0.0), Vector2(-4.9, 3.0), Vector2(1.2, 4.1)]),
+				PackedVector2Array([Vector2(11.2, 0.0), Vector2(1.7, -5.8), Vector2(-7.0, -4.2), Vector2(-9.8, 0.0), Vector2(-7.0, 4.2), Vector2(1.7, 5.8)]),
+				22,
+				0.16,
+				38.0
+			)
+		"freeze_rounds_mk1":
+			return _make_projectile_style(
+				Color(0.46, 0.88, 1.0, 1.0),
+				Color(0.035, 0.09, 0.14, 1.0),
+				Color(0.36, 0.78, 1.0, 0.44),
+				PackedVector2Array([Vector2(8.6, 0.0), Vector2(0.4, -3.4), Vector2(-5.2, 0.0), Vector2(0.4, 3.4)]),
+				PackedVector2Array([Vector2(11.5, 0.0), Vector2(0.7, -5.0), Vector2(-8.2, 0.0), Vector2(0.7, 5.0)]),
+				16,
+				0.15,
+				18.0
+			)
+		"grenades_mk1":
+			return _make_projectile_style(
+				Color(0.43, 0.72, 0.24, 1.0),
+				Color(0.045, 0.085, 0.035, 1.0),
+				Color(0.55, 0.9, 0.18, 0.3),
+				PackedVector2Array([Vector2(5.5, -2.8), Vector2(5.5, 2.8), Vector2(-4.4, 4.0), Vector2(-7.0, 0.0), Vector2(-4.4, -4.0)]),
+				PackedVector2Array([Vector2(8.4, -4.2), Vector2(8.4, 4.2), Vector2(-6.4, 5.6), Vector2(-10.0, 0.0), Vector2(-6.4, -5.6)]),
+				10,
+				0.11,
+				10.0
+			)
+		"ground_hover_mk1":
+			return _make_projectile_style(
+				Color(0.28, 0.95, 0.78, 1.0),
+				Color(0.025, 0.12, 0.1, 1.0),
+				Color(0.25, 0.95, 0.8, 0.34),
+				PackedVector2Array([Vector2(7.8, -1.4), Vector2(7.8, 1.4), Vector2(-5.4, 3.2), Vector2(-7.8, 0.0), Vector2(-5.4, -3.2)]),
+				PackedVector2Array([Vector2(10.8, -2.5), Vector2(10.8, 2.5), Vector2(-7.8, 4.6), Vector2(-10.8, 0.0), Vector2(-7.8, -4.6)]),
+				14,
+				0.12,
+				12.0
+			)
+		"heavy_barrel_mk1":
+			return _make_projectile_style(
+				Color(0.46, 0.48, 0.52, 1.0),
+				Color(0.02, 0.023, 0.027, 1.0),
+				Color(0.36, 0.34, 0.3, 0.38),
+				PackedVector2Array([Vector2(8.6, 0.0), Vector2(-0.4, -4.0), Vector2(-6.8, -2.5), Vector2(-7.8, 0.0), Vector2(-6.8, 2.5), Vector2(-0.4, 4.0)]),
+				PackedVector2Array([Vector2(11.6, 0.0), Vector2(-0.5, -5.5), Vector2(-9.4, -3.6), Vector2(-10.6, 0.0), Vector2(-9.4, 3.6), Vector2(-0.5, 5.5)]),
+				13,
+				0.12,
+				9.0
+			)
+		"kinetic_amplifier_mk1":
+			return _make_projectile_style(
+				Color(0.96, 0.34, 1.0, 1.0),
+				Color(0.12, 0.03, 0.15, 1.0),
+				Color(0.9, 0.26, 1.0, 0.46),
+				PackedVector2Array([Vector2(10.6, 0.0), Vector2(-0.8, -2.5), Vector2(-5.8, 0.0), Vector2(-0.8, 2.5)]),
+				PackedVector2Array([Vector2(13.8, 0.0), Vector2(-1.2, -4.0), Vector2(-8.9, 0.0), Vector2(-1.2, 4.0)]),
+				20,
+				0.13,
+				8.0
+			)
+		"laser_scope_mk1":
+			return _make_projectile_style(
+				Color(1.0, 0.16, 0.12, 1.0),
+				Color(0.16, 0.02, 0.02, 1.0),
+				Color(1.0, 0.1, 0.08, 0.42),
+				PackedVector2Array([Vector2(9.8, 0.0), Vector2(-0.8, -2.1), Vector2(-5.6, 0.0), Vector2(-0.8, 2.1)]),
+				PackedVector2Array([Vector2(12.8, 0.0), Vector2(-1.0, -3.5), Vector2(-8.2, 0.0), Vector2(-1.0, 3.5)]),
+				18,
+				0.11,
+				6.0
+			)
+		"lighter_barrel_mk1":
+			return _make_projectile_style(
+				Color(1.0, 0.88, 0.38, 1.0),
+				Color(0.14, 0.095, 0.02, 1.0),
+				Color(1.0, 0.82, 0.25, 0.36),
+				PackedVector2Array([Vector2(7.2, 0.0), Vector2(-1.0, -2.4), Vector2(-4.8, 0.0), Vector2(-1.0, 2.4)]),
+				PackedVector2Array([Vector2(9.6, 0.0), Vector2(-1.5, -3.8), Vector2(-7.2, 0.0), Vector2(-1.5, 3.8)]),
+				12,
+				0.10,
+				12.0
+			)
+		"multi_barrel_mk1":
+			return _make_projectile_style(
+				Color(0.82, 0.82, 0.9, 1.0),
+				Color(0.05, 0.05, 0.06, 1.0),
+				Color(0.72, 0.72, 0.82, 0.34),
+				PackedVector2Array([Vector2(8.0, -1.6), Vector2(8.0, 1.6), Vector2(0.2, 2.8), Vector2(-5.2, 1.2), Vector2(-5.2, -1.2), Vector2(0.2, -2.8)]),
+				PackedVector2Array([Vector2(10.8, -2.8), Vector2(10.8, 2.8), Vector2(0.0, 4.4), Vector2(-8.0, 2.4), Vector2(-8.0, -2.4), Vector2(0.0, -4.4)]),
+				14,
+				0.11,
+				20.0
+			)
+		"poison_rounds_mk1":
+			return _make_projectile_style(
+				Color(0.18, 0.96, 0.28, 1.0),
+				Color(0.02, 0.12, 0.025, 1.0),
+				Color(0.16, 1.0, 0.22, 0.42),
+				PackedVector2Array([Vector2(8.0, 0.0), Vector2(-0.8, -3.5), Vector2(-5.8, -1.6), Vector2(-5.8, 1.6), Vector2(-0.8, 3.5)]),
+				PackedVector2Array([Vector2(10.8, 0.0), Vector2(-1.2, -5.0), Vector2(-8.4, -2.5), Vector2(-8.4, 2.5), Vector2(-1.2, 5.0)]),
+				18,
+				0.15,
+				18.0
+			)
+		"reload_improver_mk1":
+			return _make_projectile_style(
+				Color(0.96, 0.72, 0.18, 1.0),
+				Color(0.13, 0.08, 0.015, 1.0),
+				Color(0.96, 0.64, 0.16, 0.34),
+				PackedVector2Array([Vector2(8.0, 0.0), Vector2(-1.2, -2.8), Vector2(-5.4, 0.0), Vector2(-1.2, 2.8)]),
+				PackedVector2Array([Vector2(10.8, 0.0), Vector2(-1.8, -4.3), Vector2(-8.0, 0.0), Vector2(-1.8, 4.3)]),
+				15,
+				0.10,
+				15.0
+			)
+		"shocking_rounds_mk1":
+			return _make_projectile_style(
+				Color(1.0, 0.94, 0.16, 1.0),
+				Color(0.14, 0.12, 0.018, 1.0),
+				Color(1.0, 0.92, 0.12, 0.48),
+				PackedVector2Array([Vector2(8.8, 0.0), Vector2(1.2, -2.8), Vector2(-0.8, -1.0), Vector2(-5.2, -3.6), Vector2(-2.4, 0.0), Vector2(-5.2, 3.6), Vector2(-0.8, 1.0), Vector2(1.2, 2.8)]),
+				PackedVector2Array([Vector2(11.6, 0.0), Vector2(1.8, -4.6), Vector2(-1.3, -2.0), Vector2(-8.4, -5.2), Vector2(-4.2, 0.0), Vector2(-8.4, 5.2), Vector2(-1.3, 2.0), Vector2(1.8, 4.6)]),
+				22,
+				0.12,
+				28.0
+			)
+		"shotgun_mk1":
+			return _make_projectile_style(
+				Color(0.9, 0.54, 0.28, 1.0),
+				Color(0.12, 0.06, 0.025, 1.0),
+				Color(0.9, 0.46, 0.22, 0.28),
+				PackedVector2Array([Vector2(6.8, 0.0), Vector2(1.2, -3.3), Vector2(-4.8, -2.4), Vector2(-6.2, 0.0), Vector2(-4.8, 2.4), Vector2(1.2, 3.3)]),
+				PackedVector2Array([Vector2(9.4, 0.0), Vector2(1.8, -4.8), Vector2(-7.0, -3.6), Vector2(-8.8, 0.0), Vector2(-7.0, 3.6), Vector2(1.8, 4.8)]),
+				10,
+				0.09,
+				30.0
+			)
+		"sniper_barrel_mk1":
+			return _make_projectile_style(
+				Color(0.28, 0.64, 1.0, 1.0),
+				Color(0.02, 0.06, 0.14, 1.0),
+				Color(0.24, 0.55, 1.0, 0.44),
+				PackedVector2Array([Vector2(13.0, 0.0), Vector2(-0.8, -1.7), Vector2(-7.2, 0.0), Vector2(-0.8, 1.7)]),
+				PackedVector2Array([Vector2(16.4, 0.0), Vector2(-1.2, -3.0), Vector2(-10.6, 0.0), Vector2(-1.2, 3.0)]),
+				16,
+				0.11,
+				5.0
+			)
+		"standard_scope_mk1":
+			return _make_projectile_style(
+				Color(0.76, 0.84, 0.9, 1.0),
+				Color(0.05, 0.06, 0.07, 1.0),
+				Color(0.58, 0.66, 0.72, 0.32),
+				PackedVector2Array([Vector2(8.8, 0.0), Vector2(-1.0, -2.7), Vector2(-5.2, 0.0), Vector2(-1.0, 2.7)]),
+				PackedVector2Array([Vector2(11.6, 0.0), Vector2(-1.5, -4.2), Vector2(-7.8, 0.0), Vector2(-1.5, 4.2)]),
+				14,
+				0.11,
+				10.0
+			)
+		"extended_barrel_mk1":
+			return _make_projectile_style(
+				Color(0.9, 0.9, 0.82, 1.0),
+				Color(0.095, 0.095, 0.075, 1.0),
+				Color(0.84, 0.8, 0.58, 0.32),
+				PackedVector2Array([Vector2(11.2, 0.0), Vector2(-0.4, -2.8), Vector2(-6.8, 0.0), Vector2(-0.4, 2.8)]),
+				PackedVector2Array([Vector2(14.6, 0.0), Vector2(-0.7, -4.3), Vector2(-9.8, 0.0), Vector2(-0.7, 4.3)]),
+				16,
+				0.11,
+				7.0
+			)
+	return _make_projectile_style(
+		Color(0.98, 0.38, 0.055, 1.0),
+		Color(0.012, 0.014, 0.012, 0.98),
+		Color(0.08, 0.055, 0.025, 0.34),
+		PackedVector2Array([Vector2(8.4, 0.0), Vector2(-1.2, -2.7), Vector2(-4.7, 0.0), Vector2(-1.2, 2.7)]),
+		PackedVector2Array([Vector2(11.5, 0.0), Vector2(-2.0, -4.4), Vector2(-7.2, 0.0), Vector2(-2.0, 4.4)]),
+		14,
+		0.12,
+		14.0
+	)
+
+
+func _get_visual_extension_id() -> String:
+	var priority: Array[String] = [
+		"big_bullets_mk1",
+		"bouncy_bullets_mk1",
+		"drill_bullets_mk1",
+		"explosive_bullet_mk1",
+		"freeze_rounds_mk1",
+		"grenades_mk1",
+		"poison_rounds_mk1",
+		"shocking_rounds_mk1",
+		"shotgun_mk1",
+		"sniper_barrel_mk1",
+		"kinetic_amplifier_mk1",
+		"extended_barrel_mk1",
+		"heavy_barrel_mk1",
+		"lighter_barrel_mk1",
+		"multi_barrel_mk1",
+		"ground_hover_mk1",
+		"laser_scope_mk1",
+		"reload_improver_mk1",
+		"standard_scope_mk1",
+	]
+	for extension_id in priority:
+		if source_extensions.has(extension_id):
+			return extension_id
+	return ""
+
+
+func _make_projectile_style(
+	body_color: Color,
+	outline_color: Color,
+	trail_color: Color,
+	body_points: PackedVector2Array,
+	outline_points: PackedVector2Array,
+	trail_amount: int,
+	trail_lifetime: float,
+	trail_spread: float
+) -> Dictionary:
+	return {
+		"body_color": body_color,
+		"outline_color": outline_color,
+		"trail_color": trail_color,
+		"body_points": body_points,
+		"outline_points": outline_points,
+		"trail_amount": trail_amount,
+		"trail_lifetime": trail_lifetime,
+		"trail_spread": trail_spread,
+		"trail_scale_min": 0.2,
+		"trail_scale_max": 0.58,
+	}
 
 
 func _get_drill_wall_passes() -> int:

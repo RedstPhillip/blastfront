@@ -8,7 +8,7 @@ script = ExtResource("1_definition")
 extension_id = "shotgun_mk1"
 display_name = "Shotgun MK1"
 slot_key = "front"
-description = "Wide-bore barrel firing 5 very short-range projectiles with a wider, less predictable spread. Damage -13, Fire Rate +0.24s, Speed -100, Range -1150, Ammo -1, Reload +0.2s."
+description = "Wide-bore barrel firing 5 short-range projectiles with a wider, less predictable spread. Damage -13, Fire Rate +0.24s, Speed -100, Range -1000, Ammo -1, Reload +0.2s."
 default_condition = 100.0
 minimum_condition_factor = 0.25
 attribute_modifiers = {
@@ -18,7 +18,7 @@ attribute_modifiers = {
 "damage": -13.0,
 "fire_interval": 0.24,
 "projectile_speed": -100.0,
-"projectile_max_distance": -1150.0,
+"projectile_max_distance": -1000.0,
 "ammo_max": -1.0,
 "reload_time": 0.2
 }

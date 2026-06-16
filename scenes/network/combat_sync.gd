@@ -23,7 +23,9 @@ func apply_hit(
 	source_slot: int,
 	projectile_id: int,
 	damage: int = GameSettings.PROJECTILE_DAMAGE,
-	allow_delay: bool = true
+	allow_delay: bool = true,
+	source_position_override: Variant = null,
+	knockback_velocity: Vector2 = Vector2.ZERO
 ) -> void:
 	if game_sync == null or not game_sync.is_host():
 		return
@@ -38,6 +40,8 @@ func apply_hit(
 	var source_player: Player = _get_player(source_slot)
 	if source_player != null:
 		source_position = source_player.global_position
+	if source_position_override is Vector2:
+		source_position = source_position_override
 
 	var modified_damage: int = damage
 	if allow_delay:
@@ -48,17 +52,23 @@ func apply_hit(
 		return
 
 	var applied_damage: int = player.apply_resolved_damage(modified_damage, source_position)
+	if knockback_velocity.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED and player.control_mode == GameSettings.CONTROL_LOCAL:
+		player.velocity = knockback_velocity
 	var health: int = player.health_component.health
 	OnlineMatch.record_damage(source_slot, target_slot, applied_damage)
 	_apply_life_steal(source_slot, applied_damage)
 	_note_source_damage_dealt(source_slot, applied_damage)
 
-	game_sync.send_reliable(GameSettings.PACKET_PLAYER_HIT, {
+	var hit_payload: Dictionary = {
 		"target_slot": target_slot,
 		"source_slot": source_slot,
 		"projectile_id": projectile_id,
 		"damage": applied_damage,
-	}, GameSettings.NETWORK_CHANNEL_EVENTS)
+		"source_position": source_position,
+	}
+	if knockback_velocity.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
+		hit_payload["knockback_velocity"] = knockback_velocity
+	game_sync.send_reliable(GameSettings.PACKET_PLAYER_HIT, hit_payload, GameSettings.NETWORK_CHANNEL_EVENTS)
 	game_sync.send_reliable(GameSettings.PACKET_HEALTH_CHANGED, {
 		"slot": target_slot,
 		"health": health,
@@ -238,7 +248,13 @@ func handle_packet(packet: Dictionary) -> void:
 		var target_slot: int = int(payload.get("target_slot", 0))
 		var source_slot: int = int(payload.get("source_slot", 0))
 		var damage: int = int(payload.get("damage", GameSettings.PROJECTILE_DAMAGE))
-		_apply_remote_hit_feedback(target_slot, source_slot, damage)
+		_apply_remote_hit_feedback(
+			target_slot,
+			source_slot,
+			damage,
+			payload.get("source_position", null),
+			payload.get("knockback_velocity", null)
+		)
 		_note_source_damage_dealt(source_slot, damage)
 	elif packet_type == GameSettings.PACKET_HEALTH_CHANGED:
 		var slot: int = int(payload.get("slot", 0))
@@ -286,7 +302,13 @@ func _set_player_health(slot: int, health: int) -> void:
 			player.set_eliminated(false)
 
 
-func _apply_remote_hit_feedback(target_slot: int, source_slot: int, damage: int) -> void:
+func _apply_remote_hit_feedback(
+	target_slot: int,
+	source_slot: int,
+	damage: int,
+	source_position_variant: Variant = null,
+	knockback_velocity_variant: Variant = null
+) -> void:
 	var target_player: Player = _get_player(target_slot)
 	if target_player == null:
 		return
@@ -295,7 +317,13 @@ func _apply_remote_hit_feedback(target_slot: int, source_slot: int, damage: int)
 	var source_player: Player = _get_player(source_slot)
 	if source_player != null:
 		source_position = source_player.global_position
+	if source_position_variant is Vector2:
+		source_position = source_position_variant
 	target_player.apply_hit_feedback(source_position, damage)
+	if knockback_velocity_variant is Vector2 and target_player.control_mode == GameSettings.CONTROL_LOCAL:
+		var knockback_velocity: Vector2 = knockback_velocity_variant
+		if knockback_velocity.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
+			target_player.velocity = knockback_velocity
 
 
 func _apply_remote_status_effect(target_slot: int, effect_name: StringName, effect_data: Dictionary) -> void:

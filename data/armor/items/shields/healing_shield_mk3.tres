@@ -14,8 +14,8 @@ rarity = &"rare"
 visual_scene = ExtResource("3_visual")
 attributes = {
 "block_strength": 14.0,
-"healing_radius": 140.0,
-"healing_rate": 22.0
+"healing_radius": 128.0,
+"healing_rate": 18.0
 }
 description = "Blocking creates a strong healing field."
 metadata = {

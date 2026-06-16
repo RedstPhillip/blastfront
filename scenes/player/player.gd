@@ -146,6 +146,8 @@ var _frosty_aura_timer: float = 0.0
 
 func _ready() -> void:
 	_capture_base_stats()
+	if _healing_area != null:
+		_healing_area.top_level = true
 	_default_collision_layer = collision_layer
 	_default_collision_mask = collision_mask
 	_body_base_scale = _body_sprite.scale
