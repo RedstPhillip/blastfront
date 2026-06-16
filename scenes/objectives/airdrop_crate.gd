@@ -46,10 +46,10 @@ func apply_state(state: Dictionary) -> void:
 
 func _process(delta: float) -> void:
 	_visual_time += delta
-	_marker.modulate.a = 0.48 + sin(_visual_time * 3.0) * 0.12
-	var marker_scale: float = 0.34 + sin(_visual_time * 2.2) * 0.012
+	_marker.modulate.a = 0.34 + sin(_visual_time * 3.0) * 0.08
+	var marker_scale: float = 0.31 + sin(_visual_time * 2.2) * 0.01
 	_marker.scale = Vector2(marker_scale, marker_scale)
-	_capture_ring.modulate.a = 0.34 + sin(_visual_time * 2.4) * 0.08
+	_capture_ring.modulate.a = 0.23 + sin(_visual_time * 2.4) * 0.05
 	if _phase == &"falling":
 		var eased_progress: float = 1.0 - pow(1.0 - _descent_progress, 2.2)
 		_rig.position.y = lerpf(-470.0, 0.0, eased_progress)

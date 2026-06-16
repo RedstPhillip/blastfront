@@ -68,7 +68,7 @@ func refresh() -> void:
 	disabled = not available or current_mark >= max_mark or not requirements_met or not can_buy
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if not disabled else Control.CURSOR_ARROW
 	_apply_styles(accent, current_mark > 0, can_buy)
-	tooltip_text = _build_tooltip(current_mark, max_mark, available, requirements_met)
+	tooltip_text = ""
 
 
 func _refresh_icon(accent: Color, available: bool, requirements_met: bool) -> void:
@@ -98,22 +98,6 @@ func _requirements_met() -> bool:
 		if ResearchManager.get_mark(required_id) < int(requirement.get("mark", 1)):
 			return false
 	return true
-
-
-func _build_tooltip(current_mark: int, max_mark: int, available: bool, requirements_met: bool) -> String:
-	var lines: PackedStringArray = PackedStringArray()
-	lines.append(str(definition.get("name", "Research")))
-	lines.append(str(definition.get("description", "")))
-	lines.append("Level: MK%d / MK%d" % [current_mark, max_mark])
-	if not available:
-		lines.append("Planned research - currently disabled.")
-	elif not requirements_met:
-		lines.append("Requires the connected previous research.")
-	elif current_mark >= max_mark:
-		lines.append("Fully researched.")
-	else:
-		lines.append("Next level: %d Research Points" % ResearchManager.get_next_cost(research_id))
-	return "\n".join(lines)
 
 
 func _apply_styles(accent: Color, unlocked: bool, can_buy: bool) -> void:

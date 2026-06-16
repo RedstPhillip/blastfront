@@ -7,8 +7,8 @@
 [ext_resource type="Font" path="res://assets/fonts/blastfront_combat_font.tres" id="5_combat_font"]
 
 [sub_resource type="Gradient" id="Gradient_vignette"]
-offsets = PackedFloat32Array(0, 0.55, 1)
-colors = PackedColorArray(0.18, 0.12, 0.06, 0.05, 0, 0, 0, 0.12, 0, 0, 0, 0.46)
+offsets = PackedFloat32Array(0, 0.62, 1)
+colors = PackedColorArray(0.22, 0.15, 0.07, 0.03, 0, 0, 0, 0.08, 0, 0, 0, 0.34)
 
 [sub_resource type="GradientTexture2D" id="GradientTexture_vignette"]
 gradient = SubResource("Gradient_vignette")
@@ -18,7 +18,7 @@ fill = 1
 fill_from = Vector2(0.5, 0.43)
 
 [sub_resource type="StyleBoxFlat" id="Style_header"]
-bg_color = Color(0.13, 0.105, 0.075, 0.95)
+bg_color = Color(0.16, 0.125, 0.08, 0.93)
 border_width_left = 3
 border_width_top = 1
 border_width_right = 1
@@ -37,7 +37,7 @@ content_margin_left = 18.0
 content_margin_top = 6.0
 content_margin_right = 18.0
 content_margin_bottom = 6.0
-bg_color = Color(0.42, 0.27, 0.11, 0.88)
+bg_color = Color(0.52, 0.33, 0.13, 0.9)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
@@ -49,7 +49,7 @@ corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
 [sub_resource type="StyleBoxFlat" id="Style_tree"]
-bg_color = Color(0.095, 0.078, 0.055, 0.88)
+bg_color = Color(0.13, 0.105, 0.07, 0.82)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
@@ -64,23 +64,23 @@ shadow_size = 18
 shadow_offset = Vector2(0, 8)
 
 [sub_resource type="StyleBoxFlat" id="Style_details"]
-content_margin_left = 16.0
-content_margin_top = 12.0
-content_margin_right = 16.0
-content_margin_bottom = 12.0
-bg_color = Color(0.15, 0.115, 0.075, 0.97)
-border_width_left = 3
+content_margin_left = 13.0
+content_margin_top = 10.0
+content_margin_right = 13.0
+content_margin_bottom = 10.0
+bg_color = Color(0.19, 0.145, 0.09, 0.95)
+border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.95, 0.68, 0.33, 0.86)
+border_color = Color(0.96, 0.69, 0.35, 0.82)
 corner_radius_top_left = 10
 corner_radius_top_right = 10
 corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
 shadow_color = Color(0, 0, 0, 0.52)
-shadow_size = 18
-shadow_offset = Vector2(5, 7)
+shadow_size = 10
+shadow_offset = Vector2(3, 4)
 
 [node name="ResearchPage" type="Control"]
 layout_mode = 3
@@ -111,7 +111,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.035, 0.022, 0.012, 0.28)
+color = Color(0.035, 0.022, 0.012, 0.16)
 
 [node name="Vignette" type="TextureRect" parent="."]
 layout_mode = 1
@@ -183,7 +183,7 @@ anchor_bottom = 1.0
 offset_left = 18.0
 offset_top = 88.0
 offset_right = -18.0
-offset_bottom = -92.0
+offset_bottom = -20.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("Style_tree")
@@ -195,32 +195,32 @@ vertical_scroll_mode = 1
 
 [node name="TreeCanvas" type="Control" parent="TreePanel/TreeScroll"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(1210, 550)
+custom_minimum_size = Vector2(1210, 640)
 layout_mode = 2
 
 [node name="EconomyLane" type="ColorRect" parent="TreePanel/TreeScroll/TreeCanvas"]
 offset_left = 8.0
 offset_top = 6.0
 offset_right = 1202.0
-offset_bottom = 178.0
+offset_bottom = 195.0
 mouse_filter = 2
-color = Color(0.62, 0.39, 0.13, 0.24)
+color = Color(0.68, 0.43, 0.15, 0.28)
 
 [node name="MovementLane" type="ColorRect" parent="TreePanel/TreeScroll/TreeCanvas"]
 offset_left = 8.0
-offset_top = 190.0
+offset_top = 210.0
 offset_right = 1202.0
-offset_bottom = 302.0
+offset_bottom = 350.0
 mouse_filter = 2
-color = Color(0.38, 0.42, 0.25, 0.22)
+color = Color(0.44, 0.49, 0.29, 0.26)
 
 [node name="MiscLane" type="ColorRect" parent="TreePanel/TreeScroll/TreeCanvas"]
 offset_left = 8.0
-offset_top = 314.0
+offset_top = 365.0
 offset_right = 1202.0
-offset_bottom = 548.0
+offset_bottom = 636.0
 mouse_filter = 2
-color = Color(0.48, 0.2, 0.12, 0.22)
+color = Color(0.55, 0.23, 0.14, 0.26)
 
 [node name="ConnectionLayer" type="Control" parent="TreePanel/TreeScroll/TreeCanvas"]
 unique_name_in_owner = true
@@ -248,9 +248,9 @@ text = "ECONOMY"
 
 [node name="MovementLabel" type="Label" parent="TreePanel/TreeScroll/TreeCanvas"]
 offset_left = 24.0
-offset_top = 202.0
+offset_top = 222.0
 offset_right = 145.0
-offset_bottom = 230.0
+offset_bottom = 250.0
 theme_override_colors/font_color = Color(0.67, 0.72, 0.53, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
 theme_override_constants/shadow_offset_x = 2
@@ -261,9 +261,9 @@ text = "MOVEMENT"
 
 [node name="MiscLabel" type="Label" parent="TreePanel/TreeScroll/TreeCanvas"]
 offset_left = 24.0
-offset_top = 326.0
+offset_top = 377.0
 offset_right = 180.0
-offset_bottom = 354.0
+offset_bottom = 405.0
 theme_override_colors/font_color = Color(0.77, 0.42, 0.29, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
 theme_override_constants/shadow_offset_x = 2
@@ -275,34 +275,35 @@ text = "MISCELLANEOUS"
 [node name="HoverCard" type="PanelContainer" parent="."]
 unique_name_in_owner = true
 visible = false
-custom_minimum_size = Vector2(360, 130)
+custom_minimum_size = Vector2(330, 118)
 layout_mode = 1
 offset_left = 72.0
 offset_top = 102.0
-offset_right = 432.0
-offset_bottom = 232.0
+offset_right = 402.0
+offset_bottom = 220.0
 mouse_filter = 2
+clip_contents = true
 theme_override_styles/panel = SubResource("Style_details")
 
 [node name="HoverVBox" type="VBoxContainer" parent="HoverCard"]
 layout_mode = 2
-theme_override_constants/separation = 5
+theme_override_constants/separation = 4
 
 [node name="DetailsTitle" type="Label" parent="HoverCard/HoverVBox"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.94, 0.99, 1, 1)
 theme_override_fonts/font = ExtResource("4_hud_font")
-theme_override_font_sizes/font_size = 19
+theme_override_font_sizes/font_size = 16
 text = "SELECT RESEARCH"
 
 [node name="DetailsBody" type="Label" parent="HoverCard/HoverVBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.84, 0.72, 1)
 theme_override_fonts/font = ExtResource("4_hud_font")
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 10
 text = "Hover over an icon to inspect its effect, marks and cost."
 autowrap_mode = 3
 
@@ -311,5 +312,5 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.78, 0.34, 1)
 theme_override_fonts/font = ExtResource("4_hud_font")
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 11
 text = "AVAILABLE RESEARCH"

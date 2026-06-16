@@ -2,6 +2,7 @@ extends Control
 class_name ResearchPage
 
 const RESEARCH_NODE_SCENE: PackedScene = preload("res://scenes/ui/research/research_node.tscn")
+const HOVER_CARD_SIZE: Vector2 = Vector2(330.0, 118.0)
 
 var _nodes_by_id: Dictionary = {}
 
@@ -89,6 +90,8 @@ func _show_research_details(research_id: StringName) -> void:
 			ResearchManager.get_next_cost(research_id),
 		]
 	_hover_card.show()
+	_hover_card.custom_minimum_size = HOVER_CARD_SIZE
+	_hover_card.size = HOVER_CARD_SIZE
 	_position_hover_card()
 
 
@@ -98,9 +101,7 @@ func _hide_research_details() -> void:
 
 func _position_hover_card() -> void:
 	var mouse_position: Vector2 = get_local_mouse_position()
-	var card_size: Vector2 = _hover_card.size
-	if card_size.x <= 0.0 or card_size.y <= 0.0:
-		card_size = _hover_card.custom_minimum_size
+	var card_size: Vector2 = HOVER_CARD_SIZE
 	var target: Vector2 = mouse_position + Vector2(22.0, 18.0)
 	var page_size: Vector2 = size
 	target.x = clampf(target.x, 14.0, maxf(14.0, page_size.x - card_size.x - 14.0))

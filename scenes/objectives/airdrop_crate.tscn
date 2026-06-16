@@ -47,20 +47,20 @@ unique_name_in_owner = true
 z_index = -2
 texture = ExtResource("4_marker")
 scale = Vector2(0.34, 0.34)
-modulate = Color(1, 1, 1, 0.48)
+modulate = Color(1, 1, 1, 0.42)
 
 [node name="CaptureRing" type="Line2D" parent="."]
 unique_name_in_owner = true
 z_index = -1
-width = 3.0
-default_color = Color(0.94, 0.63, 0.25, 0.56)
+width = 2.0
+default_color = Color(0.94, 0.68, 0.33, 0.34)
 closed = true
 antialiased = true
 
 [node name="PointLight2D" type="PointLight2D" parent="."]
 unique_name_in_owner = true
 visible = false
-position = Vector2(0, -28)
+position = Vector2(0, -14)
 energy = 0.52
 texture_scale = 1.8
 texture = SubResource("GradientTexture_light")
@@ -90,16 +90,16 @@ scale = Vector2(0.64, 0.64)
 
 [node name="Crate" type="Sprite2D" parent="Rig"]
 unique_name_in_owner = true
-position = Vector2(0, -35)
+position = Vector2(0, -15)
 texture = ExtResource("2_crate")
 scale = Vector2(0.58, 0.58)
 
 [node name="CapturePanel" type="PanelContainer" parent="."]
 unique_name_in_owner = true
 offset_left = -54.0
-offset_top = -92.0
+offset_top = -72.0
 offset_right = 54.0
-offset_bottom = -83.0
+offset_bottom = -63.0
 theme_override_styles/panel = SubResource("Style_capture_panel")
 
 [node name="VBox" type="VBoxContainer" parent="CapturePanel"]

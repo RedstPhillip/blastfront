@@ -2,7 +2,7 @@ extends Control
 class_name ResearchConnectionLayer
 
 var definitions: Array[Dictionary] = []
-var root_position: Vector2 = Vector2(55, 280)
+var root_position: Vector2 = Vector2(90, 342)
 
 
 func set_definitions(next_definitions: Array[Dictionary]) -> void:
@@ -45,13 +45,13 @@ func _draw() -> void:
 				_draw_connection(positions[source_id], target_position, color, unlocked)
 
 	var root_rect: Rect2 = Rect2(root_position - Vector2(27, 27), Vector2(54, 54))
-	draw_rect(root_rect, Color8(45, 40, 32, 255), true)
-	draw_rect(root_rect, Color8(184, 155, 105, 220), false, 3.0)
-	draw_rect(Rect2(root_position - Vector2(7, 7), Vector2(14, 14)), Color8(205, 167, 99, 225), true)
+	draw_rect(root_rect, Color8(65, 52, 35, 245), true)
+	draw_rect(root_rect, Color8(210, 174, 105, 235), false, 3.0)
+	draw_rect(Rect2(root_position - Vector2(7, 7), Vector2(14, 14)), Color8(229, 184, 102, 235), true)
 
 
 func _draw_connection(from: Vector2, to: Vector2, color: Color, unlocked: bool) -> void:
-	var line_alpha: float = 0.56 if unlocked else 0.28
+	var line_alpha: float = 0.6 if unlocked else 0.34
 	var line_color: Color = Color(color.r, color.g, color.b, line_alpha)
 	var midpoint_x: float = lerpf(from.x, to.x, 0.5)
 	var points: PackedVector2Array = PackedVector2Array([
