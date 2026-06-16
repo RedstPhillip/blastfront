@@ -93,6 +93,7 @@ polygon = PackedVector2Array(1560, 720, 1560, 536, 1490, 536, 1440, 560, 1390, 5
 
 [node name="MapBounds" type="Node" parent="." unique_id=1628206641]
 script = ExtResource("1_mapbounds")
+bounds = Rect2(0, 0, 2170, 720)
 
 [node name="Spawn1" type="Marker2D" parent="." unique_id=831908945]
 position = Vector2(200, 480)
@@ -109,8 +110,8 @@ texture = SubResource("GradientTexture2D_wa6f0")
 
 [node name="TextureRect" type="TextureRect" parent="." unique_id=536264738]
 z_index = -1
-offset_right = 5679.4873
-offset_bottom = 1888.0
+offset_right = 5564.1025
+offset_bottom = 1846.1538
 scale = Vector2(0.39, 0.39)
 texture = ExtResource("2_23d8d")
 
