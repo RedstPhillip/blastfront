@@ -118,14 +118,14 @@ func _apply_styles(accent: Color, unlocked: bool, can_buy: bool) -> void:
 func _style(accent: Color, background_alpha: float, border_width: int) -> StyleBoxFlat:
 	var style: StyleBoxFlat = StyleBoxFlat.new()
 	style.bg_color = Color(
-		0.075 + accent.r * 0.08,
-		0.065 + accent.g * 0.07,
-		0.05 + accent.b * 0.05,
-		0.94
+		0.04 + accent.r * 0.035,
+		0.048 + accent.g * 0.028,
+		0.05 + accent.b * 0.025,
+		0.9
 	)
-	style.border_color = Color(accent.r, accent.g, accent.b, 0.48 + background_alpha)
+	style.border_color = Color(accent.r, accent.g, accent.b, 0.36 + background_alpha)
 	style.set_border_width_all(border_width)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(6)
 	style.content_margin_left = 4.0
 	style.content_margin_top = 4.0
 	style.content_margin_right = 4.0

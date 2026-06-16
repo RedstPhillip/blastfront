@@ -430,6 +430,14 @@ func mark_airdrop_deployed() -> bool:
 	return true
 
 
+func reset_airdrop_for_round() -> void:
+	if not _has_authority():
+		return
+	airdrop_deployed = false
+	state_changed.emit()
+	_broadcast_state()
+
+
 # This complete host snapshot is the source of truth for synchronized match state.
 func build_state() -> Dictionary:
 	return {
@@ -586,6 +594,7 @@ func _finish_kill_banner_after_timeout(banner_generation: int) -> void:
 
 func _set_phase(next_phase: StringName, should_broadcast: bool) -> void:
 	var previous_phase: StringName = phase
+	_reset_research_points_if_big_round_starts(previous_phase, next_phase)
 	phase = next_phase
 	if phase != previous_phase:
 		phase_changed.emit(phase)
@@ -628,6 +637,7 @@ func _apply_state(state: Dictionary) -> void:
 
 	var next_phase: StringName = StringName(str(state.get("phase", str(phase))))
 	var previous_phase: StringName = phase
+	_reset_research_points_if_big_round_starts(previous_phase, next_phase)
 	phase = next_phase
 	if phase != previous_phase:
 		phase_changed.emit(phase)
@@ -643,6 +653,14 @@ func _reset_local_client_progression() -> void:
 	ArmorInventory.reset_match()
 	ResearchManager.reset_for_new_game()
 	ResearchQuestManager.reset_match()
+
+
+func _reset_research_points_if_big_round_starts(previous_phase: StringName, next_phase: StringName) -> void:
+	if next_phase != GameSettings.MATCH_PHASE_PLAYING_SET:
+		return
+	if previous_phase != GameSettings.MATCH_PHASE_LOCKER and previous_phase != GameSettings.MATCH_PHASE_INTERMISSION:
+		return
+	ResearchManager.reset_points_for_big_round()
 
 
 func _apply_dictionary(source_variant: Variant, target: Dictionary, stores_color_ids: bool) -> void:

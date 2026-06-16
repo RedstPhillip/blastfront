@@ -31,6 +31,8 @@ func apply_hit(
 		return
 	if not OnlineMatch.is_playing_set():
 		return
+	if source_slot > 0 and target_slot == source_slot:
+		return
 
 	var player: Player = _get_player(target_slot)
 	if player == null or player.health_component == null:

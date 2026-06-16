@@ -149,6 +149,14 @@ func reset_for_new_game(persist_progress: bool = true) -> void:
 	_publish_local_profile()
 
 
+func reset_points_for_big_round() -> void:
+	research_points = DEFAULT_RESEARCH_POINTS
+	_save_progress()
+	research_points_changed.emit(research_points)
+	research_changed.emit()
+	_publish_local_profile()
+
+
 func get_local_profile() -> Dictionary:
 	return {
 		"marks": _local_marks.duplicate(),
@@ -462,26 +470,26 @@ func _sort_definitions(first: Dictionary, second: Dictionary) -> bool:
 func _build_definitions() -> Dictionary:
 	var definitions: Dictionary = {}
 	var entries: Array = [
-		_definition(RECYCLING, "Recycling", BRANCH_ECONOMY, "res://assets/ui/research/recycling.svg", "Recycle shop blueprints for 50%, 75% or 100% of their coin price.", [1, 3, 7], Vector2(150, 30), [], true, 10),
-		_definition(BLUEPRINT_STORAGE, "Blueprint Storage", BRANCH_ECONOMY, "res://assets/ui/research/blueprint_storage.svg", "Unlock 1, 2 or 4 shared storage slots for armor and weapon blueprints.", [2, 4, 8], Vector2(330, 30), [_require(RECYCLING)], true, 20),
-		_definition(COIN_INTEREST, "Compound Interest", BRANCH_ECONOMY, "res://assets/ui/research/coin_interest.svg", "Earn 5%, 10% or 15% more coins from every completed set.", [2, 5, 9], Vector2(510, 30), [_require(BLUEPRINT_STORAGE)], true, 30),
-		_definition(CONDITION_WEAR, "Maintenance", BRANCH_ECONOMY, "res://assets/ui/research/condition_wear.svg", "Reduces condition wear to 70%, 35% or finally 0%.", [3, 6, 12], Vector2(690, 30), [_require(COIN_INTEREST)], true, 40),
-		_definition(UPGRADE_DISCOUNT, "Efficient Upgrades", BRANCH_ECONOMY, "res://assets/ui/research/upgrade_discount.svg", "Extension upgrades cost 10%, 22% or 35% fewer coins.", [3, 7, 12], Vector2(870, 30), [_require(CONDITION_WEAR)], true, 50),
-		_definition(RESEARCH_YIELD, "Applied Research", BRANCH_ECONOMY, "res://assets/ui/research/research_yield.svg", "Future quests award 20%, 40% or 65% more Research Points.", [5, 10, 16], Vector2(1050, 30), [_require(UPGRADE_DISCOUNT)], true, 60),
-		_definition(BONUS_MARK, "Prototype Assembly", BRANCH_ECONOMY, "res://assets/ui/research/bonus_mark.svg", "Bought weapon blueprints have a 6%, 14% or 26% chance to arrive as MK2.", [3, 6, 10], Vector2(690, 112), [_require(COIN_INTEREST)], true, 70),
-		_definition(LUCK, "Quality Control", BRANCH_ECONOMY, "res://assets/ui/research/luck.svg", "Increases the probability of receiving blueprints in a better condition.", [2, 5, 9], Vector2(870, 112), [_require(CONDITION_WEAR)], true, 80),
+		_definition(RECYCLING, "Recycling", BRANCH_ECONOMY, "res://assets/ui/research/recycling.svg", "Recycle shop blueprints for 50%, 75% or 100% of their coin price.", [1, 3, 7], Vector2(220, 130), [], true, 10),
+		_definition(BLUEPRINT_STORAGE, "Blueprint Storage", BRANCH_ECONOMY, "res://assets/ui/research/blueprint_storage.svg", "Unlock 1, 2 or 4 shared storage slots for armor and weapon blueprints.", [2, 4, 8], Vector2(370, 80), [_require(RECYCLING)], true, 20),
+		_definition(COIN_INTEREST, "Compound Interest", BRANCH_ECONOMY, "res://assets/ui/research/coin_interest.svg", "Earn 5%, 10% or 15% more coins from every completed set.", [2, 5, 9], Vector2(530, 62), [_require(BLUEPRINT_STORAGE)], true, 30),
+		_definition(CONDITION_WEAR, "Maintenance", BRANCH_ECONOMY, "res://assets/ui/research/condition_wear.svg", "Reduces condition wear to 70%, 35% or finally 0%.", [3, 6, 12], Vector2(690, 82), [_require(COIN_INTEREST)], true, 40),
+		_definition(UPGRADE_DISCOUNT, "Efficient Upgrades", BRANCH_ECONOMY, "res://assets/ui/research/upgrade_discount.svg", "Extension upgrades cost 10%, 22% or 35% fewer coins.", [3, 7, 12], Vector2(850, 132), [_require(CONDITION_WEAR)], true, 50),
+		_definition(RESEARCH_YIELD, "Applied Research", BRANCH_ECONOMY, "res://assets/ui/research/research_yield.svg", "Future quests award 20%, 40% or 65% more Research Points.", [5, 10, 16], Vector2(1000, 190), [_require(UPGRADE_DISCOUNT)], true, 60),
+		_definition(BONUS_MARK, "Prototype Assembly", BRANCH_ECONOMY, "res://assets/ui/research/bonus_mark.svg", "Bought weapon blueprints have a 6%, 14% or 26% chance to arrive as MK2.", [3, 6, 10], Vector2(590, 170), [_require(COIN_INTEREST)], true, 70),
+		_definition(LUCK, "Quality Control", BRANCH_ECONOMY, "res://assets/ui/research/luck.svg", "Increases the probability of receiving blueprints in a better condition.", [2, 5, 9], Vector2(765, 198), [_require(CONDITION_WEAR)], true, 80),
 
-		_definition(DASHING, "Dashing", BRANCH_MOVEMENT, "res://assets/ui/research/dashing.svg", "Unlock dash, then reduce its cooldown and add a protective shockwave.", [4, 8, 14], Vector2(330, 250), [], false, 110),
-		_definition(SLIDING, "Sliding", BRANCH_MOVEMENT, "res://assets/ui/research/sliding.svg", "Unlock a ground slide and improve speed and control.", [4, 8, 13], Vector2(570, 250), [_require(DASHING)], false, 120),
+		_definition(DASHING, "Dashing", BRANCH_MOVEMENT, "res://assets/ui/research/dashing.svg", "Unlock dash, then reduce its cooldown and add a protective shockwave.", [4, 8, 14], Vector2(390, 330), [], false, 110),
+		_definition(SLIDING, "Sliding", BRANCH_MOVEMENT, "res://assets/ui/research/sliding.svg", "Unlock a ground slide and improve speed and control.", [4, 8, 13], Vector2(540, 380), [_require(DASHING)], false, 120),
 
-		_definition(LIFE_STEAL, "Life Steal", BRANCH_MISC, "res://assets/ui/research/life_steal.svg", "Heal for 5%, 10% or 16% of damage dealt.", [3, 7, 12], Vector2(270, 410), [], true, 210),
-		_definition(RAGE, "Last Stand", BRANCH_MISC, "res://assets/ui/research/rage.svg", "Below 20% health, deal 15%, 30% or 50% more damage.", [3, 7, 13], Vector2(470, 410), [_require(LIFE_STEAL)], true, 220),
-		_definition(PASSIVE_HEALING, "Field Regeneration", BRANCH_MISC, "res://assets/ui/research/passive_healing.svg", "While standing still, heal up to 50%, 75% or 100% health.", [4, 8, 14], Vector2(670, 410), [_require(RAGE)], true, 230),
-		_definition(PHOENIX, "Phoenix", BRANCH_MISC, "res://assets/ui/research/phoenix.svg", "Once per set, survive lethal damage and return with 40% health.", [20], Vector2(870, 410), [_require(PASSIVE_HEALING, 3)], true, 240),
-		_definition(TIME_CONTROL, "Time Control", BRANCH_MISC, "res://assets/ui/research/time_control.svg", "Future research: slow the world, extend the effect, then briefly freeze time.", [60, 120, 240], Vector2(1015, 410), [], false, 999),
-		_definition(FASTER_CAPTURE, "Faster Capture", BRANCH_MISC, "res://assets/ui/research/faster_capture.svg", "Capture airdrops 15%, 30% or 45% faster.", [3, 7, 12], Vector2(670, 540), [_require(RAGE)], true, 260),
-		_definition(CAPTURE_BONUS, "Capture Bonus", BRANCH_MISC, "res://assets/ui/research/capture_bonus.svg", "Captured airdrops award 6, 7 or 8 Research Points instead of 5.", [4, 8, 14], Vector2(870, 540), [_require(FASTER_CAPTURE)], true, 270),
-		_definition(CAPTURE_RADIUS, "Capture Radius", BRANCH_MISC, "res://assets/ui/research/capture_radius.svg", "Increase airdrop capture radius by 20, 42 or 68 units.", [4, 9, 15], Vector2(1070, 540), [_require(CAPTURE_BONUS)], true, 280),
+		_definition(LIFE_STEAL, "Life Steal", BRANCH_MISC, "res://assets/ui/research/life_steal.svg", "Heal for 5%, 10% or 16% of damage dealt.", [3, 7, 12], Vector2(205, 350), [], true, 210),
+		_definition(RAGE, "Last Stand", BRANCH_MISC, "res://assets/ui/research/rage.svg", "Below 20% health, deal 15%, 30% or 50% more damage.", [3, 7, 13], Vector2(350, 425), [_require(LIFE_STEAL)], true, 220),
+		_definition(PASSIVE_HEALING, "Field Regeneration", BRANCH_MISC, "res://assets/ui/research/passive_healing.svg", "While standing still, heal up to 50%, 75% or 100% health.", [4, 8, 14], Vector2(520, 430), [_require(RAGE)], true, 230),
+		_definition(PHOENIX, "Phoenix", BRANCH_MISC, "res://assets/ui/research/phoenix.svg", "Once per set, survive lethal damage and return with 40% health.", [20], Vector2(685, 395), [_require(PASSIVE_HEALING, 3)], true, 240),
+		_definition(TIME_CONTROL, "Time Control", BRANCH_MISC, "res://assets/ui/research/time_control.svg", "Future research: slow the world, extend the effect, then briefly freeze time.", [60, 120, 240], Vector2(855, 335), [], false, 999),
+		_definition(FASTER_CAPTURE, "Faster Capture", BRANCH_MISC, "res://assets/ui/research/faster_capture.svg", "Capture airdrops 15%, 30% or 45% faster.", [3, 7, 12], Vector2(650, 295), [_require(RAGE)], true, 260),
+		_definition(CAPTURE_BONUS, "Capture Bonus", BRANCH_MISC, "res://assets/ui/research/capture_bonus.svg", "Captured airdrops award 6, 7 or 8 Research Points instead of 5.", [4, 8, 14], Vector2(815, 270), [_require(FASTER_CAPTURE)], true, 270),
+		_definition(CAPTURE_RADIUS, "Capture Radius", BRANCH_MISC, "res://assets/ui/research/capture_radius.svg", "Increase airdrop capture radius by 20, 42 or 68 units.", [4, 9, 15], Vector2(980, 248), [_require(CAPTURE_BONUS)], true, 280),
 	]
 	for entry in entries:
 		definitions[str(entry.get("id", ""))] = entry

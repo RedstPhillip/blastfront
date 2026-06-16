@@ -136,6 +136,9 @@ func _on_collision(collision: KinematicCollision2D) -> void:
 	var is_player: bool = collider is Player
 	if is_player:
 		var hit_player: Player = collider as Player
+		if hit_player != null and hit_player.player_slot == owner_slot:
+			_request_despawn(&"owner_hit", collider)
+			return
 		if hit_player != null and hit_player.try_reflect_projectile(self):
 			return
 

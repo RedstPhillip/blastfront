@@ -8,11 +8,11 @@ script = ExtResource("1_definition")
 extension_id = "poison_rounds_mk1"
 display_name = "Poison Rounds MK1"
 slot_key = "ammo"
-description = "Toxic ammo that poisons the target for up to 4 stronger damage ticks. Damage -3, Reload +0.1s."
+description = "Toxic ammo that poisons the target for 3 ticks. Higher MK tiers add stronger and longer poison. Damage -4, Reload +0.1s."
 default_condition = 78.0
 minimum_condition_factor = 0.25
 attribute_modifiers = {
-"damage": -3.0,
+"damage": -4.0,
 "reload_time": 0.1
 }
 mk2_attribute_modifiers = {
@@ -26,16 +26,16 @@ mk3_attribute_modifiers = {
 projectile_tags = Array[String](["poison"])
 projectile_effects = {
 "poison": {
-"damage_per_tick": 10,
-"duration": 3.2,
-"tick_count": 4,
+"damage_per_tick": 7,
+"duration": 2.8,
+"tick_count": 3,
 "tick_interval": 1.0,
 "tint_color": Color(0.45, 1.0, 0.45, 1)
 }
 }
 mk2_projectile_effects = {
 "poison": {
-"damage_per_tick": 16,
+"damage_per_tick": 13,
 "duration": 4.0,
 "tick_count": 5,
 "tick_interval": 1.0,
@@ -44,7 +44,7 @@ mk2_projectile_effects = {
 }
 mk3_projectile_effects = {
 "poison": {
-"damage_per_tick": 22,
+"damage_per_tick": 19,
 "duration": 5.0,
 "tick_count": 6,
 "tick_interval": 1.0,

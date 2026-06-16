@@ -24,6 +24,7 @@ var _remote_descent_target: float = 0.0
 var _remote_capture_target: float = 0.0
 var _last_remote_packet_msec: int = 0
 var _warning_complete: bool = false
+var _drop_delay_remaining: float = -1.0
 
 @onready var _warning_timer: Timer = get_node_or_null("WarningTimer") as Timer
 @onready var _siren_timer: Timer = get_node_or_null("SirenTimer") as Timer
@@ -41,7 +42,7 @@ func _ready() -> void:
 	if NetworkSession.is_steam_match_active():
 		_round_running = OnlineMatch.phase == GameSettings.MATCH_PHASE_PLAYING_SET
 		if _round_running and _has_authority():
-			_try_start_decision_drop()
+			_start_round_drop_countdown()
 
 
 func _exit_tree() -> void:
@@ -62,6 +63,8 @@ func _process(delta: float) -> void:
 func _process_authority(delta: float) -> void:
 	if NetworkSession.is_steam_match_active():
 		_round_running = OnlineMatch.phase == GameSettings.MATCH_PHASE_PLAYING_SET
+	if _round_running and _phase == PHASE_INACTIVE and _drop_delay_remaining >= 0.0:
+		_drop_delay_remaining = maxf(_drop_delay_remaining - delta, 0.0)
 	if _phase == PHASE_INACTIVE:
 		_try_start_decision_drop()
 	if _phase == PHASE_WARNING and _warning_complete and _round_running:
@@ -114,11 +117,12 @@ func _on_phase_changed(next_phase: StringName) -> void:
 		if previous_phase in [GameSettings.MATCH_PHASE_LOCKER, GameSettings.MATCH_PHASE_INTERMISSION]:
 			_start_new_set()
 		if _has_authority():
-			_try_start_decision_drop()
+			_start_round_drop_countdown()
 	elif next_phase == GameSettings.MATCH_PHASE_KILL_BANNER:
 		_round_running = false
+		_clear_airdrop()
 		if _has_authority():
-			_try_start_decision_drop()
+			_send_state(true)
 	elif next_phase in [
 		GameSettings.MATCH_PHASE_INTERMISSION,
 		GameSettings.MATCH_PHASE_FINAL,
@@ -136,22 +140,34 @@ func _start_new_set() -> void:
 	_capture_finish_pending = false
 	_drop_completed = false
 	_warning_complete = false
+	_drop_delay_remaining = GameSettings.AIRDROP_DROP_DELAY_SECONDS
+
+
+func _start_round_drop_countdown() -> void:
+	_clear_airdrop()
+	_round_running = true
+	_capture_finish_pending = false
+	_drop_completed = false
+	_warning_complete = false
+	_drop_delay_remaining = GameSettings.AIRDROP_DROP_DELAY_SECONDS
+	if NetworkSession.is_steam_match_active():
+		OnlineMatch.reset_airdrop_for_round()
 
 
 func _try_start_decision_drop() -> void:
 	if _phase != PHASE_INACTIVE or _drop_completed:
 		return
+	if _drop_delay_remaining > 0.0:
+		return
 	if OnlineMatch.phase not in [
-		GameSettings.MATCH_PHASE_KILL_BANNER,
 		GameSettings.MATCH_PHASE_PLAYING_SET,
 	]:
 		return
 	if OnlineMatch.airdrop_deployed:
 		return
-	if OnlineMatch.small_round_number != 2:
-		return
 	if not OnlineMatch.mark_airdrop_deployed():
 		return
+	_drop_delay_remaining = -1.0
 	_target_position = _choose_target_position()
 	_descent_progress = 0.0
 	_capture_progress = 0.0
@@ -246,6 +262,7 @@ func _play_siren_pulse() -> void:
 		return
 	_siren_pulses_remaining -= 1
 	if _siren_player != null:
+		_siren_player.pitch_scale = randf_range(0.94, 1.04)
 		_siren_player.play()
 
 
@@ -412,7 +429,7 @@ func _ensure_feedback_nodes() -> void:
 		_siren_player.name = "SirenPlayer"
 		add_child(_siren_player)
 	_siren_player.bus = &"SFX"
-	_siren_player.volume_db = -4.5
+	_siren_player.volume_db = 2.0
 	if not _warning_timer.timeout.is_connected(_on_warning_timer_timeout):
 		_warning_timer.timeout.connect(_on_warning_timer_timeout)
 	if not _siren_timer.timeout.is_connected(_on_siren_timer_timeout):

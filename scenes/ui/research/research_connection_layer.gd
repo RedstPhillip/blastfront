@@ -2,7 +2,7 @@ extends Control
 class_name ResearchConnectionLayer
 
 var definitions: Array[Dictionary] = []
-var root_position: Vector2 = Vector2(90, 342)
+var root_position: Vector2 = Vector2(610, 292)
 
 
 func set_definitions(next_definitions: Array[Dictionary]) -> void:
@@ -44,14 +44,13 @@ func _draw() -> void:
 				var unlocked: bool = ResearchManager.get_mark(StringName(source_id)) >= int(requirement.get("mark", 1))
 				_draw_connection(positions[source_id], target_position, color, unlocked)
 
-	var root_rect: Rect2 = Rect2(root_position - Vector2(27, 27), Vector2(54, 54))
-	draw_rect(root_rect, Color8(65, 52, 35, 245), true)
-	draw_rect(root_rect, Color8(210, 174, 105, 235), false, 3.0)
-	draw_rect(Rect2(root_position - Vector2(7, 7), Vector2(14, 14)), Color8(229, 184, 102, 235), true)
+	draw_circle(root_position, 34.0, Color8(22, 30, 34, 230))
+	draw_arc(root_position, 34.0, 0.0, TAU, 48, Color8(230, 184, 102, 225), 2.6, true)
+	draw_circle(root_position, 7.5, Color8(255, 205, 112, 235))
 
 
 func _draw_connection(from: Vector2, to: Vector2, color: Color, unlocked: bool) -> void:
-	var line_alpha: float = 0.6 if unlocked else 0.34
+	var line_alpha: float = 0.56 if unlocked else 0.2
 	var line_color: Color = Color(color.r, color.g, color.b, line_alpha)
 	var midpoint_x: float = lerpf(from.x, to.x, 0.5)
 	var points: PackedVector2Array = PackedVector2Array([

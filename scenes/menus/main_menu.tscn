@@ -280,7 +280,7 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_button_main")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_main_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button_main_pressed")
 theme_override_styles/focus = SubResource("StyleBoxFlat_button_main_hover")
-text = "LOADOUT RANGE"
+text = "SANDBOX"
 
 [node name="OnlineButton" type="Button" parent="MenuRoot" unique_id=2022959356]
 unique_name_in_owner = true

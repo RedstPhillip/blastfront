@@ -26,6 +26,8 @@ func apply(target: Player, effect_data: Dictionary, projectile: Node = null) -> 
 		var player: Player = node as Player
 		if player == null or player.is_eliminated():
 			continue
+		if owner_slot > 0 and player.player_slot == owner_slot:
+			continue
 
 		var dist: float = player.global_position.distance_to(origin)
 		if dist > radius:

@@ -52,7 +52,7 @@ func start_training() -> void:
 	_match_active = false
 	_reset_equipment_progression()
 	_seed_training_extension_inventory()
-	_set_status("Training range mode")
+	_set_status("Sandbox mode")
 
 
 # Lobby membership is established before direct gameplay packets are accepted.

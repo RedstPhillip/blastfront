@@ -26,6 +26,8 @@ func _explode() -> void:
 		var player: Player = node as Player
 		if player == null or player.is_eliminated():
 			continue
+		if owner_slot > 0 and player.player_slot == owner_slot:
+			continue
 
 		var dist: float = player.global_position.distance_to(origin)
 		if dist > radius:
