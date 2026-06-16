@@ -133,13 +133,13 @@ volume_db = 2.0
 bus = &"SFX"
 
 [node name="AirdropPointLeft" type="Marker2D" parent="." unique_id=381402665 groups=["airdrop_spawn"]]
-position = Vector2(764, 310)
+position = Vector2(764, 302)
 
 [node name="AirdropPointCenter" type="Marker2D" parent="." unique_id=757990574 groups=["airdrop_spawn"]]
-position = Vector2(1140, 188)
+position = Vector2(1140, 180)
 
 [node name="AirdropPointRight" type="Marker2D" parent="." unique_id=1571464988 groups=["airdrop_spawn"]]
-position = Vector2(1516, 310)
+position = Vector2(1516, 302)
 
 [node name="StaticBody2D" type="StaticBody2D" parent="." unique_id=252369944]
 
