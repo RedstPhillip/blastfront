@@ -220,6 +220,7 @@ text = "BLASTFRONT"
 horizontal_alignment = 1
 
 [node name="TitleSlashLeft" type="Label" parent="MenuRoot"]
+visible = false
 layout_mode = 1
 offset_left = 150.0
 offset_top = 91.0
@@ -230,11 +231,12 @@ theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.45)
 theme_override_constants/shadow_offset_x = 2
 theme_override_constants/shadow_offset_y = 2
 theme_override_font_sizes/font_size = 30
-text = "/////"
+text = ""
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="TitleSlashRight" type="Label" parent="MenuRoot"]
+visible = false
 layout_mode = 1
 offset_left = 312.0
 offset_top = 91.0
@@ -245,11 +247,12 @@ theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.45)
 theme_override_constants/shadow_offset_x = 2
 theme_override_constants/shadow_offset_y = 2
 theme_override_font_sizes/font_size = 30
-text = "\\\\\\\\\\"
+text = ""
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="SubtitleLabel" type="Label" parent="MenuRoot"]
+visible = false
 layout_mode = 1
 offset_left = 110.0
 offset_top = 126.0
@@ -260,7 +263,7 @@ theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
 theme_override_constants/shadow_offset_x = 2
 theme_override_constants/shadow_offset_y = 2
 theme_override_font_sizes/font_size = 18
-text = "shoot first, lock the round"
+text = ""
 horizontal_alignment = 1
 
 [node name="SandboxButton" type="Button" parent="MenuRoot" unique_id=241197402]

@@ -377,12 +377,13 @@ text = "+0"
 horizontal_alignment = 2
 
 [node name="EarningsSpacer" type="Label" parent="StatusPage/Center/Panel/VBox/ContentRow/EarningsCard/EarningsVBox"]
+visible = false
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_colors/font_color = Color(0.72, 0.58, 0.36, 0.22)
 theme_override_fonts/font = ExtResource("5_hud_font")
 theme_override_font_sizes/font_size = 18
-text = "COMBAT PAYOUT"
+text = ""
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -467,12 +468,13 @@ text = "Opponent: not ready"
 horizontal_alignment = 1
 
 [node name="ReadySpacer" type="Label" parent="StatusPage/Center/Panel/VBox/ContentRow/ReadyCard/ReadyVBox"]
+visible = false
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_colors/font_color = Color(0.72, 0.58, 0.36, 0.2)
 theme_override_fonts/font = ExtResource("5_hud_font")
 theme_override_font_sizes/font_size = 12
-text = "LOCK IN TO DEPLOY"
+text = ""
 horizontal_alignment = 1
 vertical_alignment = 1
 

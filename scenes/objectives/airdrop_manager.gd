@@ -25,6 +25,7 @@ var _remote_capture_target: float = 0.0
 var _last_remote_packet_msec: int = 0
 var _warning_complete: bool = false
 var _drop_delay_remaining: float = -1.0
+var _set_airdrop_captured: bool = false
 
 @onready var _warning_timer: Timer = get_node_or_null("WarningTimer") as Timer
 @onready var _siren_timer: Timer = get_node_or_null("SirenTimer") as Timer
@@ -139,6 +140,7 @@ func _start_new_set() -> void:
 	_round_running = true
 	_capture_finish_pending = false
 	_drop_completed = false
+	_set_airdrop_captured = false
 	_warning_complete = false
 	_drop_delay_remaining = GameSettings.AIRDROP_DROP_DELAY_SECONDS
 
@@ -147,8 +149,13 @@ func _start_round_drop_countdown() -> void:
 	_clear_airdrop()
 	_round_running = true
 	_capture_finish_pending = false
-	_drop_completed = false
 	_warning_complete = false
+	_drop_completed = _set_airdrop_captured
+	_drop_delay_remaining = -1.0
+	if _set_airdrop_captured or OnlineMatch.small_round_number < 2:
+		if NetworkSession.is_steam_match_active():
+			OnlineMatch.reset_airdrop_for_round()
+		return
 	_drop_delay_remaining = GameSettings.AIRDROP_DROP_DELAY_SECONDS
 	if NetworkSession.is_steam_match_active():
 		OnlineMatch.reset_airdrop_for_round()
@@ -162,6 +169,8 @@ func _try_start_decision_drop() -> void:
 	if OnlineMatch.phase not in [
 		GameSettings.MATCH_PHASE_PLAYING_SET,
 	]:
+		return
+	if OnlineMatch.small_round_number < 2:
 		return
 	if OnlineMatch.airdrop_deployed:
 		return
@@ -303,6 +312,7 @@ func _update_capture(delta: float) -> void:
 	if _capture_progress >= 1.0 and not _capture_finish_pending:
 		_capture_finish_pending = true
 		_drop_completed = true
+		_set_airdrop_captured = true
 		_set_phase(PHASE_CAPTURED)
 		ResearchQuestManager.award_airdrop(_capturing_slot)
 		_send_state(true)

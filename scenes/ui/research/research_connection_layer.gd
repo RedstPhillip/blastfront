@@ -2,7 +2,7 @@ extends Control
 class_name ResearchConnectionLayer
 
 var definitions: Array[Dictionary] = []
-var root_position: Vector2 = Vector2(610, 292)
+var root_position: Vector2 = Vector2(86, 305)
 
 
 func set_definitions(next_definitions: Array[Dictionary]) -> void:
@@ -44,9 +44,9 @@ func _draw() -> void:
 				var unlocked: bool = ResearchManager.get_mark(StringName(source_id)) >= int(requirement.get("mark", 1))
 				_draw_connection(positions[source_id], target_position, color, unlocked)
 
-	draw_circle(root_position, 34.0, Color8(22, 30, 34, 230))
-	draw_arc(root_position, 34.0, 0.0, TAU, 48, Color8(230, 184, 102, 225), 2.6, true)
-	draw_circle(root_position, 7.5, Color8(255, 205, 112, 235))
+	draw_circle(root_position, 27.0, Color8(22, 30, 34, 205))
+	draw_arc(root_position, 27.0, 0.0, TAU, 48, Color8(230, 184, 102, 210), 2.2, true)
+	draw_circle(root_position, 6.5, Color8(255, 205, 112, 225))
 
 
 func _draw_connection(from: Vector2, to: Vector2, color: Color, unlocked: bool) -> void:

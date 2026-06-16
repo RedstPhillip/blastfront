@@ -18,19 +18,13 @@ fill = 1
 fill_from = Vector2(0.5, 0.43)
 
 [sub_resource type="StyleBoxFlat" id="Style_header"]
-bg_color = Color(0.16, 0.125, 0.08, 0.93)
-border_width_left = 3
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 2
-border_color = Color(0.62, 0.43, 0.24, 0.82)
+bg_color = Color(0.16, 0.125, 0.08, 0)
+border_color = Color(0.62, 0.43, 0.24, 0)
 corner_radius_top_left = 3
 corner_radius_top_right = 3
 corner_radius_bottom_right = 3
 corner_radius_bottom_left = 3
-shadow_color = Color(0, 0, 0, 0.5)
-shadow_size = 12
-shadow_offset = Vector2(5, 7)
+shadow_color = Color(0, 0, 0, 0)
 
 [sub_resource type="StyleBoxFlat" id="Style_points"]
 content_margin_left = 18.0
@@ -49,19 +43,13 @@ corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
 [sub_resource type="StyleBoxFlat" id="Style_tree"]
-bg_color = Color(0.045, 0.055, 0.058, 0.72)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.42, 0.48, 0.48, 0.44)
+bg_color = Color(0.045, 0.055, 0.058, 0.24)
+border_color = Color(0.42, 0.48, 0.48, 0)
 corner_radius_top_left = 3
 corner_radius_top_right = 3
 corner_radius_bottom_right = 3
 corner_radius_bottom_left = 3
-shadow_color = Color(0, 0, 0, 0.58)
-shadow_size = 18
-shadow_offset = Vector2(0, 8)
+shadow_color = Color(0, 0, 0, 0)
 
 [sub_resource type="StyleBoxFlat" id="Style_details"]
 content_margin_left = 13.0
@@ -195,7 +183,7 @@ vertical_scroll_mode = 0
 
 [node name="TreeCanvas" type="Control" parent="TreePanel/TreeScroll"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(1180, 530)
+custom_minimum_size = Vector2(1210, 585)
 layout_mode = 2
 
 [node name="EconomyLane" type="ColorRect" parent="TreePanel/TreeScroll/TreeCanvas"]
@@ -238,9 +226,9 @@ script = ExtResource("2_connections")
 
 [node name="EconomyLabel" type="Label" parent="TreePanel/TreeScroll/TreeCanvas"]
 offset_left = 24.0
-offset_top = 18.0
+offset_top = 12.0
 offset_right = 135.0
-offset_bottom = 44.0
+offset_bottom = 38.0
 theme_override_colors/font_color = Color(0.9, 0.72, 0.42, 0.72)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
 theme_override_constants/shadow_offset_x = 2
@@ -251,9 +239,9 @@ text = "ECONOMY"
 
 [node name="MovementLabel" type="Label" parent="TreePanel/TreeScroll/TreeCanvas"]
 offset_left = 24.0
-offset_top = 318.0
+offset_top = 232.0
 offset_right = 145.0
-offset_bottom = 250.0
+offset_bottom = 258.0
 theme_override_colors/font_color = Color(0.72, 0.8, 0.58, 0.68)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
 theme_override_constants/shadow_offset_x = 2
@@ -264,9 +252,9 @@ text = "MOVEMENT"
 
 [node name="MiscLabel" type="Label" parent="TreePanel/TreeScroll/TreeCanvas"]
 offset_left = 24.0
-offset_top = 442.0
+offset_top = 368.0
 offset_right = 180.0
-offset_bottom = 405.0
+offset_bottom = 394.0
 theme_override_colors/font_color = Color(0.88, 0.5, 0.38, 0.68)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
 theme_override_constants/shadow_offset_x = 2
