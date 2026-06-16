@@ -1,16 +1,15 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene format=3 uid="uid://b5qmhm28530jq"]
 
 [ext_resource type="Script" uid="uid://c6obeimu6hwap" path="res://scenes/maps/map_border.gd" id="1_border"]
 [ext_resource type="PackedScene" path="res://scenes/components/map_border_side.tscn" id="2_side"]
 
-[node name="MapBorder" type="Node2D" node_paths=PackedStringArray("game_sync_path")]
+[node name="MapBorder" type="Node2D" unique_id=2034707387]
 script = ExtResource("1_border")
-game_sync_path = NodePath("../GameSync")
 
-[node name="Left" parent="." instance=ExtResource("2_side")]
+[node name="Left" parent="." unique_id=1190826704 instance=ExtResource("2_side")]
 
-[node name="Right" parent="." instance=ExtResource("2_side")]
+[node name="Right" parent="." unique_id=153108769 instance=ExtResource("2_side")]
 
-[node name="Top" parent="." instance=ExtResource("2_side")]
+[node name="Top" parent="." unique_id=1577383302 instance=ExtResource("2_side")]
 
-[node name="Bottom" parent="." instance=ExtResource("2_side")]
+[node name="Bottom" parent="." unique_id=241297119 instance=ExtResource("2_side")]

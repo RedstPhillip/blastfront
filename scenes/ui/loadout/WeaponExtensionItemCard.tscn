@@ -1,0 +1,53 @@
+[gd_scene format=3 uid="uid://bcs8rfefeb3vi"]
+
+[ext_resource type="Script" uid="uid://bmlnfvtrejyvi" path="res://scenes/ui/loadout/weapon_extension_item_card.gd" id="1_card"]
+[ext_resource type="Script" uid="uid://bumnibvnsinmq" path="res://scenes/ui/loadout/weapon_extension_visual_preview.gd" id="2_preview"]
+[ext_resource type="Script" uid="uid://jkxkcogpiqbp" path="res://scenes/ui/loadout/loadout_preview_frame.gd" id="3_frame"]
+
+[node name="WeaponExtensionItemCard" type="Button" unique_id=634688918]
+custom_minimum_size = Vector2(54, 54)
+theme_override_font_sizes/font_size = 12
+script = ExtResource("1_card")
+
+[node name="Background" type="TextureRect" parent="." unique_id=269020596]
+unique_name_in_owner = true
+texture_filter = 2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Center" type="CenterContainer" parent="." unique_id=1288088673]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="PreviewFrame" type="Panel" parent="Center" unique_id=1262022119]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(42, 42)
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("3_frame")
+
+[node name="Swatch" type="ColorRect" parent="Center" unique_id=901896602]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.8, 0.9, 1, 1)
+
+[node name="VisualPreview" type="Control" parent="Center" unique_id=2093318224]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("2_preview")

@@ -109,13 +109,13 @@ texture = SubResource("GradientTexture2D_wa6f0")
 
 [node name="TextureRect" type="TextureRect" parent="." unique_id=536264738]
 z_index = -1
-offset_right = 5800.0
+offset_right = 5679.4873
 offset_bottom = 1888.0
 scale = Vector2(0.39, 0.39)
 texture = ExtResource("2_23d8d")
 
 [node name="AmbientAtmosphere" parent="." unique_id=1381221742 instance=ExtResource("8_atmo")]
-position = Vector2(1140, 350)
+position = Vector2(1181, 369)
 
 [node name="AirdropManager" type="Node2D" parent="." unique_id=116337313]
 script = ExtResource("9_airdrop_manager")
@@ -187,15 +187,11 @@ position = Vector2(764, 328)
 scale = Vector2(8, 8)
 
 [node name="SmallPlatform" parent="." unique_id=609285380 instance=ExtResource("7_23d8d")]
-position = Vector2(924, 408)
+position = Vector2(975, 397)
 scale = Vector2(3, 3)
 
 [node name="SmallPlatform2" parent="." unique_id=1593659193 instance=ExtResource("7_23d8d")]
 position = Vector2(956, 248)
-scale = Vector2(3, 3)
-
-[node name="SmallPlatform3" parent="." unique_id=1324140178 instance=ExtResource("7_23d8d")]
-position = Vector2(1028, 360)
 scale = Vector2(3, 3)
 
 [node name="StaticBody2D3" type="StaticBody2D" parent="." unique_id=1586225833]
@@ -223,11 +219,7 @@ position = Vector2(1516, 328)
 scale = Vector2(8, 8)
 
 [node name="SmallPlatform4" parent="." unique_id=1562509204 instance=ExtResource("7_23d8d")]
-position = Vector2(1356, 408)
-scale = Vector2(3, 3)
-
-[node name="SmallPlatform5" parent="." unique_id=916779312 instance=ExtResource("7_23d8d")]
-position = Vector2(1252, 360)
+position = Vector2(1301, 398)
 scale = Vector2(3, 3)
 
 [node name="SmallPlatform6" parent="." unique_id=560003958 instance=ExtResource("7_23d8d")]
@@ -269,15 +261,11 @@ position = Vector2(364, 328)
 scale = Vector2(8, 8)
 
 [node name="SmallPlatform7" parent="." unique_id=1870931441 instance=ExtResource("7_23d8d")]
-position = Vector2(524, 408)
+position = Vector2(537, 406)
 scale = Vector2(3, 3)
 
 [node name="SmallPlatform8" parent="." unique_id=1892778146 instance=ExtResource("7_23d8d")]
 position = Vector2(556, 248)
-scale = Vector2(3, 3)
-
-[node name="SmallPlatform9" parent="." unique_id=1081236825 instance=ExtResource("7_23d8d")]
-position = Vector2(628, 360)
 scale = Vector2(3, 3)
 
 [node name="LongPlatform7" parent="." unique_id=1285528058 instance=ExtResource("5_4w2pl")]
@@ -289,11 +277,7 @@ position = Vector2(1916, 328)
 scale = Vector2(8, 8)
 
 [node name="SmallPlatform10" parent="." unique_id=1946174900 instance=ExtResource("7_23d8d")]
-position = Vector2(1756, 408)
-scale = Vector2(3, 3)
-
-[node name="SmallPlatform11" parent="." unique_id=836305215 instance=ExtResource("7_23d8d")]
-position = Vector2(1652, 360)
+position = Vector2(1745.0001, 403)
 scale = Vector2(3, 3)
 
 [node name="SmallPlatform12" parent="." unique_id=1434251662 instance=ExtResource("7_23d8d")]
