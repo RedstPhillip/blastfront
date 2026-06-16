@@ -6,8 +6,8 @@ const BLUE_BODY_TEXTURE_MIRRORED: Texture2D = preload("res://assets/player/blue_
 const RED_BODY_TEXTURE: Texture2D = preload("res://assets/player/red_ball.png")
 const RED_BODY_TEXTURE_MIRRORED: Texture2D = preload("res://assets/player/red_ball_mirrored.png")
 const HEALING_AREA_SEGMENTS: int = 72
-const HEALING_AREA_FILL_COLOR: Color = Color(0.34, 1.0, 0.58, 0.14)
-const HEALING_AREA_RING_COLOR: Color = Color(0.58, 1.0, 0.72, 0.72)
+const HEALING_AREA_FILL_COLOR: Color = Color(0.0, 0.95, 0.38, 0.24)
+const HEALING_AREA_RING_COLOR: Color = Color(0.0, 0.78, 0.22, 0.96)
 
 static var _body_texture_cache: Dictionary = {}
 static var _body_texture_exists_cache: Dictionary = {}
@@ -1111,15 +1111,15 @@ func _update_healing_area_visual(radius: float, delta: float) -> void:
 		HEALING_AREA_FILL_COLOR.r,
 		HEALING_AREA_FILL_COLOR.g,
 		HEALING_AREA_FILL_COLOR.b,
-		lerpf(0.08, 0.12, pulse)
+		lerpf(0.18, 0.26, pulse)
 	)
 	_healing_area_ring.default_color = Color(
 		HEALING_AREA_RING_COLOR.r,
 		HEALING_AREA_RING_COLOR.g,
 		HEALING_AREA_RING_COLOR.b,
-		lerpf(0.44, 0.58, pulse)
+		lerpf(0.78, 1.0, pulse)
 	)
-	_healing_area_ring.width = lerpf(2.0, 2.8, pulse)
+	_healing_area_ring.width = lerpf(3.6, 4.8, pulse)
 
 
 func _build_circle_points(radius: float) -> PackedVector2Array:
