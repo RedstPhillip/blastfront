@@ -290,7 +290,7 @@ func _spawn_projectile(net_id: int, owner_slot: int, spawn_position: Vector2, di
 
 	if net_id != 0:
 		_projectiles[net_id] = projectile
-		projectile.connect("tree_exited", Callable(self, "_on_projectile_tree_exited").bind(net_id))
+		projectile.tree_exited.connect(_on_projectile_tree_exited.bind(net_id))
 		projectile.despawn_requested.connect(_on_projectile_despawn_requested.bind(net_id))
 
 	game.spawn_projectile(projectile, spawn_position)

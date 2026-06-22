@@ -527,9 +527,8 @@ func _merge_effect_value(existing_value: Variant, incoming_value: Variant) -> Va
 
 
 func _connect_online_match() -> void:
-	var callback: Callable = Callable(self, "_on_online_match_state_changed")
-	if not OnlineMatch.state_changed.is_connected(callback):
-		OnlineMatch.state_changed.connect(callback)
+	if not OnlineMatch.state_changed.is_connected(_on_online_match_state_changed):
+		OnlineMatch.state_changed.connect(_on_online_match_state_changed)
 
 
 func _on_online_match_state_changed() -> void:

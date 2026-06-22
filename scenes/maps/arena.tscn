@@ -130,7 +130,6 @@ wait_time = 0.72
 
 [node name="SirenPlayer" type="AudioStreamPlayer" parent="AirdropManager" unique_id=1912350131]
 volume_db = 2.0
-bus = &"SFX"
 
 [node name="AirdropPointLeft" type="Marker2D" parent="." unique_id=381402665 groups=["airdrop_spawn"]]
 position = Vector2(764, 299)

@@ -5,6 +5,7 @@ const BLUE_BODY_TEXTURE: Texture2D = preload("res://assets/player/blue_ball.png"
 const BLUE_BODY_TEXTURE_MIRRORED: Texture2D = preload("res://assets/player/blue_ball_mirrored.png")
 const RED_BODY_TEXTURE: Texture2D = preload("res://assets/player/red_ball.png")
 const RED_BODY_TEXTURE_MIRRORED: Texture2D = preload("res://assets/player/red_ball_mirrored.png")
+
 const HEALING_AREA_SEGMENTS: int = 72
 const HEALING_AREA_FILL_COLOR: Color = Color(0.0, 0.95, 0.38, 0.24)
 const HEALING_AREA_RING_COLOR: Color = Color(0.0, 0.78, 0.22, 0.96)
@@ -803,7 +804,6 @@ func maintain_hover_height(delta: float) -> void:
 		velocity.y = 0.0
 
 
-# Feet use procedural stepping that remains independent from collision movement.
 func update_visual_movement(delta: float) -> void:
 	var speed_ratio: float = clampf(absf(velocity.x) / maxf(speed, 1.0), 0.0, 1.0)
 	var grounded: bool = update_grounded()
@@ -1226,7 +1226,6 @@ func _arc(a: Vector2, b: Vector2, t: float, h: float) -> Vector2:
 	return p
 
 
-# Prefer dedicated color textures and tint the default body only as a fallback.
 func _apply_player_palette() -> void:
 	var effective_color_id: StringName = _get_effective_color_id()
 	var limb_color: Color = GameSettings.player_color_value(effective_color_id)
@@ -1319,7 +1318,6 @@ func _emit_jump_feedback(direction: Vector2) -> void:
 	GameJuice.play_sound_2d(&"jump", global_position, 4.5, 0.07)
 
 
-# Movement state feeds dust, sounds, squash and landing impact from one place.
 func _update_surface_feedback(delta: float, grounded: bool, speed_ratio: float) -> void:
 	if grounded and not _last_feedback_grounded:
 		var land_speed: float = maxf(_last_feedback_velocity_y, 0.0)

@@ -3,9 +3,7 @@ extends Node
 signal research_changed
 signal research_points_changed(points: int)
 
-const SAVE_PATH: String = "user://research_progress.json"
-const SAVE_VERSION: int = 1
-const DEFAULT_RESEARCH_POINTS: int = 12
+const DEFAULT_RESEARCH_POINTS: int = 5
 
 const BRANCH_ECONOMY: StringName = &"economy"
 const BRANCH_MOVEMENT: StringName = &"movement"
@@ -41,7 +39,6 @@ var _definitions: Dictionary = {}
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_definitions = _build_definitions()
-	_load_progress()
 	call_deferred("_publish_local_profile")
 
 
@@ -112,7 +109,6 @@ func purchase(research_id: StringName) -> bool:
 	var cost: int = get_next_cost(research_id)
 	research_points -= cost
 	_local_marks[str(research_id)] = get_mark(research_id) + 1
-	_save_progress()
 	research_points_changed.emit(research_points)
 	research_changed.emit()
 	_publish_local_profile()
@@ -131,7 +127,6 @@ func add_research_points_exact(amount: int) -> int:
 		return 0
 	var awarded: int = amount
 	research_points += awarded
-	_save_progress()
 	research_points_changed.emit(research_points)
 	research_changed.emit()
 	_publish_local_profile()
@@ -142,8 +137,6 @@ func reset_for_new_game(persist_progress: bool = true) -> void:
 	research_points = DEFAULT_RESEARCH_POINTS
 	_local_marks.clear()
 	_remote_marks_by_player.clear()
-	if persist_progress:
-		_save_progress()
 	research_points_changed.emit(research_points)
 	research_changed.emit()
 	_publish_local_profile()
@@ -151,7 +144,6 @@ func reset_for_new_game(persist_progress: bool = true) -> void:
 
 func reset_points_for_big_round() -> void:
 	research_points = DEFAULT_RESEARCH_POINTS
-	_save_progress()
 	research_points_changed.emit(research_points)
 	research_changed.emit()
 	_publish_local_profile()
@@ -388,43 +380,6 @@ func _requirements_met(definition: Dictionary) -> bool:
 			return false
 	return true
 
-
-# Clamp saved marks to current definitions so balance changes cannot corrupt progress.
-func _load_progress() -> void:
-	if not FileAccess.file_exists(SAVE_PATH):
-		return
-	var file: FileAccess = FileAccess.open(SAVE_PATH, FileAccess.READ)
-	if file == null:
-		return
-	var parsed: Variant = JSON.parse_string(file.get_as_text())
-	if not (parsed is Dictionary):
-		return
-	var data: Dictionary = parsed
-	research_points = maxi(0, int(data.get("research_points", DEFAULT_RESEARCH_POINTS)))
-	var marks_variant: Variant = data.get("marks", {})
-	if marks_variant is Dictionary:
-		var loaded_marks: Dictionary = marks_variant
-		for raw_id in loaded_marks.keys():
-			var research_id: String = str(raw_id)
-			var definition: Dictionary = get_definition(StringName(research_id))
-			if definition.is_empty():
-				continue
-			_local_marks[research_id] = clampi(
-				int(loaded_marks[raw_id]),
-				0,
-				int(definition.get("max_mark", 1))
-			)
-
-
-func _save_progress() -> void:
-	var file: FileAccess = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-	if file == null:
-		return
-	file.store_string(JSON.stringify({
-		"version": SAVE_VERSION,
-		"research_points": research_points,
-		"marks": _local_marks,
-	}, "\t"))
 
 
 func _publish_local_profile() -> void:

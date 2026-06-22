@@ -300,9 +300,8 @@ func _connect_inventory_signals() -> void:
 		OnlineMatch.state_changed.connect(_refresh_shop_state)
 	if not ResearchManager.research_changed.is_connected(_refresh_research_unlocks):
 		ResearchManager.research_changed.connect(_refresh_research_unlocks)
-	var recycle_callback: Callable = Callable(self, "_on_reward_recycled")
-	if not _recycler_drop_target.reward_recycled.is_connected(recycle_callback):
-		_recycler_drop_target.reward_recycled.connect(recycle_callback)
+	if not _recycler_drop_target.reward_recycled.is_connected(_on_reward_recycled):
+		_recycler_drop_target.reward_recycled.connect(_on_reward_recycled)
 
 
 func _setup_merge_dialog_signals() -> void:

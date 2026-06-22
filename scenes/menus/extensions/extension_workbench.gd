@@ -39,13 +39,11 @@ func _position_weapon_preview() -> void:
 
 
 func _connect_extension_inventory() -> void:
-	var inventory_callback: Callable = Callable(self, "_on_inventory_changed")
-	if not ExtensionInventory.inventory_changed.is_connected(inventory_callback):
-		ExtensionInventory.inventory_changed.connect(inventory_callback)
+	if not ExtensionInventory.inventory_changed.is_connected(_on_inventory_changed):
+		ExtensionInventory.inventory_changed.connect(_on_inventory_changed)
 
-	var loadout_callback: Callable = Callable(self, "_on_loadout_changed")
-	if not ExtensionInventory.loadout_changed.is_connected(loadout_callback):
-		ExtensionInventory.loadout_changed.connect(loadout_callback)
+	if not ExtensionInventory.loadout_changed.is_connected(_on_loadout_changed):
+		ExtensionInventory.loadout_changed.connect(_on_loadout_changed)
 
 
 func _on_inventory_changed(_player_slot: int) -> void:

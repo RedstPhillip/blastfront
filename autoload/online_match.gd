@@ -16,7 +16,7 @@ var match_points: Dictionary = GameSettings.default_score()
 var coin_balances: Dictionary = GameSettings.default_score()
 var last_set_earnings: Dictionary = {}
 var last_winner_slot: int = 0
-var final_winner_slot: int = 0
+var final_winner_slot: int = 0	
 var intermission_remaining: float = GameSettings.ONLINE_INTERMISSION_SECONDS
 var locker_countdown_remaining: float = -1.0
 var match_generation: int = 0
@@ -660,6 +660,7 @@ func _reset_research_points_if_big_round_starts(previous_phase: StringName, next
 		return
 	if previous_phase != GameSettings.MATCH_PHASE_LOCKER and previous_phase != GameSettings.MATCH_PHASE_INTERMISSION:
 		return
+		
 	ResearchManager.reset_points_for_big_round()
 
 

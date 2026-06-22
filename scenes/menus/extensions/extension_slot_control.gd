@@ -63,9 +63,8 @@ func _get_equipped_item() -> WeaponExtensionItem:
 
 
 func _connect_extension_inventory() -> void:
-	var callback: Callable = Callable(self, "_on_loadout_changed")
-	if not ExtensionInventory.loadout_changed.is_connected(callback):
-		ExtensionInventory.loadout_changed.connect(callback)
+	if not ExtensionInventory.loadout_changed.is_connected(_on_loadout_changed):
+		ExtensionInventory.loadout_changed.connect(_on_loadout_changed)
 
 
 func _on_loadout_changed(_player_slot: int) -> void:

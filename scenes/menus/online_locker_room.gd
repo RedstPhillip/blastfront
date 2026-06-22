@@ -53,7 +53,7 @@ func _ready() -> void:
 	NetworkSession.status_changed.connect(_refresh)
 	NetworkSession.peer_changed.connect(_refresh)
 	NetworkSession.packet_received.connect(_on_packet_received)
-	_refresh("")
+	_refresh()
 
 func _process(delta: float) -> void:
 	_visual_time += delta
@@ -71,7 +71,6 @@ func _exit_tree() -> void:
 		NetworkSession.packet_received.disconnect(_on_packet_received)
 
 
-# Locker pose data is synchronized separately from gameplay snapshots.
 func _physics_process(delta: float) -> void:
 	if not NetworkSession.is_steam_match_active() or NetworkSession.remote_steam_id == 0:
 		return
@@ -84,7 +83,6 @@ func _physics_process(delta: float) -> void:
 	_send_locker_snapshot()
 
 
-# Both peers share one scene; Steam slots assign the local and remote roles.
 func _configure_players() -> void:
 	_player_one.player_slot = GameSettings.PLAYER_ONE_SLOT
 	_player_two.player_slot = GameSettings.PLAYER_TWO_SLOT
@@ -190,22 +188,18 @@ func request_block_state(_owner: Node, _active: bool, _direction: Vector2, _cool
 	return
 
 
-# Locker projectiles affect color and ready targets, never player health.
-func request_shot(owner: Node, spawn_position: Vector2, direction: Vector2, projectile_data: Dictionary) -> void:
+func request_shot(owner: Player, spawn_position: Vector2, direction: Vector2, projectile_data: Dictionary) -> void:
 	if _help_popup.visible:
 		return
 	if _is_pointer_over_invite_button():
 		return
 
 	var projectile: Projectile = PROJECTILE_SCENE.instantiate() as Projectile
-	var owner_slot: int = 0
-	if owner != null:
-		owner_slot = int(owner.get("player_slot"))
+	var owner_slot = owner.player_slot
 
 	projectile.configure_from_data(0, owner_slot, direction, projectile_data)
 	projectile.collision_mask = LOCKER_PROJECTILE_COLLISION_MASK
-	if projectile.has_signal("despawn_requested"):
-		projectile.connect("despawn_requested", Callable(self, "_on_locker_projectile_despawn_requested"))
+	projectile.despawn_requested.connect(_on_locker_projectile_despawn_requested)
 	spawn_projectile(projectile, spawn_position)
 
 
@@ -217,7 +211,6 @@ func _is_pointer_over_invite_button() -> bool:
 	return _invite_button.get_global_rect().has_point(mouse_position)
 
 
-# Target metadata turns hits into color selection or ready-state changes.
 func _on_locker_projectile_despawn_requested(_projectile: Node, reason: StringName, collider) -> void:
 	if reason != &"collision":
 		return

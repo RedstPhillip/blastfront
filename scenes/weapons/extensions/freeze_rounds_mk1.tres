@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="WeaponExtensionDefinition" format=3]
+[gd_resource type="Resource" script_class="WeaponExtensionDefinition" format=3 uid="uid://kpxsgesreg5d"]
 
 [ext_resource type="Script" uid="uid://vd1xlgf7df4b" path="res://scenes/weapons/extensions/weapon_extension_definition.gd" id="1_definition"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/extensions/visuals/freeze_rounds_visual.tscn" id="2_visual"]
@@ -31,22 +31,22 @@ projectile_effects = {
 "freeze": {
 "duration": 3.0,
 "speed_multiplier": 0.4,
-"tint_color": Color(0.4, 0.7, 1.0, 1)
+"tint_color": Color(0.4, 0.7, 1, 1)
 }
 }
 mk2_projectile_effects = {
 "freeze": {
 "duration": 4.2,
 "speed_multiplier": 0.28,
-"tint_color": Color(0.4, 0.7, 1.0, 1)
+"tint_color": Color(0.4, 0.7, 1, 1)
 }
 }
 mk3_projectile_effects = {
 "freeze": {
 "duration": 5.2,
 "speed_multiplier": 0.18,
-"tint_color": Color(0.4, 0.7, 1.0, 1)
+"tint_color": Color(0.4, 0.7, 1, 1)
 }
 }
 visual_scene = ExtResource("2_visual")
-icon_color = Color(0.4, 0.7, 1.0, 1)
+icon_color = Color(0.4, 0.7, 1, 1)
