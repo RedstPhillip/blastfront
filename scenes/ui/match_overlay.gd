@@ -369,9 +369,6 @@ func _play_round_transition(winner_slot: int, winner_color: Color, title_text: S
 	_transition_bottom_bar.position = Vector2(viewport_size.x + 120.0, viewport_size.y * 0.59)
 	_transition_bottom_bar.rotation = -0.08
 
-	_transition_center_line.color = Color(1.0, 1.0, 1.0, 0.78)
-	_transition_center_line.size = Vector2(viewport_size.x, 4.0)
-	_transition_center_line.position = Vector2(0.0, viewport_size.y * 0.51)
 	_transition_center_line.modulate.a = 0.0
 
 	_transition_title.text = title_text
@@ -400,8 +397,6 @@ func _play_round_transition(winner_slot: int, winner_color: Color, title_text: S
 	_transition_tween.tween_property(_transition_top_bar, "position:x", viewport_size.x + 110.0, 0.56).set_delay(1.12).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
 	_transition_tween.tween_property(_transition_bottom_bar, "position:x", -130.0, 0.4).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	_transition_tween.tween_property(_transition_bottom_bar, "position:x", -sweep_width - 120.0, 0.56).set_delay(1.12).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
-	_transition_tween.tween_property(_transition_center_line, "modulate:a", 1.0, 0.16).set_delay(0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	_transition_tween.tween_property(_transition_center_line, "modulate:a", 0.0, 0.42).set_delay(1.1).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	_transition_tween.tween_property(_transition_title, "modulate:a", 1.0, 0.24).set_delay(0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	_transition_tween.tween_property(_transition_title, "scale", Vector2.ONE, 0.32).set_delay(0.18).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	_transition_tween.tween_property(_transition_title, "modulate:a", 0.0, 0.38).set_delay(1.28).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
