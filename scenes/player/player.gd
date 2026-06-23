@@ -1446,7 +1446,7 @@ func _run_delayed_damage(amount: int, duration: float, source_slot: int, source_
 
 
 func _get_armor_attribute(attribute_name: StringName) -> float:
-	return _armor_attributes.get(attribute_name)
+	return float(_armor_attributes.get(attribute_name, 0.0))
 
 
 func _is_stationary_for_armor() -> bool:
