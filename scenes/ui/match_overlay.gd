@@ -262,13 +262,13 @@ func _on_offline_point_awarded(winner_slot: int) -> void:
 
 func _play_banner_animation() -> void:
 	_banner_panel.pivot_offset = _banner_panel.size * 0.5
-	_banner_panel.scale = Vector2(0.82, 0.82)
+	_banner_panel.scale = Vector2(0.9, 0.9)
 	_banner_panel.modulate.a = 0.0
 	GameJuice.play_sound(&"ui_click", -8.0, 0.03)
 	var tween: Tween = create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(_banner_panel, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tween.tween_property(_banner_panel, "modulate:a", 1.0, 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(_banner_panel, "scale", Vector2.ONE, 0.36).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(_banner_panel, "modulate:a", 1.0, 0.28).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 
 func _apply_banner_winner_style(winner_color: Color) -> void:
@@ -390,24 +390,24 @@ func _play_round_transition(winner_slot: int, winner_color: Color, title_text: S
 	_transition_subtitle.pivot_offset = _transition_subtitle.size * 0.5
 	_transition_subtitle.modulate.a = 0.0
 
-	GameJuice.shake(5.0, 0.34)
+	GameJuice.shake(3.5, 0.42)
 	GameJuice.play_sound(&"spawn", -4.0, 0.03)
 
 	_transition_tween = create_tween()
 	_transition_tween.set_parallel(true)
-	_transition_tween.tween_property(_transition_flash, "modulate:a", 0.0, 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	_transition_tween.tween_property(_transition_top_bar, "position:x", -70.0, 0.18).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	_transition_tween.tween_property(_transition_top_bar, "position:x", viewport_size.x + 110.0, 0.42).set_delay(0.48).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
-	_transition_tween.tween_property(_transition_bottom_bar, "position:x", -130.0, 0.22).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	_transition_tween.tween_property(_transition_bottom_bar, "position:x", -sweep_width - 120.0, 0.42).set_delay(0.48).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
-	_transition_tween.tween_property(_transition_center_line, "modulate:a", 1.0, 0.08).set_delay(0.08).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	_transition_tween.tween_property(_transition_center_line, "modulate:a", 0.0, 0.34).set_delay(0.42).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	_transition_tween.tween_property(_transition_title, "modulate:a", 1.0, 0.12).set_delay(0.08).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	_transition_tween.tween_property(_transition_title, "scale", Vector2.ONE, 0.2).set_delay(0.08).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	_transition_tween.tween_property(_transition_title, "modulate:a", 0.0, 0.28).set_delay(0.66).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	_transition_tween.tween_property(_transition_subtitle, "modulate:a", 1.0, 0.12).set_delay(0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	_transition_tween.tween_property(_transition_subtitle, "scale", Vector2.ONE, 0.18).set_delay(0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	_transition_tween.tween_property(_transition_subtitle, "modulate:a", 0.0, 0.22).set_delay(0.7).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	_transition_tween.tween_property(_transition_flash, "modulate:a", 0.0, 0.72).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_transition_tween.tween_property(_transition_top_bar, "position:x", -70.0, 0.36).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_transition_tween.tween_property(_transition_top_bar, "position:x", viewport_size.x + 110.0, 0.56).set_delay(1.12).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	_transition_tween.tween_property(_transition_bottom_bar, "position:x", -130.0, 0.4).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_transition_tween.tween_property(_transition_bottom_bar, "position:x", -sweep_width - 120.0, 0.56).set_delay(1.12).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	_transition_tween.tween_property(_transition_center_line, "modulate:a", 1.0, 0.16).set_delay(0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_transition_tween.tween_property(_transition_center_line, "modulate:a", 0.0, 0.42).set_delay(1.1).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	_transition_tween.tween_property(_transition_title, "modulate:a", 1.0, 0.24).set_delay(0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_transition_tween.tween_property(_transition_title, "scale", Vector2.ONE, 0.32).set_delay(0.18).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_transition_tween.tween_property(_transition_title, "modulate:a", 0.0, 0.38).set_delay(1.28).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	_transition_tween.tween_property(_transition_subtitle, "modulate:a", 1.0, 0.22).set_delay(0.34).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_transition_tween.tween_property(_transition_subtitle, "scale", Vector2.ONE, 0.3).set_delay(0.34).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_transition_tween.tween_property(_transition_subtitle, "modulate:a", 0.0, 0.34).set_delay(1.34).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	_transition_tween.finished.connect(_on_round_transition_finished)
 
 
