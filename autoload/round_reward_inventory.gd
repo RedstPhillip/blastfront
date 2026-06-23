@@ -1,4 +1,4 @@
-﻿extends Node
+extends Node
 
 signal rewards_changed
 
@@ -23,6 +23,7 @@ func _ready() -> void:
 		ResearchManager.research_changed.connect(_on_research_changed)
 
 
+# A new round applies wear, resizes saved slots and rolls a fresh shop.
 func prepare_for_round(round_key: int) -> void:
 	if round_key <= 0 or round_key == _last_round_key:
 		return
@@ -105,6 +106,7 @@ func can_place_reward_in_offer_slot(target_index: int, reward_type: StringName) 
 	return false
 
 
+# Claims validate payment before moving the underlying Resource into inventory.
 func claim_reward(source_kind: StringName, source_index: int) -> bool:
 	var reward: Dictionary = _get_reward(source_kind, source_index)
 	if reward.is_empty():
@@ -155,6 +157,7 @@ func has_reward(source_kind: StringName, source_index: int) -> bool:
 	return not _get_reward(source_kind, source_index).is_empty()
 
 
+# Alternate extension and armor pools so both equipment systems stay represented.
 func _generate_offers() -> void:
 	offers.clear()
 	var extension_definitions: Array[WeaponExtensionDefinition] = ExtensionInventory.get_reward_definitions()
@@ -212,6 +215,7 @@ func _apply_bonus_mark_to_armor_definition(definition: ArmorItemData) -> ArmorIt
 	return upgraded_definition if upgraded_definition != null else definition
 
 
+# Price combines mark, condition and item power before applying shop limits.
 func _calculate_price(reward_type: StringName, item_variant: Variant) -> int:
 	var condition: float = 0.0
 	var power_bonus: int = 0
@@ -282,6 +286,7 @@ func _set_reward(source_kind: StringName, source_index: int, reward: Dictionary)
 		saved_rewards[source_index] = reward
 
 
+# Research controls storage capacity; excess saved rewards return to the offer pool.
 func _sync_saved_slots() -> void:
 	var target_count: int = clampi(
 		ResearchManager.get_blueprint_slot_count(),

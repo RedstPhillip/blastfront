@@ -1,4 +1,4 @@
-﻿extends Node
+extends Node
 
 const BURST_EFFECT_SCENE: PackedScene = preload("res://scenes/effects/burst_effect.tscn")
 const MUZZLE_EFFECT_SCENE: PackedScene = preload("res://scenes/effects/muzzle_effect.tscn")
@@ -58,6 +58,7 @@ func _initialize_audio_buses() -> void:
 	AudioServer.set_bus_volume_db(ui_index, linear_to_db(0.75))
 
 
+# Camera shake decays centrally so gameplay systems only submit impulses.
 func _process(delta: float) -> void:
 	if _camera == null or not is_instance_valid(_camera):
 		return
@@ -106,6 +107,7 @@ func shake(strength: float, duration: float) -> void:
 	_shake_time = maxf(_shake_time, duration)
 
 
+# Effects live under the active scene while retaining their world coordinates.
 func spawn_burst(kind: StringName, world_position: Vector2, direction: Vector2 = Vector2.UP, tint: Color = Color.WHITE) -> void:
 	var effect_node: Node2D = BURST_EFFECT_SCENE.instantiate() as Node2D
 	if effect_node == null:
@@ -161,6 +163,7 @@ func play_sound_2d(sound_id: StringName, world_position: Vector2, volume_db: flo
 	player.play()
 
 
+# Metadata prevents duplicate feedback connections when UI trees are reused.
 func attach_button_feedback(root: Node) -> void:
 	if root == null:
 		return
@@ -275,6 +278,7 @@ func _place_effect(effect: Node2D, root_node: Node, world_position: Vector2) -> 
 		effect.global_position = world_position
 
 
+# Damage labels are lightweight transient Controls animated in canvas coordinates.
 func spawn_damage_number(world_position: Vector2, amount: int, color: Color = Color(1.0, 0.28, 0.22, 1.0)) -> void:
 	var label: Label = Label.new()
 	label.text = str(amount)

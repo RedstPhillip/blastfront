@@ -26,6 +26,7 @@ func setup(game_world: Node) -> void:
 	if not NetworkSession.packet_received.is_connected(_on_packet_received):
 		NetworkSession.packet_received.connect(_on_packet_received)
 
+	# Sync modules are scene children so their ownership and configuration stay visible in Godot.
 	for child in get_children():
 		var module: SyncModule = child as SyncModule
 		if module != null:

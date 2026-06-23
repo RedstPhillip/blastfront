@@ -1,11 +1,16 @@
-﻿@tool
+@tool
 extends MarginContainer
+###
+# Super-huge thanks to Nathan Hoad and Marcus Skov for ideas and inspiration on how to create a
+# plug-in updater.
+###
 
 const TEMP_FILE = "user://update.zip"
 const VERSION_URL: StringName = "https://godotengine.org/asset-library/api/asset/2445"
 
 var download_location: String = ""
 var downloading_update: bool = false
+# This will act as both our version checker and update downloader
 var http_request: HTTPRequest = null
 var is_actively_downloading: bool = false
 var new_version: String = ""
@@ -29,6 +34,7 @@ func _process(delta: float) -> void:
 		downloading.value = http_request.get_downloaded_bytes() * 100 / http_request.get_body_size()
 
 
+#region Setup
 func set_defaults() -> void:
 	downloading.value = 0
 	installed_label.text = "Installed version %s" % Steam.get_godotsteam_version()
@@ -36,14 +42,18 @@ func set_defaults() -> void:
 	update_button.disabled = true
 	update_label.text = ""
 	updating_visibility(false, false, false, true)
+#endregion
 
 
+#region Signals
 func connect_signals() -> void:
 	cancel_button.pressed.connect(_on_cancel_pressed)
 	install_button.pressed.connect(_on_install_pressed)
 	update_button.pressed.connect(_on_update_pressed)
+#endregion
 
 
+#region Checking for updates
 func check_for_updates() -> void:
 	if not ProjectSettings.get_setting("steam/updates/godotsteam/check_for_updates"):
 		return
@@ -73,8 +83,10 @@ func _on_http_request_completed(result: int, _response_code: int, _headers: Pack
 		update_label.text = "New version %s" % new_version
 		update_button.text = "Download"
 		update_button.disabled = false
+#endregion
 
 
+#region Updating versions
 func _on_cancel_pressed() -> void:
 	updating_visibility(false, false, false, true)
 
@@ -103,7 +115,9 @@ func _on_install_pressed() -> void:
 	var files: PackedStringArray = zip_reader.get_files()
 
 	var base_path := files[1]
+	# Remove archive folder
 	files.remove_at(0)
+	# Remove assets folder
 	files.remove_at(0)
 
 	for path in files:
@@ -156,8 +170,10 @@ func restart_post_update() -> void:
 	update_label.text = "Updated to version %s, restarting the editor" % new_version
 	DirAccess.remove_absolute(TEMP_FILE)
 	EditorInterface.restart_editor(true)
+#endregion
 
 
+#region Helpers
 func convert_version(version_string: String) -> int:
 	return int(version_string.replace(".", "").rpad(4, "0"))
 
@@ -167,3 +183,4 @@ func updating_visibility(cancel: bool, download: bool, install: bool, update: bo
 	downloading.visible = download
 	install_button.visible = install
 	update_button.visible = update
+#endregion

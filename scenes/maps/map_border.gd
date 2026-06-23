@@ -1,4 +1,4 @@
-﻿extends Node2D
+extends Node2D
 class_name MapBorder
 
 @export var warn_distance: float = GameSettings.MAP_BORDER_WARN_DISTANCE
@@ -71,6 +71,7 @@ func _process(_delta: float) -> void:
 		GameSettings.MAP_BORDER_SIDE_BOTTOM: INF
 	}
 
+	# Each player contributes only to the nearest edge, preventing overlapping warning lines.
 	for player in players:
 		var px: float = player.global_position.x
 		var py: float = player.global_position.y

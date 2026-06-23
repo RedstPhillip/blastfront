@@ -1,4 +1,4 @@
-﻿extends Node
+extends Node
 
 signal research_changed
 signal research_points_changed(points: int)
@@ -88,6 +88,7 @@ func get_next_cost(research_id: StringName) -> int:
 	return int(costs[next_mark - 1])
 
 
+# Purchases require availability, prerequisites, a remaining mark and enough points.
 func can_purchase(research_id: StringName) -> bool:
 	var definition: Dictionary = get_definition(research_id)
 	if definition.is_empty() or definition.get("available", true) != true:
@@ -154,6 +155,7 @@ func get_local_profile() -> Dictionary:
 	}
 
 
+# Remote profiles are read-only mirrors used for authoritative combat calculations.
 func apply_online_profiles(profiles: Dictionary) -> void:
 	_remote_marks_by_player.clear()
 	for raw_slot in profiles.keys():
@@ -317,6 +319,7 @@ func has_phoenix(player_slot: int = 0) -> bool:
 	return is_unlocked(PHOENIX, player_slot)
 
 
+# Runtime research effects resolve through the active game world and player slot.
 func apply_local_life_steal(source_slot: int, applied_damage: int) -> int:
 	if applied_damage <= 0:
 		return 0
@@ -418,6 +421,7 @@ func _sort_definitions(first: Dictionary, second: Dictionary) -> bool:
 	return int(first.get("order", 0)) < int(second.get("order", 0))
 
 
+# Central definitions drive both the research UI and gameplay modifiers.
 func _build_definitions() -> Dictionary:
 	var definitions: Dictionary = {}
 	var entries: Array = [

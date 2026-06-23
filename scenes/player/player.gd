@@ -1,4 +1,4 @@
-﻿extends CharacterBody2D
+extends CharacterBody2D
 class_name Player
 
 const BLUE_BODY_TEXTURE: Texture2D = preload("res://assets/player/blue_ball.png")
@@ -201,6 +201,7 @@ func _physics_process(delta: float) -> void:
 	update_wall_coyote(delta)
 
 
+# Control mode decides whether input logic or remote interpolation drives this player.
 func configure_local_control(slot: int, move_left: StringName, move_right: StringName, jump: StringName, shoot: StringName, block: StringName, allow_shoot: bool) -> void:
 	player_slot = slot
 	control_mode = GameSettings.CONTROL_LOCAL
@@ -473,6 +474,7 @@ func set_eliminated(eliminated: bool) -> void:
 		_last_feedback_velocity_y = velocity.y
 
 
+# Network snapshots set targets; the remote physics tick performs the interpolation.
 func apply_remote_snapshot(snapshot: Dictionary) -> void:
 	var snapshot_position: Variant = snapshot.get("position", global_position)
 	var snapshot_velocity: Variant = snapshot.get("velocity", velocity)
@@ -571,6 +573,7 @@ func get_block_direction() -> Vector2:
 	return _block_direction.normalized()
 
 
+# A block succeeds only when the incoming projectile lies inside the aim-facing cone.
 func is_blocking_projectile(projectile_position: Vector2, projectile_velocity: Vector2 = Vector2.ZERO) -> bool:
 	if not _block_active:
 		return false
@@ -964,6 +967,7 @@ func _update_movement_timers(delta: float) -> void:
 		_coyote_timer = maxf(_coyote_timer - delta, 0.0)
 
 
+# Blocking has a short active window followed by a shared cooldown.
 func _update_block_input() -> void:
 	if _block_active:
 		_refresh_block_direction()
@@ -1403,6 +1407,7 @@ func _on_health_changed(old_health: int, new_health: int) -> void:
 	apply_hit_feedback(fallback_source, old_health - new_health)
 
 
+# Phoenix consumes its once-per-set revive before normal elimination continues.
 func _on_health_depleted() -> void:
 	if _is_eliminated:
 		return
@@ -1424,6 +1429,7 @@ func _on_health_depleted() -> void:
 	set_eliminated(true)
 
 
+# Passive healing accumulates fractional health only while the player stands still.
 func _update_research_healing(delta: float) -> void:
 	if NetworkSession.is_steam_match_active() and NetworkSession.mode != GameSettings.NETWORK_MODE_HOST:
 		return

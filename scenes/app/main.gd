@@ -13,6 +13,7 @@ var _current_scene: Node = null
 var _transition_tween: Tween = null
 
 
+# Main owns top-level scene flow while feature scenes own their internal behavior.
 func _ready() -> void:
 	NetworkSession.lobby_ready.connect(_on_lobby_ready)
 	NetworkSession.lobby_left.connect(_on_lobby_left)
@@ -68,6 +69,7 @@ func _on_lobby_left() -> void:
 	show_menu()
 
 
+# Online phases are translated into scene changes in one central place.
 func _on_online_phase_changed(next_phase: StringName) -> void:
 	if next_phase == GameSettings.MATCH_PHASE_LOCKER:
 		_show_locker_room()

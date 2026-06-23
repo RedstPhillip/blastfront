@@ -226,13 +226,15 @@ func _on_locker_projectile_despawn_requested(_projectile: Node, reason: StringNa
 	var target_type: String = str(target.get_meta("locker_target_type", ""))
 	if target_type == "color":
 		var color_id: StringName = StringName(str(target.get_meta("color_id", "")))
-		if not OnlineMatch.is_color_taken_by_other(_local_slot, color_id):
-			OnlineMatch.set_local_color(color_id)
+		if OnlineMatch.is_color_taken_by_other(_local_slot, color_id):
+			return
+		OnlineMatch.set_local_color(color_id)
 	elif target_type == "ready":
-		var is_ready: bool = OnlineMatch.locker_ready.get(_local_slot, false)
+		var is_ready: bool = OnlineMatch.locker_ready.get(_local_slot, false) == true
 		OnlineMatch.set_local_locker_ready(not is_ready)
 
 
+# Send transient pose only; OnlineMatch synchronizes color and readiness.
 func _send_locker_snapshot() -> void:
 	if _local_player == null:
 		return
@@ -251,7 +253,7 @@ func _send_locker_snapshot() -> void:
 
 
 func _on_packet_received(packet: Dictionary, _sender_id: int) -> void:
-	var packet_type: StringName = StringName(str(packet.get("type")))
+	var packet_type: StringName = StringName(str(packet.get("type", "")))
 	if packet_type != GameSettings.PACKET_ONLINE_LOCKER_PLAYER_STATE:
 		return
 
