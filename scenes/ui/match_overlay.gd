@@ -1,7 +1,6 @@
 extends Control
 
 const ROUND_SCORE_DOT_SCENE: PackedScene = preload("res://scenes/ui/round_score_dot.tscn")
-const HUD_FONT: Font = preload("res://assets/fonts/blastfront_hud_font.tres")
 
 @onready var _left_player_panel: ArcadePlayerPanel = %LeftPlayerPanel
 @onready var _right_player_panel: ArcadePlayerPanel = %RightPlayerPanel
@@ -25,8 +24,6 @@ var _transition_flash: ColorRect = null
 var _transition_top_bar: ColorRect = null
 var _transition_bottom_bar: ColorRect = null
 var _transition_center_line: ColorRect = null
-var _transition_title: Label = null
-var _transition_subtitle: Label = null
 var _transition_tween: Tween = null
 var _last_transition_key: String = ""
 var _base_banner_style: StyleBoxFlat = null
@@ -187,12 +184,7 @@ func _show_winner_banner(winner_slot: int) -> void:
 	_banner_label.add_theme_color_override("font_color", winner_color.lightened(0.12))
 	if not _banner_panel.visible or _last_banner_text != _banner_label.text:
 		_play_banner_animation()
-		_play_round_transition(
-			winner_slot,
-			winner_color,
-			"%s SCORES" % winner_name,
-			"NEXT ROUND"
-		)
+		_play_round_transition(winner_slot, winner_color)
 	_last_banner_text = _banner_label.text
 	_banner_panel.show()
 
@@ -252,12 +244,7 @@ func _on_offline_point_awarded(winner_slot: int) -> void:
 	var winner_color: Color = GameSettings.player_color_value(
 		GameSettings.ONLINE_DEFAULT_REMOTE_COLOR if winner_slot == GameSettings.PLAYER_TWO_SLOT else GameSettings.ONLINE_DEFAULT_LOCAL_COLOR
 	)
-	_play_round_transition(
-		winner_slot,
-		winner_color,
-		"PLAYER %d SCORES" % winner_slot,
-		"NEXT ROUND"
-	)
+	_play_round_transition(winner_slot, winner_color)
 
 
 func _play_banner_animation() -> void:
@@ -310,10 +297,6 @@ func _build_round_transition_layer() -> void:
 	_transition_center_line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_transition_layer.add_child(_transition_center_line)
 
-	_transition_title = _create_transition_label("Title", 58)
-	_transition_subtitle = _create_transition_label("Subtitle", 22)
-
-
 func _create_transition_bar(node_name: String) -> ColorRect:
 	var bar: ColorRect = ColorRect.new()
 	bar.name = node_name
@@ -322,26 +305,11 @@ func _create_transition_bar(node_name: String) -> ColorRect:
 	_transition_layer.add_child(bar)
 	return bar
 
-
-func _create_transition_label(node_name: String, font_size: int) -> Label:
-	var label: Label = Label.new()
-	label.name = node_name
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_override("font", HUD_FONT)
-	label.add_theme_font_size_override("font_size", font_size)
-	label.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.86))
-	label.add_theme_constant_override("outline_size", 7 if font_size > 30 else 4)
-	_transition_layer.add_child(label)
-	return label
-
-
-func _play_round_transition(winner_slot: int, winner_color: Color, title_text: String, subtitle_text: String) -> void:
+func _play_round_transition(winner_slot: int, winner_color: Color) -> void:
 	if winner_slot == 0 or _transition_layer == null:
 		return
 
-	var transition_key: String = "%d:%s:%s" % [winner_slot, title_text, subtitle_text]
+	var transition_key: String = str(winner_slot)
 	if transition_key == _last_transition_key and _transition_layer.visible:
 		return
 	_last_transition_key = transition_key
@@ -371,22 +339,6 @@ func _play_round_transition(winner_slot: int, winner_color: Color, title_text: S
 
 	_transition_center_line.modulate.a = 0.0
 
-	_transition_title.text = title_text
-	_transition_title.add_theme_color_override("font_color", winner_tint)
-	_transition_title.size = Vector2(viewport_size.x, 86.0)
-	_transition_title.position = Vector2(0.0, viewport_size.y * 0.38 - 52.0)
-	_transition_title.scale = Vector2(0.72, 0.72)
-	_transition_title.pivot_offset = _transition_title.size * 0.5
-	_transition_title.modulate.a = 0.0
-
-	_transition_subtitle.text = subtitle_text
-	_transition_subtitle.add_theme_color_override("font_color", Color(1.0, 0.92, 0.72, 1.0))
-	_transition_subtitle.size = Vector2(viewport_size.x, 42.0)
-	_transition_subtitle.position = Vector2(0.0, viewport_size.y * 0.54)
-	_transition_subtitle.scale = Vector2(1.15, 1.15)
-	_transition_subtitle.pivot_offset = _transition_subtitle.size * 0.5
-	_transition_subtitle.modulate.a = 0.0
-
 	GameJuice.shake(3.5, 0.42)
 	GameJuice.play_sound(&"spawn", -4.0, 0.03)
 
@@ -397,12 +349,6 @@ func _play_round_transition(winner_slot: int, winner_color: Color, title_text: S
 	_transition_tween.tween_property(_transition_top_bar, "position:x", viewport_size.x + 110.0, 0.56).set_delay(1.12).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
 	_transition_tween.tween_property(_transition_bottom_bar, "position:x", -130.0, 0.4).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	_transition_tween.tween_property(_transition_bottom_bar, "position:x", -sweep_width - 120.0, 0.56).set_delay(1.12).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
-	_transition_tween.tween_property(_transition_title, "modulate:a", 1.0, 0.24).set_delay(0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	_transition_tween.tween_property(_transition_title, "scale", Vector2.ONE, 0.32).set_delay(0.18).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	_transition_tween.tween_property(_transition_title, "modulate:a", 0.0, 0.38).set_delay(1.28).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	_transition_tween.tween_property(_transition_subtitle, "modulate:a", 1.0, 0.22).set_delay(0.34).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	_transition_tween.tween_property(_transition_subtitle, "scale", Vector2.ONE, 0.3).set_delay(0.34).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	_transition_tween.tween_property(_transition_subtitle, "modulate:a", 0.0, 0.34).set_delay(1.34).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	_transition_tween.finished.connect(_on_round_transition_finished)
 
 
