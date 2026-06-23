@@ -209,9 +209,9 @@ func _complete_unfailed_no_hit(slot: int) -> void:
 	var quests: Array = _assignments_by_slot.get(slot, [])
 	for quest_index in range(quests.size()):
 		var quest: Dictionary = quests[quest_index]
-		if StringName(str(quest.get("event", ""))) != &"no_hit":
+		if StringName(str(quest["event"])) != &"no_hit":
 			continue
-		if quest.get("failed", false) == true or quest.get("completed", false) == true:
+		if quest["failed"] == true or quest["completed"] == true:
 			continue
 		quest["progress"] = 1.0
 		quests[quest_index] = quest
@@ -229,15 +229,15 @@ func _apply_progress(slot: int, event_name: StringName, amount: float) -> void:
 	var changed: bool = false
 	for quest_index in range(quests.size()):
 		var quest: Dictionary = quests[quest_index]
-		if quest.get("completed", false) == true or quest.get("failed", false) == true:
+		if quest["completed"] == true or quest["failed"] == true:
 			continue
-		if StringName(str(quest.get("event", ""))) != event_name:
+		if StringName(str(quest["event"])) != event_name:
 			continue
-		var target: float = maxf(float(quest.get("target", 1.0)), 1.0)
-		quest["progress"] = minf(float(quest.get("progress", 0.0)) + amount, target)
+		var target: float = maxf(float(quest["target"]), 1.0)
+		quest["progress"] = minf(float(quest["progress"]) + amount, target)
 		quests[quest_index] = quest
 		changed = true
-		if float(quest.get("progress", 0.0)) >= target:
+		if float(quest["progress"]) >= target:
 			_assignments_by_slot[slot] = quests
 			_complete_quest(slot, quest_index)
 			quests = _assignments_by_slot.get(slot, quests)
@@ -253,9 +253,9 @@ func _fail_quest(slot: int, event_name: StringName) -> void:
 	var quests: Array = _assignments_by_slot.get(slot, [])
 	for quest_index in range(quests.size()):
 		var quest: Dictionary = quests[quest_index]
-		if StringName(str(quest.get("event", ""))) != event_name:
+		if StringName(str(quest["event"])) != event_name:
 			continue
-		if quest.get("completed", false) == true:
+		if quest["completed"] == true:
 			continue
 		quest["failed"] = true
 		quests[quest_index] = quest
@@ -270,14 +270,14 @@ func _complete_quest(slot: int, quest_index: int) -> void:
 	if quest_index < 0 or quest_index >= quests.size():
 		return
 	var quest: Dictionary = quests[quest_index]
-	if quest.get("completed", false) == true:
+	if quest["completed"] == true:
 		return
 	quest["completed"] = true
 	quests[quest_index] = quest
 	_assignments_by_slot[slot] = quests
-	var base_reward: int = int(quest.get("reward", 0))
+	var base_reward: int = int(quest["reward"])
 	var awarded: int = maxi(1, int(roundf(float(base_reward) * ResearchManager.get_research_point_multiplier(slot))))
-	_award_points(slot, awarded, str(quest.get("title", "Quest complete")))
+	_award_points(slot, awarded, str(quest["title"]))
 
 
 func _award_points(slot: int, amount: int, reason: String) -> void:

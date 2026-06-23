@@ -167,8 +167,8 @@ func _update_border_areas() -> void:
 	var right_x: float = _bounds.position.x + _bounds.size.x
 	var top_y: float = _bounds.position.y
 	var bottom_y: float = _bounds.position.y + _bounds.size.y
-	var center_x: float = _bounds.position.x + _bounds.size.x * GameSettings.HALF
-	var center_y: float = _bounds.position.y + _bounds.size.y * GameSettings.HALF
+	var center_x: float = _bounds.position.x + _bounds.size.x * 0.5
+	var center_y: float = _bounds.position.y + _bounds.size.y * 0.5
 
 	_update_border_area(GameSettings.MAP_BORDER_SIDE_LEFT, Vector2(left_x, center_y), Vector2(border_thickness, _bounds.size.y))
 	_update_border_area(GameSettings.MAP_BORDER_SIDE_RIGHT, Vector2(right_x, center_y), Vector2(border_thickness, _bounds.size.y))
@@ -194,7 +194,7 @@ func _on_border_body_entered(body: Node, side: StringName) -> void:
 func _try_apply_border_hit(player: Player, side: StringName) -> void:
 	if NetworkSession.is_steam_match_active() and not OnlineMatch.is_playing_set():
 		return
-	var now: float = Time.get_ticks_msec() / GameSettings.MILLISECONDS_PER_SECOND
+	var now: float = Time.get_ticks_msec() / 1000.0
 	var last_time: float = float(_last_hit_time.get(player, GameSettings.MAP_BORDER_INITIAL_HIT_TIME))
 	if now - last_time < hit_cooldown:
 		return
@@ -228,7 +228,7 @@ func _get_overlapping_border_side(position: Vector2) -> StringName:
 	var right_edge: float = _bounds.position.x + _bounds.size.x
 	var top_edge: float = _bounds.position.y
 	var bottom_edge: float = _bounds.position.y + _bounds.size.y
-	var overlap_padding: float = border_thickness * GameSettings.HALF + 18.0
+	var overlap_padding: float = border_thickness * 0.5 + 18.0
 	var distances: Dictionary = {
 		GameSettings.MAP_BORDER_SIDE_LEFT: position.x - left_edge,
 		GameSettings.MAP_BORDER_SIDE_RIGHT: right_edge - position.x,
@@ -299,7 +299,7 @@ func _get_particle_amount() -> int:
 func _on_online_phase_changed(next_phase: StringName) -> void:
 	_last_hit_time.clear()
 	if next_phase == GameSettings.MATCH_PHASE_PLAYING_SET:
-		_disabled_until_time = Time.get_ticks_msec() / GameSettings.MILLISECONDS_PER_SECOND + respawn_grace_seconds
+		_disabled_until_time = Time.get_ticks_msec() / 1000.0 + respawn_grace_seconds
 	else:
 		_disabled_until_time = INF
 
@@ -307,5 +307,5 @@ func _on_online_phase_changed(next_phase: StringName) -> void:
 func _are_border_hits_suspended() -> bool:
 	if NetworkSession.is_steam_match_active() and not OnlineMatch.is_playing_set():
 		return true
-	var now: float = Time.get_ticks_msec() / GameSettings.MILLISECONDS_PER_SECOND
+	var now: float = Time.get_ticks_msec() / 1000.0
 	return _disabled_until_time < INF and now < _disabled_until_time

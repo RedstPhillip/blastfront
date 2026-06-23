@@ -1,4 +1,4 @@
-extends "res://scenes/network/sync_module.gd"
+extends SyncModule
 
 var _send_timer: float = 0.0
 var _last_sent_by_slot: Dictionary = {}
@@ -96,7 +96,7 @@ func _send_player_snapshot_if_needed(slot: int, player: Player) -> void:
 
 
 func _should_send_snapshot(slot: int, snapshot: Dictionary) -> bool:
-	var now_seconds: float = Time.get_ticks_msec() / GameSettings.MILLISECONDS_PER_SECOND
+	var now_seconds: float = Time.get_ticks_msec() / 1000.0
 	var last_time: float = float(_last_sent_time_by_slot.get(slot, GameSettings.NETWORK_LAST_SHOT_INITIAL_TIME))
 	if now_seconds - last_time >= 1.0 / GameSettings.NETWORK_PLAYER_HEARTBEAT_RATE:
 		return true
@@ -127,7 +127,7 @@ func _should_send_snapshot(slot: int, snapshot: Dictionary) -> bool:
 
 func _remember_sent_snapshot(slot: int, snapshot: Dictionary) -> void:
 	_last_sent_by_slot[slot] = snapshot.duplicate()
-	_last_sent_time_by_slot[slot] = Time.get_ticks_msec() / GameSettings.MILLISECONDS_PER_SECOND
+	_last_sent_time_by_slot[slot] = Time.get_ticks_msec() / 1000.0
 
 
 func _apply_player_snapshot(slot: int, snapshot: Dictionary, packet_tick: int = 0) -> void:

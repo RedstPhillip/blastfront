@@ -1,7 +1,6 @@
-﻿extends Node2D
+extends Node2D
 class_name Gun
 
-const PROJECTILE_SCENE: PackedScene = preload("res://scenes/projectiles/projectile.tscn")
 const MUZZLE_WORLD_COLLISION_MASK: int = 1
 const MUZZLE_PLAYER_COLLISION_MASK: int = 2
 const MUZZLE_WALL_CLEARANCE: float = 6.0
@@ -10,7 +9,6 @@ const LASER_MUZZLE_OCCLUSION_EPSILON: float = 1.0
 @export var orbit_radius: float = GameSettings.GUN_ORBIT_RADIUS
 @export var aim_angle_offset_degrees: float = GameSettings.GUN_AIM_ANGLE_OFFSET_DEGREES
 @export var fire_interval: float = GameSettings.GUN_FIRE_INTERVAL
-@export var automatic_fire: bool = GameSettings.GUN_AUTOMATIC_FIRE
 @export var projectile_speed: float = GameSettings.GUN_PROJECTILE_SPEED
 @export var projectile_gravity: float = GameSettings.GUN_PROJECTILE_GRAVITY
 @export var projectile_linear_damping: float = GameSettings.GUN_PROJECTILE_LINEAR_DAMPING
@@ -19,7 +17,6 @@ const LASER_MUZZLE_OCCLUSION_EPSILON: float = 1.0
 @export var reload_time: float = 1.2
 
 var _aim_direction: Vector2 = Vector2.LEFT
-var _pointing_right: bool = false
 var _fire_cooldown: float = 0.0
 var _recoil_offset: float = 0.0
 var _recoil_rotation: float = 0.0
@@ -117,8 +114,8 @@ func _build_laser_trajectory(world_start: Vector2, direction: Vector2) -> Packed
 		query.exclude = [_player.get_rid()]
 		var hit: Dictionary = space_state.intersect_ray(query)
 		if not hit.is_empty():
-			var hit_position: Vector2 = hit.get("position", world_start + next_position)
-			var collider: Object = hit.get("collider", null)
+			var hit_position: Vector2 = hit["position"]
+			var collider: Object = hit["collider"]
 			if drill_wall_passes > 0 and not (collider is Player):
 				drill_wall_passes -= 1
 				var hit_local_position: Vector2 = hit_position - world_start
@@ -187,8 +184,7 @@ func _physics_process(delta: float) -> void:
 		if _reload_timer <= 0.0:
 			_finish_reload()
 
-	var wants_shot: bool = _player.is_shoot_down() if automatic_fire else _player.is_shoot_pressed()
-	if wants_shot and _fire_cooldown <= 0.0 and _current_ammo > 0 and not _is_reloading:
+	if _player.is_shoot_pressed() and _fire_cooldown <= 0.0 and _current_ammo > 0 and not _is_reloading:
 		_shoot()
 		_current_ammo -= 1
 		_fire_cooldown = _get_modified_fire_interval()
@@ -257,8 +253,6 @@ func get_projectile_spawn_position(direction: Vector2 = Vector2.ZERO) -> Vector2
 	var shot_direction: Vector2 = direction
 	if shot_direction.length_squared() <= GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
 		shot_direction = get_shot_direction()
-	if shot_direction.length_squared() <= GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
-		return muzzle_position
 	shot_direction = shot_direction.normalized()
 
 	var player_position: Vector2 = _player.global_position
@@ -279,7 +273,7 @@ func get_projectile_spawn_position(direction: Vector2 = Vector2.ZERO) -> Vector2
 	if hit.is_empty():
 		return muzzle_position
 
-	var hit_position: Vector2 = hit.get("position", muzzle_position)
+	var hit_position: Vector2 = hit["position"]
 	var player_side: Vector2 = player_position - hit_position
 	if player_side.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
 		return hit_position + player_side.normalized() * MUZZLE_WALL_CLEARANCE
@@ -297,11 +291,11 @@ func _get_player_blocked_spawn_position(player_position: Vector2, muzzle_positio
 	if hit.is_empty():
 		return Vector2.INF
 
-	var hit_player: Player = hit.get("collider", null) as Player
+	var hit_player: Player = hit["collider"] as Player
 	if hit_player == null or hit_player == _player:
 		return Vector2.INF
 
-	var hit_position: Vector2 = hit.get("position", muzzle_position)
+	var hit_position: Vector2 = hit["position"]
 	return hit_position - shot_direction * MUZZLE_WALL_CLEARANCE
 
 
@@ -321,7 +315,6 @@ func _set_aim_direction(direction: Vector2) -> bool:
 		return false
 
 	_aim_direction = direction.normalized()
-	_pointing_right = _aim_direction.x > 0.0
 	return true
 
 
@@ -333,7 +326,7 @@ func _update_visual_transform() -> void:
 	global_position = _player.global_position + _aim_direction * current_radius
 	global_rotation = _aim_direction.angle() + deg_to_rad(aim_angle_offset_degrees) + _recoil_rotation
 	_visual_root.scale.x = 1.0 + _recoil_offset * 0.008
-	_visual_root.scale.y = (-1.0 if _pointing_right else 1.0) * (1.0 - _recoil_offset * 0.004)
+	_visual_root.scale.y = (-1.0 if _aim_direction.x > 0.0 else 1.0) * (1.0 - _recoil_offset * 0.004)
 
 
 func _build_projectile_data(direction: Vector2) -> Dictionary:
@@ -357,7 +350,7 @@ func _build_projectile_data(direction: Vector2) -> Dictionary:
 
 func _play_fire_feedback(direction: Vector2, muzzle_position: Vector2) -> void:
 	_recoil_offset = GameSettings.GUN_RECOIL_DISTANCE
-	var recoil_side: float = -1.0 if _pointing_right else 1.0
+	var recoil_side: float = -1.0 if _aim_direction.x > 0.0 else 1.0
 	var recoil_degrees: float = GameSettings.GUN_RECOIL_ROTATION_DEGREES + _get_extension_attribute(&"recoil_rotation_degrees")
 	_recoil_rotation = deg_to_rad(maxf(0.0, recoil_degrees)) * recoil_side
 	GameJuice.spawn_muzzle(muzzle_position, direction)
@@ -465,41 +458,26 @@ func _get_modified_damage() -> int:
 
 
 func _get_extension_attribute(attribute_name: StringName) -> float:
-	var attributes_variant: Variant = _extension_stats.get("attributes", {})
-	if not (attributes_variant is Dictionary):
-		return 0.0
-
-	var attributes: Dictionary = attributes_variant
-	return float(attributes.get(attribute_name, 0.0))
+	return float(_extension_stats.attributes.get(attribute_name, 0.0))
 
 
 func _get_extension_tags() -> Array[String]:
 	var result: Array[String] = []
-	var tags_variant: Variant = _extension_stats.get("projectile_tags", [])
-	if not (tags_variant is Array):
-		return result
-
-	var tags: Array = tags_variant
-	for raw_tag in tags:
-		var tag: String = str(raw_tag)
-		if not result.has(tag):
-			result.append(tag)
+	for tag in _extension_stats.projectile_tags:
+		var tag_str: String = str(tag)
+		if not result.has(tag_str):
+			result.append(tag_str)
 	return result
 
 
 func _get_extension_effects() -> Dictionary:
-	var effects_variant: Variant = _extension_stats.get("projectile_effects", {})
-	if effects_variant is Dictionary:
-		var effects: Dictionary = effects_variant
-		return _get_balanced_extension_effects(effects)
-	return {}
+	return _get_balanced_extension_effects(_extension_stats.projectile_effects)
 
 
 func _get_effect_data(effects: Dictionary, effect_name: StringName) -> Dictionary:
-	var effect_variant: Variant = effects.get(str(effect_name), effects.get(effect_name, {}))
-	if effect_variant is Dictionary:
-		var effect_data: Dictionary = effect_variant
-		return effect_data
+	var effect: Variant = effects.get(effect_name, effects.get(str(effect_name)))
+	if effect is Dictionary:
+		return effect
 	return {}
 
 
@@ -522,21 +500,12 @@ func _get_balanced_extension_effects(effects: Dictionary) -> Dictionary:
 
 
 func _get_drill_wall_passes() -> int:
-	var effects: Dictionary = _get_extension_effects()
-	var drill_variant: Variant = effects.get("drill", {})
-	if drill_variant is Dictionary:
-		var drill_effect: Dictionary = drill_variant
-		return maxi(0, int(roundf(float(drill_effect.get("wall_passes", 1.0)))))
-	return 1
+	var drill: Dictionary = _get_extension_effects().get("drill", {})
+	return maxi(0, int(roundf(float(drill.get("wall_passes", 1.0)))))
 
 
 func _get_source_extensions() -> Array[String]:
 	var result: Array[String] = []
-	var source_variant: Variant = _extension_stats.get("source_extensions", [])
-	if not (source_variant is Array):
-		return result
-
-	var source_extensions: Array = source_variant
-	for raw_extension_id in source_extensions:
-		result.append(str(raw_extension_id))
+	for ext in _extension_stats.source_extensions:
+		result.append(str(ext))
 	return result

@@ -33,7 +33,7 @@ func _ready() -> void:
 
 func setup(next_definition: Dictionary) -> void:
 	definition = next_definition.duplicate(true)
-	research_id = StringName(str(definition.get("id", "")))
+	research_id = StringName(str(definition["id"]))
 	if is_node_ready():
 		refresh()
 
@@ -41,10 +41,10 @@ func setup(next_definition: Dictionary) -> void:
 func refresh() -> void:
 	if definition.is_empty():
 		return
-	var branch: StringName = StringName(str(definition.get("branch", "")))
-	var available: bool = definition.get("available", true) == true
+	var branch: StringName = StringName(str(definition["branch"]))
+	var available: bool = definition["available"] == true
 	var current_mark: int = ResearchManager.get_mark(research_id)
-	var max_mark: int = int(definition.get("max_mark", 1))
+	var max_mark: int = int(definition["max_mark"])
 	var next_cost: int = ResearchManager.get_next_cost(research_id)
 	var can_buy: bool = ResearchManager.can_purchase(research_id)
 	var requirements_met: bool = current_mark > 0 or _requirements_met()
@@ -72,7 +72,7 @@ func refresh() -> void:
 
 
 func _refresh_icon(accent: Color, available: bool, requirements_met: bool) -> void:
-	var icon_path: String = str(definition.get("icon_path", ""))
+	var icon_path: String = str(definition["icon_path"])
 	if icon_path != _loaded_icon_path:
 		_loaded_icon_path = icon_path
 		var icon_resource: Resource = load(icon_path) if not icon_path.is_empty() else null
@@ -86,7 +86,7 @@ func _refresh_icon(accent: Color, available: bool, requirements_met: bool) -> vo
 
 
 func _requirements_met() -> bool:
-	var requirements_variant: Variant = definition.get("requires", [])
+	var requirements_variant: Variant = definition["requires"]
 	if not (requirements_variant is Array):
 		return true
 	var requirements: Array = requirements_variant
@@ -94,8 +94,8 @@ func _requirements_met() -> bool:
 		if not (requirement_variant is Dictionary):
 			continue
 		var requirement: Dictionary = requirement_variant
-		var required_id: StringName = StringName(str(requirement.get("id", "")))
-		if ResearchManager.get_mark(required_id) < int(requirement.get("mark", 1)):
+		var required_id: StringName = StringName(str(requirement["id"]))
+		if ResearchManager.get_mark(required_id) < int(requirement["mark"]):
 			return false
 	return true
 

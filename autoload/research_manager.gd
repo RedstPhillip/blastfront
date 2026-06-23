@@ -71,7 +71,7 @@ func is_unlocked(research_id: StringName, player_slot: int = 0) -> bool:
 
 func is_research_available(research_id: StringName) -> bool:
 	var definition: Dictionary = get_definition(research_id)
-	return not definition.is_empty() and definition.get("available", true) == true
+	return not definition.is_empty() and definition["available"] == true
 
 
 func get_next_cost(research_id: StringName) -> int:
@@ -79,7 +79,7 @@ func get_next_cost(research_id: StringName) -> int:
 	if definition.is_empty():
 		return 0
 	var next_mark: int = get_mark(research_id) + 1
-	var costs_variant: Variant = definition.get("costs", [])
+	var costs_variant: Variant = definition["costs"]
 	if not (costs_variant is Array):
 		return 0
 	var costs: Array = costs_variant
@@ -90,10 +90,10 @@ func get_next_cost(research_id: StringName) -> int:
 
 func can_purchase(research_id: StringName) -> bool:
 	var definition: Dictionary = get_definition(research_id)
-	if definition.is_empty() or definition.get("available", true) != true:
+	if definition.is_empty() or definition["available"] != true:
 		return false
 	var current_mark: int = get_mark(research_id)
-	var max_mark: int = int(definition.get("max_mark", 1))
+	var max_mark: int = int(definition["max_mark"])
 	if current_mark >= max_mark:
 		return false
 	if current_mark == 0 and not _requirements_met(definition):
@@ -363,7 +363,7 @@ func _marks_for_player(player_slot: int) -> Dictionary:
 
 
 func _requirements_met(definition: Dictionary) -> bool:
-	var requirements_variant: Variant = definition.get("requires", [])
+	var requirements_variant: Variant = definition["requires"]
 	if not (requirements_variant is Array):
 		return true
 	var requirements: Array = requirements_variant
@@ -371,8 +371,8 @@ func _requirements_met(definition: Dictionary) -> bool:
 		if not (requirement_variant is Dictionary):
 			continue
 		var requirement: Dictionary = requirement_variant
-		var required_id: StringName = StringName(str(requirement.get("id", "")))
-		var required_mark: int = int(requirement.get("mark", 1))
+		var required_id: StringName = StringName(str(requirement["id"]))
+		var required_mark: int = int(requirement["mark"])
 		if get_mark(required_id) < required_mark:
 			return false
 	return true
@@ -415,7 +415,7 @@ func _require(research_id: StringName, mark: int = 1) -> Dictionary:
 
 
 func _sort_definitions(first: Dictionary, second: Dictionary) -> bool:
-	return int(first.get("order", 0)) < int(second.get("order", 0))
+	return int(first["order"]) < int(second["order"])
 
 
 func _build_definitions() -> Dictionary:
@@ -443,5 +443,5 @@ func _build_definitions() -> Dictionary:
 		_definition(CAPTURE_RADIUS, "Capture Radius", BRANCH_MISC, "res://assets/ui/research/capture_radius.svg", "Increase airdrop capture radius by 20, 42 or 68 units.", [4, 9, 15], Vector2(1070, 500), [_require(CAPTURE_BONUS)], true, 280),
 	]
 	for entry in entries:
-		definitions[str(entry.get("id", ""))] = entry
+		definitions[str(entry["id"])] = entry
 	return definitions

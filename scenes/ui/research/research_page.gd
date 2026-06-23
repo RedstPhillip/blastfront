@@ -41,8 +41,8 @@ func _build_tree() -> void:
 		var node: ResearchNodeButton = RESEARCH_NODE_SCENE.instantiate() as ResearchNodeButton
 		if node == null:
 			continue
-		var research_id: StringName = StringName(str(definition.get("id", "")))
-		node.position = definition.get("position", Vector2.ZERO)
+		var research_id: StringName = StringName(str(definition["id"]))
+		node.position = definition["position"]
 		node.setup(definition)
 		node.research_selected.connect(_on_research_selected)
 		node.research_hovered.connect(_show_research_details)
@@ -76,10 +76,10 @@ func _show_research_details(research_id: StringName) -> void:
 	if definition.is_empty():
 		return
 	var current_mark: int = ResearchManager.get_mark(research_id)
-	var max_mark: int = int(definition.get("max_mark", 1))
-	_details_title.text = str(definition.get("name", "Research"))
-	_details_body.text = str(definition.get("description", ""))
-	if definition.get("available", true) != true:
+	var max_mark: int = int(definition["max_mark"])
+	_details_title.text = str(definition["name"])
+	_details_body.text = str(definition["description"])
+	if definition["available"] != true:
 		_details_status.text = "Planned for a later update"
 	elif current_mark >= max_mark:
 		_details_status.text = "Fully researched - MK%d" % max_mark

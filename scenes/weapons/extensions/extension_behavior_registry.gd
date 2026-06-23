@@ -43,7 +43,7 @@ static func update_projectile_behaviors(projectile: Projectile, delta: float) ->
 
 static func _get_projectile_tags(projectile: Node) -> Array[String]:
 	var result: Array[String] = []
-	var tags_variant: Variant = projectile.get("extension_tags")
+	var tags_variant: Variant = projectile.extension_tags
 	if not (tags_variant is Array):
 		return result
 
@@ -54,7 +54,7 @@ static func _get_projectile_tags(projectile: Node) -> Array[String]:
 
 
 static func _get_projectile_effects(projectile: Node) -> Dictionary:
-	var effects_variant: Variant = projectile.get("extension_effects")
+	var effects_variant: Variant = projectile.extension_effects
 	if effects_variant is Dictionary:
 		var effects: Dictionary = effects_variant
 		return effects

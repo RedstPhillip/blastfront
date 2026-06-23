@@ -261,7 +261,7 @@ func _on_offline_point_awarded(winner_slot: int) -> void:
 
 
 func _play_banner_animation() -> void:
-	_banner_panel.pivot_offset = _banner_panel.size * GameSettings.HALF
+	_banner_panel.pivot_offset = _banner_panel.size * 0.5
 	_banner_panel.scale = Vector2(0.82, 0.82)
 	_banner_panel.modulate.a = 0.0
 	GameJuice.play_sound(&"ui_click", -8.0, 0.03)
@@ -379,7 +379,7 @@ func _play_round_transition(winner_slot: int, winner_color: Color, title_text: S
 	_transition_title.size = Vector2(viewport_size.x, 86.0)
 	_transition_title.position = Vector2(0.0, viewport_size.y * 0.38 - 52.0)
 	_transition_title.scale = Vector2(0.72, 0.72)
-	_transition_title.pivot_offset = _transition_title.size * GameSettings.HALF
+	_transition_title.pivot_offset = _transition_title.size * 0.5
 	_transition_title.modulate.a = 0.0
 
 	_transition_subtitle.text = subtitle_text
@@ -387,7 +387,7 @@ func _play_round_transition(winner_slot: int, winner_color: Color, title_text: S
 	_transition_subtitle.size = Vector2(viewport_size.x, 42.0)
 	_transition_subtitle.position = Vector2(0.0, viewport_size.y * 0.54)
 	_transition_subtitle.scale = Vector2(1.15, 1.15)
-	_transition_subtitle.pivot_offset = _transition_subtitle.size * GameSettings.HALF
+	_transition_subtitle.pivot_offset = _transition_subtitle.size * 0.5
 	_transition_subtitle.modulate.a = 0.0
 
 	GameJuice.shake(5.0, 0.34)

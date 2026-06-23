@@ -85,7 +85,7 @@ func get_rendered_leg_points() -> Dictionary:
 	var foot_l: Vector2 = to_local(_p.foot_pos_l)
 	var foot_r: Vector2 = to_local(_p.foot_pos_r)
 	if wall_active:
-		var foot_y: float = (foot_l.y + foot_r.y) * GameSettings.HALF
+		var foot_y: float = (foot_l.y + foot_r.y) * 0.5
 		hip_l = Vector2(wall_dir * wall_hip_x, hip_y + wall_foot_gap * 0.25)
 		hip_r = Vector2(wall_dir * wall_hip_x, hip_y - wall_foot_gap * 0.25)
 		foot_l = Vector2(wall_dir * wall_foot_x, foot_y + wall_foot_gap)

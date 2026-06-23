@@ -10,5 +10,5 @@ func apply(target: Player, effect_data: Dictionary, projectile: Node = null) -> 
 		return
 	var local_effect_data: Dictionary = effect_data.duplicate(true)
 	if projectile != null:
-		local_effect_data["source_slot"] = int(projectile.get("owner_slot"))
+		local_effect_data["source_slot"] = int(projectile.owner_slot)
 	target.status_effect_manager.apply_effect("poison", local_effect_data)

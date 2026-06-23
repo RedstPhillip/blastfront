@@ -17,19 +17,19 @@ func set_quest(quest: Dictionary) -> void:
 		hide()
 		return
 	show()
-	var tier: StringName = StringName(str(quest.get("tier", "")))
-	var progress: float = float(quest.get("progress", 0.0))
-	var target: float = maxf(float(quest.get("target", 1.0)), 1.0)
-	var completed: bool = quest.get("completed", false) == true
-	var failed: bool = quest.get("failed", false) == true
+	var tier: StringName = StringName(str(quest["tier"]))
+	var progress: float = float(quest["progress"])
+	var target: float = maxf(float(quest["target"]), 1.0)
+	var completed: bool = quest["completed"] == true
+	var failed: bool = quest["failed"] == true
 	var progress_text: String = ""
 	var progress_color: Color = Color(0.82, 0.82, 0.76, 1.0)
 	_tier_label.text = str(tier).to_upper()
 	var tier_color: Color = _tier_color(tier)
 	_tier_label.add_theme_color_override("font_color", tier_color)
 	_tier_stripe.color = tier_color
-	_title_label.text = str(quest.get("title", "Quest"))
-	_reward_label.text = "+%d RP" % int(quest.get("reward", 0))
+	_title_label.text = str(quest["title"])
+	_reward_label.text = "+%d RP" % int(quest["reward"])
 	_progress_bar.max_value = target
 	_progress_bar.value = progress
 	if completed:
@@ -38,7 +38,7 @@ func set_quest(quest: Dictionary) -> void:
 	elif failed:
 		progress_text = "FAILED"
 		progress_color = Color(1.0, 0.38, 0.28, 1.0)
-	elif StringName(str(quest.get("event", ""))) == &"no_hit":
+	elif StringName(str(quest["event"])) == &"no_hit":
 		progress_text = "SAFE"
 		progress_color = Color(0.86, 0.79, 0.62, 1.0)
 	else:

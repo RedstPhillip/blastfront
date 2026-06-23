@@ -168,7 +168,7 @@ func _rebuild_ammo_icons(max_ammo: int) -> void:
 func _play_damage_punch() -> void:
 	if _punch_tween != null and _punch_tween.is_valid():
 		_punch_tween.kill()
-	pivot_offset = size * GameSettings.HALF
+	pivot_offset = size * 0.5
 	scale = Vector2(1.035, 1.035)
 	modulate = Color(1.0, 0.76, 0.76, 1.0)
 	_punch_tween = create_tween()

@@ -1,4 +1,4 @@
-﻿extends CharacterBody2D
+extends CharacterBody2D
 class_name Player
 
 const BLUE_BODY_TEXTURE: Texture2D = preload("res://assets/player/blue_ball.png")
@@ -530,10 +530,6 @@ func is_shoot_pressed() -> bool:
 	return _is_action_available(shoot_action, shooting_enabled, true)
 
 
-func is_shoot_down() -> bool:
-	return _is_action_available(shoot_action, shooting_enabled, false)
-
-
 func is_block_pressed() -> bool:
 	return _is_action_available(block_action, movement_enabled, true)
 
@@ -550,10 +546,6 @@ func _can_read_input(enabled: bool) -> bool:
 
 func is_blocking() -> bool:
 	return _block_active
-
-
-func is_block_cooling_down() -> bool:
-	return not _block_active and _block_cooldown_timer > 0.0
 
 
 func get_block_cooldown_ratio() -> float:
@@ -582,7 +574,7 @@ func is_blocking_projectile(projectile_position: Vector2, projectile_velocity: V
 		return true
 
 	var block_direction: Vector2 = get_block_direction()
-	var half_angle_radians: float = deg_to_rad(block_cone_degrees * GameSettings.HALF)
+	var half_angle_radians: float = deg_to_rad(block_cone_degrees * 0.5)
 	return block_direction.dot(to_projectile.normalized()) >= cos(half_angle_radians)
 
 
@@ -1262,7 +1254,7 @@ func _get_body_texture(color_id: StringName, facing_left: bool) -> Texture2D:
 	if _has_body_texture_path(texture_path):
 		if not _body_texture_cache.has(texture_path):
 			_body_texture_cache[texture_path] = load(texture_path)
-		var texture: Texture2D = _body_texture_cache.get(texture_path, null) as Texture2D
+		var texture: Texture2D = _body_texture_cache[texture_path] as Texture2D
 		if texture != null:
 			return texture
 
@@ -1278,7 +1270,7 @@ func _has_body_texture(color_id: StringName, facing_left: bool) -> bool:
 func _has_body_texture_path(texture_path: String) -> bool:
 	if not _body_texture_exists_cache.has(texture_path):
 		_body_texture_exists_cache[texture_path] = ResourceLoader.exists(texture_path)
-	return bool(_body_texture_exists_cache.get(texture_path, false))
+	return bool(_body_texture_exists_cache[texture_path])
 
 
 func _get_body_texture_path(color_id: StringName, facing_left: bool) -> String:

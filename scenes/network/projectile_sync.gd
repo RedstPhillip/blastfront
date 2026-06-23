@@ -1,4 +1,4 @@
-﻿extends "res://scenes/network/sync_module.gd"
+extends SyncModule
 
 const PROJECTILE_SCENE: PackedScene = preload("res://scenes/projectiles/projectile.tscn")
 
@@ -147,7 +147,7 @@ func _spawn_authoritative_projectile_for_owner(
 		return
 
 	if directions.is_empty():
-		directions = Projectile.extract_shot_directions(projectile_data, direction)
+		directions = projectile_data.get("volley_directions", [])
 	for shot_direction in directions:
 		var net_id: int = _next_projectile_id
 		_next_projectile_id += 1
@@ -224,7 +224,7 @@ func _can_authoritative_shoot(owner_slot: int, fire_interval: float) -> bool:
 	if fire_interval <= 0.0:
 		return true
 
-	var now_seconds: float = Time.get_ticks_msec() / GameSettings.MILLISECONDS_PER_SECOND
+	var now_seconds: float = Time.get_ticks_msec() / 1000.0
 	var last_shot_time: float = float(_last_shot_time_by_slot.get(owner_slot, GameSettings.NETWORK_LAST_SHOT_INITIAL_TIME))
 	if now_seconds - last_shot_time < fire_interval:
 		return false

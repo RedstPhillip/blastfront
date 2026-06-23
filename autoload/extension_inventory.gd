@@ -319,9 +319,9 @@ func build_effective_stats_for_player(player_slot: int) -> Dictionary:
 			continue
 
 		var item_stats: Dictionary = item.build_effective_stats()
-		_merge_attributes(attributes, item_stats.get("attributes", {}))
-		_merge_tags(projectile_tags, item_stats.get("projectile_tags", []))
-		_merge_effects(projectile_effects, item_stats.get("projectile_effects", {}))
+		_merge_attributes(attributes, item_stats["attributes"])
+		_merge_tags(projectile_tags, item_stats["projectile_tags"])
+		_merge_effects(projectile_effects, item_stats["projectile_effects"])
 		source_extensions.append(str(item.get_definition_id()))
 
 	return {

@@ -19,7 +19,7 @@ func apply(target: Player, effect_data: Dictionary, projectile: Node = null) -> 
 	var tree: SceneTree = target.get_tree() if target != null else projectile.get_tree()
 	if tree == null:
 		return
-	var owner_slot: int = int(projectile.get("owner_slot")) if projectile != null else 0
+	var owner_slot: int = int(projectile.owner_slot) if projectile != null else 0
 
 	var players: Array[Node] = tree.get_nodes_in_group(GameSettings.PLAYERS_GROUP)
 	for node in players:

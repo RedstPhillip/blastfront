@@ -49,7 +49,7 @@ static func apply_projectile_effects(target: Player, projectile: Node) -> void:
 
 
 static func _get_projectile_effects(projectile: Node) -> Dictionary:
-	var effects_variant: Variant = projectile.get("extension_effects")
+	var effects_variant: Variant = projectile.extension_effects
 	if effects_variant is Dictionary:
 		var projectile_effects: Dictionary = effects_variant
 		return projectile_effects

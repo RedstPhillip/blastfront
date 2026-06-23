@@ -13,7 +13,7 @@ func set_definitions(next_definitions: Array[Dictionary]) -> void:
 func _draw() -> void:
 	var positions: Dictionary = {}
 	for definition in definitions:
-		positions[str(definition.get("id", ""))] = definition.get("position", Vector2.ZERO) + Vector2(37, 37)
+		positions[str(definition["id"])] = definition["position"] + Vector2(37, 37)
 
 	var starters: Dictionary = {
 		str(ResearchManager.RECYCLING): Color8(205, 151, 65, 255),
@@ -25,13 +25,13 @@ func _draw() -> void:
 			_draw_connection(root_position, positions[starter_id], starters[starter_id], true)
 
 	for definition in definitions:
-		var target_id: String = str(definition.get("id", ""))
+		var target_id: String = str(definition["id"])
 		var target_position: Vector2 = positions.get(target_id, Vector2.ZERO)
-		var branch: StringName = StringName(str(definition.get("branch", "")))
+		var branch: StringName = StringName(str(definition["branch"]))
 		var color: Color = _branch_color(branch)
-		if definition.get("available", true) != true:
+		if definition["available"] != true:
 			color = Color8(75, 79, 86, 125)
-		var requirements_variant: Variant = definition.get("requires", [])
+		var requirements_variant: Variant = definition["requires"]
 		if not (requirements_variant is Array):
 			continue
 		var requirements: Array = requirements_variant
@@ -39,9 +39,9 @@ func _draw() -> void:
 			if not (requirement_variant is Dictionary):
 				continue
 			var requirement: Dictionary = requirement_variant
-			var source_id: String = str(requirement.get("id", ""))
+			var source_id: String = str(requirement["id"])
 			if positions.has(source_id):
-				var unlocked: bool = ResearchManager.get_mark(StringName(source_id)) >= int(requirement.get("mark", 1))
+				var unlocked: bool = ResearchManager.get_mark(StringName(source_id)) >= int(requirement["mark"])
 				_draw_connection(positions[source_id], target_position, color, unlocked)
 
 	draw_circle(root_position, 27.0, Color8(22, 30, 34, 205))

@@ -73,8 +73,8 @@ func get_equipped_item_for_player(player_slot: int, category_id: StringName) -> 
 	if player_slot == get_local_player_slot():
 		return get_equipped_item(category_id)
 	_ensure_online_loadouts()
-	var loadout_data: Dictionary = _online_loadouts.get(player_slot, {})
-	return loadout_data.get(category_id, loadout_data.get(str(category_id), null)) as ArmorItemData
+	var loadout_data: Dictionary = _online_loadouts[player_slot]
+	return loadout_data[category_id] as ArmorItemData
 
 
 func get_loadout_for_player(player_slot: int) -> ArmorLoadout:
@@ -82,9 +82,9 @@ func get_loadout_for_player(player_slot: int) -> ArmorLoadout:
 		return loadout
 	_ensure_online_loadouts()
 	var remote_loadout: ArmorLoadout = ArmorLoadout.new()
-	var loadout_data: Dictionary = _online_loadouts.get(player_slot, {})
+	var loadout_data: Dictionary = _online_loadouts[player_slot]
 	for category_id in ArmorItemData.category_ids():
-		var item: ArmorItemData = loadout_data.get(category_id, loadout_data.get(str(category_id), null)) as ArmorItemData
+		var item: ArmorItemData = loadout_data.get(category_id) as ArmorItemData
 		if item != null:
 			remote_loadout.equip_item(item)
 	return remote_loadout

@@ -1,4 +1,4 @@
-extends "res://scenes/network/sync_module.gd"
+extends SyncModule
 
 var _block_active: Dictionary = GameSettings.default_block_state()
 var _block_direction: Dictionary = {}

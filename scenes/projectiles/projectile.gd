@@ -1,4 +1,4 @@
-﻿extends CharacterBody2D
+extends CharacterBody2D
 class_name Projectile
 
 signal despawn_requested(projectile: Node, reason: StringName, collider)
@@ -38,32 +38,17 @@ func configure_from_data(
 	net_id = network_id
 	owner_slot = shot_owner_slot
 	is_network_authority = authority
-	direction = _normalized_or_fallback(shot_direction, Vector2.LEFT)
-	muzzle_speed = float(projectile_data.get("muzzle_speed", muzzle_speed))
-	gravity = float(projectile_data.get("gravity", gravity))
-	linear_damping = float(projectile_data.get("linear_damping", linear_damping))
-	max_distance = float(projectile_data.get("max_distance", max_distance))
-	damage = int(projectile_data.get("damage", damage))
-	projectile_scale = float(projectile_data.get("projectile_scale", projectile_scale))
-	extension_tags = _string_array_from(projectile_data.get("extension_tags", extension_tags))
-	extension_effects = _dictionary_from(projectile_data.get("extension_effects", extension_effects))
-	source_extensions = _string_array_from(projectile_data.get("source_extensions", source_extensions))
-	initial_velocity = _vector2_from(projectile_data.get("initial_velocity", direction * muzzle_speed), direction * muzzle_speed)
-
-
-static func extract_shot_directions(projectile_data: Dictionary, fallback_direction: Vector2) -> Array[Vector2]:
-	var result: Array[Vector2] = []
-	var directions_variant: Variant = projectile_data.get("volley_directions", [])
-	if directions_variant is Array:
-		var raw_directions: Array = directions_variant
-		for raw_direction in raw_directions:
-			if raw_direction is Vector2:
-				var shot_direction: Vector2 = raw_direction
-				if shot_direction.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
-					result.append(shot_direction.normalized())
-	if result.is_empty():
-		result.append(_normalized_or_fallback(fallback_direction, Vector2.LEFT))
-	return result
+	direction = shot_direction.normalized()
+	muzzle_speed = projectile_data.muzzle_speed
+	gravity = projectile_data.gravity
+	linear_damping = projectile_data.linear_damping
+	max_distance = projectile_data.max_distance
+	damage = projectile_data.damage
+	projectile_scale = projectile_data.projectile_scale
+	extension_tags = projectile_data.extension_tags
+	extension_effects = projectile_data.extension_effects
+	source_extensions = projectile_data.source_extensions
+	initial_velocity = projectile_data.initial_velocity
 
 
 func _ready() -> void:
@@ -186,25 +171,25 @@ func _apply_projectile_visual_style() -> void:
 	var outline: Polygon2D = get_node_or_null("Outline") as Polygon2D
 	var trail: CPUParticles2D = get_node_or_null("Trail") as CPUParticles2D
 
-	var body_points: Variant = style.get("body_points", null)
+	var body_points: Variant = style["body_points"]
 	if body != null:
-		body.color = style.get("body_color", body.color)
+		body.color = style["body_color"]
 		if body_points is PackedVector2Array:
 			body.polygon = body_points
 
-	var outline_points: Variant = style.get("outline_points", null)
+	var outline_points: Variant = style["outline_points"]
 	if outline != null:
-		outline.color = style.get("outline_color", outline.color)
+		outline.color = style["outline_color"]
 		if outline_points is PackedVector2Array:
 			outline.polygon = outline_points
 
 	if trail != null:
-		trail.color = style.get("trail_color", trail.color)
-		trail.amount = int(style.get("trail_amount", trail.amount))
-		trail.lifetime = float(style.get("trail_lifetime", trail.lifetime))
-		trail.spread = float(style.get("trail_spread", trail.spread))
-		trail.scale_amount_min = float(style.get("trail_scale_min", trail.scale_amount_min))
-		trail.scale_amount_max = float(style.get("trail_scale_max", trail.scale_amount_max))
+		trail.color = style["trail_color"]
+		trail.amount = int(style["trail_amount"])
+		trail.lifetime = float(style["trail_lifetime"])
+		trail.spread = float(style["trail_spread"])
+		trail.scale_amount_min = float(style["trail_scale_min"])
+		trail.scale_amount_max = float(style["trail_scale_max"])
 
 
 func _get_projectile_visual_style() -> Dictionary:
@@ -483,19 +468,13 @@ func _make_projectile_style(
 
 
 func _get_drill_wall_passes() -> int:
-	var drill_variant: Variant = extension_effects.get("drill", {})
-	if drill_variant is Dictionary:
-		var drill_effect: Dictionary = drill_variant
-		return maxi(0, int(roundf(float(drill_effect.get("wall_passes", 1.0)))))
-	return 1
+	var drill: Dictionary = extension_effects.get("drill", {})
+	return maxi(0, int(roundf(float(drill.get("wall_passes", 1.0)))))
 
 
 func _get_bouncy_bounces() -> int:
-	var bouncy_variant: Variant = extension_effects.get("bouncy", {})
-	if bouncy_variant is Dictionary:
-		var bouncy_effect: Dictionary = bouncy_variant
-		return maxi(1, int(roundf(float(bouncy_effect.get("bounces", 1.0)))))
-	return 1
+	var bouncy: Dictionary = extension_effects.get("bouncy", {})
+	return maxi(1, int(roundf(float(bouncy.get("bounces", 1.0)))))
 
 
 func _should_drill_through_collision(collider: Object) -> bool:
@@ -546,11 +525,6 @@ func _is_overlapping_world_obstacle() -> bool:
 	query.collide_with_areas = false
 	query.exclude = [get_rid()]
 	return not get_world_2d().direct_space_state.intersect_shape(query, 1).is_empty()
-
-
-func _exit_tree() -> void:
-	if _drill_ignore_distance_remaining > 0.0:
-		collision_mask |= 1
 
 
 func _update_drill_visual(delta: float) -> void:
@@ -632,29 +606,3 @@ func _apply_hover_collision_avoidance(collision: KinematicCollision2D) -> void:
 	velocity = velocity.slide(normal)
 	if velocity.y > 0.0:
 		velocity.y = 0.0
-
-
-static func _normalized_or_fallback(value: Vector2, fallback: Vector2) -> Vector2:
-	if value.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
-		return value.normalized()
-	return fallback.normalized()
-
-
-static func _vector2_from(value: Variant, fallback: Vector2) -> Vector2:
-	if value is Vector2:
-		return value
-	return fallback
-
-
-static func _dictionary_from(value: Variant) -> Dictionary:
-	if value is Dictionary:
-		return (value as Dictionary).duplicate(true)
-	return {}
-
-
-static func _string_array_from(value: Variant) -> Array[String]:
-	var result: Array[String] = []
-	if value is Array:
-		for raw_value in value:
-			result.append(str(raw_value))
-	return result

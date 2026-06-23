@@ -120,18 +120,18 @@ func record_kill(winner_slot: int) -> void:
 	if not _is_player_slot(winner_slot):
 		return
 
-	set_kills[winner_slot] = int(set_kills.get(winner_slot, 0)) + 1
+	set_kills[winner_slot] = int(set_kills[winner_slot]) + 1
 	small_round_number += 1
 	last_winner_slot = winner_slot
 	_kill_banner_remaining = GameSettings.ONLINE_KILL_BANNER_SECONDS
-	_kill_banner_deadline_msec = Time.get_ticks_msec() + int(roundf(GameSettings.ONLINE_KILL_BANNER_SECONDS * GameSettings.MILLISECONDS_PER_SECOND))
+	_kill_banner_deadline_msec = Time.get_ticks_msec() + int(roundf(GameSettings.ONLINE_KILL_BANNER_SECONDS * 1000.0))
 	_kill_banner_generation += 1
 	var banner_generation: int = _kill_banner_generation
 
-	if int(set_kills.get(winner_slot, 0)) >= GameSettings.ONLINE_SET_KILLS_TO_WIN:
+	if int(set_kills[winner_slot]) >= GameSettings.ONLINE_SET_KILLS_TO_WIN:
 		_award_set_coins()
-		match_points[winner_slot] = int(match_points.get(winner_slot, 0)) + 1
-		if int(match_points.get(winner_slot, 0)) >= GameSettings.ONLINE_MATCH_SET_WINS_TO_WIN:
+		match_points[winner_slot] = int(match_points[winner_slot]) + 1
+		if int(match_points[winner_slot]) >= GameSettings.ONLINE_MATCH_SET_WINS_TO_WIN:
 			final_winner_slot = winner_slot
 			_phase_after_banner = GameSettings.MATCH_PHASE_FINAL
 		else:
@@ -152,7 +152,7 @@ func record_damage(source_slot: int, target_slot: int, amount: int) -> void:
 		return
 
 	var stats: Dictionary = _get_current_stats(source_slot)
-	stats["damage"] = int(stats.get("damage", 0)) + amount
+	stats["damage"] = int(stats["damage"]) + amount
 	var was_first_hit: bool = not _first_hit_recorded
 	if not _first_hit_recorded:
 		_first_hit_recorded = true
@@ -168,13 +168,13 @@ func record_block(blocking_slot: int, blocked_damage: int) -> void:
 		return
 
 	var stats: Dictionary = _get_current_stats(blocking_slot)
-	stats["blocked_damage"] = int(stats.get("blocked_damage", 0)) + blocked_damage
+	stats["blocked_damage"] = int(stats["blocked_damage"]) + blocked_damage
 	_current_set_stats[blocking_slot] = stats
 	ResearchQuestManager.record_block(blocking_slot, blocked_damage)
 
 
 func get_coin_balance(slot: int) -> int:
-	return int(coin_balances.get(slot, 0))
+	return int(coin_balances[slot])
 
 
 func get_local_coin_balance() -> int:
@@ -273,7 +273,7 @@ func get_extension_loadouts() -> Dictionary:
 
 
 func get_extension_loadout(slot: int) -> Dictionary:
-	var loadout_variant: Variant = extension_loadouts.get(slot, {})
+	var loadout_variant: Variant = extension_loadouts[slot]
 	if loadout_variant is Dictionary:
 		var loadout: Dictionary = loadout_variant
 		return loadout.duplicate(true)
@@ -307,7 +307,7 @@ func get_armor_loadouts() -> Dictionary:
 
 
 func get_armor_loadout(slot: int) -> Dictionary:
-	var loadout_variant: Variant = armor_loadouts.get(slot, {})
+	var loadout_variant: Variant = armor_loadouts[slot]
 	if loadout_variant is Dictionary:
 		var loadout: Dictionary = loadout_variant
 		return loadout.duplicate(true)
@@ -483,7 +483,7 @@ func _reset_current_set_stats() -> void:
 
 
 func _get_current_stats(slot: int) -> Dictionary:
-	var stats_variant: Variant = _current_set_stats.get(slot, {})
+	var stats_variant: Variant = _current_set_stats[slot]
 	if stats_variant is Dictionary:
 		var stats: Dictionary = stats_variant
 		return stats
@@ -493,7 +493,7 @@ func _get_current_stats(slot: int) -> Dictionary:
 func _record_survival_time(delta: float) -> void:
 	for slot in GameSettings.player_slots():
 		var stats: Dictionary = _get_current_stats(slot)
-		stats["survival_seconds"] = float(stats.get("survival_seconds", 0.0)) + delta
+		stats["survival_seconds"] = float(stats["survival_seconds"]) + delta
 		_current_set_stats[slot] = stats
 
 
@@ -501,10 +501,10 @@ func _award_set_coins() -> void:
 	last_set_earnings = {}
 	for slot in GameSettings.player_slots():
 		var stats: Dictionary = _get_current_stats(slot)
-		var damage: int = int(stats.get("damage", 0))
-		var survival_seconds: float = float(stats.get("survival_seconds", 0.0))
-		var blocked_damage: int = int(stats.get("blocked_damage", 0))
-		var first_hit: bool = stats.get("first_hit", false) == true
+		var damage: int = int(stats["damage"])
+		var survival_seconds: float = float(stats["survival_seconds"])
+		var blocked_damage: int = int(stats["blocked_damage"])
+		var first_hit: bool = stats["first_hit"] == true
 		var damage_coins: int = int(damage / GameSettings.COIN_DAMAGE_STEP)
 		var survival_coins: int = int(floor(survival_seconds / GameSettings.COIN_SURVIVAL_STEP_SECONDS))
 		var block_steps: int = int(blocked_damage / GameSettings.COIN_BLOCK_DAMAGE_STEP)
@@ -856,7 +856,7 @@ func _slot_from_packet(packet: Dictionary) -> int:
 func _both_ready(ready_state: Dictionary) -> bool:
 	if NetworkSession.remote_steam_id == 0:
 		return false
-	return ready_state.get(GameSettings.PLAYER_ONE_SLOT, false) == true and ready_state.get(GameSettings.PLAYER_TWO_SLOT, false) == true
+	return ready_state[GameSettings.PLAYER_ONE_SLOT] == true and ready_state[GameSettings.PLAYER_TWO_SLOT] == true
 
 
 func _has_authority() -> bool:

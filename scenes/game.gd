@@ -90,12 +90,12 @@ func request_shot(owner: Node, spawn_position: Vector2, direction: Vector2, proj
 
 	var owner_slot: int = 0
 	if owner != null:
-		owner_slot = int(owner.get("player_slot"))
+		owner_slot = int(owner.player_slot)
 	if NetworkSession.is_steam_match_active() and _game_sync != null:
 		_game_sync.request_shot(owner_slot, spawn_position, direction, projectile_data)
 		return
 
-	var directions: Array[Vector2] = Projectile.extract_shot_directions(projectile_data, direction)
+	var directions: Array[Vector2] = projectile_data.get("volley_directions", [])
 	for shot_direction in directions:
 		var projectile: Projectile = PROJECTILE_SCENE.instantiate() as Projectile
 		projectile.configure_from_data(0, owner_slot, shot_direction, projectile_data)
@@ -110,7 +110,7 @@ func request_block_state(owner: Node, active: bool, direction: Vector2, cooldown
 
 	var owner_slot: int = 0
 	if owner != null:
-		owner_slot = int(owner.get("player_slot"))
+		owner_slot = int(owner.player_slot)
 	if owner_slot == 0:
 		return
 
@@ -134,16 +134,16 @@ func build_authoritative_shot(owner_slot: int) -> Dictionary:
 		return {}
 
 	var direction: Vector2 = Vector2.LEFT
-	var dir_variant: Variant = shot_data.get("direction", direction)
+	var dir_variant: Variant = shot_data["direction"]
 	if dir_variant is Vector2 and dir_variant.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
 		direction = dir_variant.normalized()
 
 	return {
-		"spawn_position": shot_data.get("spawn_position", player.global_position),
+		"spawn_position": shot_data["spawn_position"],
 		"direction": direction,
-		"directions": shot_data.get("directions", [direction]),
-		"fire_interval": shot_data.get("fire_interval", 0.0),
-		"projectile": shot_data.get("projectile", {}),
+		"directions": shot_data["directions"],
+		"fire_interval": shot_data["fire_interval"],
+		"projectile": shot_data["projectile"],
 	}
 
 
@@ -311,9 +311,9 @@ func is_match_over() -> bool:
 func get_winner_slot() -> int:
 	if not _offline_match_over:
 		return 0
-	if int(_offline_score.get(GameSettings.PLAYER_ONE_SLOT, 0)) >= GameSettings.MATCH_WINS_NEEDED:
+	if int(_offline_score[GameSettings.PLAYER_ONE_SLOT]) >= GameSettings.MATCH_WINS_NEEDED:
 		return GameSettings.PLAYER_ONE_SLOT
-	if int(_offline_score.get(GameSettings.PLAYER_TWO_SLOT, 0)) >= GameSettings.MATCH_WINS_NEEDED:
+	if int(_offline_score[GameSettings.PLAYER_TWO_SLOT]) >= GameSettings.MATCH_WINS_NEEDED:
 		return GameSettings.PLAYER_TWO_SLOT
 	return 0
 
@@ -375,7 +375,7 @@ func _apply_camera_bounds() -> void:
 	var bounds_node: Node = get_tree().get_first_node_in_group(GameSettings.MAP_BOUNDS_GROUP)
 	var bounds: Rect2 = _camera_bounds
 	if bounds_node != null:
-		var b: Variant = bounds_node.get("bounds")
+		var b: Variant = bounds_node.bounds
 		if b is Rect2:
 			bounds = b
 
@@ -388,7 +388,7 @@ func _apply_camera_bounds() -> void:
 
 func _get_camera_target_x() -> float:
 	if NetworkSession.is_steam_match_active() and _local_player != null:
-		return (_local_player.global_position.x + _get_map_center_x()) * GameSettings.HALF
+		return (_local_player.global_position.x + _get_map_center_x()) * 0.5
 
 	if NetworkSession.is_training():
 		return _local_player.global_position.x
@@ -396,7 +396,7 @@ func _get_camera_target_x() -> float:
 	if not _has_player_two():
 		return _player_1.global_position.x
 
-	return (_player_1.global_position.x + _player_2.global_position.x) * GameSettings.HALF
+	return (_player_1.global_position.x + _player_2.global_position.x) * 0.5
 
 
 func _get_camera_target_zoom() -> float:
@@ -425,7 +425,7 @@ func _get_vertical_safe_zoom() -> float:
 
 
 func _get_map_center_x() -> float:
-	return _camera_bounds.position.x + _camera_bounds.size.x * GameSettings.HALF
+	return _camera_bounds.position.x + _camera_bounds.size.x * 0.5
 
 
 func _connect_offline_health() -> void:
@@ -447,7 +447,7 @@ func _on_offline_health_depleted(slot: int) -> void:
 		return
 
 	var source_slot: int = GameSettings.PLAYER_TWO_SLOT if slot == GameSettings.PLAYER_ONE_SLOT else GameSettings.PLAYER_ONE_SLOT
-	_offline_score[source_slot] = _offline_score.get(source_slot, 0) + 1
+	_offline_score[source_slot] = _offline_score[source_slot] + 1
 	point_awarded.emit(source_slot)
 
 	if _offline_score[source_slot] >= GameSettings.MATCH_WINS_NEEDED:

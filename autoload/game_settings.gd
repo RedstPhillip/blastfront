@@ -3,8 +3,6 @@ extends RefCounted
 
 const PLAYER_ONE_SLOT: int = 1
 const PLAYER_TWO_SLOT: int = 2
-const HALF: float = 0.5
-const MILLISECONDS_PER_SECOND: float = 1000.0
 
 const GAME_WORLD_GROUP: StringName = &"game_world"
 const PLAYERS_GROUP: StringName = &"players"
@@ -221,8 +219,6 @@ const AIRDROP_SPAWN_GROUP: StringName = &"airdrop_spawn"
 const PLAYER_BLOCK_FEEDBACK_SHAKE_STRENGTH: float = 1.0
 const PLAYER_BLOCK_FEEDBACK_SHAKE_TIME: float = 0.065
 
-const PLAYER_BLUE_LIMB_COLOR: Color = Color8(80, 170, 255, 255)
-const PLAYER_RED_LIMB_COLOR: Color = Color8(235, 80, 80, 255)
 const DEFAULT_LIMB_COLOR: Color = Color8(238, 130, 238, 255)
 
 const LEG_UPPER_LENGTH: float = 9.75

@@ -55,12 +55,12 @@ static func adjust_velocity_for_ground(
 	if hit.is_empty():
 		return current_velocity
 
-	var normal_variant: Variant = hit.get("normal", Vector2.UP)
+	var normal_variant: Variant = hit["normal"]
 	var ground_normal: Vector2 = normal_variant as Vector2
 	if ground_normal.y > FLOOR_NORMAL_THRESHOLD:
 		return current_velocity
 
-	var hit_position_variant: Variant = hit.get("position", position + Vector2.DOWN * detection_depth)
+	var hit_position_variant: Variant = hit["position"]
 	var ground_position: Vector2 = hit_position_variant as Vector2
 	var target_y: float = ground_position.y - hover_height
 	var height_error: float = target_y - position.y
@@ -103,11 +103,11 @@ static func _find_ground_hit(
 		var hit: Dictionary = space_state.intersect_ray(query)
 		if hit.is_empty():
 			continue
-		var normal_variant: Variant = hit.get("normal", Vector2.UP)
+		var normal_variant: Variant = hit["normal"]
 		var ground_normal: Vector2 = normal_variant as Vector2
 		if ground_normal.y > FLOOR_NORMAL_THRESHOLD:
 			continue
-		var hit_position_variant: Variant = hit.get("position", ray_end)
+		var hit_position_variant: Variant = hit["position"]
 		var ground_position: Vector2 = hit_position_variant as Vector2
 		var hover_error: float = absf((ground_position.y - hover_height) - position.y)
 		if best_hit.is_empty() or hover_error < best_error:

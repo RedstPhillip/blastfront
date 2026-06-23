@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://bjlewoy0yf1if"]
 
 [ext_resource type="Script" uid="uid://c4q3tmes2wit2" path="res://scenes/projectiles/projectile.gd" id="1_kj3dy"]
-[ext_resource type="Texture2D" path="res://assets/particles/square_particle.png" id="2_square"]
+[ext_resource type="Texture2D" uid="uid://c377r8j7ybnqu" path="res://assets/particles/square_particle.png" id="2_square"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_4bqyh"]
 radius = 2.5
@@ -17,13 +17,11 @@ script = ExtResource("1_kj3dy")
 
 [node name="Trail" type="CPUParticles2D" parent="." unique_id=310244080]
 z_index = -1
-emitting = true
 amount = 14
 texture = ExtResource("2_square")
 lifetime = 0.12
 randomness = 0.34
 lifetime_randomness = 0.25
-local_coords = false
 direction = Vector2(-1, 0)
 spread = 14.0
 gravity = Vector2(0, 95)
@@ -41,7 +39,7 @@ shape = SubResource("CircleShape2D_4bqyh")
 [node name="Outline" type="Polygon2D" parent="." unique_id=322871202]
 material = SubResource("CanvasItemMaterial_vd2qy")
 color = Color(0.012, 0.014, 0.012, 0.98)
-polygon = PackedVector2Array(11.5, 0, -2.0, -4.4, -7.2, 0, -2.0, 4.4)
+polygon = PackedVector2Array(11.5, 0, -2, -4.4, -7.2, 0, -2, 4.4)
 
 [node name="Polygon2D" type="Polygon2D" parent="." unique_id=1386071066]
 material = SubResource("CanvasItemMaterial_vd2qy")
