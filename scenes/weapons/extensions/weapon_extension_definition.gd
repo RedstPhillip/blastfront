@@ -20,8 +20,6 @@ const SLOT_FRONT: StringName = &"front"
 @export var mk2_attribute_modifiers: Dictionary = {}
 @export var mk3_attribute_modifiers: Dictionary = {}
 @export var projectile_tags: Array[String] = []
-@export var mk2_projectile_tags: Array[String] = []
-@export var mk3_projectile_tags: Array[String] = []
 @export var projectile_effects: Dictionary = {}
 @export var mk2_projectile_effects: Dictionary = {}
 @export var mk3_projectile_effects: Dictionary = {}
@@ -109,14 +107,7 @@ func get_attribute_modifiers_for_mark(item_mark: int) -> Dictionary:
 	return attribute_modifiers
 
 
-func get_projectile_tags_for_mark(item_mark: int) -> Array[String]:
-	match clampi(item_mark, 1, GameSettings.EXTENSION_MAX_MARK):
-		2:
-			if not mk2_projectile_tags.is_empty():
-				return mk2_projectile_tags
-		3:
-			if not mk3_projectile_tags.is_empty():
-				return mk3_projectile_tags
+func get_projectile_tags_for_mark(_item_mark: int) -> Array[String]:
 	return projectile_tags
 
 

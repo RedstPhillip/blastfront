@@ -16,23 +16,8 @@ func set_armor_item(item: ArmorItemData) -> bool:
 	if item == null:
 		return false
 
-	if item.visual_scene != null:
-		_ensure_visual_root()
-		_visual_instance = item.visual_scene.instantiate()
-		_visual_root.add_child(_visual_instance)
-		call_deferred("_fit_visual")
-		return true
-
-	var texture: Texture2D = item.preview_texture
-	if texture == null:
-		texture = item.icon
-	if texture == null:
-		return false
-
 	_ensure_visual_root()
-	var sprite: Sprite2D = Sprite2D.new()
-	sprite.texture = texture
-	_visual_instance = sprite
+	_visual_instance = item.visual_scene.instantiate()
 	_visual_root.add_child(_visual_instance)
 	call_deferred("_fit_visual")
 	return true

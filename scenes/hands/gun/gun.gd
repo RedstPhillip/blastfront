@@ -219,12 +219,7 @@ func _build_shot_directions(base_direction: Vector2) -> Array[Vector2]:
 
 
 func _fire_projectile(direction: Vector2, muzzle_position: Vector2, projectile_data: Dictionary) -> void:
-	var world: Variant = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)
-	if world == null and _player != null:
-		world = _player.get_parent()
-	if world == null:
-		return
-
+	var world: Game = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)
 	world.request_shot(_player, muzzle_position, direction, projectile_data)
 
 

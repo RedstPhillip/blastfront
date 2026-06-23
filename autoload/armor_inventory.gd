@@ -102,10 +102,6 @@ func get_scaled_attributes() -> Dictionary:
 	return loadout.get_scaled_attributes()
 
 
-func get_effect_modifiers() -> Array[Dictionary]:
-	return loadout.get_effect_modifiers()
-
-
 func register_item(item: ArmorItemData) -> void:
 	if item == null or not item.is_valid_category():
 		return

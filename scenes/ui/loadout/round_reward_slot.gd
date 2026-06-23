@@ -222,10 +222,8 @@ func _create_icon_texture(base_color: Color) -> Texture2D:
 	return texture
 
 
-func _get_armor_fallback_texture(armor_item: ArmorItemData) -> Texture2D:
-	if armor_item.icon != null:
-		return armor_item.icon
-	return _create_icon_texture(armor_item.get_condition_color())
+func _get_armor_fallback_texture(_armor_item: ArmorItemData) -> Texture2D:
+	return _create_icon_texture(_armor_item.get_condition_color())
 
 
 func _clear_button_chrome() -> void:

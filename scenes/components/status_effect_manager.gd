@@ -1,4 +1,4 @@
-﻿class_name StatusEffectManager
+class_name StatusEffectManager
 extends Node
 
 signal effect_added(effect_name: StringName)
@@ -10,8 +10,7 @@ var _active_effects: Dictionary = {}
 func apply_effect(name: StringName, params: Dictionary) -> void:
 	var adjusted_params: Dictionary = params
 	var player: Player = get_parent() as Player
-	if player != null:
-		adjusted_params = player.adjust_status_effect_data(name, params)
+	adjusted_params = player.adjust_status_effect_data(name, params)
 
 	var duration: float = float(adjusted_params.get("duration", 0.0))
 	if duration <= 0.0:
@@ -51,10 +50,7 @@ func has_effect(name: StringName) -> bool:
 
 
 func get_active_effect_names() -> Array[StringName]:
-	var names: Array[StringName] = []
-	for key in _active_effects.keys():
-		names.append(key as StringName)
-	return names
+	return _active_effects.keys()
 
 
 func get_active_count() -> int:
@@ -155,10 +151,8 @@ func _tick_instance(instance: Dictionary) -> void:
 func _notify_damage_dealt(source_slot: int, applied_damage: int) -> void:
 	if applied_damage <= 0:
 		return
-	var tree: SceneTree = get_tree()
-	if tree == null:
-		return
-	for node in tree.get_nodes_in_group(GameSettings.PLAYERS_GROUP):
+	
+	for node in get_tree().get_nodes_in_group(GameSettings.PLAYERS_GROUP):
 		var player: Player = node as Player
 		if player != null and player.player_slot == source_slot:
 			player.note_damage_dealt(applied_damage)

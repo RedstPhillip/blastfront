@@ -52,12 +52,3 @@ func get_scaled_attributes() -> Dictionary:
 			else:
 				totals[key] = value
 	return totals
-
-
-func get_effect_modifiers() -> Array[Dictionary]:
-	var modifiers: Array[Dictionary] = []
-	for category_id in ArmorItemData.category_ids():
-		var item: ArmorItemData = get_equipped_item(category_id)
-		if item != null:
-			modifiers.append_array(item.get_effect_modifiers())
-	return modifiers

@@ -13,12 +13,8 @@ const MAX_MARK: int = 3
 	set(value):
 		condition = ItemCondition.clamp_value(value)
 @export_range(0.0, 1.0, 0.01) var minimum_condition_scale: float = 0.25
-@export var rarity: StringName = &""
-@export var icon: Texture2D = null
-@export var preview_texture: Texture2D = null
 @export var visual_scene: PackedScene = null
 @export var attributes: Dictionary = {}
-@export var effects: Array[ArmorEffectData] = []
 @export_multiline var description: String = ""
 @export var metadata: Dictionary = {}
 
@@ -75,15 +71,6 @@ func get_scaled_attributes() -> Dictionary:
 		else:
 			scaled_attributes[key] = value
 	return scaled_attributes
-
-
-func get_effect_modifiers() -> Array[Dictionary]:
-	var modifiers: Array[Dictionary] = []
-	var scale: float = get_condition_scale()
-	for effect in effects:
-		if effect != null:
-			modifiers.append(effect.to_modifier(scale))
-	return modifiers
 
 
 func get_hover_title() -> String:

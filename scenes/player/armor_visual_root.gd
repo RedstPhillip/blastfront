@@ -75,18 +75,6 @@ func _apply_item_to_anchor(anchor: Node2D, item: ArmorItemData) -> void:
 		anchor.add_child(visual)
 		return
 
-	var texture: Texture2D = item.preview_texture
-	if texture == null:
-		texture = item.icon
-	if texture == null:
-		return
-
-	var sprite: Sprite2D = Sprite2D.new()
-	sprite.texture = texture
-	sprite.modulate = item.get_condition_color()
-	sprite.scale = Vector2(0.08, 0.08)
-	anchor.add_child(sprite)
-
 
 func _apply_boots(item: ArmorItemData) -> void:
 	_equipped_boots = item
@@ -110,19 +98,6 @@ func _add_boot_visual(node_name: String) -> void:
 
 	if _equipped_boots.visual_scene != null:
 		foot_anchor.add_child(_equipped_boots.visual_scene.instantiate())
-		return
-
-	var texture: Texture2D = _equipped_boots.preview_texture
-	if texture == null:
-		texture = _equipped_boots.icon
-	if texture == null:
-		return
-
-	var sprite: Sprite2D = Sprite2D.new()
-	sprite.texture = texture
-	sprite.modulate = _equipped_boots.get_condition_color()
-	sprite.scale = Vector2(0.04, 0.04)
-	foot_anchor.add_child(sprite)
 
 
 func _update_boot_positions() -> void:

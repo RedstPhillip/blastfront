@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="ArmorItemData" load_steps=3 format=3]
+﻿[gd_resource type="Resource" script_class="ArmorItemData" load_steps=3 format=3]
 
 [ext_resource type="Script" uid="uid://njb7kuuotflf" path="res://scenes/items/armor/armor_item_data.gd" id="1_armor"]
 [ext_resource type="PackedScene" path="res://scenes/items/armor/visuals/training_shield_visual.tscn" id="2_visual"]
@@ -10,7 +10,6 @@ display_name = "Training Shield"
 category = &"shield"
 condition = 91.0
 minimum_condition_scale = 0.25
-rarity = &"common"
 visual_scene = ExtResource("2_visual")
 attributes = {
 "block_strength": 16.0
