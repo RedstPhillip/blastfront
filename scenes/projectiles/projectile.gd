@@ -171,25 +171,25 @@ func _apply_projectile_visual_style() -> void:
 	var outline: Polygon2D = get_node_or_null("Outline") as Polygon2D
 	var trail: CPUParticles2D = get_node_or_null("Trail") as CPUParticles2D
 
-	var body_points: Variant = style["body_points"]
+	var body_points: Variant = style.get("body_points", null)
 	if body != null:
-		body.color = style["body_color"]
+		body.color = style.get("body_color", body.color)
 		if body_points is PackedVector2Array:
 			body.polygon = body_points
 
-	var outline_points: Variant = style["outline_points"]
+	var outline_points: Variant = style.get("outline_points", null)
 	if outline != null:
-		outline.color = style["outline_color"]
+		outline.color = style.get("outline_color", outline.color)
 		if outline_points is PackedVector2Array:
 			outline.polygon = outline_points
 
 	if trail != null:
-		trail.color = style["trail_color"]
-		trail.amount = int(style["trail_amount"])
-		trail.lifetime = float(style["trail_lifetime"])
-		trail.spread = float(style["trail_spread"])
-		trail.scale_amount_min = float(style["trail_scale_min"])
-		trail.scale_amount_max = float(style["trail_scale_max"])
+		trail.color = style.get("trail_color", trail.color)
+		trail.amount = int(style.get("trail_amount", trail.amount))
+		trail.lifetime = float(style.get("trail_lifetime", trail.lifetime))
+		trail.spread = float(style.get("trail_spread", trail.spread))
+		trail.scale_amount_min = float(style.get("trail_scale_min", trail.scale_amount_min))
+		trail.scale_amount_max = float(style.get("trail_scale_max", trail.scale_amount_max))
 
 
 func _get_projectile_visual_style() -> Dictionary:
@@ -468,13 +468,19 @@ func _make_projectile_style(
 
 
 func _get_drill_wall_passes() -> int:
-	var drill: Dictionary = extension_effects.get("drill", {})
-	return maxi(0, int(roundf(float(drill.get("wall_passes", 1.0)))))
+	var drill_variant: Variant = extension_effects.get("drill", {})
+	if drill_variant is Dictionary:
+		var drill_effect: Dictionary = drill_variant
+		return maxi(0, int(roundf(float(drill_effect.get("wall_passes", 1.0)))))
+	return 1
 
 
 func _get_bouncy_bounces() -> int:
-	var bouncy: Dictionary = extension_effects.get("bouncy", {})
-	return maxi(1, int(roundf(float(bouncy.get("bounces", 1.0)))))
+	var bouncy_variant: Variant = extension_effects.get("bouncy", {})
+	if bouncy_variant is Dictionary:
+		var bouncy_effect: Dictionary = bouncy_variant
+		return maxi(1, int(roundf(float(bouncy_effect.get("bounces", 1.0)))))
+	return 1
 
 
 func _should_drill_through_collision(collider: Object) -> bool:
@@ -527,6 +533,8 @@ func _is_overlapping_world_obstacle() -> bool:
 	return not get_world_2d().direct_space_state.intersect_shape(query, 1).is_empty()
 
 
+
+
 func _update_drill_visual(delta: float) -> void:
 	if _drill_visual_timer > 0.0:
 		_drill_visual_timer = maxf(_drill_visual_timer - delta, 0.0)
@@ -553,7 +561,7 @@ func _note_source_damage_dealt(applied_damage: int) -> void:
 		return
 	for node in get_tree().get_nodes_in_group(GameSettings.PLAYERS_GROUP):
 		var player: Player = node as Player
-		if player != null and player.player_slot == owner_slot:
+		if player.player_slot == owner_slot:
 			player.note_damage_dealt(applied_damage)
 			return
 

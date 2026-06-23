@@ -1,7 +1,7 @@
 extends State
 
 func physics_update(delta: float) -> void:
-	var direction: float = player.apply_horizontal_movement(
+	player.apply_horizontal_movement(
 		delta,
 		player.air_speed,
 		player.air_acceleration,
@@ -22,5 +22,5 @@ func physics_update(delta: float) -> void:
 		state_machine.change_state("FallState")
 		return
 
-	if player.update_grounded():
+	if player.is_grounded():
 		state_machine.change_state("RunState")

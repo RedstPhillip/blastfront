@@ -2,24 +2,17 @@ class_name ExplosiveEffect
 extends ExtensionEffect
 
 
-func apply(target: Player, effect_data: Dictionary, projectile: Node = null) -> void:
-	if target == null and projectile == null:
-		return
-
-	var origin: Vector2 = target.global_position if target != null else Vector2.ZERO
-	var projectile_node: Node2D = projectile as Node2D
-	if projectile_node != null:
-		origin = projectile_node.global_position
-
+func apply(target: Player, effect_data: Dictionary, projectile: Projectile) -> void:
+	var origin: Vector2 = projectile.global_position
 	var radius: float = float(effect_data.get("radius", 80.0))
 	var splash_damage: int = int(effect_data.get("splash_damage", effect_data.get("damage_per_hit", 0)))
 	if splash_damage <= 0:
 		splash_damage = int(effect_data.get("damage", GameSettings.PROJECTILE_DAMAGE))
 
-	var tree: SceneTree = target.get_tree() if target != null else projectile.get_tree()
+	var tree: SceneTree = projectile.get_tree()
 	if tree == null:
 		return
-	var owner_slot: int = int(projectile.owner_slot) if projectile != null else 0
+	var owner_slot: int = projectile.owner_slot
 
 	var players: Array[Node] = tree.get_nodes_in_group(GameSettings.PLAYERS_GROUP)
 	for node in players:

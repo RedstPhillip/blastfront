@@ -21,7 +21,7 @@ const AMMO_BULLET_ICON_SCENE: PackedScene = preload("res://scenes/ui/ammo_bullet
 
 var _player: Player = null
 var _health: HealthComponent = null
-var _gun: Variant = null
+var _gun: Gun = null
 var _block_fill_style: StyleBoxFlat = null
 var _health_fill_style: StyleBoxFlat = null
 var _last_health: int = -1

@@ -112,7 +112,7 @@ func _clamp_to_reach(hip: Vector2, foot: Vector2, max_dist: float) -> Vector2:
 
 
 func _get_wall_dir() -> float:
-	if not _p.is_on_wall() or _p.update_grounded() or _p.velocity.y < wall_min_y_velocity:
+	if not _p.is_on_wall() or _p.is_grounded() or _p.velocity.y < wall_min_y_velocity:
 		return 0.0
 	var wall_normal_x: float = _p.get_wall_normal().x
 	return -signf(wall_normal_x) if absf(wall_normal_x) > 0.0 else 0.0

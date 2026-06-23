@@ -20,5 +20,5 @@ func physics_update(delta: float) -> void:
 		state_machine.change_state("WallState")
 		return
 
-	if player.update_grounded():
+	if player.is_grounded():
 		state_machine.change_state("RunState")

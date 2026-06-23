@@ -137,7 +137,7 @@ var _frosty_aura_timer: float = 0.0
 @onready var _armor_visual_root: ArmorVisualRoot = $ArmorVisualRoot
 @onready var _leg_renderer: Node = $LegRenderer
 @onready var _arm_renderer: Node = $ArmRenderer
-@onready var _gun: Variant = $Gun
+@onready var _gun: Gun = $Gun
 @onready var _ray_l: RayCast2D = $RayL
 @onready var _ray_r: RayCast2D = $RayR
 @onready var _state_machine: StateMachine = $State
@@ -158,15 +158,12 @@ func _ready() -> void:
 	_network_aim_world_position = global_position + Vector2.LEFT * GameSettings.PLAYER_REMOTE_AIM_DISTANCE
 	_apply_control_mode()
 	_apply_player_palette()
-	_last_feedback_grounded = update_grounded()
+	_last_feedback_grounded = is_grounded()
 	_last_feedback_velocity_y = velocity.y
 	status_effect_manager.effect_added.connect(_on_status_effect_added)
-	if not health_component.health_changed.is_connected(_on_health_changed):
-		health_component.health_changed.connect(_on_health_changed)
-	if not health_component.health_depleted.is_connected(_on_health_depleted):
-		health_component.health_depleted.connect(_on_health_depleted)
-	if not ArmorInventory.player_loadout_changed.is_connected(_on_armor_loadout_changed):
-		ArmorInventory.player_loadout_changed.connect(_on_armor_loadout_changed)
+	health_component.health_changed.connect(_on_health_changed)
+	health_component.health_depleted.connect(_on_health_depleted)
+	ArmorInventory.player_loadout_changed.connect(_on_armor_loadout_changed)
 	_refresh_armor_visuals()
 	_refresh_armor_stats()
 
@@ -294,9 +291,8 @@ func _capture_base_stats() -> void:
 
 
 func _refresh_armor_stats() -> void:
-	var loadout: ArmorLoadout = null
 	var effective_slot: int = _get_effective_armor_player_slot()
-	loadout = ArmorInventory.get_loadout_for_player(effective_slot)
+	var loadout: ArmorLoadout = ArmorInventory.get_loadout_for_player(effective_slot)
 
 	_armor_attributes = {}
 	if loadout != null:
@@ -426,7 +422,7 @@ func is_eliminated() -> bool:
 	return _is_eliminated
 
 
-func get_gun() -> Variant:
+func get_gun() -> Gun:
 	return _gun
 
 
@@ -469,7 +465,7 @@ func set_eliminated(eliminated: bool) -> void:
 		if status_effect_manager != null:
 			status_effect_manager.clear_all()
 		_initialize_feet()
-		_last_feedback_grounded = update_grounded()
+		_last_feedback_grounded = is_grounded()
 		_last_feedback_velocity_y = velocity.y
 
 
@@ -647,7 +643,7 @@ func _physics_process_remote(delta: float) -> void:
 	update_visual_movement(delta)
 
 
-func update_grounded() -> bool:
+func is_grounded() -> bool:
 	if is_on_floor():
 		return true
 	if velocity.y < 0.0:
@@ -721,7 +717,7 @@ func apply_horizontal_movement(delta: float, max_speed: float, acceleration: flo
 func _get_dynamic_armor_speed_bonus(direction: float) -> float:
 	var bonus: float = 0.0
 	if health_component != null:
-		var health_ratio: float = float(health_component.health) / maxf(float(health_component.max_health), 1.0)
+		var health_ratio: float = float(health_component.health) / float(health_component.max_health)
 		var missing_ratio: float = clampf(1.0 - health_ratio, 0.0, 1.0)
 		bonus += _get_armor_attribute(&"escape_speed_bonus") * missing_ratio
 
@@ -743,19 +739,14 @@ func _is_moving_towards_opponent(direction: float) -> bool:
 
 
 func _get_nearest_opponent() -> Player:
-	var nearest: Player = null
-	var nearest_distance_sq: float = INF
 	for node in get_tree().get_nodes_in_group(GameSettings.PLAYERS_GROUP):
 		var other: Player = node as Player
 		if other == null or other == self or other.is_eliminated():
 			continue
 		if other.player_slot == player_slot:
 			continue
-		var distance_sq: float = global_position.distance_squared_to(other.global_position)
-		if distance_sq < nearest_distance_sq:
-			nearest = other
-			nearest_distance_sq = distance_sq
-	return nearest
+		return other
+	return null
 
 
 func get_status_speed_multiplier() -> float:
@@ -778,7 +769,7 @@ func apply_better_jump_gravity(delta: float) -> void:
 
 
 func maintain_hover_height(delta: float) -> void:
-	if not update_grounded():
+	if not is_grounded():
 		return
 
 	var floor_y: float = global_position.y + hover_dist
@@ -795,7 +786,7 @@ func maintain_hover_height(delta: float) -> void:
 
 func update_visual_movement(delta: float) -> void:
 	var speed_ratio: float = clampf(absf(velocity.x) / maxf(speed, 1.0), 0.0, 1.0)
-	var grounded: bool = update_grounded()
+	var grounded: bool = is_grounded()
 	_update_surface_feedback(delta, grounded, speed_ratio)
 	if grounded:
 		var look: float = velocity.x * look_ahead
@@ -950,7 +941,7 @@ func _update_movement_timers(delta: float) -> void:
 	else:
 		_jump_buffer_timer = maxf(_jump_buffer_timer - delta, 0.0)
 
-	if update_grounded():
+	if is_grounded():
 		_coyote_timer = coyote_time
 	else:
 		_coyote_timer = maxf(_coyote_timer - delta, 0.0)
@@ -969,8 +960,7 @@ func _update_block_timers(delta: float) -> void:
 	if _block_active:
 		if control_mode == GameSettings.CONTROL_REMOTE:
 			return
-		if control_mode == GameSettings.CONTROL_LOCAL:
-			_refresh_block_direction()
+		_refresh_block_direction()
 		_block_timer = maxf(_block_timer - delta, 0.0)
 		if _block_timer <= 0.0:
 			_end_block()
@@ -1425,7 +1415,7 @@ func _update_research_healing(delta: float) -> void:
 		_passive_heal_progress = 0.0
 		return
 	var target_health: int = int(floor(float(health_component.max_health) * healing_cap_ratio))
-	var is_standing: bool = update_grounded() and absf(velocity.x) < 8.0 and absf(velocity.y) < 8.0
+	var is_standing: bool = is_grounded() and absf(velocity.x) < 8.0 and absf(velocity.y) < 8.0
 	if not is_standing or health_component.health >= target_health:
 		_passive_heal_progress = 0.0
 		return
@@ -1456,18 +1446,16 @@ func _run_delayed_damage(amount: int, duration: float, source_slot: int, source_
 
 
 func _get_armor_attribute(attribute_name: StringName) -> float:
-	return float(_armor_attributes.get(attribute_name, 0.0))
+	return _armor_attributes.get(attribute_name)
 
 
 func _is_stationary_for_armor() -> bool:
-	return update_grounded() and absf(velocity.x) < 8.0 and absf(velocity.y) < 8.0
+	return is_grounded() and absf(velocity.x) < 8.0 and absf(velocity.y) < 8.0
 
 
 func _notify_player_damage_dealt(source_slot: int, applied_damage: int) -> void:
-	if applied_damage <= 0:
-		return
 	for node in get_tree().get_nodes_in_group(GameSettings.PLAYERS_GROUP):
 		var player_node: Player = node as Player
-		if player_node != null and player_node.player_slot == source_slot:
+		if player_node.player_slot == source_slot:
 			player_node.note_damage_dealt(applied_damage)
 			return

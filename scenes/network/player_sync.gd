@@ -79,7 +79,7 @@ func _build_player_snapshot(player: Player) -> Dictionary:
 		"aim": player.get_aim_world_position(),
 		"facing": player.last_dir,
 	}
-	var gun: Variant = player.get_gun()
+	var gun: Gun = player.get_gun()
 	if gun != null:
 		snapshot["ammo"] = gun.get_current_ammo()
 		snapshot["reloading"] = gun.is_reloading()

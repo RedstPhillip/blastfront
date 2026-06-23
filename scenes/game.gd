@@ -125,7 +125,7 @@ func build_authoritative_shot(owner_slot: int) -> Dictionary:
 	if player == null:
 		return {}
 
-	var gun: Variant = player.get_gun()
+	var gun: Gun = player.get_gun()
 	if gun == null:
 		return {}
 
