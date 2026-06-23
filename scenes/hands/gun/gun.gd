@@ -219,7 +219,8 @@ func _build_shot_directions(base_direction: Vector2) -> Array[Vector2]:
 
 
 func _fire_projectile(direction: Vector2, muzzle_position: Vector2, projectile_data: Dictionary) -> void:
-	var world: Game = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)
+	var world: Node2D = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)
+	
 	if world == null:
 		return
 
