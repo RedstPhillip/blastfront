@@ -1,4 +1,4 @@
-extends CharacterBody2D
+﻿extends CharacterBody2D
 class_name Projectile
 
 signal despawn_requested(projectile: Node, reason: StringName, collider)
@@ -81,7 +81,6 @@ func _ready() -> void:
 	_update_rotation()
 
 
-# Behaviors modify velocity first; gravity, damping and collision run afterward.
 func _physics_process(delta: float) -> void:
 	ExtensionBehaviorRegistry.update_projectile_behaviors(self, delta)
 
@@ -123,7 +122,6 @@ func _update_rotation() -> void:
 		rotation = velocity.angle()
 
 
-# Resolve blocking first, then bounces, then damage and impact effects.
 func _on_collision(collision: KinematicCollision2D) -> void:
 	var collider: Object = collision.get_collider()
 	if _is_blocked_by_player(collider):
@@ -165,7 +163,6 @@ func _on_collision(collision: KinematicCollision2D) -> void:
 	_request_despawn(&"collision", collider)
 
 
-# Duplicate collision shapes before scaling so scene instances never share mutations.
 func _apply_projectile_scale() -> void:
 	var safe_scale: float = maxf(projectile_scale, 0.1)
 	var collision_shape: CollisionShape2D = get_node_or_null("CollisionShape2D") as CollisionShape2D
@@ -594,7 +591,6 @@ func _is_blocked_by_player(collider: Object) -> bool:
 	return player.is_blocking_projectile(global_position, velocity)
 
 
-# Only authority announces despawns; every peer still frees its local node.
 func _request_despawn(reason: StringName, collider: Object) -> void:
 	if _despawn_requested:
 		return

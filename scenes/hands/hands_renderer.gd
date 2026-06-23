@@ -1,4 +1,4 @@
-extends Node2D
+﻿extends Node2D
 class_name HandsRenderer
 
 @export var upper_len: float = GameSettings.ARM_UPPER_LENGTH
@@ -86,7 +86,6 @@ func _draw() -> void:
 	_draw_arm(_guard_shoulder, _guard_elbow, _guard_hand)
 
 
-# Both arms use two-bone IK; the guard hand interpolates to avoid block snapping.
 func _update_pose(delta: float) -> void:
 	if _p == null or _gun == null:
 		if _shield != null:
@@ -178,7 +177,6 @@ func _draw_bezier(p0: Vector2, p1: Vector2, p2: Vector2) -> void:
 	draw_polyline(pts, col_arm, line_w, true)
 
 
-# Solve the elbow from two segment lengths and an explicit bend direction.
 func _two_bone_ik(shoulder: Vector2, hand: Vector2, l1: float, l2: float, side: float) -> Vector2:
 	var d: float = clampf(
 		shoulder.distance_to(hand),

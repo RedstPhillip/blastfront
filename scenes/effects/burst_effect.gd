@@ -1,4 +1,4 @@
-extends Node2D
+﻿extends Node2D
 
 @onready var _particles: CPUParticles2D = $Particles
 @onready var _specks: CPUParticles2D = $Specks
@@ -27,7 +27,6 @@ func _ready() -> void:
 	queue_free()
 
 
-# One reusable scene selects particle, flash and specialty visuals by effect kind.
 func _apply_settings() -> void:
 	_reset_flash_nodes()
 	match _kind:
@@ -127,7 +126,6 @@ func _reset_flash_nodes() -> void:
 	_shape_nodes.clear()
 
 
-# Flash and ring tweens share timing so the impact reads as one burst.
 func _play_flash_ring(color: Color, start_radius: float, end_radius: float, duration: float, core_radius: float, core_alpha: float) -> void:
 	if _ring == null or _core_flash == null:
 		return
@@ -187,7 +185,6 @@ func _spawn_iceflakes(count: int) -> void:
 		tween.tween_property(flake, "modulate:a", 0.0, 0.42).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 
 
-# Generate electric arcs procedurally instead of maintaining dedicated textures.
 func _spawn_electric_arcs(count: int) -> void:
 	var arc_count: int = maxi(1, int(roundf(float(count) * GameJuice.particles_multiplier)))
 	for arc_index in range(arc_count):

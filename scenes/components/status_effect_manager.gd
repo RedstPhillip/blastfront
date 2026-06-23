@@ -1,4 +1,4 @@
-class_name StatusEffectManager
+﻿class_name StatusEffectManager
 extends Node
 
 signal effect_added(effect_name: StringName)
@@ -101,7 +101,6 @@ func get_slow_multiplier() -> float:
 	return result
 
 
-# Multiple instances of one effect stack and expire on independent timers.
 func _process(delta: float) -> void:
 	var expired: Array[StringName] = []
 
@@ -134,7 +133,6 @@ func _process(delta: float) -> void:
 		effect_removed.emit(effect_name)
 
 
-# Tick effects delegate health and stun behavior to the owning Player components.
 func _tick_instance(instance: Dictionary) -> void:
 	var player: Player = get_parent() as Player
 	if player == null:

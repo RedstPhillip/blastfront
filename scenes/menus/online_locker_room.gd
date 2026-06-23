@@ -1,4 +1,4 @@
-extends Node2D
+﻿extends Node2D
 
 const PROJECTILE_SCENE: PackedScene = preload("res://scenes/projectiles/projectile.tscn")
 const LOCKER_PROJECTILE_COLLISION_MASK: int = 1
@@ -234,7 +234,6 @@ func _on_locker_projectile_despawn_requested(_projectile: Node, reason: StringNa
 		OnlineMatch.set_local_locker_ready(not is_ready)
 
 
-# Send transient pose only; OnlineMatch synchronizes color and readiness.
 func _send_locker_snapshot() -> void:
 	if _local_player == null:
 		return

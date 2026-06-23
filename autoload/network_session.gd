@@ -1,4 +1,4 @@
-extends Node
+﻿extends Node
 
 signal status_changed(message: String)
 signal lobby_ready
@@ -24,7 +24,6 @@ func _ready() -> void:
 	_check_command_line_invite()
 
 
-# Steam P2P separates control, snapshots and reliable gameplay events by channel.
 func _process(_delta: float) -> void:
 	if not _can_use_steam() or lobby_id == 0:
 		return
@@ -55,7 +54,6 @@ func start_training() -> void:
 	_set_status("Sandbox mode")
 
 
-# Lobby membership is established before direct gameplay packets are accepted.
 func host_invite_round(open_overlay_when_ready: bool = false) -> void:
 	if not _can_use_steam():
 		_set_status(SteamService.get_status_text())
@@ -100,7 +98,6 @@ func join_invited_round(target_lobby_id: int) -> void:
 	Steam.joinLobby(target_lobby_id)
 
 
-# Tear down lobby and direct P2P state so later sessions start cleanly.
 func leave_round() -> void:
 	var had_lobby: bool = lobby_id != 0 or remote_steam_id != 0 or _match_active
 	if _can_use_steam():
@@ -289,7 +286,6 @@ func _refresh_lobby_members() -> void:
 			remote_steam_id = member_id
 
 
-# The control handshake confirms the peer identity before activating the match.
 func _send_handshake() -> void:
 	if remote_steam_id == 0:
 		return
@@ -320,7 +316,6 @@ func _make_control_packet(packet_type: StringName, payload: Dictionary) -> Dicti
 	}
 
 
-# Drain a bounded packet batch so networking cannot monopolize a frame.
 func _read_p2p_packets(channel: int) -> void:
 	if channel == GameSettings.NETWORK_CHANNEL_STATE:
 		_read_coalesced_state_packets(channel)
@@ -348,8 +343,6 @@ func _read_p2p_packets(channel: int) -> void:
 		_handle_packet(sender_id, packet_dictionary)
 
 
-# State packets are sent frequently and supersede older state from the same peer.
-# Coalescing them keeps a network backlog from turning into visible input lag.
 func _read_coalesced_state_packets(channel: int) -> void:
 	var packets_read: int = 0
 	var latest_packets: Dictionary = {}
@@ -383,7 +376,6 @@ func _read_coalesced_state_packets(channel: int) -> void:
 		_handle_packet(int(packet_data.get("sender_id", 0)), packet_data.get("packet", {}))
 
 
-# Session control stays here; validated gameplay packets are forwarded to consumers.
 func _handle_packet(sender_id: int, packet: Dictionary) -> void:
 	if int(packet.get("protocol_version", GameSettings.NETWORK_PROTOCOL_VERSION)) != GameSettings.NETWORK_PROTOCOL_VERSION:
 		return
