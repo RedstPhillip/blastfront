@@ -21,9 +21,6 @@ func get_packet_types() -> Array[StringName]:
 
 
 func request_shot(owner_slot: int, spawn_position: Vector2, direction: Vector2, projectile_data: Dictionary) -> void:
-	if game_sync == null or not game_sync.is_network_active():
-		_spawn_projectile(0, owner_slot, spawn_position, direction, projectile_data, true)
-		return
 
 	if game_sync.is_host():
 		_spawn_authoritative_projectile_for_owner(owner_slot, spawn_position, direction, projectile_data)
@@ -86,18 +83,21 @@ func apply_snapshot(data: Dictionary) -> void:
 
 func _spawn_authoritative_projectile_for_owner(
 	owner_slot: int,
-	fallback_spawn_position: Vector2 = Vector2.ZERO,
-	fallback_direction: Vector2 = Vector2.LEFT,
-	fallback_projectile_data: Dictionary = {}
+	spawn_position: Vector2,
+	direction: Vector2,
+	projectile_data: Dictionary
 ) -> void:
 	var shot_data: Dictionary = _build_authoritative_shot(owner_slot)
-	var spawn_position: Vector2 = fallback_spawn_position
-	var direction: Vector2 = fallback_direction
 	var directions: Array[Vector2] = []
 	var fire_interval: float = 0.0
-	var projectile_data: Dictionary = fallback_projectile_data
 
 	if not shot_data.is_empty():
+		var sanitized_pose: Dictionary = _sanitize_requested_shot_pose(
+			owner_slot,
+			spawn_position,
+			direction
+		)
+
 		var spawn_position_variant: Variant = shot_data.get("spawn_position", spawn_position)
 		if spawn_position_variant is Vector2:
 			spawn_position = spawn_position_variant
@@ -125,11 +125,6 @@ func _spawn_authoritative_projectile_for_owner(
 		if fire_interval_variant is float or fire_interval_variant is int:
 			fire_interval = maxf(float(fire_interval_variant), 0.0)
 
-		var sanitized_pose: Dictionary = _sanitize_requested_shot_pose(
-			owner_slot,
-			fallback_spawn_position,
-			fallback_direction
-		)
 		if not sanitized_pose.is_empty():
 			var requested_spawn: Variant = sanitized_pose.get("spawn_position", spawn_position)
 			var requested_direction: Variant = sanitized_pose.get("direction", direction)
@@ -211,9 +206,6 @@ func _get_vector2(data: Dictionary, key: String, fallback: Vector2) -> Vector2:
 
 
 func _build_authoritative_shot(owner_slot: int) -> Dictionary:
-	if game == null:
-		return {}
-
 	var shot_data_variant: Variant = game.build_authoritative_shot(owner_slot)
 	if shot_data_variant is Dictionary:
 		return shot_data_variant

@@ -1,4 +1,4 @@
-﻿extends Node2D
+extends Node2D
 class_name Game
 
 signal point_awarded(winner_slot: int)

@@ -1,4 +1,4 @@
-﻿extends Node
+extends Node
 
 signal inventory_changed
 signal loadout_changed
