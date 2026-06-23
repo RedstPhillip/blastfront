@@ -1,4 +1,4 @@
-extends Node
+﻿extends Node
 
 signal inventory_changed
 signal loadout_changed
@@ -290,7 +290,6 @@ func _load_items_from_dir(path: String) -> void:
 	if dir == null:
 		return
 
-	# Armor definitions are discovered recursively so content can be organized in subfolders.
 	dir.list_dir_begin()
 	var file_name: String = dir.get_next()
 	while not file_name.is_empty():

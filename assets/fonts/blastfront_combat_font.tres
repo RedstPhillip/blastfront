@@ -1,4 +1,4 @@
-[gd_resource type="SystemFont" format=3]
+[gd_resource type="SystemFont" format=3 uid="uid://sasakc2d6dk8"]
 
 [resource]
 font_names = PackedStringArray("Impact", "Haettenschweiler", "Arial Black")

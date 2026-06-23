@@ -1,4 +1,4 @@
-extends Node2D
+﻿extends Node2D
 class_name Gun
 
 const PROJECTILE_SCENE: PackedScene = preload("res://scenes/projectiles/projectile.tscn")
@@ -68,7 +68,6 @@ func _update_laser_sight() -> void:
 		_laser_core.points = trajectory
 
 
-# Simulate the projectile arc and stop the preview at the first physics hit.
 func _build_laser_trajectory(world_start: Vector2, direction: Vector2) -> PackedVector2Array:
 	var points: PackedVector2Array = PackedVector2Array([Vector2.ZERO])
 	var speed: float = _get_modified_float(&"projectile_speed", projectile_speed, 1.0)
@@ -165,7 +164,6 @@ func _reset_ammo() -> void:
 	_reload_timer = 0.0
 
 
-# Aim, recoil, reload and firing update together to keep visuals and gameplay aligned.
 func _physics_process(delta: float) -> void:
 	if _player == null:
 		return
@@ -208,7 +206,6 @@ func _shoot() -> void:
 	_fire_projectile(base_direction, muzzle_position, projectile_data)
 
 
-# Multi-shot spread distributes projectiles evenly around the aim direction.
 func _build_shot_directions(base_direction: Vector2) -> Array[Vector2]:
 	var directions: Array[Vector2] = []
 	var shots: int = maxi(1, int(roundf(1.0 + _get_extension_attribute(&"shots_per_fire"))))
@@ -225,7 +222,6 @@ func _build_shot_directions(base_direction: Vector2) -> Array[Vector2]:
 	return directions
 
 
-# The game-world request API provides one entry point for online and offline shots.
 func _fire_projectile(direction: Vector2, muzzle_position: Vector2, projectile_data: Dictionary) -> void:
 	var world: Variant = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)
 	if world == null and _player != null:
@@ -340,7 +336,6 @@ func _update_visual_transform() -> void:
 	_visual_root.scale.y = (-1.0 if _pointing_right else 1.0) * (1.0 - _recoil_offset * 0.004)
 
 
-# Base weapon values and equipped extensions become an immutable shot payload.
 func _build_projectile_data(direction: Vector2) -> Dictionary:
 	var muzzle_speed: float = _get_modified_float(&"projectile_speed", projectile_speed, 1.0)
 	var gravity: float = projectile_gravity + _get_extension_attribute(&"projectile_gravity")
@@ -433,7 +428,6 @@ func _on_extension_loadout_changed(player_slot: int) -> void:
 		_refresh_extension_loadout()
 
 
-# Refresh cached stats and socket visuals whenever this player's loadout changes.
 func _refresh_extension_loadout() -> void:
 	if _player == null:
 		return

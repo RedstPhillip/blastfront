@@ -1,4 +1,4 @@
-extends Node2D
+﻿extends Node2D
 class_name Game
 
 signal point_awarded(winner_slot: int)
@@ -84,7 +84,6 @@ func spawn_projectile(projectile: Node2D, spawn_position: Vector2) -> void:
 	projectile.global_position = spawn_position
 
 
-# Offline shots spawn immediately; online shots go through the authoritative sync module.
 func request_shot(owner: Node, spawn_position: Vector2, direction: Vector2, projectile_data: Dictionary) -> void:
 	if NetworkSession.is_steam_match_active() and not OnlineMatch.is_playing_set():
 		return
@@ -148,7 +147,6 @@ func build_authoritative_shot(owner_slot: int) -> Dictionary:
 	}
 
 
-# Every mode reuses the same Player scene and assigns only its control role here.
 func _configure_offline_players() -> void:
 	_local_player = _player_1
 	_configure_local_player(
@@ -388,7 +386,6 @@ func _apply_camera_bounds() -> void:
 	_camera.limit_bottom = int(bounds.position.y + bounds.size.y)
 
 
-# Online framing follows the local player; local matches keep both competitors visible.
 func _get_camera_target_x() -> float:
 	if NetworkSession.is_steam_match_active() and _local_player != null:
 		return (_local_player.global_position.x + _get_map_center_x()) * GameSettings.HALF
@@ -437,7 +434,6 @@ func _connect_offline_health() -> void:
 		_player_2.health_component.health_depleted.connect(_on_offline_health_depleted.bind(2))
 
 
-# Offline rounds resolve locally; OnlineMatch owns scoring for network games.
 func _on_offline_health_depleted(slot: int) -> void:
 	if _offline_match_over:
 		return
@@ -506,7 +502,6 @@ func _on_online_state_changed() -> void:
 	_apply_online_player_colors()
 
 
-# Synchronized phase changes drive every online round reset.
 func _prepare_online_round() -> void:
 	_clear_projectiles()
 	_heal_players()

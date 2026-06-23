@@ -1,4 +1,4 @@
-extends Node
+﻿extends Node
 
 signal inventory_changed(player_slot: int)
 signal loadout_changed(player_slot: int)
@@ -94,7 +94,6 @@ func add_item_for_player(player_slot: int, item: WeaponExtensionItem) -> bool:
 	return true
 
 
-# Apply wear once per item even if a future loadout exposes it through several slots.
 func apply_condition_wear_for_local(amount: float) -> void:
 	if amount <= 0.0:
 		return
@@ -273,7 +272,6 @@ func try_merge_items_for_local(first_item: WeaponExtensionItem, second_item: Wea
 	return try_merge_items_for_player(get_local_player_slot(), first_item, second_item)
 
 
-# Merging consumes equal items, preserves the better parts of their condition and promotes the resulting mark.
 func try_merge_items_for_player(player_slot: int, first_item: WeaponExtensionItem, second_item: WeaponExtensionItem) -> WeaponExtensionItem:
 	if not _is_player_slot(player_slot) or not can_merge_items(first_item, second_item):
 		return null
@@ -306,7 +304,6 @@ func try_merge_items_for_player(player_slot: int, first_item: WeaponExtensionIte
 	return merged_item
 
 
-# Equipped definitions fold into one stat payload consumed by the gun.
 func build_effective_stats_for_player(player_slot: int) -> Dictionary:
 	_ensure_player_state(player_slot)
 
@@ -347,7 +344,6 @@ func serialize_loadout_for_player(player_slot: int) -> Dictionary:
 	return result
 
 
-# Network loadouts use stable definition IDs instead of synchronizing Resources.
 func apply_loadout_data_for_player(player_slot: int, loadout_data: Dictionary) -> void:
 	_ensure_player_state(player_slot)
 
@@ -492,7 +488,6 @@ func _merge_effects(target: Dictionary, incoming_variant: Variant) -> void:
 		target[raw_key] = _merge_effect_value(target.get(raw_key, null), incoming[raw_key])
 
 
-# Nested effects merge recursively; numbers stack and arrays keep unique entries.
 func _merge_effect_value(existing_value: Variant, incoming_value: Variant) -> Variant:
 	if existing_value == null:
 		if incoming_value is Dictionary:
@@ -539,7 +534,6 @@ func _apply_online_match_loadouts() -> void:
 	apply_online_loadouts(OnlineMatch.get_extension_loadouts())
 
 
-# Suppress echoes during remote updates and publish only the local player's loadout.
 func _publish_local_loadout_if_needed(player_slot: int) -> void:
 	if _is_applying_online_state:
 		return
