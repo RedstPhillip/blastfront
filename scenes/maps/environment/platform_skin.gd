@@ -1,14 +1,16 @@
 class_name PlatformSkin
 extends Node2D
 
-## Dresses every StaticBody2D polygon in the map: rock shader, silhouette outline, mossy top edges with
-## moonlit rim, wind-blown grass, flowers, hanging vines and the odd warm lantern. Grass, vines and lantern
-## bodies share one mesh (one draw call); every rock body shares one material so they batch.
+## Dresses every StaticBody2D polygon in the map: rock shader, silhouette outline, a topsoil band of even
+## depth under every walkable edge, mossy top edges with moonlit rim, wind-blown grass, flowers, hanging
+## vines and the odd warm lantern. Grass, vines and lantern bodies share one mesh (one draw call), the soil
+## of every platform shares another; every rock body shares one material so they batch.
 ## Place this node as the last child of the map root at the origin.
 
 const BODY_SHADER: Shader = preload("res://scenes/maps/environment/platform_body.gdshader")
 const GRASS_SHADER: Shader = preload("res://scenes/maps/environment/grass.gdshader")
 const LANTERN_GLOW_SHADER: Shader = preload("res://scenes/maps/environment/lantern_glow.gdshader")
+const SOIL_SHADER: Shader = preload("res://scenes/maps/environment/soil.gdshader")
 const NOISE_TEXTURE: Texture2D = preload("res://assets/fx/noise_fbm.png")
 const GLOW_TEXTURE: Texture2D = preload("res://assets/fx/glow.png")
 const SOFT_TEXTURE: Texture2D = preload("res://assets/fx/soft_circle.png")
@@ -29,6 +31,11 @@ const GEOMETRY_LIGHT_MASK: int = 1 | 4
 @export var rim_color: Color = Color(0.78, 0.95, 0.66, 0.85)
 @export var vine_color: Color = Color(0.13, 0.24, 0.16)
 @export var lantern_color: Color = Color(1.0, 0.7, 0.36)
+@export var soil_top_color: Color = Color(0.29, 0.47, 0.25)
+@export var soil_deep_color: Color = Color(0.13, 0.19, 0.12)
+@export var soil_fleck_color: Color = Color(0.42, 0.36, 0.24)
+@export var soil_depth: float = 9.0
+@export var soil_depth_variation: float = 3.5
 @export var grass_palette: Array[Color] = [
 	Color(0.24, 0.44, 0.22),
 	Color(0.33, 0.55, 0.27),
@@ -49,6 +56,8 @@ var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var _verts: PackedVector2Array = PackedVector2Array()
 var _colors: PackedColorArray = PackedColorArray()
 var _uvs: PackedVector2Array = PackedVector2Array()
+var _soil_verts: PackedVector2Array = PackedVector2Array()
+var _soil_uvs: PackedVector2Array = PackedVector2Array()
 
 
 func _ready() -> void:
@@ -96,6 +105,7 @@ func _build() -> void:
 			if polygon == null or polygon.polygon.size() < 3:
 				continue
 			_skin_polygon(polygon, decorations)
+	_commit_soil(decorations)
 	_commit_mesh(decorations)
 
 
@@ -122,6 +132,7 @@ func _skin_polygon(polygon: Polygon2D, decorations: Node2D) -> void:
 
 	var edges: Array[Dictionary] = _classify_edges(world_points)
 	for chain in _chains(edges, &"top"):
+		_add_soil_band(chain, world_points)
 		_decorate_top_chain(chain, decorations)
 		_maybe_add_lantern(chain, decorations)
 	for chain in _chains(edges, &"bottom"):
@@ -333,6 +344,111 @@ func _commit_mesh(decorations: Node2D) -> void:
 	instance.material = _grass_material
 	instance.light_mask = GEOMETRY_LIGHT_MASK
 	decorations.add_child(instance)
+
+
+## Soil under one walkable chain, built per segment so its depth is exact everywhere: each edge gets a
+## quad reaching straight into the rock, valleys split the overlap along the angle bisector, crests and the
+## two chain ends get a fan so the soil wraps over the corner. Pieces are clipped to the rock body and each
+## vertex stores how far below the surface it sits; the shader cuts the ragged lower edge from that.
+func _add_soil_band(chain: Array, body_points: PackedVector2Array) -> void:
+	var reach: float = soil_depth + soil_depth_variation + 9.0
+	var count: int = chain.size()
+	for index in range(count):
+		var edge: Dictionary = chain[index]
+		var a: Vector2 = edge["a"]
+		var b: Vector2 = edge["b"]
+		var inward: Vector2 = -(edge["normal"] as Vector2)
+		var quad: PackedVector2Array = PackedVector2Array([a, b, b + inward * reach, a + inward * reach])
+		if index > 0:
+			quad = _trim_valley(quad, chain[index - 1], edge, a, b)
+		if index < count - 1:
+			quad = _trim_valley(quad, edge, chain[index + 1], b, a)
+		_push_soil_piece(quad, body_points, a, inward, false)
+		if index < count - 1:
+			var next: Dictionary = chain[index + 1]
+			if ((next["b"] as Vector2) - b).dot(inward) > 0.01:
+				_push_soil_fan(b, inward, -(next["normal"] as Vector2), reach, body_points)
+	var first: Dictionary = chain[0]
+	var last: Dictionary = chain[count - 1]
+	var first_inward: Vector2 = -(first["normal"] as Vector2)
+	var last_inward: Vector2 = -(last["normal"] as Vector2)
+	var first_tangent: Vector2 = ((first["b"] as Vector2) - (first["a"] as Vector2)).normalized()
+	var last_tangent: Vector2 = ((last["b"] as Vector2) - (last["a"] as Vector2)).normalized()
+	_push_soil_fan(first["a"], -first_tangent, first_inward, reach, body_points)
+	_push_soil_fan(last["b"], last_inward, last_tangent, reach, body_points)
+
+
+## In a valley the quads of both edges overlap; keep only the part on this edge's side of the bisector.
+func _trim_valley(quad: PackedVector2Array, before: Dictionary, after: Dictionary, joint: Vector2, keep: Vector2) -> PackedVector2Array:
+	var before_inward: Vector2 = -(before["normal"] as Vector2)
+	var after_direction: Vector2 = (after["b"] as Vector2) - (after["a"] as Vector2)
+	if after_direction.dot(before_inward) >= -0.01:
+		return quad
+	var bisector: Vector2 = (before_inward - (after["normal"] as Vector2)).normalized()
+	var keep_side: float = signf(bisector.cross(keep - joint))
+	var result: PackedVector2Array = PackedVector2Array()
+	for index in range(quad.size()):
+		var current: Vector2 = quad[index]
+		var following: Vector2 = quad[(index + 1) % quad.size()]
+		var current_side: float = bisector.cross(current - joint) * keep_side
+		var following_side: float = bisector.cross(following - joint) * keep_side
+		if current_side >= 0.0:
+			result.append(current)
+		if (current_side >= 0.0) != (following_side >= 0.0):
+			result.append(current.lerp(following, current_side / (current_side - following_side)))
+	return result
+
+
+func _push_soil_fan(center: Vector2, from_direction: Vector2, to_direction: Vector2, reach: float, body_points: PackedVector2Array) -> void:
+	var sweep: float = from_direction.angle_to(to_direction)
+	var steps: int = maxi(1, ceili(absf(sweep) / deg_to_rad(12.0)))
+	for step in range(steps):
+		var start: Vector2 = from_direction.rotated(sweep * float(step) / float(steps))
+		var finish: Vector2 = from_direction.rotated(sweep * float(step + 1) / float(steps))
+		var wedge: PackedVector2Array = PackedVector2Array([center, center + start * reach, center + finish * reach])
+		_push_soil_piece(wedge, body_points, center, Vector2.ZERO, true)
+
+
+## Clips a convex piece to the rock body and appends its triangles. Depth below the surface is the
+## projection on the edge's inward normal for quads, the distance to the corner for fan wedges.
+func _push_soil_piece(piece: PackedVector2Array, body_points: PackedVector2Array, origin: Vector2, inward: Vector2, radial: bool) -> void:
+	if piece.size() < 3:
+		return
+	for clipped in Geometry2D.intersect_polygons(piece, body_points):
+		if clipped.size() < 3:
+			continue
+		var indices: PackedInt32Array = Geometry2D.triangulate_polygon(clipped)
+		for index in indices:
+			var point: Vector2 = clipped[index]
+			var depth: float = point.distance_to(origin) if radial else maxf((point - origin).dot(inward), 0.0)
+			_soil_verts.append(point)
+			_soil_uvs.append(Vector2(depth, 0.0))
+
+
+func _commit_soil(decorations: Node2D) -> void:
+	if _soil_verts.is_empty():
+		return
+	var arrays: Array = []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = _soil_verts
+	arrays[Mesh.ARRAY_TEX_UV] = _soil_uvs
+	var mesh: ArrayMesh = ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	var material: ShaderMaterial = ShaderMaterial.new()
+	material.shader = SOIL_SHADER
+	material.set_shader_parameter(&"noise_tex", NOISE_TEXTURE)
+	material.set_shader_parameter(&"top_color", soil_top_color)
+	material.set_shader_parameter(&"deep_color", soil_deep_color)
+	material.set_shader_parameter(&"fleck_color", soil_fleck_color)
+	material.set_shader_parameter(&"base_depth", soil_depth)
+	material.set_shader_parameter(&"depth_variation", soil_depth_variation)
+	var instance: MeshInstance2D = MeshInstance2D.new()
+	instance.name = "SoilMesh"
+	instance.mesh = mesh
+	instance.material = material
+	instance.light_mask = GEOMETRY_LIGHT_MASK
+	decorations.add_child(instance)
+	decorations.move_child(instance, 0)
 
 
 func _make_line(points: PackedVector2Array, color: Color, width: float) -> Line2D:
