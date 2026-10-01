@@ -16,6 +16,9 @@ const PLAYER_TWO_SPAWN: Vector2 = Vector2(1100.0, 480.0)
 const PLAYER_ONE_START_FACING: float = 1.0
 const PLAYER_TWO_START_FACING: float = -1.0
 const MATCH_WINS_NEEDED: int = 2
+const BOT_MATCH_WINS_NEEDED: int = 5
+const MATCH_INTRO_SECONDS: float = 2.6
+const ROUND_INTRO_SECONDS: float = 1.3
 const ONLINE_SET_KILLS_TO_WIN: int = 2
 const ONLINE_MATCH_SET_WINS_TO_WIN: int = 5
 const POINT_TRANSITION_SECONDS: float = 1.9
@@ -50,6 +53,7 @@ const CAMERA_MAX_ZOOM: float = 1.0
 const CAMERA_ONLINE_ZOOM: float = 0.86
 const CAMERA_DUEL_PADDING_X: float = 420.0
 const CAMERA_Y: float = 360.0
+const CAMERA_VERTICAL_FOLLOW: float = 0.22
 const DEFAULT_MAP_BOUNDS: Rect2 = Rect2(0.0, 0.0, 2262.0, 720.0)
 const DEFAULT_WORLD_SNAPSHOT_RATE: float = 8.0
 
@@ -64,6 +68,7 @@ const NETWORK_MODE_OFFLINE: StringName = &"offline"
 const NETWORK_MODE_HOST: StringName = &"host"
 const NETWORK_MODE_CLIENT: StringName = &"client"
 const NETWORK_MODE_TRAINING: StringName = &"training"
+const NETWORK_MODE_BOT: StringName = &"bot"
 const NETWORK_PROTOCOL_VERSION: int = 1
 const NETWORK_GAME_KEY: String = "blastfront"
 const NETWORK_GAME_VERSION: String = "1"
@@ -118,12 +123,15 @@ const PACKET_AIRDROP_STATE: StringName = &"airdrop_state"
 
 const CONTROL_LOCAL: StringName = &"local"
 const CONTROL_REMOTE: StringName = &"remote"
+const CONTROL_AI: StringName = &"ai"
 
 const INPUT_P1_MOVE_LEFT: StringName = &"p1_move_left"
 const INPUT_P1_MOVE_RIGHT: StringName = &"p1_move_right"
 const INPUT_P1_JUMP: StringName = &"p1_jump"
 const INPUT_P1_SHOOT: StringName = &"p1_shoot"
 const INPUT_P1_BLOCK: StringName = &"p1_block"
+const INPUT_P1_RELOAD: StringName = &"p1_reload"
+const INPUT_PAUSE: StringName = &"pause"
 const INPUT_P2_MOVE_LEFT: StringName = &"p2_move_left"
 const INPUT_P2_MOVE_RIGHT: StringName = &"p2_move_right"
 const INPUT_P2_JUMP: StringName = &"p2_jump"
@@ -201,6 +209,7 @@ const PLAYER_HEAVY_LAND_EFFECT_SPEED: float = 430.0
 
 const PLAYER_BLOCK_DURATION: float = 0.35
 const PLAYER_BLOCK_COOLDOWN: float = 1.15
+const PLAYER_BLOCK_BUFFER_TIME: float = 0.16
 const PLAYER_BLOCK_CONE_DEGREES: float = 128.0
 const PLAYER_BLOCK_REMOTE_COOLDOWN_RATIO: float = 1.0
 const PLAYER_HEALING_FIELD_DURATION: float = 2.0
@@ -253,6 +262,10 @@ const ARM_BLOCK_HAND_LERP_SPEED: float = 24.0
 const GUN_ORBIT_RADIUS: float = 30.0
 const GUN_AIM_ANGLE_OFFSET_DEGREES: float = 180.0
 const GUN_FIRE_INTERVAL: float = 0.5
+## A click this close before the gun is ready still fires the moment it is.
+const GUN_SHOT_BUFFER_TIME: float = 0.2
+## Right-stick aiming places the aim point this far from the player.
+const GAMEPAD_AIM_DISTANCE: float = 240.0
 const GUN_AUTOMATIC_FIRE: bool = false
 const GUN_PROJECTILE_SPEED: float = 1000.0
 const GUN_PROJECTILE_GRAVITY: float = 2600.0

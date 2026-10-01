@@ -1,4 +1,4 @@
-﻿extends Node
+extends Node
 
 signal status_changed(message: String)
 signal lobby_ready
@@ -52,6 +52,16 @@ func start_training() -> void:
 	_reset_equipment_progression()
 	_seed_training_extension_inventory()
 	_set_status("Sandbox mode")
+
+
+func start_bot_duel() -> void:
+	leave_round()
+	mode = GameSettings.NETWORK_MODE_BOT
+	local_player_slot = GameSettings.PLAYER_ONE_SLOT
+	remote_steam_id = 0
+	_match_active = false
+	_reset_equipment_progression()
+	_set_status("Versus bot")
 
 
 func host_invite_round(open_overlay_when_ready: bool = false) -> void:
@@ -125,6 +135,10 @@ func is_steam_match_active() -> bool:
 
 func is_training() -> bool:
 	return mode == GameSettings.NETWORK_MODE_TRAINING
+
+
+func is_bot_duel() -> bool:
+	return mode == GameSettings.NETWORK_MODE_BOT
 
 
 func is_host() -> bool:

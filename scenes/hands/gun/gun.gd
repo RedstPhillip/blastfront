@@ -18,6 +18,7 @@ const LASER_MUZZLE_OCCLUSION_EPSILON: float = 1.0
 
 var _aim_direction: Vector2 = Vector2.LEFT
 var _fire_cooldown: float = 0.0
+var _shot_buffer: float = 0.0
 var _recoil_offset: float = 0.0
 var _recoil_rotation: float = 0.0
 var _extension_stats: Dictionary = {}
@@ -26,6 +27,7 @@ var _has_laser_scope: bool = false
 var _current_ammo: int = 3
 var _is_reloading: bool = false
 var _reload_timer: float = 0.0
+var _last_remote_fire_msec: int = -100000
 
 @onready var _player: Player = get_parent() as Player
 @onready var _visual_root: Node2D = $VisualRoot
@@ -184,17 +186,29 @@ func _physics_process(delta: float) -> void:
 		if _reload_timer <= 0.0:
 			_finish_reload()
 
-	if _player.is_shoot_pressed() and _fire_cooldown <= 0.0 and _current_ammo > 0 and not _is_reloading:
+	var pressed: bool = _player.is_shoot_pressed()
+	if pressed:
+		_shot_buffer = GameSettings.GUN_SHOT_BUFFER_TIME
+	else:
+		_shot_buffer = maxf(_shot_buffer - delta, 0.0)
+	if _player.is_reload_pressed() and not _is_reloading and _current_ammo < _get_effective_max_ammo():
+		_start_reload()
+	var wants_fire: bool = _shot_buffer > 0.0 or _player.is_shoot_held()
+	if wants_fire and _fire_cooldown <= 0.0 and _current_ammo > 0 and not _is_reloading:
+		_shot_buffer = 0.0
 		_shoot()
 		_current_ammo -= 1
 		_fire_cooldown = _get_modified_fire_interval()
 		if _current_ammo <= 0:
 			_start_reload()
+	elif pressed and _is_reloading:
+		GameJuice.play_sound_2d(&"dry_fire", get_muzzle_global_position())
 
 func _shoot() -> void:
 	var base_direction: Vector2 = get_shot_direction()
 	var muzzle_position: Vector2 = get_projectile_spawn_position(base_direction)
-	ResearchQuestManager.record_local_action(ResearchQuestManager.EVENT_SHOT)
+	if _player.control_mode == GameSettings.CONTROL_LOCAL:
+		ResearchQuestManager.record_local_action(ResearchQuestManager.EVENT_SHOT)
 	_play_fire_feedback(base_direction, muzzle_position)
 
 	var projectile_data: Dictionary = _build_projectile_data(base_direction)
@@ -352,20 +366,31 @@ func _play_fire_feedback(direction: Vector2, muzzle_position: Vector2) -> void:
 	var recoil_side: float = -1.0 if _aim_direction.x > 0.0 else 1.0
 	var recoil_degrees: float = GameSettings.GUN_RECOIL_ROTATION_DEGREES + _get_extension_attribute(&"recoil_rotation_degrees")
 	_recoil_rotation = deg_to_rad(maxf(0.0, recoil_degrees)) * recoil_side
-	GameJuice.spawn_muzzle(muzzle_position, direction)
-	GameJuice.play_sound_2d(&"shoot", muzzle_position, -12.0, 0.06)
-	GameJuice.shake(GameSettings.GUN_FIRE_SHAKE_STRENGTH, GameSettings.GUN_FIRE_SHAKE_TIME)
+	var power: float = clampf(float(_get_modified_damage()) / float(GameSettings.PROJECTILE_DAMAGE), 0.75, 1.8)
+	GameJuice.spawn_muzzle(muzzle_position, direction, Color(1.0, 0.82, 0.38, 1.0), power)
+	AudioDirector.play_at(&"shoot", muzzle_position, 0.0, 1.0 / sqrt(power))
+	GameJuice.shake(GameSettings.GUN_FIRE_SHAKE_STRENGTH * power, GameSettings.GUN_FIRE_SHAKE_TIME)
+	GameJuice.kick(-direction, 3.5 * power)
+	var eject: Vector2 = Vector2(-direction.x, -0.6).normalized()
+	GameJuice.spawn_casing(global_position, eject)
 
 
 func _start_reload() -> void:
 	_is_reloading = true
 	_reload_timer = _get_effective_reload_time()
+	GameJuice.play_sound_2d(&"reload_start", global_position)
 
 
 func _finish_reload() -> void:
+	var was_reloading: bool = _is_reloading
 	_is_reloading = false
 	_reload_timer = 0.0
 	_current_ammo = _get_effective_max_ammo()
+	if was_reloading and is_inside_tree():
+		GameJuice.play_sound_2d(&"reload_end", global_position)
+		_recoil_rotation = deg_to_rad(-14.0) * (-1.0 if _aim_direction.x > 0.0 else 1.0)
+		if _player != null and _player.control_mode == GameSettings.CONTROL_LOCAL:
+			FxLib.glow_flash(self, Color(1.0, 0.86, 0.55, 0.7), 34.0, 0.16)
 
 
 func _get_effective_max_ammo() -> int:
@@ -374,6 +399,17 @@ func _get_effective_max_ammo() -> int:
 
 func _get_effective_reload_time() -> float:
 	return maxf(0.1, reload_time + _get_extension_attribute(&"reload_time"))
+
+
+func is_ready_to_fire() -> bool:
+	return _fire_cooldown <= 0.0 and _current_ammo > 0 and not _is_reloading
+
+
+func get_ballistics() -> Dictionary:
+	return {
+		"speed": _get_modified_float(&"projectile_speed", projectile_speed, 1.0),
+		"gravity": projectile_gravity + _get_extension_attribute(&"projectile_gravity"),
+	}
 
 
 func get_current_ammo() -> int:
@@ -399,8 +435,28 @@ func get_reload_ratio() -> float:
 	return clampf(1.0 - (_reload_timer / reload_duration), 0.0, 1.0)
 
 
+## Muzzle flash, sound and casing for shots fired by a networked opponent (no camera feedback).
+func play_remote_fire_feedback(direction: Vector2) -> void:
+	var now: int = Time.get_ticks_msec()
+	if now - _last_remote_fire_msec < 60:
+		return
+	_last_remote_fire_msec = now
+	var shot_direction: Vector2 = direction.normalized() if direction.length_squared() > 0.0001 else get_shot_direction()
+	_set_aim_direction(shot_direction)
+	_recoil_offset = GameSettings.GUN_RECOIL_DISTANCE
+	_recoil_rotation = deg_to_rad(GameSettings.GUN_RECOIL_ROTATION_DEGREES) * (-1.0 if shot_direction.x > 0.0 else 1.0)
+	var muzzle_position: Vector2 = get_muzzle_global_position()
+	GameJuice.spawn_muzzle(muzzle_position, shot_direction)
+	AudioDirector.play_at(&"shoot", muzzle_position)
+	GameJuice.spawn_casing(global_position, Vector2(-shot_direction.x, -0.6).normalized())
+
+
 func apply_remote_ammo_state(current_ammo: int, reloading: bool, reload_ratio: float) -> void:
 	_current_ammo = clampi(current_ammo, 0, _get_effective_max_ammo())
+	if reloading and not _is_reloading:
+		GameJuice.play_sound_2d(&"reload_start", global_position)
+	elif not reloading and _is_reloading:
+		GameJuice.play_sound_2d(&"reload_end", global_position)
 	_is_reloading = reloading
 	if _is_reloading:
 		_reload_timer = (1.0 - clampf(reload_ratio, 0.0, 1.0)) * _get_effective_reload_time()

@@ -11,6 +11,8 @@
 [ext_resource type="Script" uid="uid://ctmi6va1d1eo0" path="res://scenes/network/projectile_sync.gd" id="10_projectile_sync"]
 [ext_resource type="Script" uid="uid://dtl7l70mokqv2" path="res://scenes/network/combat_sync.gd" id="11_combat_sync"]
 [ext_resource type="Script" uid="uid://bhr5ms55p0gpf" path="res://scenes/network/block_sync.gd" id="12_block_sync"]
+[ext_resource type="Script" path="res://scenes/game_camera.gd" id="13_camera"]
+[ext_resource type="PackedScene" path="res://scenes/effects/screen_fx.tscn" id="14_screen_fx"]
 
 [node name="Game" type="Node2D" unique_id=679544362]
 script = ExtResource("1_ibkli")
@@ -41,7 +43,10 @@ script = ExtResource("11_combat_sync")
 [node name="BlockSync" type="Node" parent="GameSync" unique_id=1491433811]
 script = ExtResource("12_block_sync")
 
+[node name="ScreenFx" parent="." instance=ExtResource("14_screen_fx")]
+
 [node name="HUD" type="CanvasLayer" parent="." unique_id=597088379]
+layer = 10
 
 [node name="MatchOverlay" parent="HUD" unique_id=534016440 instance=ExtResource("6_overlay")]
 
@@ -51,3 +56,4 @@ visible = false
 [node name="MapBorder" parent="." unique_id=1943801248 instance=ExtResource("4_78awf")]
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=849909806]
+script = ExtResource("13_camera")

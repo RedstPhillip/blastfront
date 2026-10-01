@@ -1,10 +1,11 @@
 extends CharacterBody2D
 class_name Player
 
-const BLUE_BODY_TEXTURE: Texture2D = preload("res://assets/player/blue_ball.png")
-const BLUE_BODY_TEXTURE_MIRRORED: Texture2D = preload("res://assets/player/blue_ball_mirrored.png")
-const RED_BODY_TEXTURE: Texture2D = preload("res://assets/player/red_ball.png")
-const RED_BODY_TEXTURE_MIRRORED: Texture2D = preload("res://assets/player/red_ball_mirrored.png")
+const DEFAULT_BODY_TEXTURE: Texture2D = preload("res://assets/player/body/blue.png")
+const BODY_SHADER: Shader = preload("res://scenes/player/player_body.gdshader")
+const BODY_TEXTURE_PATH: String = "res://assets/player/body/%s.png"
+const LOW_HEALTH_RATIO: float = 0.3
+const WALL_SLIDE_FEEDBACK_INTERVAL: float = 0.09
 
 const HEALING_AREA_SEGMENTS: int = 72
 const HEALING_AREA_FILL_COLOR: Color = Color(0.0, 0.95, 0.38, 0.24)
@@ -56,6 +57,7 @@ var move_right_action: StringName = GameSettings.INPUT_P1_MOVE_RIGHT
 var jump_action: StringName = GameSettings.INPUT_P1_JUMP
 var shoot_action: StringName = GameSettings.INPUT_P1_SHOOT
 var block_action: StringName = GameSettings.INPUT_P1_BLOCK
+var reload_action: StringName = GameSettings.INPUT_P1_RELOAD
 var shooting_enabled: bool = true
 var movement_enabled: bool = true
 var player_color_id: StringName = &""
@@ -73,6 +75,7 @@ var _network_aim_world_position: Vector2 = Vector2.ZERO
 var _has_network_target: bool = false
 var _coyote_timer: float = 0.0
 var _jump_buffer_timer: float = 0.0
+var _block_buffer_timer: float = 0.0
 var _wall_coyote_timer: float = 0.0
 var _wall_coyote_dir: float = 0.0
 var _step_clock: float = 0.0
@@ -128,6 +131,11 @@ var _healing_field_has_position: bool = false
 var _healing_area_visual_radius: float = 0.0
 var _healing_area_visual_phase: float = 0.0
 var _frosty_aura_timer: float = 0.0
+var _face: PlayerFace = null
+var _halo: Sprite2D = null
+var _body_material: ShaderMaterial = null
+var _wall_slide_timer: float = 0.0
+var ai_brain: BotBrain = null
 
 @onready var _healing_area: Node2D = $HealingArea
 @onready var _healing_area_fill: Polygon2D = $HealingArea/Fill
@@ -152,6 +160,7 @@ func _ready() -> void:
 	_default_collision_layer = collision_layer
 	_default_collision_mask = collision_mask
 	_body_base_scale = _body_sprite.scale
+	_setup_visual_extras()
 	_update_ground_rays()
 	_initialize_feet()
 	_network_target_position = global_position
@@ -226,6 +235,23 @@ func configure_remote_control(slot: int) -> void:
 	_network_target_position = global_position
 	_network_target_velocity = Vector2.ZERO
 	_network_aim_world_position = global_position + Vector2.LEFT * GameSettings.PLAYER_REMOTE_AIM_DISTANCE
+	_has_network_target = false
+	_apply_control_mode()
+	_apply_player_palette()
+	_refresh_armor_visuals()
+	_refresh_armor_stats()
+
+
+func configure_ai_control(slot: int, bot_difficulty: int) -> void:
+	player_slot = slot
+	control_mode = GameSettings.CONTROL_AI
+	_can_shoot_when_controls_enabled = bot_difficulty != BotBrain.Difficulty.DUMMY
+	shooting_enabled = movement_enabled and _can_shoot_when_controls_enabled
+	if ai_brain == null:
+		ai_brain = BotBrain.new()
+		ai_brain.name = "BotBrain"
+		add_child(ai_brain)
+	ai_brain.setup(self, bot_difficulty)
 	_has_network_target = false
 	_apply_control_mode()
 	_apply_player_palette()
@@ -334,6 +360,8 @@ func get_visual_tint() -> Color:
 
 
 func note_damage_dealt(_amount: int = 0) -> void:
+	if ai_brain != null:
+		ai_brain.on_damage_dealt()
 	var duration: float = _get_armor_attribute(&"adrenaline_duration")
 	if duration > 0.0:
 		_adrenaline_timer = maxf(_adrenaline_timer, duration)
@@ -354,7 +382,18 @@ func apply_incoming_damage(
 		_run_delayed_damage(modified_damage, delay_duration, source_slot, source_position)
 		return 0
 
-	return apply_resolved_damage(modified_damage, source_position)
+	var applied: int = apply_resolved_damage(modified_damage, source_position)
+	_record_world_stat(source_slot, "hits", 1.0)
+	_record_world_stat(source_slot, "damage", float(applied))
+	return applied
+
+
+func _record_world_stat(slot: int, key: String, amount: float) -> void:
+	if slot <= 0 or amount <= 0.0 or not is_inside_tree():
+		return
+	var world: Node = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)
+	if world != null and world.has_method(&"record_stat"):
+		world.record_stat(slot, key, amount)
 
 
 func apply_resolved_damage(amount: int, source_position: Vector2 = Vector2.ZERO) -> int:
@@ -413,8 +452,8 @@ func try_reflect_projectile(projectile: Projectile) -> bool:
 	projectile.velocity = reflect_direction.normalized() * maxf(projectile.velocity.length(), projectile.muzzle_speed)
 	projectile.initial_velocity = projectile.velocity
 	projectile.global_position += reflect_direction.normalized() * maxf(8.0, projectile.projectile_scale * 8.0)
-	GameJuice.spawn_burst(&"block", projectile.global_position, reflect_direction, Color(0.96, 0.96, 1.0, 0.9))
-	GameJuice.play_sound_2d(&"block", projectile.global_position, 1.0, 0.04)
+	GameJuice.spawn_burst(&"reflect", projectile.global_position, reflect_direction, Color(0.96, 0.96, 1.0, 0.9))
+	GameJuice.play_sound_2d(&"reflect", projectile.global_position)
 	return true
 
 
@@ -509,6 +548,10 @@ func get_border_check_position() -> Vector2:
 
 
 func get_move_direction() -> float:
+	if control_mode == GameSettings.CONTROL_AI:
+		if ai_brain == null or not movement_enabled or _stun_timer > 0.0:
+			return 0.0
+		return clampf(ai_brain.move_direction, -1.0, 1.0)
 	if not _can_read_input(movement_enabled):
 		return 0.0
 	return clampf(Input.get_action_strength(move_right_action) - Input.get_action_strength(move_left_action), -1.0, 1.0)
@@ -530,10 +573,37 @@ func is_block_pressed() -> bool:
 	return _is_action_available(block_action, movement_enabled, true)
 
 
+## Held trigger keeps firing for local players; bots and remote players fire on discrete presses.
+func is_shoot_held() -> bool:
+	if control_mode != GameSettings.CONTROL_LOCAL:
+		return false
+	return _is_action_available(shoot_action, shooting_enabled, false)
+
+
+func is_reload_pressed() -> bool:
+	if control_mode != GameSettings.CONTROL_LOCAL or not InputMap.has_action(reload_action):
+		return false
+	return _is_action_available(reload_action, shooting_enabled, true)
+
+
 func _is_action_available(action: StringName, enabled: bool, just_pressed: bool) -> bool:
+	if control_mode == GameSettings.CONTROL_AI:
+		return _is_ai_action_active(action, enabled, just_pressed)
 	if not _can_read_input(enabled):
 		return false
 	return Input.is_action_just_pressed(action) if just_pressed else Input.is_action_pressed(action)
+
+
+func _is_ai_action_active(action: StringName, enabled: bool, just_pressed: bool) -> bool:
+	if ai_brain == null or not enabled or _stun_timer > 0.0:
+		return false
+	if action == jump_action:
+		return ai_brain.jump_pressed if just_pressed else ai_brain.jump_held
+	if action == shoot_action:
+		return ai_brain.shoot_pressed
+	if action == block_action:
+		return ai_brain.block_pressed
+	return false
 
 
 func _can_read_input(enabled: bool) -> bool:
@@ -577,8 +647,11 @@ func is_blocking_projectile(projectile_position: Vector2, projectile_velocity: V
 func apply_block_feedback(projectile_position: Vector2) -> void:
 	var block_direction: Vector2 = get_block_direction()
 	GameJuice.spawn_burst(&"block", projectile_position, block_direction, Color(0.72, 0.96, 1.0, 0.92))
-	GameJuice.play_sound_2d(&"block", projectile_position, -2.0, 0.055)
-	GameJuice.shake(GameSettings.PLAYER_BLOCK_FEEDBACK_SHAKE_STRENGTH, GameSettings.PLAYER_BLOCK_FEEDBACK_SHAKE_TIME)
+	GameJuice.play_sound_2d(&"block", projectile_position)
+	GameJuice.shake(GameSettings.PLAYER_BLOCK_FEEDBACK_SHAKE_STRENGTH * 2.0, GameSettings.PLAYER_BLOCK_FEEDBACK_SHAKE_TIME)
+	GameJuice.kick(-block_direction, 3.0)
+	_record_world_stat(player_slot, "blocks", 1.0)
+	_body_punch_scale = Vector2(0.9, 1.08)
 
 
 func apply_remote_block_state(active: bool, direction_variant: Variant = Vector2.ZERO, cooldown_ratio_variant: Variant = GameSettings.PLAYER_BLOCK_REMOTE_COOLDOWN_RATIO) -> void:
@@ -611,6 +684,10 @@ func apply_remote_block_state(active: bool, direction_variant: Variant = Vector2
 func get_aim_world_position() -> Vector2:
 	if control_mode == GameSettings.CONTROL_REMOTE:
 		return _network_aim_world_position
+	if control_mode == GameSettings.CONTROL_AI and ai_brain != null:
+		return ai_brain.aim_position
+	if InputDevice.using_gamepad and player_slot == GameSettings.PLAYER_ONE_SLOT:
+		return global_position + InputDevice.aim_direction * GameSettings.GAMEPAD_AIM_DISTANCE
 	return get_global_mouse_position()
 
 
@@ -875,6 +952,45 @@ func update_visual_movement(delta: float) -> void:
 		delta * GameSettings.PLAYER_VISUAL_ROTATION_LERP_SPEED
 	)
 	_update_body_sprite_direction()
+	_update_wall_slide_feedback(delta, grounded)
+
+
+func _update_wall_slide_feedback(delta: float, grounded: bool) -> void:
+	if grounded or not is_on_wall() or velocity.y < 30.0:
+		_wall_slide_timer = 0.0
+		return
+	_wall_slide_timer -= delta
+	if _wall_slide_timer > 0.0:
+		return
+	_wall_slide_timer = WALL_SLIDE_FEEDBACK_INTERVAL
+	var wall_normal: Vector2 = get_wall_normal()
+	var contact: Vector2 = global_position - wall_normal * 14.0 + Vector2(0.0, 6.0)
+	GameJuice.spawn_burst(&"wall_dust", contact, wall_normal, Color.WHITE)
+	GameJuice.play_sound_2d(&"wall_slide", contact)
+
+
+func _update_face() -> void:
+	if _face == null:
+		return
+	var look: Vector2 = Vector2(signf(last_dir) if last_dir != 0.0 else 1.0, 0.0) * 0.6
+	var aim: Vector2 = get_aim_world_position() - global_position
+	if aim.length_squared() > 16.0:
+		look = aim / maxf(aim.length(), 1.0) * clampf(aim.length() / 140.0, 0.45, 1.0)
+	if _block_active:
+		look = get_block_direction()
+	_face.look_target = look
+	var health_ratio: float = 1.0
+	if health_component != null:
+		health_ratio = float(health_component.health) / maxf(float(health_component.max_health), 1.0)
+	_face.set_sweating(health_ratio <= LOW_HEALTH_RATIO)
+
+
+func _is_local_view_player() -> bool:
+	if control_mode != GameSettings.CONTROL_LOCAL:
+		return false
+	if NetworkSession.is_steam_match_active():
+		return player_slot == NetworkSession.local_player_slot
+	return is_in_group(GameSettings.LOCAL_PLAYERS_GROUP)
 
 
 func apply_hit_feedback(source_position: Vector2, damage: int = GameSettings.PROJECTILE_DAMAGE) -> void:
@@ -885,18 +1001,26 @@ func apply_hit_feedback(source_position: Vector2, damage: int = GameSettings.PRO
 	var tint: Color = GameSettings.player_color_value(_get_effective_color_id())
 	var damage_ratio: float = clampf(float(damage) / maxf(float(GameSettings.PROJECTILE_DAMAGE), 1.0), 0.75, 1.8)
 
+	var heavy: bool = damage >= 40
 	_hit_flash_timer = GameSettings.PLAYER_HIT_FLASH_TIME
 	_hit_feedback_guard_timer = 0.09
-	_body_punch_scale = Vector2(1.18, 0.84)
+	_body_punch_scale = Vector2(1.24, 0.78) if heavy else Vector2(1.18, 0.84)
+	if _face != null:
+		_face.set_expression(PlayerFace.Mood.HURT, 0.38)
 
-	if control_mode == GameSettings.CONTROL_LOCAL and movement_enabled:
+	if control_mode != GameSettings.CONTROL_REMOTE and movement_enabled:
 		velocity.x += hit_direction.x * GameSettings.PLAYER_HIT_KNOCKBACK_X * damage_ratio
 		velocity.y -= GameSettings.PLAYER_HIT_KNOCKBACK_Y * damage_ratio
 
-	GameJuice.spawn_burst(&"hit", global_position, hit_direction, tint)
-	GameJuice.play_sound_2d(&"hit", global_position, 6.5, 0.08)
+	GameJuice.spawn_burst(&"hit_heavy" if heavy else &"hit", global_position, hit_direction, tint)
+	GameJuice.play_sound_2d(&"hit_heavy" if heavy else &"hit", global_position)
 	GameJuice.shake(GameSettings.PLAYER_HIT_SHAKE_STRENGTH * damage_ratio, GameSettings.PLAYER_HIT_SHAKE_TIME)
-	GameJuice.spawn_damage_number(global_position, damage, tint)
+	GameJuice.kick(hit_direction, 4.0 * damage_ratio)
+	GameJuice.spawn_damage_number(global_position, damage, tint, get_instance_id())
+	ImpactDecals.splatter_around(global_position, tint, 1 if not heavy else 2, 70.0)
+	if _is_local_view_player():
+		GameJuice.flash(Color(0.9, 0.05, 0.08, 1.0), 0.16 * damage_ratio, 0.22)
+		GameJuice.aberration(0.6 * damage_ratio, 0.22)
 
 
 func apply_stun(duration: float) -> void:
@@ -929,10 +1053,13 @@ func _spawn_status_feedback(effect_name: StringName, world_position: Vector2, di
 	match effect_name:
 		&"freeze":
 			GameJuice.spawn_burst(&"freeze", world_position, direction, Color(0.35, 0.78, 1.0, 0.86))
+			GameJuice.play_sound_2d(&"freeze", world_position)
 		&"shock":
 			GameJuice.spawn_burst(&"shock", world_position, direction, Color(1.0, 0.9, 0.22, 0.9))
+			GameJuice.play_sound_2d(&"shock", world_position)
 		&"poison":
-			GameJuice.spawn_burst(&"hit", world_position, direction, Color(0.42, 1.0, 0.42, 0.72))
+			GameJuice.spawn_burst(&"poison", world_position, direction, Color(0.42, 1.0, 0.42, 0.72))
+			GameJuice.play_sound_2d(&"poison", world_position)
 
 
 func _update_movement_timers(delta: float) -> void:
@@ -952,7 +1079,10 @@ func _update_block_input() -> void:
 		_refresh_block_direction()
 		return
 
-	if is_block_pressed() and _block_cooldown_timer <= 0.0:
+	if is_block_pressed():
+		_block_buffer_timer = GameSettings.PLAYER_BLOCK_BUFFER_TIME
+	if _block_buffer_timer > 0.0 and _block_cooldown_timer <= 0.0:
+		_block_buffer_timer = 0.0
 		_begin_block()
 
 
@@ -966,6 +1096,7 @@ func _update_block_timers(delta: float) -> void:
 			_end_block()
 	else:
 		_block_cooldown_timer = maxf(_block_cooldown_timer - delta, 0.0)
+	_block_buffer_timer = maxf(_block_buffer_timer - delta, 0.0)
 
 
 func _begin_block() -> void:
@@ -976,6 +1107,9 @@ func _begin_block() -> void:
 	_healing_field_has_position = false
 	if control_mode == GameSettings.CONTROL_LOCAL:
 		ResearchQuestManager.record_local_action(ResearchQuestManager.EVENT_BLOCK_ATTEMPT)
+	GameJuice.play_sound_2d(&"block_raise", global_position)
+	if _face != null:
+		_face.set_expression(PlayerFace.Mood.FOCUS, block_duration)
 	_apply_block_start_armor_effects()
 	_notify_block_state(true)
 
@@ -1213,6 +1347,8 @@ func _apply_player_palette() -> void:
 		_arm_renderer.col_arm = limb_color
 	if _shield != null:
 		_shield.self_modulate = limb_color
+	if _halo != null:
+		_halo.modulate = Color(limb_color.r, limb_color.g, limb_color.b, 0.2)
 	_update_body_sprite_direction()
 
 
@@ -1222,13 +1358,41 @@ func _update_body_sprite_direction() -> void:
 	var facing_dir: float = signf(last_dir)
 	if facing_dir == 0.0:
 		facing_dir = 1.0
-	var facing_left: bool = facing_dir < 0.0
 	var effective_color_id: StringName = _get_effective_color_id()
-	var next_texture: Texture2D = _get_body_texture(effective_color_id, facing_left)
+	var next_texture: Texture2D = _get_body_texture(effective_color_id)
 	if _body_sprite.texture != next_texture:
 		_body_sprite.texture = next_texture
-	_body_sprite.modulate = _get_body_sprite_base_modulate(effective_color_id, facing_left)
-	_body_sprite.flip_h = false
+	_body_sprite.modulate = _get_body_sprite_base_modulate(effective_color_id)
+	_body_sprite.flip_h = facing_dir < 0.0
+
+
+func _setup_visual_extras() -> void:
+	_body_material = ShaderMaterial.new()
+	_body_material.shader = BODY_SHADER
+	_body_sprite.material = _body_material
+	_face = PlayerFace.new()
+	_face.name = "Face"
+	_face.body_sprite = _body_sprite
+	_face.z_index = 3
+	add_child(_face)
+	var shadow: GroundShadow = GroundShadow.new()
+	shadow.name = "GroundShadow"
+	add_child(shadow)
+	_halo = Sprite2D.new()
+	_halo.name = "TeamHalo"
+	_halo.texture = FxLib.TEX_GLOW
+	_halo.material = FxLib.additive_material()
+	_halo.scale = Vector2(0.62, 0.62)
+	_halo.z_index = -1
+	_halo.show_behind_parent = true
+	add_child(_halo)
+	var block_fx: BlockShieldFx = BlockShieldFx.new()
+	block_fx.name = "BlockShieldFx"
+	add_child(block_fx)
+
+
+func get_face() -> PlayerFace:
+	return _face
 
 
 func _get_effective_color_id() -> StringName:
@@ -1239,22 +1403,19 @@ func _get_effective_color_id() -> StringName:
 	return GameSettings.ONLINE_DEFAULT_LOCAL_COLOR
 
 
-func _get_body_texture(color_id: StringName, facing_left: bool) -> Texture2D:
-	var texture_path: String = _get_body_texture_path(color_id, facing_left)
+func _get_body_texture(color_id: StringName) -> Texture2D:
+	var texture_path: String = _get_body_texture_path(color_id)
 	if _has_body_texture_path(texture_path):
 		if not _body_texture_cache.has(texture_path):
 			_body_texture_cache[texture_path] = load(texture_path)
 		var texture: Texture2D = _body_texture_cache[texture_path] as Texture2D
 		if texture != null:
 			return texture
-
-	if color_id == GameSettings.PLAYER_COLOR_RED:
-		return RED_BODY_TEXTURE_MIRRORED if facing_left else RED_BODY_TEXTURE
-	return BLUE_BODY_TEXTURE_MIRRORED if facing_left else BLUE_BODY_TEXTURE
+	return DEFAULT_BODY_TEXTURE
 
 
-func _has_body_texture(color_id: StringName, facing_left: bool) -> bool:
-	return _has_body_texture_path(_get_body_texture_path(color_id, facing_left))
+func _has_body_texture(color_id: StringName) -> bool:
+	return _has_body_texture_path(_get_body_texture_path(color_id))
 
 
 func _has_body_texture_path(texture_path: String) -> bool:
@@ -1263,16 +1424,17 @@ func _has_body_texture_path(texture_path: String) -> bool:
 	return bool(_body_texture_exists_cache[texture_path])
 
 
-func _get_body_texture_path(color_id: StringName, facing_left: bool) -> String:
-	var mirrored_suffix: String = "_mirrored" if facing_left else ""
-	return "res://assets/player/%s_ball%s.png" % [str(color_id), mirrored_suffix]
+func _get_body_texture_path(color_id: StringName) -> String:
+	return BODY_TEXTURE_PATH % str(color_id)
 
 
-func _get_body_sprite_base_modulate(color_id: StringName, facing_left: bool) -> Color:
-	return Color.WHITE if _has_body_texture(color_id, facing_left) else GameSettings.player_color_value(color_id)
+func _get_body_sprite_base_modulate(color_id: StringName) -> Color:
+	return Color.WHITE if _has_body_texture(color_id) else GameSettings.player_color_value(color_id)
 
 
 func _begin_step(is_left: bool, target: Vector2) -> void:
+	if absf(velocity.x) > GameSettings.PLAYER_VISUAL_SPEED_THRESHOLD:
+		GameJuice.play_sound_2d(&"step", target)
 	if is_left:
 		_step_from_l = foot_pos_l
 		_step_to_l = target
@@ -1289,11 +1451,11 @@ func _begin_step(is_left: bool, target: Vector2) -> void:
 
 func _emit_jump_feedback(direction: Vector2) -> void:
 	var dust_position: Vector2 = global_position + Vector2(0.0, hover_dist - 4.0)
-	_body_punch_scale = Vector2(0.82, 1.16)
+	_body_punch_scale = Vector2(0.78, 1.22)
 	if control_mode == GameSettings.CONTROL_LOCAL:
 		ResearchQuestManager.record_local_action(ResearchQuestManager.EVENT_JUMP)
 	GameJuice.spawn_burst(&"jump", dust_position, direction, Color(0.86, 0.78, 0.56, 0.65))
-	GameJuice.play_sound_2d(&"jump", global_position, 4.5, 0.07)
+	GameJuice.play_sound_2d(&"jump", global_position)
 
 
 func _update_surface_feedback(delta: float, grounded: bool, speed_ratio: float) -> void:
@@ -1305,10 +1467,11 @@ func _update_surface_feedback(delta: float, grounded: bool, speed_ratio: float) 
 				0.35,
 				1.35
 			)
-			_body_punch_scale = Vector2(1.12 + land_ratio * 0.07, 0.90 - land_ratio * 0.05)
-			GameJuice.spawn_burst(&"land", global_position + Vector2(0.0, hover_dist - 3.0), Vector2.UP, Color(0.78, 0.70, 0.54, 0.7))
-			GameJuice.play_sound_2d(&"land", global_position, 0.0 + land_ratio * 2.0, 0.05)
-			GameJuice.shake(0.75 * land_ratio, 0.055)
+			_body_punch_scale = Vector2(1.16 + land_ratio * 0.1, 0.86 - land_ratio * 0.08)
+			GameJuice.spawn_burst(&"land", global_position + Vector2(0.0, hover_dist - 3.0), Vector2.UP, Color(0.78, 0.70, 0.54, 0.7), land_ratio)
+			GameJuice.play_sound_2d(&"land_heavy" if land_ratio > 1.0 else &"land", global_position)
+			if _is_local_view_player():
+				GameJuice.shake(1.1 * land_ratio, 0.07)
 
 	if grounded and speed_ratio > 0.34 and absf(velocity.x) > GameSettings.PLAYER_VISUAL_SPEED_THRESHOLD:
 		_run_dust_timer -= delta
@@ -1317,9 +1480,6 @@ func _update_surface_feedback(delta: float, grounded: bool, speed_ratio: float) 
 			var move_direction: Vector2 = Vector2(signf(velocity.x), 0.0)
 			GameJuice.spawn_burst(&"run_dust", global_position + Vector2(0.0, hover_dist - 2.0), move_direction, Color(0.76, 0.68, 0.50, 0.5))
 			_run_dust_timer = GameSettings.PLAYER_RUN_DUST_INTERVAL
-		if _step_sound_timer <= 0.0:
-			GameJuice.play_sound_2d(&"step", global_position, -9.0 + speed_ratio * 3.0, 0.12)
-			_step_sound_timer = GameSettings.PLAYER_STEP_SOUND_INTERVAL
 	else:
 		_run_dust_timer = minf(_run_dust_timer, GameSettings.PLAYER_RUN_DUST_INTERVAL)
 		_step_sound_timer = minf(_step_sound_timer, GameSettings.PLAYER_STEP_SOUND_INTERVAL)
@@ -1359,23 +1519,19 @@ func _update_feedback_visuals(delta: float) -> void:
 		_body_base_scale.y * combined_scale.y
 	)
 
-	var facing_dir: float = signf(last_dir)
-	if facing_dir == 0.0:
-		facing_dir = 1.0
-	var facing_left: bool = facing_dir < 0.0
 	var color_id: StringName = _get_effective_color_id()
-	var base_modulate: Color = _get_body_sprite_base_modulate(color_id, facing_left)
-	if _hit_flash_timer > 0.0:
+	_body_sprite.modulate = _get_body_sprite_base_modulate(color_id)
+	if _body_material != null:
 		var hit_ratio: float = clampf(_hit_flash_timer / GameSettings.PLAYER_HIT_FLASH_TIME, 0.0, 1.0)
-		_body_sprite.modulate = base_modulate.lerp(Color(1.0, 0.94, 0.70, 1.0), hit_ratio)
-	else:
-		_body_sprite.modulate = base_modulate
-
-	if status_effect_manager != null and status_effect_manager.get_active_count() > 0:
-		var tint: Color = status_effect_manager.get_tint_color()
-		if tint != Color.WHITE:
-			var pulse: float = 0.35 + sin(Time.get_ticks_msec() * 0.008) * 0.12
-			_body_sprite.modulate = _body_sprite.modulate.lerp(tint, pulse)
+		_body_material.set_shader_parameter(&"flash", hit_ratio * hit_ratio)
+		var status_amount: float = 0.0
+		if status_effect_manager != null and status_effect_manager.get_active_count() > 0:
+			var tint: Color = status_effect_manager.get_tint_color()
+			if tint != Color.WHITE:
+				status_amount = 0.38 + sin(Time.get_ticks_msec() * 0.008) * 0.12
+				_body_material.set_shader_parameter(&"status_tint", tint)
+		_body_material.set_shader_parameter(&"status_amount", status_amount)
+	_update_face()
 
 
 func _on_health_changed(old_health: int, new_health: int) -> void:
@@ -1394,15 +1550,27 @@ func _on_health_depleted() -> void:
 		_hit_flash_timer = GameSettings.PLAYER_HIT_FLASH_TIME
 		_body_punch_scale = Vector2(1.22, 0.78)
 		GameJuice.spawn_burst(&"spawn", global_position, Vector2.UP, Color(1.0, 0.55, 0.12, 0.95))
-		GameJuice.play_sound_2d(&"spawn", global_position, 7.0, 0.04)
+		GameJuice.spawn_burst(&"explosion", global_position, Vector2.UP, Color(1.0, 0.55, 0.12, 0.95), 0.7)
+		GameJuice.play_sound_2d(&"phoenix", global_position)
 		GameJuice.shake(3.4, 0.14)
+		GameJuice.flash(Color(1.0, 0.6, 0.2, 1.0), 0.25, 0.3)
+		if _face != null:
+			_face.set_expression(PlayerFace.Mood.SHOCKED, 0.6)
 		return
 	var tint: Color = GameSettings.player_color_value(_get_effective_color_id())
 	_hit_flash_timer = GameSettings.PLAYER_HIT_FLASH_TIME
 	_body_punch_scale = Vector2(1.28, 0.72)
 	GameJuice.spawn_burst(&"death", global_position, Vector2.UP, tint)
-	GameJuice.play_sound_2d(&"death", global_position, 7.0, 0.06)
+	GameJuice.play_sound_2d(&"death", global_position)
 	GameJuice.shake(GameSettings.PLAYER_DEATH_SHAKE_STRENGTH, GameSettings.PLAYER_DEATH_SHAKE_TIME)
+	GameJuice.add_trauma(0.55)
+	GameJuice.zoom_punch(0.06)
+	GameJuice.flash(Color(1.0, 0.97, 0.9, 1.0), 0.32, 0.25)
+	GameJuice.shockwave(global_position, 1.4, 0.7)
+	GameJuice.aberration(1.4, 0.45)
+	GameJuice.hitstop(0.07, 0.05)
+	AudioDirector.duck_music(-10.0, 0.5, 1.4)
+	ImpactDecals.splatter_around(global_position, tint, 7, 150.0)
 	set_eliminated(true)
 
 
@@ -1438,6 +1606,9 @@ func _run_delayed_damage(amount: int, duration: float, source_slot: int, source_
 		var tick_damage: int = maxi(1, int(roundf(float(remaining_damage) / float(ticks_left))))
 		remaining_damage -= tick_damage
 		var applied_damage: int = apply_resolved_damage(tick_damage, source_position)
+		if tick_index == 0:
+			_record_world_stat(source_slot, "hits", 1.0)
+		_record_world_stat(source_slot, "damage", float(applied_damage))
 		if source_slot > 0 and applied_damage > 0:
 			ResearchManager.apply_local_life_steal(source_slot, applied_damage)
 			_notify_player_damage_dealt(source_slot, applied_damage)

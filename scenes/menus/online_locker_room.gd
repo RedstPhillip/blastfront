@@ -45,6 +45,8 @@ func _ready() -> void:
 	_remote_slot = NetworkSession.get_remote_slot()
 	_configure_players()
 	_style_locker_selection_visuals()
+	_apply_ui_style()
+	_show_help_for_newcomers()
 
 	_invite_button.pressed.connect(_on_invite_pressed)
 	_help_dismiss_button.pressed.connect(_on_help_dismiss_pressed)
@@ -54,6 +56,36 @@ func _ready() -> void:
 	NetworkSession.peer_changed.connect(_refresh)
 	NetworkSession.packet_received.connect(_on_packet_received)
 	_refresh()
+
+## The how-to card only greets the first couple of visits; regulars go straight to picking a colour.
+func _show_help_for_newcomers() -> void:
+	var seen: int = UserSettings.get_int(UserSettings.LOCKER_HELP_SEEN)
+	if seen >= 2:
+		_help_popup.hide()
+		return
+	UserSettings.set_value(UserSettings.LOCKER_HELP_SEEN, seen + 1)
+	_help_dismiss_button.grab_focus.call_deferred()
+
+
+func _apply_ui_style() -> void:
+	for label in [_player_one_name_label, _player_two_name_label]:
+		UiStyle.style_label(label, UiStyle.FONT_DISPLAY, 34, UiStyle.TEXT, 8)
+	UiStyle.style_label(_countdown_label, UiStyle.FONT_DISPLAY, 132, UiStyle.ACCENT, 14)
+	UiStyle.style_button(_invite_button, true, 22)
+	UiStyle.style_button(_help_dismiss_button, true, 20)
+	var help_panel: PanelContainer = _help_popup.get_node_or_null(^"Center/Panel") as PanelContainer
+	if help_panel != null:
+		help_panel.add_theme_stylebox_override("panel", UiStyle.with_shadow(UiStyle.with_margins(UiStyle.panel(UiStyle.PANEL_SOLID, UiStyle.LINE_STRONG, 6, 1), 34, 28), 24))
+		var title: Label = help_panel.get_node_or_null(^"VBox/TitleLabel") as Label
+		if title != null:
+			UiStyle.style_label(title, UiStyle.FONT_DISPLAY, 34, UiStyle.ACCENT)
+		var body: Label = help_panel.get_node_or_null(^"VBox/BodyLabel") as Label
+		if body != null:
+			UiStyle.style_label(body, UiStyle.FONT_BODY, 20, UiStyle.TEXT_DIM)
+	var dim: ColorRect = _help_popup.get_node_or_null(^"Dim") as ColorRect
+	if dim != null:
+		dim.color = Color(0.0, 0.02, 0.02, 0.6)
+
 
 func _process(delta: float) -> void:
 	_visual_time += delta

@@ -4,12 +4,12 @@
 [ext_resource type="Font" path="res://assets/fonts/blastfront_hud_font.tres" id="2_font"]
 
 [sub_resource type="StyleBoxFlat" id="Style_row"]
-bg_color = Color(0.055, 0.049, 0.04, 0.94)
+bg_color = Color(0.023, 0.04, 0.043, 0.94)
 border_width_left = 2
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.46, 0.38, 0.27, 0.72)
+border_color = Color(0.56, 0.78, 0.74, 0.5)
 corner_radius_top_left = 2
 corner_radius_top_right = 2
 corner_radius_bottom_right = 2
@@ -23,7 +23,7 @@ corner_radius_bottom_right = 1
 corner_radius_bottom_left = 1
 
 [sub_resource type="StyleBoxFlat" id="Style_bar_fill"]
-bg_color = Color(0.67, 0.43, 0.19, 1)
+bg_color = Color(0.86, 0.53, 0.14, 1)
 corner_radius_top_left = 1
 corner_radius_top_right = 1
 corner_radius_bottom_right = 1

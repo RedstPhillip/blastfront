@@ -19,9 +19,10 @@ func configure(line_color: Color, collision_mask: int) -> void:
 
 
 func set_warning(rect: Rect2, particle_amount: int) -> void:
+	# The BarrierField shader now visualises proximity; keep only the spark particles here.
 	_warning_line.position = rect.position
 	_warning_line.size = rect.size
-	_warning_line.show()
+	_warning_line.hide()
 
 	_particles.position = rect.get_center()
 	var emission_extents: Vector2 = rect.size * 0.5

@@ -143,6 +143,8 @@ func _spawn_authoritative_projectile_for_owner(
 
 	if directions.is_empty():
 		directions = projectile_data.get("volley_directions", [])
+	if owner_slot != game_sync.get_local_slot():
+		_play_remote_fire_feedback(owner_slot, direction)
 	for shot_direction in directions:
 		var net_id: int = _next_projectile_id
 		_next_projectile_id += 1
@@ -248,9 +250,12 @@ func _apply_projectile_spawn(payload: Dictionary) -> void:
 	if projectile_data_variant is Dictionary:
 		projectile_data = projectile_data_variant
 
+	var owner_slot: int = int(payload.get("owner_slot", 0))
+	if owner_slot != game_sync.get_local_slot():
+		_play_remote_fire_feedback(owner_slot, direction)
 	_spawn_projectile(
 		net_id,
-		int(payload.get("owner_slot", 0)),
+		owner_slot,
 		spawn_position,
 		direction,
 		projectile_data,
@@ -260,10 +265,22 @@ func _apply_projectile_spawn(payload: Dictionary) -> void:
 
 func _apply_projectile_despawn(payload: Dictionary) -> void:
 	var net_id: int = int(payload.get("net_id", 0))
-	var projectile: Node = _projectiles.get(net_id, null) as Node
+	var projectile: Projectile = _projectiles.get(net_id, null) as Projectile
 	if projectile != null:
+		var position_variant: Variant = payload.get("position", projectile.global_position)
+		var despawn_position: Vector2 = position_variant if position_variant is Vector2 else projectile.global_position
+		projectile.play_remote_despawn_feedback(StringName(str(payload.get("reason", ""))), despawn_position)
 		projectile.queue_free()
 	_projectiles.erase(net_id)
+
+
+func _play_remote_fire_feedback(owner_slot: int, direction: Vector2) -> void:
+	var owner: Player = _get_player(owner_slot)
+	if owner == null or owner.is_eliminated():
+		return
+	var gun: Variant = owner.get_gun()
+	if gun != null and gun.has_method(&"play_remote_fire_feedback"):
+		gun.play_remote_fire_feedback(direction)
 
 
 func _spawn_projectile(net_id: int, owner_slot: int, spawn_position: Vector2, direction: Vector2, projectile_data: Dictionary, authority: bool) -> Node:
@@ -312,6 +329,7 @@ func _on_projectile_despawn_requested(projectile: Node, reason: StringName, coll
 	game_sync.send_reliable(GameSettings.PACKET_PROJECTILE_DESPAWNED, {
 		"net_id": net_id,
 		"reason": str(reason),
+		"position": shot.global_position,
 	}, GameSettings.NETWORK_CHANNEL_EVENTS)
 
 
@@ -387,8 +405,6 @@ func _apply_area_damage(origin: Vector2, owner_slot: int, radius: float, damage:
 	var combat_sync: Variant = game_sync.get_module(GameSettings.MODULE_COMBAT)
 	if combat_sync == null:
 		return
-	GameJuice.spawn_burst(&"impact", origin, Vector2.UP, Color(1.0, 0.42, 0.08, 0.95))
-	GameJuice.shake(2.6, 0.12)
 	for target_slot in GameSettings.player_slots():
 		if target_slot == owner_slot:
 			continue

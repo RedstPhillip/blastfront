@@ -32,6 +32,7 @@ damping_max = 135.0
 scale_amount_min = 0.24
 scale_amount_max = 0.62
 color = Color(0.08, 0.055, 0.025, 0.34)
+local_coords = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1249259322]
 shape = SubResource("CircleShape2D_4bqyh")

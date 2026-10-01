@@ -24,12 +24,12 @@ content_margin_left = 28.0
 content_margin_top = 22.0
 content_margin_right = 28.0
 content_margin_bottom = 24.0
-bg_color = Color(0.13, 0.105, 0.074, 0.94)
+bg_color = Color(0.055, 0.095, 0.101, 0.94)
 border_width_left = 2
 border_width_top = 1
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.57, 0.45, 0.31, 0.82)
+border_color = Color(0.56, 0.78, 0.74, 0.5)
 corner_radius_top_left = 3
 corner_radius_top_right = 3
 corner_radius_bottom_right = 3
@@ -43,12 +43,12 @@ content_margin_left = 20.0
 content_margin_top = 18.0
 content_margin_right = 20.0
 content_margin_bottom = 18.0
-bg_color = Color(0.055, 0.047, 0.036, 0.82)
+bg_color = Color(0.023, 0.04, 0.043, 0.82)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.62, 0.50, 0.34, 0.56)
+border_color = Color(0.56, 0.78, 0.74, 0.5)
 corner_radius_top_left = 2
 corner_radius_top_right = 2
 corner_radius_bottom_right = 2
@@ -59,12 +59,12 @@ content_margin_left = 18.0
 content_margin_top = 6.0
 content_margin_right = 18.0
 content_margin_bottom = 6.0
-bg_color = Color(0.29, 0.2, 0.11, 0.84)
+bg_color = Color(0.087, 0.136, 0.142, 0.84)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.66, 0.48, 0.26, 0.62)
+border_color = Color(0.56, 0.78, 0.74, 0.5)
 corner_radius_top_left = 2
 corner_radius_top_right = 2
 corner_radius_bottom_right = 2
@@ -73,12 +73,12 @@ corner_radius_bottom_left = 2
 [sub_resource type="StyleBoxFlat" id="Style_ready_normal"]
 content_margin_top = 10.0
 content_margin_bottom = 10.0
-bg_color = Color(0.58, 0.32, 0.13, 0.96)
+bg_color = Color(0.86, 0.53, 0.14, 0.96)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.94, 0.74, 0.43, 0.88)
+border_color = Color(1, 0.84, 0.5, 0.88)
 corner_radius_top_left = 3
 corner_radius_top_right = 3
 corner_radius_bottom_right = 3
@@ -90,12 +90,12 @@ shadow_offset = Vector2(5, 6)
 [sub_resource type="StyleBoxFlat" id="Style_ready_hover"]
 content_margin_top = 10.0
 content_margin_bottom = 10.0
-bg_color = Color(0.77, 0.45, 0.19, 1)
+bg_color = Color(1, 0.71, 0.28, 1)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(1, 0.86, 0.62, 1)
+border_color = Color(1, 0.84, 0.5, 1)
 corner_radius_top_left = 3
 corner_radius_top_right = 3
 corner_radius_bottom_right = 3
@@ -107,12 +107,12 @@ shadow_offset = Vector2(5, 6)
 [sub_resource type="StyleBoxFlat" id="Style_ready_pressed"]
 content_margin_top = 10.0
 content_margin_bottom = 10.0
-bg_color = Color(0.34, 0.18, 0.08, 1)
+bg_color = Color(0.102, 0.16, 0.167, 1)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.76, 0.55, 0.3, 0.9)
+border_color = Color(0.56, 0.78, 0.74, 0.5)
 corner_radius_top_left = 3
 corner_radius_top_right = 3
 corner_radius_bottom_right = 3
@@ -121,24 +121,24 @@ corner_radius_bottom_left = 3
 [sub_resource type="StyleBoxFlat" id="Style_ready_disabled"]
 content_margin_top = 10.0
 content_margin_bottom = 10.0
-bg_color = Color(0.18, 0.15, 0.12, 0.78)
+bg_color = Color(0.076, 0.131, 0.14, 0.78)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.43, 0.37, 0.29, 0.6)
+border_color = Color(0.56, 0.78, 0.74, 0.5)
 corner_radius_top_left = 3
 corner_radius_top_right = 3
 corner_radius_bottom_right = 3
 corner_radius_bottom_left = 3
 
 [sub_resource type="StyleBoxFlat" id="Style_nav_normal"]
-bg_color = Color(0.09, 0.08, 0.065, 0.92)
+bg_color = Color(0.038, 0.066, 0.07, 0.92)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.57, 0.46, 0.32, 0.72)
+border_color = Color(0.56, 0.78, 0.74, 0.5)
 corner_radius_top_left = 3
 corner_radius_top_right = 3
 corner_radius_bottom_right = 3
@@ -148,12 +148,12 @@ shadow_size = 10
 shadow_offset = Vector2(0, 5)
 
 [sub_resource type="StyleBoxFlat" id="Style_nav_hover"]
-bg_color = Color(0.57, 0.32, 0.14, 0.96)
+bg_color = Color(0.86, 0.53, 0.14, 0.96)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.95, 0.77, 0.48, 0.95)
+border_color = Color(1, 0.84, 0.5, 0.95)
 corner_radius_top_left = 3
 corner_radius_top_right = 3
 corner_radius_bottom_right = 3
@@ -163,12 +163,12 @@ shadow_size = 10
 shadow_offset = Vector2(4, 5)
 
 [sub_resource type="StyleBoxFlat" id="Style_nav_pressed"]
-bg_color = Color(0.31, 0.17, 0.08, 1)
+bg_color = Color(0.093, 0.146, 0.152, 1)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.72, 0.52, 0.29, 0.9)
+border_color = Color(0.56, 0.78, 0.74, 0.5)
 corner_radius_top_left = 3
 corner_radius_top_right = 3
 corner_radius_bottom_right = 3
@@ -203,7 +203,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.035, 0.022, 0.012, 0.3)
+color = Color(0.015, 0.026, 0.027, 0.3)
 
 [node name="Vignette" type="TextureRect" parent="."]
 layout_mode = 1
@@ -274,7 +274,7 @@ horizontal_alignment = 1
 [node name="Divider" type="ColorRect" parent="StatusPage/Center/Panel/VBox"]
 custom_minimum_size = Vector2(0, 2)
 layout_mode = 2
-color = Color(0.55, 0.43, 0.29, 0.55)
+color = Color(0.86, 0.53, 0.14, 0.55)
 
 [node name="ContentRow" type="HBoxContainer" parent="StatusPage/Center/Panel/VBox"]
 layout_mode = 2
@@ -444,7 +444,7 @@ horizontal_alignment = 1
 [node name="ReadyDivider" type="ColorRect" parent="StatusPage/Center/Panel/VBox/ContentRow/ReadyCard/ReadyVBox"]
 custom_minimum_size = Vector2(0, 1)
 layout_mode = 2
-color = Color(0.48, 0.39, 0.29, 0.42)
+color = Color(0.86, 0.53, 0.14, 0.42)
 
 [node name="QuestPanel" parent="StatusPage/Center/Panel/VBox/ContentRow/ReadyCard/ReadyVBox" instance=ExtResource("7_quests")]
 layout_mode = 2

@@ -1,172 +1,273 @@
 extends Control
 class_name SettingsMenu
 
+## Tabbed settings screen bound to UserSettings. Every change applies immediately and persists.
+
 signal back_pressed
 
-const RESOLUTIONS: Array[Vector2i] = [
-	Vector2i(1280, 720),
-	Vector2i(1600, 900),
-	Vector2i(1920, 1080),
-	Vector2i(2560, 1440),
+const PARTICLE_LEVELS: Array[float] = [0.0, 0.33, 0.66, 1.0]
+const PARTICLE_NAMES: Array[String] = ["Off", "Low", "Medium", "High"]
+const WINDOW_MODE_NAMES: Array[String] = ["Windowed", "Borderless Fullscreen", "Exclusive Fullscreen"]
+const CONTROL_ROWS: Array[Array] = [
+	["Move", "A / D", "Left stick"],
+	["Jump  ·  Wall jump", "Space / W", "A"],
+	["Aim", "Mouse", "Right stick"],
+	["Shoot  (hold to keep firing)", "Left mouse", "RT"],
+	["Block", "Right mouse", "LT"],
+	["Reload", "R", "X"],
+	["Pause", "Esc", "Start"],
 ]
-const FPS_LIMITS: Array[int] = [0, 30, 60, 120, 144]
-const PARTICLE_MODIFIERS: Array[float] = [0.0, 0.33, 0.66, 1.0]
 
-@onready var _volume_slider: HSlider = %VolumeSlider
-@onready var _sfx_slider: HSlider = %SfxSlider
-@onready var _ui_slider: HSlider = %UiSlider
-@onready var _shake_slider: HSlider = %ShakeSlider
-@onready var _particles_button: OptionButton = %ParticlesButton
-@onready var _window_mode_button: OptionButton = %WindowModeButton
-@onready var _resolution_button: OptionButton = %ResolutionButton
-@onready var _vsync_checkbox: CheckBox = %VsyncCheckbox
-@onready var _fps_button: OptionButton = %FpsButton
-@onready var _back_button: Button = %BackButton
+var _tabs: TabContainer = null
 
 
 func _ready() -> void:
-	_init_volume_slider(&"Master", _volume_slider)
-	_init_volume_slider(&"SFX", _sfx_slider)
-	_init_volume_slider(&"UI", _ui_slider)
-	_shake_slider.value = GameJuice.shake_multiplier
-	_setup_particle_options()
-	_setup_window_mode_options()
-	_setup_resolution_options()
-	_setup_fps_options()
-	_connect_controls()
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	mouse_filter = Control.MOUSE_FILTER_STOP
+	add_to_group(&"modal_ui")
+	_build()
 	GameJuice.attach_button_feedback(self)
+	modulate.a = 0.0
+	var tween: Tween = create_tween()
+	tween.tween_property(self, "modulate:a", 1.0, 0.15)
 
 
-func _setup_particle_options() -> void:
-	_particles_button.clear()
-	_particles_button.add_item("Off", 0)
-	_particles_button.add_item("Low", 1)
-	_particles_button.add_item("Medium", 2)
-	_particles_button.add_item("High", 3)
-
-	var current_particles: float = GameJuice.particles_multiplier
-	var particle_index: int = PARTICLE_MODIFIERS.find(current_particles)
-	_particles_button.select(particle_index if particle_index >= 0 else PARTICLE_MODIFIERS.size() - 1)
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed(&"ui_cancel"):
+		get_viewport().set_input_as_handled()
+		back_pressed.emit()
 
 
-func _setup_window_mode_options() -> void:
-	_window_mode_button.clear()
-	_window_mode_button.add_item("Windowed", 0)
-	_window_mode_button.add_item("Fullscreen", 1)
-	_window_mode_button.add_item("Exclusive Fullscreen", 2)
+func _build() -> void:
+	var dim: ColorRect = ColorRect.new()
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.color = Color(0.0, 0.02, 0.02, 0.72)
+	add_child(dim)
+	var center: CenterContainer = CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(center)
+	var panel: PanelContainer = PanelContainer.new()
+	panel.custom_minimum_size = Vector2(760.0, 560.0)
+	panel.add_theme_stylebox_override("panel", UiStyle.with_shadow(UiStyle.with_margins(UiStyle.panel(UiStyle.PANEL_SOLID, UiStyle.LINE_STRONG, 10, 1), 34, 26), 30, Vector2(0, 14)))
+	center.add_child(panel)
+	var box: VBoxContainer = VBoxContainer.new()
+	box.add_theme_constant_override("separation", 16)
+	panel.add_child(box)
+	var header: HBoxContainer = HBoxContainer.new()
+	box.add_child(header)
+	var title: Label = Label.new()
+	UiStyle.style_label(title, UiStyle.FONT_DISPLAY, 34, UiStyle.TEXT)
+	title.text = "SETTINGS"
+	header.add_child(title)
+	var filler: Control = Control.new()
+	filler.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(filler)
+	var hint: Label = Label.new()
+	UiStyle.style_label(hint, UiStyle.FONT_UI, 14, UiStyle.TEXT_MUTED)
+	hint.text = "Changes apply instantly"
+	hint.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	header.add_child(hint)
 
-	var current_mode: int = DisplayServer.window_get_mode()
-	match current_mode:
-		DisplayServer.WINDOW_MODE_WINDOWED:
-			_window_mode_button.select(0)
-		DisplayServer.WINDOW_MODE_FULLSCREEN:
-			_window_mode_button.select(1)
-		DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN:
-			_window_mode_button.select(2)
-		_:
-			_window_mode_button.select(0)
+	_tabs = TabContainer.new()
+	_tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_tabs.tab_changed.connect(func(_tab: int) -> void: AudioDirector.play(&"ui_toggle"))
+	box.add_child(_tabs)
+	_build_audio_tab()
+	_build_video_tab()
+	_build_gameplay_tab()
+	_build_controls_tab()
 
-
-func _setup_resolution_options() -> void:
-	_resolution_button.clear()
-	var current_size: Vector2i = DisplayServer.window_get_size()
-	var selected_index: int = -1
-	for index in range(RESOLUTIONS.size()):
-		var resolution: Vector2i = RESOLUTIONS[index]
-		_resolution_button.add_item("%dx%d" % [resolution.x, resolution.y], index)
-		if resolution == current_size:
-			selected_index = index
-
-	if selected_index >= 0:
-		_resolution_button.select(selected_index)
-	else:
-		_resolution_button.add_item("%dx%d (Custom)" % [current_size.x, current_size.y], RESOLUTIONS.size())
-		_resolution_button.select(RESOLUTIONS.size())
-
-	var vsync_mode: int = DisplayServer.window_get_vsync_mode()
-	_vsync_checkbox.button_pressed = vsync_mode != DisplayServer.VSYNC_DISABLED
-
-
-func _setup_fps_options() -> void:
-	_fps_button.clear()
-	_fps_button.add_item("Unlimited", 0)
-	_fps_button.add_item("30 FPS", 1)
-	_fps_button.add_item("60 FPS", 2)
-	_fps_button.add_item("120 FPS", 3)
-	_fps_button.add_item("144 FPS", 4)
-
-	var current_fps_limit: int = Engine.max_fps
-	var fps_index: int = FPS_LIMITS.find(current_fps_limit)
-	_fps_button.select(maxi(fps_index, 0))
-
-
-func _connect_controls() -> void:
-	_volume_slider.value_changed.connect(_on_volume_changed.bind(&"Master"))
-	_sfx_slider.value_changed.connect(_on_volume_changed.bind(&"SFX"))
-	_ui_slider.value_changed.connect(_on_volume_changed.bind(&"UI"))
-	_shake_slider.value_changed.connect(_on_shake_changed)
-	_particles_button.item_selected.connect(_on_particles_selected)
-	_window_mode_button.item_selected.connect(_on_window_mode_selected)
-	_resolution_button.item_selected.connect(_on_resolution_selected)
-	_vsync_checkbox.toggled.connect(_on_vsync_toggled)
-	_fps_button.item_selected.connect(_on_fps_selected)
-	_back_button.pressed.connect(_on_back_pressed)
+	var footer: HBoxContainer = HBoxContainer.new()
+	footer.add_theme_constant_override("separation", 14)
+	box.add_child(footer)
+	var reset: Button = Button.new()
+	reset.text = "RESET DEFAULTS"
+	reset.custom_minimum_size = Vector2(210.0, 48.0)
+	UiStyle.style_button(reset, false, 16)
+	reset.pressed.connect(_on_reset_pressed)
+	footer.add_child(reset)
+	var spacer: Control = Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	footer.add_child(spacer)
+	var back: Button = Button.new()
+	back.text = "DONE"
+	back.custom_minimum_size = Vector2(180.0, 48.0)
+	UiStyle.style_button(back, true, 18)
+	back.pressed.connect(func() -> void: back_pressed.emit())
+	footer.add_child(back)
+	back.grab_focus.call_deferred()
 
 
-func _init_volume_slider(bus_name: StringName, slider: HSlider) -> void:
-	var bus_index: int = AudioServer.get_bus_index(bus_name)
-	if bus_index != -1:
-		slider.value = db_to_linear(AudioServer.get_bus_volume_db(bus_index))
-	else:
-		slider.value = 0.75
+func _make_page(page_name: String) -> VBoxContainer:
+	var scroll: ScrollContainer = ScrollContainer.new()
+	scroll.name = page_name
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_tabs.add_child(scroll)
+	var page: VBoxContainer = VBoxContainer.new()
+	page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	page.add_theme_constant_override("separation", 10)
+	scroll.add_child(page)
+	return page
 
 
-func _on_volume_changed(value: float, bus_name: StringName) -> void:
-	var bus_index: int = AudioServer.get_bus_index(bus_name)
-	if bus_index != -1:
-		AudioServer.set_bus_volume_db(bus_index, linear_to_db(value))
-		AudioServer.set_bus_mute(bus_index, value <= 0.0)
+func _row(page: VBoxContainer, label_text: String) -> HBoxContainer:
+	var row: HBoxContainer = HBoxContainer.new()
+	row.custom_minimum_size = Vector2(0.0, 44.0)
+	row.add_theme_constant_override("separation", 16)
+	page.add_child(row)
+	var label: Label = Label.new()
+	UiStyle.style_label(label, UiStyle.FONT_UI, 18, UiStyle.TEXT)
+	label.text = label_text
+	label.custom_minimum_size = Vector2(250.0, 0.0)
+	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(label)
+	return row
 
 
-func _on_shake_changed(value: float) -> void:
-	GameJuice.shake_multiplier = value
+func _section(page: VBoxContainer, text: String) -> void:
+	var label: Label = Label.new()
+	UiStyle.style_label(label, UiStyle.FONT_BOLD, 13, UiStyle.ACCENT)
+	label.text = text
+	page.add_child(label)
 
 
-func _on_particles_selected(index: int) -> void:
-	if index >= 0 and index < PARTICLE_MODIFIERS.size():
-		GameJuice.particles_multiplier = PARTICLE_MODIFIERS[index]
+func _slider(page: VBoxContainer, label_text: String, key: StringName, max_value: float = 1.0) -> void:
+	var row: HBoxContainer = _row(page, label_text)
+	var slider: HSlider = HSlider.new()
+	slider.min_value = 0.0
+	slider.max_value = max_value
+	slider.step = 0.01
+	slider.custom_minimum_size = Vector2(300.0, 24.0)
+	slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	slider.value = UserSettings.get_float(key)
+	row.add_child(slider)
+	var value_label: Label = Label.new()
+	UiStyle.style_label(value_label, UiStyle.FONT_BOLD, 16, UiStyle.ACCENT_HOT)
+	value_label.custom_minimum_size = Vector2(60.0, 0.0)
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	value_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	value_label.text = "%d%%" % int(round(slider.value / max_value * 100.0))
+	row.add_child(value_label)
+	slider.value_changed.connect(func(value: float) -> void:
+		UserSettings.set_value(key, value)
+		value_label.text = "%d%%" % int(round(value / max_value * 100.0))
+		AudioDirector.play(&"ui_slider")
+	)
 
 
-func _on_window_mode_selected(index: int) -> void:
-	match index:
-		0:
-			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
-		1:
-			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
-		2:
-			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN)
+func _toggle(page: VBoxContainer, label_text: String, key: StringName) -> void:
+	var row: HBoxContainer = _row(page, label_text)
+	var toggle: CheckButton = CheckButton.new()
+	toggle.button_pressed = UserSettings.get_bool(key)
+	toggle.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	toggle.toggled.connect(func(pressed: bool) -> void:
+		UserSettings.set_value(key, pressed)
+		AudioDirector.play(&"ui_toggle")
+	)
+	row.add_child(toggle)
 
 
-func _on_resolution_selected(index: int) -> void:
-	if index >= 0 and index < RESOLUTIONS.size():
-		var resolution: Vector2i = RESOLUTIONS[index]
-		DisplayServer.window_set_size(resolution)
-
-		var screen: int = DisplayServer.window_get_current_screen()
-		var screen_size: Vector2i = DisplayServer.screen_get_size(screen)
-		var window_size: Vector2i = DisplayServer.window_get_size()
-		DisplayServer.window_set_position((screen_size - window_size) / 2)
-
-
-func _on_vsync_toggled(button_pressed: bool) -> void:
-	var mode: int = DisplayServer.VSYNC_ENABLED if button_pressed else DisplayServer.VSYNC_DISABLED
-	DisplayServer.window_set_vsync_mode(mode)
-
-
-func _on_fps_selected(index: int) -> void:
-	if index >= 0 and index < FPS_LIMITS.size():
-		Engine.max_fps = FPS_LIMITS[index]
+func _options(page: VBoxContainer, label_text: String, items: Array, selected: int, on_selected: Callable) -> OptionButton:
+	var row: HBoxContainer = _row(page, label_text)
+	var option: OptionButton = OptionButton.new()
+	option.custom_minimum_size = Vector2(300.0, 40.0)
+	option.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	for item in items:
+		option.add_item(str(item))
+	option.select(clampi(selected, 0, items.size() - 1))
+	option.item_selected.connect(func(index: int) -> void:
+		on_selected.call(index)
+		AudioDirector.play(&"ui_select" if AudioDirector.has_event(&"ui_select") else &"ui_click")
+	)
+	row.add_child(option)
+	return option
 
 
-func _on_back_pressed() -> void:
-	back_pressed.emit()
+func _build_audio_tab() -> void:
+	var page: VBoxContainer = _make_page("AUDIO")
+	_section(page, "VOLUME")
+	_slider(page, "Master", UserSettings.MASTER_VOLUME)
+	_slider(page, "Music", UserSettings.MUSIC_VOLUME)
+	_slider(page, "Effects", UserSettings.SFX_VOLUME)
+	_slider(page, "Interface", UserSettings.UI_VOLUME)
+
+
+func _build_video_tab() -> void:
+	var page: VBoxContainer = _make_page("VIDEO")
+	_section(page, "DISPLAY")
+	_options(page, "Display mode", WINDOW_MODE_NAMES, UserSettings.get_int(UserSettings.WINDOW_MODE), func(index: int) -> void:
+		UserSettings.set_value(UserSettings.WINDOW_MODE, index)
+	)
+	var resolutions: Array = []
+	var current: Vector2i = UserSettings.get_value(UserSettings.RESOLUTION)
+	var selected: int = 0
+	for index in range(UserSettings.RESOLUTIONS.size()):
+		var resolution: Vector2i = UserSettings.RESOLUTIONS[index]
+		resolutions.append("%d × %d" % [resolution.x, resolution.y])
+		if resolution == current:
+			selected = index
+	_options(page, "Window size", resolutions, selected, func(index: int) -> void:
+		UserSettings.set_value(UserSettings.RESOLUTION, UserSettings.RESOLUTIONS[index])
+	)
+	_toggle(page, "VSync", UserSettings.VSYNC)
+	var fps_names: Array = []
+	for limit in UserSettings.FPS_LIMITS:
+		fps_names.append("Unlimited" if limit == 0 else "%d FPS" % limit)
+	_options(page, "Frame rate limit", fps_names, maxi(UserSettings.FPS_LIMITS.find(UserSettings.get_int(UserSettings.FPS_LIMIT)), 0), func(index: int) -> void:
+		UserSettings.set_value(UserSettings.FPS_LIMIT, UserSettings.FPS_LIMITS[index])
+	)
+	_section(page, "EFFECTS")
+	_slider(page, "Post-processing", UserSettings.POST_PROCESSING)
+	_slider(page, "Screen flashes", UserSettings.SCREEN_FLASH)
+
+
+func _build_gameplay_tab() -> void:
+	var page: VBoxContainer = _make_page("GAMEPLAY")
+	_section(page, "FEEL")
+	_slider(page, "Screen shake", UserSettings.SCREEN_SHAKE, 1.5)
+	_toggle(page, "Hit-stop on impacts", UserSettings.HITSTOP)
+	_toggle(page, "Damage numbers", UserSettings.DAMAGE_NUMBERS)
+	var particle_index: int = 3
+	for index in range(PARTICLE_LEVELS.size()):
+		if is_equal_approx(PARTICLE_LEVELS[index], UserSettings.get_float(UserSettings.PARTICLES)):
+			particle_index = index
+	_options(page, "Particle detail", PARTICLE_NAMES, particle_index, func(index: int) -> void:
+		UserSettings.set_value(UserSettings.PARTICLES, PARTICLE_LEVELS[index])
+	)
+
+
+func _build_controls_tab() -> void:
+	var page: VBoxContainer = _make_page("CONTROLS")
+	page.add_theme_constant_override("separation", 5)
+	_section(page, "KEYBOARD & MOUSE  ·  GAMEPAD")
+	for entry in CONTROL_ROWS:
+		var row: HBoxContainer = _row(page, str(entry[0]))
+		row.custom_minimum_size.y = 34.0
+		row.add_child(_key_chip(str(entry[1]), UiStyle.ACCENT_HOT))
+		row.add_child(_key_chip(str(entry[2]), UiStyle.SHIELD))
+
+
+func _key_chip(text: String, color: Color) -> PanelContainer:
+	var key: Label = Label.new()
+	UiStyle.style_label(key, UiStyle.FONT_BOLD, 14, color)
+	key.text = text
+	key.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var chip: PanelContainer = PanelContainer.new()
+	chip.add_theme_stylebox_override("panel", UiStyle.with_margins(UiStyle.panel(Color(0.08, 0.12, 0.12, 1.0), UiStyle.LINE_STRONG, 4, 1), 10, 3))
+	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	chip.custom_minimum_size = Vector2(132.0, 0.0)
+	chip.add_child(key)
+	return chip
+
+
+func _on_reset_pressed() -> void:
+	UserSettings.reset_to_defaults()
+	AudioDirector.play(&"ui_confirm")
+	for child in _tabs.get_children():
+		child.queue_free()
+	var current_tab: int = _tabs.current_tab
+	_build_audio_tab()
+	_build_video_tab()
+	_build_gameplay_tab()
+	_build_controls_tab()
+	_tabs.current_tab = clampi(current_tab, 0, 3)

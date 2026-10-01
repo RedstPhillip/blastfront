@@ -26,6 +26,10 @@ var _drill_walls_left: int = 0
 var _drill_ignore_distance_remaining: float = 0.0
 var _drill_visual_timer: float = 0.0
 var _drill_clear_distance_remaining: float = 0.0
+var _tracer: ProjectileTracer = null
+var _head_glow: Sprite2D = null
+var _whiz_played: bool = false
+var _local_view_player: Player = null
 
 
 func configure_from_data(
@@ -59,6 +63,8 @@ func _ready() -> void:
 	velocity = initial_velocity if initial_velocity.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED else direction * muzzle_speed
 	_apply_projectile_visual_style()
 	_apply_projectile_scale()
+	_setup_tracer()
+	_local_view_player = _find_local_view_player()
 	if extension_tags.has("bouncy"):
 		_bounces_left = _get_bouncy_bounces()
 	if extension_tags.has("drill"):
@@ -85,6 +91,7 @@ func _physics_process(delta: float) -> void:
 	_distance_travelled += motion.length()
 	_update_drill_wall_mask(motion.length())
 	_update_drill_visual(delta)
+	_check_bullet_whiz()
 	if _distance_travelled >= max_distance:
 		_request_despawn(&"max_distance", null)
 
@@ -142,6 +149,7 @@ func _on_collision(collision: KinematicCollision2D) -> void:
 		return
 
 	_play_collision_feedback(collision, collider)
+	_play_payload_feedback(collision.get_position())
 	if net_id == 0:
 		_apply_local_collision_damage(collider)
 		ExtensionEffectRegistry.apply_projectile_effects(collider as Player, self)
@@ -580,6 +588,9 @@ func _request_despawn(reason: StringName, collider: Object) -> void:
 	_despawn_requested = true
 	if is_network_authority:
 		despawn_requested.emit(self, reason, collider)
+	if reason == &"max_distance":
+		GameJuice.spawn_burst(&"run_dust", global_position, -velocity, Color.WHITE)
+	_release_tracer()
 	queue_free()
 
 
@@ -593,9 +604,93 @@ func _play_collision_feedback(collision: KinematicCollision2D, collider: Object)
 	if hit_player != null:
 		return
 
-	GameJuice.spawn_burst(&"impact", collision_position, impact_direction, Color(0.98, 0.55, 0.18, 0.9))
-	GameJuice.play_sound_2d(&"impact", collision_position, -7.0, 0.035)
+	_play_world_impact(collision_position, impact_direction)
+
+
+func _play_world_impact(impact_position: Vector2, normal: Vector2) -> void:
+	GameJuice.spawn_burst(&"impact", impact_position, normal, Color(0.98, 0.55, 0.18, 0.9), projectile_scale)
+	GameJuice.play_sound_2d(&"impact", impact_position)
 	GameJuice.shake(GameSettings.PROJECTILE_IMPACT_SHAKE_STRENGTH, GameSettings.PROJECTILE_IMPACT_SHAKE_TIME)
+	ImpactDecals.add_hole(impact_position, normal)
+
+
+## Explosive and grenade rounds get their blast visuals here on every peer; damage stays authoritative.
+func _play_payload_feedback(impact_position: Vector2) -> void:
+	var explosive: Variant = extension_effects.get("explosive", extension_effects.get(&"explosive"))
+	if explosive is Dictionary:
+		GameJuice.spawn_explosion(impact_position, float((explosive as Dictionary).get("radius", 80.0)))
+	var grenade: Variant = extension_effects.get("grenade", extension_effects.get(&"grenade"))
+	if grenade is Dictionary:
+		var fx: GrenadeFx = GrenadeFx.new()
+		fx.fuse = float((grenade as Dictionary).get("delay", 0.5))
+		fx.radius = float((grenade as Dictionary).get("radius", 80.0))
+		var world: Node = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)
+		if world == null:
+			return
+		world.add_child(fx)
+		fx.global_position = impact_position
+
+
+## Called on clients when the host reports this projectile gone.
+func play_remote_despawn_feedback(reason: StringName, despawn_position: Vector2) -> void:
+	global_position = despawn_position
+	var normal: Vector2 = -velocity.normalized() if velocity.length_squared() > 1.0 else Vector2.UP
+	match reason:
+		&"collision":
+			var hit: bool = false
+			for node in get_tree().get_nodes_in_group(GameSettings.PLAYERS_GROUP):
+				var player: Player = node as Player
+				if player != null and not player.is_eliminated() and player.global_position.distance_to(despawn_position) < 30.0:
+					hit = true
+					break
+			if not hit:
+				_play_world_impact(despawn_position, normal)
+			_play_payload_feedback(despawn_position)
+		&"blocked":
+			GameJuice.spawn_burst(&"block", despawn_position, normal, Color(0.72, 0.96, 1.0, 0.92))
+			GameJuice.play_sound_2d(&"block", despawn_position)
+		&"max_distance":
+			GameJuice.spawn_burst(&"run_dust", despawn_position, normal, Color.WHITE)
+	_release_tracer()
+
+
+func _setup_tracer() -> void:
+	var style: Dictionary = _get_projectile_visual_style()
+	var body_color: Color = style["body_color"]
+	_tracer = ProjectileTracer.new()
+	_tracer.setup(self, body_color.lightened(0.15), 3.2 * maxf(projectile_scale, 0.6), 70.0 + 30.0 * projectile_scale)
+	add_child(_tracer)
+	_head_glow = Sprite2D.new()
+	_head_glow.texture = FxLib.TEX_GLOW
+	_head_glow.material = FxLib.additive_material()
+	_head_glow.modulate = Color(body_color.r, body_color.g, body_color.b, 0.75)
+	_head_glow.scale = Vector2.ONE * 0.26 * maxf(projectile_scale, 0.7)
+	_head_glow.z_index = -1
+	add_child(_head_glow)
+
+
+func _release_tracer() -> void:
+	if _tracer != null and is_instance_valid(_tracer):
+		_tracer.detach()
+	_tracer = null
+
+
+func _find_local_view_player() -> Player:
+	var world: Node = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)
+	if world == null or not world.has_method(&"get_local_player"):
+		return null
+	return world.get_local_player()
+
+
+func _check_bullet_whiz() -> void:
+	if _whiz_played or _local_view_player == null or not is_instance_valid(_local_view_player):
+		return
+	if _local_view_player.player_slot == owner_slot or _local_view_player.is_eliminated():
+		return
+	var distance: float = global_position.distance_to(_local_view_player.global_position)
+	if distance < 70.0 and distance > 22.0:
+		_whiz_played = true
+		AudioDirector.play_at(&"bullet_whiz", global_position)
 
 
 func _should_hover_over_collision(collision: KinematicCollision2D, collider: Object) -> bool:

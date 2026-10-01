@@ -193,6 +193,7 @@ func _ready() -> void:
 		%SavedRewardFour,
 	]
 
+	_apply_typography()
 	_setup_weapon_placeholders()
 	_setup_armor_slots()
 	_setup_reward_slots()
@@ -300,6 +301,50 @@ func _connect_inventory_signals() -> void:
 		ResearchManager.research_changed.connect(_refresh_research_unlocks)
 	if not _recycler_drop_target.reward_recycled.is_connected(_on_reward_recycled):
 		_recycler_drop_target.reward_recycled.connect(_on_reward_recycled)
+
+
+## Leaves room above the columns, e.g. for the intermission tab bar.
+func set_top_inset(pixels: float) -> void:
+	var margin: MarginContainer = get_node_or_null(^"RootMargin") as MarginContainer
+	if margin != null:
+		margin.add_theme_constant_override("margin_top", int(pixels))
+
+
+## Brings the scene's labels onto the shared type scale: display font for column headings,
+## readable body text for item details instead of 10-11 px captions.
+func _apply_typography() -> void:
+	for heading in ["WeaponTitle", "ShopTitle", "ArmorTitle"]:
+		var label: Label = find_child(heading, true, false) as Label
+		if label != null:
+			UiStyle.style_label(label, UiStyle.FONT_DISPLAY, 20, UiStyle.TEXT)
+			label.text = label.text.to_upper()
+	for heading in ["WeaponInventoryTitle", "ArmorInventoryTitle"]:
+		var label: Label = find_child(heading, true, false) as Label
+		if label != null:
+			UiStyle.style_label(label, UiStyle.FONT_BOLD, 14, UiStyle.ACCENT)
+			label.text = label.text.to_upper()
+	var balance: Label = find_child("CoinBalanceLabel", true, false) as Label
+	if balance != null:
+		UiStyle.style_label(balance, UiStyle.FONT_DISPLAY, 18, UiStyle.ACCENT)
+	var title: Label = find_child("DescriptionTitle", true, false) as Label
+	if title != null:
+		UiStyle.style_label(title, UiStyle.FONT_BOLD, 20, UiStyle.TEXT)
+	var meta: Label = find_child("DescriptionMeta", true, false) as Label
+	if meta != null:
+		UiStyle.style_label(meta, UiStyle.FONT_BOLD, 12, UiStyle.TEXT_DIM)
+	_description_body.add_theme_font_override("font", UiStyle.FONT_BODY)
+	_description_body.add_theme_font_size_override("font_size", 14)
+	_description_body.add_theme_color_override("font_color", UiStyle.TEXT)
+	_description_body.clip_text = false
+	_description_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_description_body.max_lines_visible = 4
+	var changes: Label = find_child("ChangesTitle", true, false) as Label
+	if changes != null:
+		UiStyle.style_label(changes, UiStyle.FONT_BOLD, 12, UiStyle.ACCENT)
+	var no_changes: Label = find_child("NoChangesLabel", true, false) as Label
+	if no_changes != null:
+		UiStyle.style_label(no_changes, UiStyle.FONT_BODY, 13, UiStyle.TEXT_DIM)
+		no_changes.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
 
 func _setup_merge_dialog_signals() -> void:

@@ -1,10 +1,14 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scenes/components/map_border_side.gd" id="1_side"]
-[ext_resource type="Texture2D" path="res://assets/particles/square_particle.png" id="2_particle"]
+[ext_resource type="Texture2D" path="res://assets/fx/glow.png" id="2_particle"]
 
 [sub_resource type="Gradient" id="Gradient_initial"]
 colors = PackedColorArray(1, 0.92, 0.65, 0.95, 1, 0.1, 0.05, 0.55)
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_add"]
+blend_mode = 1
+light_mode = 1
 
 [sub_resource type="Gradient" id="Gradient_fade"]
 colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
@@ -25,6 +29,7 @@ color = Color(1, 0, 0, 0.85)
 [node name="Particles" type="CPUParticles2D" parent="."]
 visible = false
 z_index = 99
+material = SubResource("CanvasItemMaterial_add")
 emitting = false
 amount = 40
 texture = ExtResource("2_particle")
@@ -38,8 +43,8 @@ spread = 180.0
 gravity = Vector2(0, 0)
 initial_velocity_min = 2.0
 initial_velocity_max = 12.0
-scale_amount_min = 1.0
-scale_amount_max = 3.5
+scale_amount_min = 0.05
+scale_amount_max = 0.14
 color = Color(1, 1, 1, 1)
 color_initial_ramp = SubResource("Gradient_initial")
 color_ramp = SubResource("Gradient_fade")

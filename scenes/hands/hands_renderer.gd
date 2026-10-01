@@ -1,4 +1,4 @@
-﻿extends Node2D
+extends Node2D
 class_name HandsRenderer
 
 @export var upper_len: float = GameSettings.ARM_UPPER_LENGTH
@@ -19,6 +19,8 @@ class_name HandsRenderer
 @export var gun_path: NodePath = NodePath("../Gun")
 @export var shield_path: NodePath = NodePath("Shield")
 @export var shield_visual_root_path: NodePath = NodePath("Shield/ShieldVisualRoot")
+
+const HAND_RADIUS: float = 2.2
 
 var _p: Player
 var _gun: Node2D
@@ -82,8 +84,15 @@ func _draw() -> void:
 	if _p == null or _gun == null:
 		return
 
-	_draw_arm(_gun_shoulder, _gun_elbow, _gun_hand)
-	_draw_arm(_guard_shoulder, _guard_elbow, _guard_hand)
+	var gun_arm: PackedVector2Array = _arm_points(_gun_shoulder, _gun_elbow, _gun_hand)
+	var guard_arm: PackedVector2Array = _arm_points(_guard_shoulder, _guard_elbow, _guard_hand)
+	var outline: Color = col_arm.darkened(0.62)
+	for arm in [gun_arm, guard_arm]:
+		draw_polyline(arm, outline, line_w + 2.2, true)
+		draw_circle(arm[arm.size() - 1], HAND_RADIUS + 1.1, outline, true, -1.0, true)
+	for arm in [gun_arm, guard_arm]:
+		draw_polyline(arm, col_arm, line_w, true)
+		draw_circle(arm[arm.size() - 1], HAND_RADIUS, col_arm.lightened(0.08), true, -1.0, true)
 
 
 func _update_pose(delta: float) -> void:
@@ -164,17 +173,13 @@ func _clamp_to_reach(shoulder: Vector2, hand: Vector2, max_dist: float) -> Vecto
 	return shoulder + v / d * max_dist if d > max_dist and d > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED else hand
 
 
-func _draw_arm(shoulder: Vector2, elbow: Vector2, hand: Vector2) -> void:
-	_draw_bezier(shoulder, elbow, hand)
-
-
-func _draw_bezier(p0: Vector2, p1: Vector2, p2: Vector2) -> void:
+func _arm_points(p0: Vector2, p1: Vector2, p2: Vector2) -> PackedVector2Array:
 	var pts: PackedVector2Array = PackedVector2Array()
 	for i in range(bezier_pts + 1):
 		var t: float = float(i) / bezier_pts
 		var mt: float = 1.0 - t
 		pts.append(mt * mt * p0 + 2.0 * mt * t * p1 + t * t * p2)
-	draw_polyline(pts, col_arm, line_w, true)
+	return pts
 
 
 func _two_bone_ik(shoulder: Vector2, hand: Vector2, l1: float, l2: float, side: float) -> Vector2:

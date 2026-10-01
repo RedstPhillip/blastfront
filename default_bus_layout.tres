@@ -1,0 +1,76 @@
+[gd_resource type="AudioBusLayout" format=3 uid="uid://d3n58xr6i54gk"]
+
+[sub_resource type="AudioEffectLimiter" id="AudioEffectLimiter_master"]
+ceiling_db = -0.3
+threshold_db = -1.5
+soft_clip_db = 1.5
+
+[sub_resource type="AudioEffectLowPassFilter" id="AudioEffectLowPassFilter_music"]
+resource_name = "PauseMuffle"
+cutoff_hz = 900.0
+
+[sub_resource type="AudioEffectCompressor" id="AudioEffectCompressor_sfx"]
+threshold = -14.0
+ratio = 3.0
+attack_us = 400.0
+release_ms = 140.0
+
+[sub_resource type="AudioEffectReverb" id="AudioEffectReverb_sfx"]
+resource_name = "ArenaReverb"
+room_size = 0.42
+damping = 0.62
+spread = 0.85
+hipass = 0.25
+wet = 0.09
+
+[sub_resource type="AudioEffectLowPassFilter" id="AudioEffectLowPassFilter_sfx"]
+resource_name = "PauseMuffle"
+cutoff_hz = 900.0
+
+[sub_resource type="AudioEffectLowPassFilter" id="AudioEffectLowPassFilter_ambience"]
+resource_name = "PauseMuffle"
+cutoff_hz = 900.0
+
+[sub_resource type="AudioEffectCompressor" id="AudioEffectCompressor_ui"]
+threshold = -10.0
+ratio = 2.5
+
+[resource]
+bus/0/effect/0/effect = SubResource("AudioEffectLimiter_master")
+bus/0/effect/0/enabled = true
+bus/1/name = &"Music"
+bus/1/solo = false
+bus/1/mute = false
+bus/1/bypass_fx = false
+bus/1/volume_db = 0.0
+bus/1/send = &"Master"
+bus/1/effect/0/effect = SubResource("AudioEffectLowPassFilter_music")
+bus/1/effect/0/enabled = false
+bus/2/name = &"SFX"
+bus/2/solo = false
+bus/2/mute = false
+bus/2/bypass_fx = false
+bus/2/volume_db = 0.0
+bus/2/send = &"Master"
+bus/2/effect/0/effect = SubResource("AudioEffectCompressor_sfx")
+bus/2/effect/0/enabled = true
+bus/2/effect/1/effect = SubResource("AudioEffectReverb_sfx")
+bus/2/effect/1/enabled = true
+bus/2/effect/2/effect = SubResource("AudioEffectLowPassFilter_sfx")
+bus/2/effect/2/enabled = false
+bus/3/name = &"Ambience"
+bus/3/solo = false
+bus/3/mute = false
+bus/3/bypass_fx = false
+bus/3/volume_db = 0.0
+bus/3/send = &"Master"
+bus/3/effect/0/effect = SubResource("AudioEffectLowPassFilter_ambience")
+bus/3/effect/0/enabled = false
+bus/4/name = &"UI"
+bus/4/solo = false
+bus/4/mute = false
+bus/4/bypass_fx = false
+bus/4/volume_db = 0.0
+bus/4/send = &"Master"
+bus/4/effect/0/effect = SubResource("AudioEffectCompressor_ui")
+bus/4/effect/0/enabled = true

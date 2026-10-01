@@ -17,12 +17,12 @@ content_margin_left = 14.0
 content_margin_top = 12.0
 content_margin_right = 14.0
 content_margin_bottom = 12.0
-bg_color = Color(0.065, 0.058, 0.048, 0.94)
+bg_color = Color(0.043, 0.075, 0.08, 0.95)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.49, 0.42, 0.31, 0.76)
+border_color = Color(0.56, 0.78, 0.74, 0.3)
 corner_radius_top_left = 3
 corner_radius_top_right = 3
 corner_radius_bottom_right = 3
@@ -32,36 +32,36 @@ shadow_size = 18
 shadow_offset = Vector2(0, 8)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_loadout_well"]
-bg_color = Color(0.02, 0.019, 0.016, 0.78)
+bg_color = Color(0.02, 0.04, 0.045, 0.82)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.46, 0.42, 0.35, 0.48)
+border_color = Color(0.56, 0.78, 0.74, 0.2)
 corner_radius_top_left = 2
 corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_slot_normal"]
-bg_color = Color(0.45, 0.3, 0.14, 0.22)
+bg_color = Color(1, 0.71, 0.28, 0.1)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.78, 0.61, 0.35, 0.58)
+border_color = Color(1, 0.71, 0.28, 0.45)
 corner_radius_top_left = 3
 corner_radius_top_right = 3
 corner_radius_bottom_right = 3
 corner_radius_bottom_left = 3
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_slot_hover"]
-bg_color = Color(0.65, 0.4, 0.17, 0.34)
+bg_color = Color(1, 0.71, 0.28, 0.22)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(1, 0.82, 0.5, 0.86)
+border_color = Color(1, 0.84, 0.5, 0.9)
 corner_radius_top_left = 3
 corner_radius_top_right = 3
 corner_radius_bottom_right = 3
@@ -72,12 +72,12 @@ content_margin_left = 16.0
 content_margin_top = 14.0
 content_margin_right = 16.0
 content_margin_bottom = 14.0
-bg_color = Color(0.07, 0.058, 0.044, 0.96)
+bg_color = Color(0.05, 0.085, 0.09, 0.97)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.72, 0.47, 0.23, 0.76)
+border_color = Color(1, 0.71, 0.28, 0.55)
 corner_radius_top_left = 3
 corner_radius_top_right = 3
 corner_radius_bottom_right = 3
@@ -91,12 +91,12 @@ content_margin_left = 12.0
 content_margin_top = 8.0
 content_margin_right = 12.0
 content_margin_bottom = 8.0
-bg_color = Color(0.025, 0.023, 0.019, 0.94)
+bg_color = Color(0.025, 0.045, 0.05, 0.95)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.48, 0.42, 0.34, 0.42)
+border_color = Color(0.56, 0.78, 0.74, 0.25)
 corner_radius_top_left = 2
 corner_radius_top_right = 2
 corner_radius_bottom_right = 2
@@ -273,29 +273,22 @@ theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 8
 
-[node name="WeaponInventoryStack" type="Control" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox/WeaponInventoryPanel/WeaponInventoryPadding" unique_id=1374467401]
+[node name="WeaponInventoryStack" type="ScrollContainer" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox/WeaponInventoryPanel/WeaponInventoryPadding" unique_id=1374467401]
 layout_mode = 2
+horizontal_scroll_mode = 0
+follow_focus = true
 
 [node name="WeaponInventoryGrid" type="FlowContainer" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox/WeaponInventoryPanel/WeaponInventoryPadding/WeaponInventoryStack" unique_id=1387484139]
 unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 8
 
-[node name="WeaponInventoryEmptyLabel" type="Label" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox/WeaponInventoryPanel/WeaponInventoryPadding/WeaponInventoryStack" unique_id=1234000643]
+[node name="WeaponInventoryEmptyLabel" type="Label" parent="RootMargin/MainColumns/WeaponColumn/WeaponMargin/WeaponVBox/WeaponInventoryPanel/WeaponInventoryPadding" unique_id=1234000643]
 unique_name_in_owner = true
 visible = false
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+layout_mode = 2
 theme_override_colors/font_color = Color(0.75, 0.8, 0.8, 0.72)
 theme_override_font_sizes/font_size = 12
 horizontal_alignment = 1
@@ -656,29 +649,22 @@ theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 8
 
-[node name="ArmorInventoryStack" type="Control" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin/ArmorVBox/ArmorInventoryPanel/ArmorInventoryPadding" unique_id=1042857952]
+[node name="ArmorInventoryStack" type="ScrollContainer" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin/ArmorVBox/ArmorInventoryPanel/ArmorInventoryPadding" unique_id=1042857952]
 layout_mode = 2
+horizontal_scroll_mode = 0
+follow_focus = true
 
 [node name="ArmorInventoryGrid" type="FlowContainer" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin/ArmorVBox/ArmorInventoryPanel/ArmorInventoryPadding/ArmorInventoryStack" unique_id=1904879356]
 unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 8
 
-[node name="ArmorInventoryEmptyLabel" type="Label" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin/ArmorVBox/ArmorInventoryPanel/ArmorInventoryPadding/ArmorInventoryStack" unique_id=1582675109]
+[node name="ArmorInventoryEmptyLabel" type="Label" parent="RootMargin/MainColumns/ArmorColumn/ArmorMargin/ArmorVBox/ArmorInventoryPanel/ArmorInventoryPadding" unique_id=1582675109]
 unique_name_in_owner = true
 visible = false
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+layout_mode = 2
 theme_override_colors/font_color = Color(0.75, 0.8, 0.8, 0.72)
 theme_override_font_sizes/font_size = 12
 horizontal_alignment = 1

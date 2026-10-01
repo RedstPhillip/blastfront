@@ -1,4 +1,4 @@
-﻿extends Node2D
+extends Node2D
 class_name MapBorder
 
 @export var warn_distance: float = GameSettings.MAP_BORDER_WARN_DISTANCE
@@ -18,6 +18,7 @@ var _bounds: Rect2 = GameSettings.DEFAULT_MAP_BOUNDS
 var _last_hit_time: Dictionary = {}
 var _disabled_until_time: float = 0.0
 var _game_sync: GameSync = null
+var _barrier: BarrierField = null
 
 @onready var _borders: Dictionary = {
 	GameSettings.MAP_BORDER_SIDE_LEFT: $Left,
@@ -40,6 +41,10 @@ func _ready() -> void:
 		border.body_entered.connect(_on_border_body_entered.bind(side))
 
 	_update_border_areas()
+	_barrier = BarrierField.new()
+	_barrier.name = "BarrierField"
+	add_child(_barrier)
+	_barrier.build(_bounds)
 
 
 func _exit_tree() -> void:
@@ -199,6 +204,7 @@ func _try_apply_border_hit(player: Player, side: StringName) -> void:
 	if now - last_time < hit_cooldown:
 		return
 	_last_hit_time[player] = now
+	_play_border_hit_feedback(player, side)
 
 	if not NetworkSession.is_steam_match_active() or player.control_mode == GameSettings.CONTROL_LOCAL:
 		player.velocity = _get_knockback_vector(side)
@@ -221,6 +227,30 @@ func _try_apply_border_hit(player: Player, side: StringName) -> void:
 				)
 	else:
 		player.apply_incoming_damage(damage_amount, 0, player.global_position, true)
+
+
+func _play_border_hit_feedback(player: Player, side: StringName) -> void:
+	var contact: Vector2 = player.global_position
+	var inward: Vector2 = Vector2.UP
+	match side:
+		GameSettings.MAP_BORDER_SIDE_LEFT:
+			contact.x = _bounds.position.x
+			inward = Vector2.RIGHT
+		GameSettings.MAP_BORDER_SIDE_RIGHT:
+			contact.x = _bounds.end.x
+			inward = Vector2.LEFT
+		GameSettings.MAP_BORDER_SIDE_TOP:
+			contact.y = _bounds.position.y
+			inward = Vector2.DOWN
+		GameSettings.MAP_BORDER_SIDE_BOTTOM:
+			contact.y = _bounds.end.y
+			inward = Vector2.UP
+	if _barrier != null:
+		_barrier.notify_hit(side, contact)
+	GameJuice.spawn_burst(&"border", contact, inward, Color(1.0, 0.3, 0.25, 1.0))
+	AudioDirector.play_at(&"border_hit", contact)
+	GameJuice.add_trauma(0.25)
+	GameJuice.kick(inward, 6.0)
 
 
 func _get_overlapping_border_side(position: Vector2) -> StringName:

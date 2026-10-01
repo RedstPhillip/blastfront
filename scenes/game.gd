@@ -2,6 +2,8 @@ extends Node2D
 class_name Game
 
 signal point_awarded(winner_slot: int)
+signal round_intro_started(round_number: int, duration: float)
+signal match_finished(winner_slot: int)
 
 const PROJECTILE_SCENE: PackedScene = preload("res://scenes/projectiles/projectile.tscn")
 const PLAYER_SCENE: PackedScene = preload("res://scenes/player/player.tscn")
@@ -9,7 +11,7 @@ const PLAYER_SCENE: PackedScene = preload("res://scenes/player/player.tscn")
 @onready var _player_1: Player = $Player1
 @onready var _player_2: Player = $Player2
 @onready var _projectiles: Node2D = $Projectiles
-@onready var _camera: Camera2D = $Camera2D
+@onready var _camera: GameCamera = $Camera2D
 @onready var _game_sync: GameSync = $GameSync
 
 var _local_player: Player = null
@@ -18,6 +20,11 @@ var _offline_match_over: bool = false
 var _camera_bounds: Rect2 = GameSettings.DEFAULT_MAP_BOUNDS
 var _dummy_players: Array[Player] = []
 var _training_dummy_respawning: Dictionary = {}
+var _round_number: int = 0
+var _round_intro_running: bool = false
+var _kill_focus_timer: float = 0.0
+var _kill_focus_position: Vector2 = Vector2.ZERO
+var _match_stats: Dictionary = {}
 
 
 func _ready() -> void:
@@ -30,20 +37,22 @@ func _ready() -> void:
 		_game_sync.setup(self)
 	elif NetworkSession.is_training():
 		_configure_training_players()
+	elif NetworkSession.is_bot_duel():
+		_configure_bot_duel_players()
+		_connect_offline_health()
 	else:
 		_remove_offline_second_player()
 		_configure_offline_players()
 		_connect_offline_health()
+	_connect_kill_cam()
 
 	_set_spawn_positions()
 	_apply_camera_bounds()
 	_camera.make_current()
 	GameJuice.bind_camera(_camera)
-	_camera.global_position = Vector2(
-		_get_camera_target_x(),
-		GameSettings.CAMERA_Y
-	)
-	_camera.zoom = Vector2.ONE * _get_camera_target_zoom()
+	_update_camera_targets()
+	_camera.snap_to_target()
+	FxWarmup.run(self, _camera.get_screen_center_position())
 	_spawn_initial_feedback()
 	if NetworkSession.is_steam_match_active():
 		_apply_online_player_colors()
@@ -51,10 +60,15 @@ func _ready() -> void:
 			_prepare_online_round()
 		else:
 			_set_player_controls_enabled(false)
+	elif NetworkSession.is_bot_duel():
+		_start_round_intro.call_deferred(GameSettings.MATCH_INTRO_SECONDS)
+	AudioDirector.play_music(&"battle")
+	AudioDirector.play_ambience(&"ambience_wind")
 
 
 func _exit_tree() -> void:
 	GameJuice.clear_camera(_camera)
+	ImpactDecals.clear_all()
 	if OnlineMatch.phase_changed.is_connected(_on_online_phase_changed):
 		OnlineMatch.phase_changed.disconnect(_on_online_phase_changed)
 	if OnlineMatch.state_changed.is_connected(_on_online_state_changed):
@@ -62,17 +76,102 @@ func _exit_tree() -> void:
 
 
 func _process(delta: float) -> void:
-	var target_x: float = _get_camera_target_x()
-	_camera.global_position.x = lerp(
-		_camera.global_position.x,
-		target_x,
-		delta * GameSettings.CAMERA_FOLLOW_SPEED
+	var real_delta: float = delta / maxf(Engine.time_scale, 0.0001)
+	_kill_focus_timer = maxf(_kill_focus_timer - real_delta, 0.0)
+	_update_camera_targets()
+
+
+func _update_camera_targets() -> void:
+	var focus: Vector2 = Vector2(_get_camera_target_x(), _get_camera_target_y())
+	var zoom_value: float = _get_camera_target_zoom()
+	var look: Vector2 = _get_camera_look_ahead()
+	if _kill_focus_timer > 0.0:
+		var weight: float = clampf(_kill_focus_timer / 0.4, 0.0, 1.0) * 0.6
+		focus = focus.lerp(_kill_focus_position, weight)
+		zoom_value *= 1.0 + 0.22 * weight
+		look = Vector2.ZERO
+	_camera.focus_position = focus
+	_camera.target_zoom = zoom_value
+	_camera.look_ahead_target = look
+
+
+func record_stat(slot: int, key: String, amount: float = 1.0) -> void:
+	if slot <= 0 or NetworkSession.is_steam_match_active():
+		return
+	var stats: Dictionary = _match_stats.get(slot, {})
+	stats[key] = float(stats.get(key, 0.0)) + amount
+	_match_stats[slot] = stats
+
+
+func get_match_stats(slot: int) -> Dictionary:
+	return _match_stats.get(slot, {})
+
+
+func is_round_intro_running() -> bool:
+	return _round_intro_running
+
+
+func get_round_number() -> int:
+	return _round_number
+
+
+func get_wins_needed() -> int:
+	if NetworkSession.is_bot_duel():
+		return GameSettings.BOT_MATCH_WINS_NEEDED
+	return GameSettings.MATCH_WINS_NEEDED
+
+
+func _configure_bot_duel_players() -> void:
+	_local_player = _player_1
+	_configure_local_player(
+		_player_1,
+		GameSettings.PLAYER_ONE_SLOT,
+		GameSettings.INPUT_P1_MOVE_LEFT,
+		GameSettings.INPUT_P1_MOVE_RIGHT,
+		GameSettings.INPUT_P1_JUMP,
+		GameSettings.INPUT_P1_SHOOT,
+		GameSettings.INPUT_P1_BLOCK,
+		true
 	)
-	var target_zoom: float = _get_camera_target_zoom()
-	_camera.zoom = _camera.zoom.lerp(
-		Vector2.ONE * target_zoom,
-		clampf(delta * GameSettings.CAMERA_ZOOM_SPEED, 0.0, 1.0)
-	)
+	_configure_common_player(_player_2, GameSettings.PLAYER_TWO_SLOT)
+	_player_2.configure_ai_control(GameSettings.PLAYER_TWO_SLOT, UserSettings.get_int(UserSettings.BOT_DIFFICULTY))
+
+
+func _start_round_intro(duration: float) -> void:
+	if not is_inside_tree() or _offline_match_over:
+		return
+	_round_number += 1
+	_round_intro_running = true
+	_set_player_controls_enabled(false)
+	round_intro_started.emit(_round_number, duration)
+	await get_tree().create_timer(duration, false).timeout
+	if not is_inside_tree() or _offline_match_over:
+		return
+	_round_intro_running = false
+	_set_player_controls_enabled(true)
+
+
+func _connect_kill_cam() -> void:
+	for player in [_player_1, _player_2]:
+		if player == null or not is_instance_valid(player):
+			continue
+		if not player.health_component.health_depleted.is_connected(_on_player_died_for_camera):
+			player.health_component.health_depleted.connect(_on_player_died_for_camera.bind(player))
+
+
+func _on_player_died_for_camera(player: Player) -> void:
+	if player == null or not is_instance_valid(player) or player.health_component.health > 0:
+		return
+	if NetworkSession.is_training() and player != _local_player:
+		return
+	_kill_focus_position = player.global_position
+	_kill_focus_timer = 1.1
+	if not NetworkSession.is_steam_match_active():
+		GameJuice.slow_motion(0.22, 0.55, 0.45)
+		var screen_fx: ScreenFx = get_node_or_null("ScreenFx") as ScreenFx
+		if screen_fx != null:
+			screen_fx.set_desaturate(0.55)
+			get_tree().create_timer(0.9, true, false, true).timeout.connect(screen_fx.set_desaturate.bind(0.0))
 
 
 func get_config() -> Dictionary:
@@ -96,6 +195,7 @@ func request_shot(owner: Node, spawn_position: Vector2, direction: Vector2, proj
 		return
 
 	var directions: Array[Vector2] = projectile_data.get("volley_directions", [])
+	record_stat(owner_slot, "shots", float(directions.size()))
 	for shot_direction in directions:
 		var projectile: Projectile = PROJECTILE_SCENE.instantiate() as Projectile
 		projectile.configure_from_data(0, owner_slot, shot_direction, projectile_data)
@@ -190,7 +290,7 @@ func _configure_training_players() -> void:
 
 func _configure_dummy_player(dummy: Player, slot: int) -> void:
 	dummy.player_slot = slot
-	dummy.configure_remote_control(slot)
+	dummy.configure_ai_control(slot, BotBrain.Difficulty.DUMMY)
 	dummy.add_to_group(GameSettings.PLAYERS_GROUP)
 	dummy.remove_from_group(GameSettings.LOCAL_PLAYERS_GROUP)
 	dummy.set_eliminated(false)
@@ -232,9 +332,14 @@ func _on_training_dummy_health_depleted(dummy: Player) -> void:
 		return
 	_training_dummy_respawning.erase(dummy_id)
 	if dummy != null and is_instance_valid(dummy):
+		var dummy_index: int = maxi(_dummy_players.find(dummy), 0)
+		dummy.global_position = _get_dummy_spawn_position(dummy_index)
+		if dummy.ai_brain != null:
+			dummy.ai_brain.reset_home()
 		dummy.health_component.heal(dummy.health_component.max_health)
 		dummy.set_eliminated(false)
 		dummy.velocity = Vector2.ZERO
+		_spawn_respawn_feedback(dummy)
 
 
 func _on_training_player_health_depleted() -> void:
@@ -311,9 +416,9 @@ func is_match_over() -> bool:
 func get_winner_slot() -> int:
 	if not _offline_match_over:
 		return 0
-	if int(_offline_score[GameSettings.PLAYER_ONE_SLOT]) >= GameSettings.MATCH_WINS_NEEDED:
+	if int(_offline_score[GameSettings.PLAYER_ONE_SLOT]) >= get_wins_needed():
 		return GameSettings.PLAYER_ONE_SLOT
-	if int(_offline_score[GameSettings.PLAYER_TWO_SLOT]) >= GameSettings.MATCH_WINS_NEEDED:
+	if int(_offline_score[GameSettings.PLAYER_TWO_SLOT]) >= get_wins_needed():
 		return GameSettings.PLAYER_TWO_SLOT
 	return 0
 
@@ -354,14 +459,25 @@ func _set_spawn_positions() -> void:
 			var dummy: Player = _dummy_players[i]
 			if dummy == null or not is_instance_valid(dummy):
 				continue
-			dummy.global_position = Vector2(
-				GameSettings.PLAYER_ONE_SPAWN.x + GameSettings.TRAINING_DUMMY_SPAWN_OFFSET_X * float(i + 1),
-				GameSettings.TRAINING_DUMMY_SPAWN_Y
-			)
+			dummy.global_position = _get_dummy_spawn_position(i)
 			dummy.last_dir = GameSettings.PLAYER_TWO_START_FACING
+			if dummy.ai_brain != null:
+				dummy.ai_brain.reset_home()
 	elif _has_player_two():
 		_player_2.global_position = _get_spawn_position(GameSettings.PLAYER_TWO_SPAWN_MARKER, GameSettings.PLAYER_TWO_SPAWN)
 		_player_2.last_dir = GameSettings.PLAYER_TWO_START_FACING
+		if _player_2.ai_brain != null:
+			_player_2.ai_brain.reset_home()
+
+
+func _get_dummy_spawn_position(index: int) -> Vector2:
+	var marker: Node = find_child("DummySpawn%d" % (index + 1), true, false)
+	if marker is Node2D:
+		return (marker as Node2D).global_position
+	return Vector2(
+		GameSettings.PLAYER_ONE_SPAWN.x + GameSettings.TRAINING_DUMMY_SPAWN_OFFSET_X * float(index + 1),
+		GameSettings.TRAINING_DUMMY_SPAWN_Y
+	)
 
 
 func _get_spawn_position(marker_name: StringName, fallback_position: Vector2) -> Vector2:
@@ -380,10 +496,7 @@ func _apply_camera_bounds() -> void:
 			bounds = b
 
 	_camera_bounds = bounds
-	_camera.limit_left = int(bounds.position.x)
-	_camera.limit_right = int(bounds.position.x + bounds.size.x)
-	_camera.limit_top = int(bounds.position.y)
-	_camera.limit_bottom = int(bounds.position.y + bounds.size.y)
+	_camera.bounds = bounds
 
 
 func _get_camera_target_x() -> float:
@@ -399,9 +512,26 @@ func _get_camera_target_x() -> float:
 	return (_player_1.global_position.x + _player_2.global_position.x) * 0.5
 
 
+func _get_camera_target_y() -> float:
+	var anchor: Player = _local_player if _local_player != null and is_instance_valid(_local_player) else _player_1
+	if anchor == null or anchor.is_eliminated():
+		return GameSettings.CAMERA_Y
+	return GameSettings.CAMERA_Y + (anchor.global_position.y - GameSettings.CAMERA_Y) * GameSettings.CAMERA_VERTICAL_FOLLOW
+
+
+func _get_camera_look_ahead() -> Vector2:
+	if _local_player == null or not is_instance_valid(_local_player) or _local_player.is_eliminated():
+		return Vector2.ZERO
+	if _local_player.control_mode != GameSettings.CONTROL_LOCAL:
+		return Vector2.ZERO
+	var to_aim: Vector2 = _local_player.get_aim_world_position() - _local_player.global_position
+	var reach: float = clampf(to_aim.length() / 420.0, 0.0, 1.0)
+	return to_aim.normalized() * GameCamera.LOOK_AHEAD_DISTANCE * reach * Vector2(1.0, 0.55)
+
+
 func _get_camera_target_zoom() -> float:
 	if NetworkSession.is_steam_match_active():
-		return maxf(GameSettings.CAMERA_ONLINE_ZOOM, _get_vertical_safe_zoom())
+		return GameSettings.CAMERA_ONLINE_ZOOM
 
 	if NetworkSession.is_training():
 		return GameSettings.CAMERA_ONLINE_ZOOM
@@ -416,12 +546,6 @@ func _get_camera_target_zoom() -> float:
 	)
 	var target_zoom: float = get_viewport_rect().size.x / desired_world_width
 	return clampf(target_zoom, GameSettings.CAMERA_MIN_ZOOM, GameSettings.CAMERA_MAX_ZOOM)
-
-
-func _get_vertical_safe_zoom() -> float:
-	if _camera_bounds.size.y <= 0.0:
-		return GameSettings.CAMERA_MAX_ZOOM
-	return get_viewport_rect().size.y / _camera_bounds.size.y
 
 
 func _get_map_center_x() -> float:
@@ -450,12 +574,14 @@ func _on_offline_health_depleted(slot: int) -> void:
 	_offline_score[source_slot] = _offline_score[source_slot] + 1
 	point_awarded.emit(source_slot)
 
-	if _offline_score[source_slot] >= GameSettings.MATCH_WINS_NEEDED:
+	if _offline_score[source_slot] >= get_wins_needed():
 		_offline_match_over = true
 		_clear_projectiles()
 		_set_player_controls_enabled(false)
+		match_finished.emit(source_slot)
 		return
 
+	_set_player_controls_enabled(false)
 	_heal_and_respawn_after_delay()
 
 
@@ -471,10 +597,13 @@ func _heal_and_respawn() -> void:
 
 
 func _heal_and_respawn_after_delay() -> void:
-	await get_tree().create_timer(GameSettings.PLAYER_RESPAWN_DELAY).timeout
+	await get_tree().create_timer(GameSettings.PLAYER_RESPAWN_DELAY, false, false, true).timeout
 	if not is_inside_tree():
 		return
+	_clear_projectiles()
 	_heal_and_respawn()
+	if NetworkSession.is_bot_duel():
+		_start_round_intro(GameSettings.ROUND_INTRO_SECONDS)
 
 
 func _get_player_by_slot(slot: int) -> Player:

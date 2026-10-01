@@ -13,6 +13,8 @@ class_name LegRenderer
 @export var wall_min_y_velocity: float = GameSettings.LEG_WALL_MIN_Y_VELOCITY
 @export var player_path: NodePath = NodePath("..")
 
+const FOOT_RADIUS: float = 2.3
+
 var _p: Player
 var _knee_dir_smoothed: float = 1.0
 var _last_knee_source_dir: float = 0.0
@@ -36,8 +38,15 @@ func _draw() -> void:
 		return
 
 	var points: Dictionary = get_rendered_leg_points()
-	_draw_leg(points["hip_l"] as Vector2, points["foot_l"] as Vector2, _knee_dir_smoothed)
-	_draw_leg(points["hip_r"] as Vector2, points["foot_r"] as Vector2, _knee_dir_smoothed)
+	var leg_l: PackedVector2Array = _leg_points(points["hip_l"] as Vector2, points["foot_l"] as Vector2, _knee_dir_smoothed)
+	var leg_r: PackedVector2Array = _leg_points(points["hip_r"] as Vector2, points["foot_r"] as Vector2, _knee_dir_smoothed)
+	var outline: Color = col_leg.darkened(0.62)
+	for leg in [leg_l, leg_r]:
+		draw_polyline(leg, outline, line_w + 2.2, true)
+		draw_circle(leg[leg.size() - 1], FOOT_RADIUS + 1.1, outline, true, -1.0, true)
+	for leg in [leg_l, leg_r]:
+		draw_polyline(leg, col_leg, line_w, true)
+		draw_circle(leg[leg.size() - 1], FOOT_RADIUS, col_leg.lightened(0.08), true, -1.0, true)
 
 
 func get_rendered_foot_positions() -> Array[Vector2]:
@@ -118,17 +127,14 @@ func _get_wall_dir() -> float:
 	return -signf(wall_normal_x) if absf(wall_normal_x) > 0.0 else 0.0
 
 
-func _draw_leg(hip: Vector2, foot: Vector2, side: float) -> void:
-	_draw_bezier(hip, _two_bone_ik(hip, foot, upper_len, lower_len, side), foot)
-
-
-func _draw_bezier(p0: Vector2, p1: Vector2, p2: Vector2) -> void:
+func _leg_points(hip: Vector2, foot: Vector2, side: float) -> PackedVector2Array:
+	var knee: Vector2 = _two_bone_ik(hip, foot, upper_len, lower_len, side)
 	var pts: PackedVector2Array = PackedVector2Array()
 	for i in range(bezier_pts + 1):
 		var t: float = float(i) / bezier_pts
 		var mt: float = 1.0 - t
-		pts.append(mt * mt * p0 + 2.0 * mt * t * p1 + t * t * p2)
-	draw_polyline(pts, col_leg, line_w, true)
+		pts.append(mt * mt * hip + 2.0 * mt * t * knee + t * t * foot)
+	return pts
 
 
 func _two_bone_ik(hip: Vector2, foot: Vector2, l1: float, l2: float, side: float) -> Vector2:

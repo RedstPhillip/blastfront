@@ -234,6 +234,20 @@ func _set_phase(next_phase: StringName) -> void:
 		_stop_warning_feedback()
 	elif next_phase in [PHASE_CAPTURED, PHASE_INACTIVE]:
 		_stop_warning_feedback()
+	_announce_phase(next_phase)
+
+
+func _announce_phase(next_phase: StringName) -> void:
+	match next_phase:
+		PHASE_WARNING:
+			HudToasts.notify("SUPPLY DROP INBOUND", "Hold the landing zone to earn research points", UiStyle.ACCENT, &"")
+		PHASE_LANDED:
+			HudToasts.notify("SUPPLY DROP LANDED", "Stand inside the ring to capture it", UiStyle.ACCENT_HOT, &"")
+		PHASE_CAPTURED:
+			if _capturing_slot == NetworkSession.local_player_slot:
+				HudToasts.notify("DROP SECURED", "Research points are on their way", UiStyle.SUCCESS, &"reward")
+			elif _capturing_slot != 0:
+				HudToasts.notify("DROP LOST", "Your opponent captured the supplies", UiStyle.DANGER, &"ui_error")
 
 
 func _begin_warning_feedback() -> void:

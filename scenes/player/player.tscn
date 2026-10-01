@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://doun1m2ix5any"]
 
-[ext_resource type="Texture2D" uid="uid://tb2dygse1lm1" path="res://assets/player/blue_ball.png" id="1_4flbx"]
+[ext_resource type="Texture2D" path="res://assets/player/body/blue.png" id="1_4flbx"]
 [ext_resource type="Script" uid="uid://b7k42ms07y2wq" path="res://scenes/player/player.gd" id="1_onrkg"]
 [ext_resource type="Script" uid="uid://8hfnbsqidpdh" path="res://scenes/player/leg_renderer.gd" id="3_gmlin"]
 [ext_resource type="PackedScene" uid="uid://dhc5lavdjobne" path="res://scenes/hands/gun/gun.tscn" id="4_lvxji"]
@@ -38,7 +38,7 @@ script = ExtResource("3_gmlin")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1037254364]
 light_mask = 2
-scale = Vector2(0.016, 0.016)
+scale = Vector2(0.0625, 0.0625)
 texture = ExtResource("1_4flbx")
 
 [node name="ArmorVisualRoot" type="Node2D" parent="." unique_id=7788001]

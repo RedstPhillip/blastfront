@@ -1,0 +1,264 @@
+[gd_scene load_steps=25 format=3]
+
+[ext_resource type="Script" path="res://scenes/maps/environment/sky_dressing.gd" id="21_sky_dressing"]
+[ext_resource type="Texture2D" path="res://assets/fx/noise_fbm.png" id="20_noise"]
+[ext_resource type="Script" path="res://scenes/maps/environment/parallax_depth.gd" id="1_parallax"]
+[ext_resource type="Shader" path="res://scenes/maps/environment/sky.gdshader" id="2_sky"]
+[ext_resource type="Shader" path="res://scenes/maps/environment/backdrop.gdshader" id="3_backdrop"]
+[ext_resource type="Texture2D" path="res://assets/arena_background.png" id="4_bg"]
+[ext_resource type="Shader" path="res://scenes/maps/environment/fog.gdshader" id="5_fog"]
+[ext_resource type="Shader" path="res://scenes/maps/environment/abyss.gdshader" id="6_abyss"]
+[ext_resource type="Script" path="res://scenes/maps/environment/searchlight.gd" id="7_searchlight"]
+[ext_resource type="Script" path="res://scenes/maps/environment/bird_flock.gd" id="8_birds"]
+[ext_resource type="Script" path="res://scenes/maps/environment/fireflies.gd" id="9_fireflies"]
+[ext_resource type="Texture2D" path="res://assets/fx/glow.png" id="10_glow"]
+[ext_resource type="Texture2D" path="res://assets/fx/leaf.png" id="11_leaf"]
+[ext_resource type="Texture2D" path="res://assets/fx/soft_circle.png" id="12_soft"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sky"]
+shader = ExtResource("2_sky")
+shader_parameter/noise_tex = ExtResource("20_noise")
+shader_parameter/top_color = Color(0.04, 0.1, 0.11, 1)
+shader_parameter/bottom_color = Color(0.149, 0.306, 0.275, 1)
+shader_parameter/star_density = 0.0035
+shader_parameter/aurora_strength = 0.14
+shader_parameter/aurora_color = Color(0.45, 1, 0.75, 1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_backdrop"]
+shader = ExtResource("3_backdrop")
+shader_parameter/sky_color = Color(0.149, 0.306, 0.275, 1)
+shader_parameter/top_fade = 0.1
+shader_parameter/haze_strength = 0.08
+shader_parameter/horizon = 0.42
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_add"]
+blend_mode = 1
+light_mode = 1
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_far_fog"]
+shader = ExtResource("5_fog")
+shader_parameter/noise_tex = ExtResource("20_noise")
+shader_parameter/fog_color = Color(0.68, 0.84, 0.74, 1)
+shader_parameter/density = 0.2
+shader_parameter/speed = 0.01
+shader_parameter/scale = 0.8
+shader_parameter/top_softness = 0.5
+shader_parameter/bottom_softness = 0.35
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_mid_fog"]
+shader = ExtResource("5_fog")
+shader_parameter/noise_tex = ExtResource("20_noise")
+shader_parameter/fog_color = Color(0.5, 0.68, 0.6, 1)
+shader_parameter/density = 0.16
+shader_parameter/speed = 0.016
+shader_parameter/scale = 1.2
+shader_parameter/top_softness = 0.45
+shader_parameter/bottom_softness = 0.3
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_abyss"]
+shader = ExtResource("6_abyss")
+shader_parameter/noise_tex = ExtResource("20_noise")
+shader_parameter/abyss_color = Color(0.03, 0.065, 0.055, 1)
+shader_parameter/mist_color = Color(0.42, 0.6, 0.52, 1)
+shader_parameter/mist_strength = 0.34
+
+[sub_resource type="Gradient" id="Gradient_moon"]
+offsets = PackedFloat32Array(0, 0.7)
+colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_moon"]
+gradient = SubResource("Gradient_moon")
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+
+[sub_resource type="Gradient" id="Gradient_leaf_color"]
+offsets = PackedFloat32Array(0, 0.1, 0.85, 1)
+colors = PackedColorArray(1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="Gradient" id="Gradient_mote_color"]
+offsets = PackedFloat32Array(0, 0.25, 0.75, 1)
+colors = PackedColorArray(1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0)
+
+[node name="ArenaEnvironment" type="Node2D"]
+z_index = -10
+
+[node name="FarLayer" type="Node2D" parent="."]
+script = ExtResource("1_parallax")
+factor = Vector2(0.3, 0.2)
+
+[node name="Sky" type="ColorRect" parent="FarLayer"]
+material = SubResource("ShaderMaterial_sky")
+offset_left = -3000.0
+offset_top = -1400.0
+offset_right = 3000.0
+offset_bottom = -480.0
+mouse_filter = 2
+
+[node name="Backdrop" type="TextureRect" parent="FarLayer"]
+material = SubResource("ShaderMaterial_backdrop")
+offset_left = -1085.0
+offset_top = -500.0
+offset_right = 1085.0
+offset_bottom = 500.0
+mouse_filter = 2
+texture = ExtResource("4_bg")
+expand_mode = 1
+
+[node name="LowFill" type="ColorRect" parent="FarLayer"]
+offset_left = -3000.0
+offset_top = 496.0
+offset_right = 3000.0
+offset_bottom = 2000.0
+mouse_filter = 2
+color = Color(0.059, 0.125, 0.094, 1)
+
+[node name="SkySideLeft" type="ColorRect" parent="FarLayer"]
+offset_left = -3000.0
+offset_top = -481.0
+offset_right = -1084.0
+offset_bottom = 497.0
+mouse_filter = 2
+color = Color(0.09, 0.18, 0.15, 1)
+
+[node name="SkySideRight" type="ColorRect" parent="FarLayer"]
+offset_left = 1084.0
+offset_top = -481.0
+offset_right = 3000.0
+offset_bottom = 497.0
+mouse_filter = 2
+color = Color(0.09, 0.18, 0.15, 1)
+
+[node name="SunGlow" type="Sprite2D" parent="FarLayer"]
+modulate = Color(0.8, 1, 0.85, 0.1)
+material = SubResource("CanvasItemMaterial_add")
+position = Vector2(-6, -95)
+scale = Vector2(5.5, 3.2)
+texture = ExtResource("10_glow")
+
+[node name="SkyDressing" type="Node2D" parent="FarLayer"]
+script = ExtResource("21_sky_dressing")
+cloud_band = Vector2(-560, -380)
+
+[node name="MoonGlow" type="Sprite2D" parent="FarLayer"]
+modulate = Color(0.85, 1, 0.9, 0.3)
+material = SubResource("CanvasItemMaterial_add")
+position = Vector2(240, -329)
+scale = Vector2(1.9, 1.9)
+texture = ExtResource("10_glow")
+
+[node name="SearchlightWest" type="Node2D" parent="FarLayer"]
+position = Vector2(-438, -116)
+script = ExtResource("7_searchlight")
+sweep_degrees = 34.0
+sweep_speed = 0.18
+base_angle_degrees = -12.0
+beam_length = 620.0
+beam_width = 1.2
+
+[node name="SearchlightEast" type="Node2D" parent="FarLayer"]
+position = Vector2(639, -78)
+script = ExtResource("7_searchlight")
+sweep_degrees = 28.0
+sweep_speed = 0.23
+base_angle_degrees = 14.0
+phase = 2.4
+beam_length = 560.0
+beam_width = 1.0
+
+[node name="Birds" type="Node2D" parent="FarLayer"]
+script = ExtResource("8_birds")
+
+[node name="FarFog" type="ColorRect" parent="FarLayer"]
+material = SubResource("ShaderMaterial_far_fog")
+offset_left = -3000.0
+offset_top = -150.0
+offset_right = 3000.0
+offset_bottom = 120.0
+mouse_filter = 2
+
+[node name="MidLayer" type="Node2D" parent="."]
+script = ExtResource("1_parallax")
+factor = Vector2(0.6, 0.5)
+
+[node name="MidFog" type="ColorRect" parent="MidLayer"]
+material = SubResource("ShaderMaterial_mid_fog")
+offset_left = -3200.0
+offset_top = 40.0
+offset_right = 3200.0
+offset_bottom = 330.0
+mouse_filter = 2
+
+[node name="Abyss" type="ColorRect" parent="."]
+z_index = 12
+material = SubResource("ShaderMaterial_abyss")
+offset_left = -800.0
+offset_top = 610.0
+offset_right = 3100.0
+offset_bottom = 1310.0
+mouse_filter = 2
+
+[node name="MoonLight" type="PointLight2D" parent="."]
+position = Vector2(1140, -60)
+scale = Vector2(70, 40)
+color = Color(0.86, 1, 0.9, 1)
+energy = 0.55
+range_item_cull_mask = 4
+shadow_enabled = true
+shadow_color = Color(0, 0, 0, 0.55)
+shadow_filter = 1
+shadow_filter_smooth = 6.0
+texture = SubResource("GradientTexture2D_moon")
+
+[node name="Fireflies" type="Node2D" parent="."]
+z_index = 16
+script = ExtResource("9_fireflies")
+
+[node name="Leaves" type="CPUParticles2D" parent="."]
+z_index = 16
+position = Vector2(1140, -120)
+amount = 16
+lifetime = 16.0
+preprocess = 16.0
+texture = ExtResource("11_leaf")
+emission_shape = 3
+emission_rect_extents = Vector2(1500, 40)
+direction = Vector2(0.4, 1)
+spread = 25.0
+gravity = Vector2(6, 22)
+initial_velocity_min = 12.0
+initial_velocity_max = 30.0
+orbit_velocity_min = -0.02
+orbit_velocity_max = 0.02
+angular_velocity_min = -90.0
+angular_velocity_max = 90.0
+tangential_accel_min = -12.0
+tangential_accel_max = 12.0
+damping_min = 1.0
+damping_max = 3.0
+angle_min = -180.0
+angle_max = 180.0
+scale_amount_min = 0.2
+scale_amount_max = 0.38
+color = Color(0.36, 0.52, 0.28, 0.85)
+color_ramp = SubResource("Gradient_leaf_color")
+
+[node name="Motes" type="CPUParticles2D" parent="."]
+z_index = 16
+material = SubResource("CanvasItemMaterial_add")
+position = Vector2(1140, 400)
+amount = 46
+lifetime = 9.0
+preprocess = 9.0
+randomness = 0.8
+texture = ExtResource("12_soft")
+emission_shape = 3
+emission_rect_extents = Vector2(1250, 330)
+direction = Vector2(1, -0.2)
+spread = 40.0
+gravity = Vector2(3, -4)
+initial_velocity_min = 4.0
+initial_velocity_max = 14.0
+scale_amount_min = 0.05
+scale_amount_max = 0.12
+color = Color(0.92, 1, 0.8, 0.32)
+color_ramp = SubResource("Gradient_mote_color")

@@ -1,357 +1,322 @@
 extends Control
 
-const ROUND_SCORE_DOT_SCENE: PackedScene = preload("res://scenes/ui/round_score_dot.tscn")
+## In-match HUD: scoreboard, player cards, crosshair, off-screen indicators, round announcer and results.
+## Works for online matches, versus-bot duels and the sandbox.
 
-@onready var _left_player_panel: ArcadePlayerPanel = %LeftPlayerPanel
-@onready var _right_player_panel: ArcadePlayerPanel = %RightPlayerPanel
-@onready var _left_score: Label = %LeftScore
-@onready var _right_score: Label = %RightScore
-@onready var _left_round_dots: HBoxContainer = %LeftRoundDots
-@onready var _right_round_dots: HBoxContainer = %RightRoundDots
-@onready var _banner_panel: PanelContainer = %BannerPanel
-@onready var _banner_label: Label = %BannerLabel
-@onready var _victory_kicker: Label = %VictoryKicker
-@onready var _victory_subtitle: Label = %VictorySubtitle
-@onready var _victory_actions: HBoxContainer = %VictoryActions
-@onready var _play_again_button: Button = %PlayAgainButton
-@onready var _main_menu_button: Button = %MainMenuButton
+const RESULTS_DELAY_SECONDS: float = 1.6
+const CARD_MARGIN: float = 18.0
 
 var _game: Game = null
-var _last_banner_text: String = ""
-var _round_dot_target: int = 0
-var _transition_layer: Control = null
-var _transition_flash: ColorRect = null
-var _transition_top_bar: ColorRect = null
-var _transition_bottom_bar: ColorRect = null
-var _transition_center_line: ColorRect = null
-var _transition_tween: Tween = null
-var _last_transition_key: String = ""
-var _base_banner_style: StyleBoxFlat = null
+var _quest_tracker: HudQuestTracker = null
+var _toasts: HudToasts = null
+var _controls_hint: HudControlsHint = null
+var _scoreboard: HudScoreboard = null
+var _left_card: HudPlayerCard = null
+var _right_card: HudPlayerCard = null
+var _crosshair: HudCrosshair = null
+var _indicators: HudOffscreenIndicators = null
+var _banner: HudRoundBanner = null
+var _victory: HudVictoryScreen = null
+var _sandbox_hint: PanelContainer = null
+var _sandbox_hint_text: Label = null
+var _last_online_banner_key: String = ""
+var _results_pending: bool = false
 
 
 func _ready() -> void:
-	if not OnlineMatch.state_changed.is_connected(_refresh_score):
-		OnlineMatch.state_changed.connect(_refresh_score)
-	_base_banner_style = _banner_panel.get_theme_stylebox("panel") as StyleBoxFlat
-	_play_again_button.pressed.connect(_on_play_again_pressed)
-	_main_menu_button.pressed.connect(_on_main_menu_pressed)
-	_build_round_transition_layer()
-	GameJuice.attach_button_feedback(self)
-	call_deferred("_bind_game")
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_build_hud()
+	if not OnlineMatch.state_changed.is_connected(_refresh_online_state):
+		OnlineMatch.state_changed.connect(_refresh_online_state)
+	_bind_game.call_deferred()
 
 
 func _exit_tree() -> void:
-	if OnlineMatch.state_changed.is_connected(_refresh_score):
-		OnlineMatch.state_changed.disconnect(_refresh_score)
+	if OnlineMatch.state_changed.is_connected(_refresh_online_state):
+		OnlineMatch.state_changed.disconnect(_refresh_online_state)
 
 
-func _process(_delta: float) -> void:
-	if _game == null or not is_instance_valid(_game):
-		_bind_game()
-	_refresh_score()
+func _build_hud() -> void:
+	_indicators = HudOffscreenIndicators.new()
+	add_child(_indicators)
+
+	_scoreboard = HudScoreboard.new()
+	_scoreboard.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_scoreboard.position = Vector2(-HudScoreboard.BOARD_SIZE.x * 0.5, 6.0)
+	add_child(_scoreboard)
+
+	_left_card = HudPlayerCard.new()
+	_left_card.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	_left_card.position = Vector2(CARD_MARGIN, -HudPlayerCard.CARD_SIZE.y - CARD_MARGIN)
+	add_child(_left_card)
+
+	_right_card = HudPlayerCard.new()
+	_right_card.mirrored = true
+	_right_card.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	_right_card.position = Vector2(-HudPlayerCard.CARD_SIZE.x - CARD_MARGIN, -HudPlayerCard.CARD_SIZE.y - CARD_MARGIN)
+	add_child(_right_card)
+
+	_sandbox_hint = PanelContainer.new()
+	_sandbox_hint.add_theme_stylebox_override("panel", UiStyle.with_margins(UiStyle.panel(UiStyle.PANEL, UiStyle.LINE, 4, 1, 0.15), 22, 8))
+	_sandbox_hint.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_sandbox_hint.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_sandbox_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var hint_row: HBoxContainer = HBoxContainer.new()
+	hint_row.add_theme_constant_override("separation", 14)
+	_sandbox_hint.add_child(hint_row)
+	var hint_title: Label = Label.new()
+	UiStyle.style_label(hint_title, UiStyle.FONT_DISPLAY, 18, UiStyle.ACCENT)
+	hint_title.text = "SANDBOX"
+	hint_row.add_child(hint_title)
+	_sandbox_hint_text = Label.new()
+	UiStyle.style_label(_sandbox_hint_text, UiStyle.FONT_UI, 14, UiStyle.TEXT_DIM)
+	_update_sandbox_hint()
+	hint_row.add_child(_sandbox_hint_text)
+	InputDevice.device_changed.connect(_on_device_changed)
+	_sandbox_hint.visible = false
+	add_child(_sandbox_hint)
+
+	_quest_tracker = HudQuestTracker.new()
+	_quest_tracker.position = Vector2(CARD_MARGIN, CARD_MARGIN)
+	_quest_tracker.visible = false
+	add_child(_quest_tracker)
+
+	_controls_hint = HudControlsHint.new()
+	add_child(_controls_hint)
+
+	_toasts = HudToasts.new()
+	add_child(_toasts)
+
+	_crosshair = HudCrosshair.new()
+	_crosshair.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(_crosshair)
+
+	_banner = HudRoundBanner.new()
+	add_child(_banner)
+
+	_victory = HudVictoryScreen.new()
+	_victory.rematch_pressed.connect(_on_rematch_pressed)
+	_victory.menu_pressed.connect(_on_main_menu_pressed)
+	add_child(_victory)
 
 
 func _bind_game() -> void:
 	_game = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP) as Game
 	if _game == null:
 		return
-
-	var player_one: Player = _game.get_player_by_slot(GameSettings.PLAYER_ONE_SLOT)
-	var player_two: Player = _game.get_player_by_slot(GameSettings.PLAYER_TWO_SLOT)
-	_left_player_panel.bind_player(player_one)
-	_right_player_panel.bind_player(player_two)
+	_left_card.bind_player(_game.get_player_by_slot(GameSettings.PLAYER_ONE_SLOT), GameSettings.PLAYER_ONE_SLOT)
+	_right_card.bind_player(_game.get_player_by_slot(GameSettings.PLAYER_TWO_SLOT), GameSettings.PLAYER_TWO_SLOT)
 	if not _game.point_awarded.is_connected(_on_offline_point_awarded):
 		_game.point_awarded.connect(_on_offline_point_awarded)
+	if not _game.round_intro_started.is_connected(_on_round_intro_started):
+		_game.round_intro_started.connect(_on_round_intro_started)
+	if not _game.match_finished.is_connected(_on_match_finished):
+		_game.match_finished.connect(_on_match_finished)
+	var online: bool = NetworkSession.is_steam_match_active()
+	var training: bool = NetworkSession.is_training()
+	_quest_tracker.visible = online
+	_scoreboard.visible = not training
+	_sandbox_hint.visible = training
+	if (training or online) and HudControlsHint.should_show():
+		_controls_hint.play(1.2)
+	if training:
+		var hint_width: float = _sandbox_hint.get_combined_minimum_size().x
+		_sandbox_hint.offset_left = -hint_width * 0.5
+		_sandbox_hint.offset_right = hint_width * 0.5
+		_sandbox_hint.offset_top = 10.0
+	_refresh_online_state()
 
 
-func _refresh_score() -> void:
+func _on_device_changed(_using_gamepad: bool) -> void:
+	_update_sandbox_hint()
+
+
+func _update_sandbox_hint() -> void:
+	_sandbox_hint_text.text = "Free practice  ·  %s  Loadout & Menu" % InputDevice.prompt(&"ui_cancel")
+
+
+func _process(_delta: float) -> void:
+	if _game == null or not is_instance_valid(_game):
+		_bind_game()
+		return
 	if NetworkSession.is_steam_match_active():
-		_refresh_online_score()
+		_refresh_online_scoreboard()
 	else:
-		_refresh_offline_score()
+		_refresh_offline_scoreboard()
 
 
-func _refresh_online_score() -> void:
-	var left_color: Color = OnlineMatch.get_player_color(GameSettings.PLAYER_ONE_SLOT)
-	var right_color: Color = OnlineMatch.get_player_color(GameSettings.PLAYER_TWO_SLOT)
-	var left_match_score: int = int(OnlineMatch.match_points.get(GameSettings.PLAYER_ONE_SLOT, 0))
-	var right_match_score: int = int(OnlineMatch.match_points.get(GameSettings.PLAYER_TWO_SLOT, 0))
-	var left_round_score: int = int(OnlineMatch.set_kills.get(GameSettings.PLAYER_ONE_SLOT, 0))
-	var right_round_score: int = int(OnlineMatch.set_kills.get(GameSettings.PLAYER_TWO_SLOT, 0))
-	_apply_scoreboard(
-		left_match_score,
-		right_match_score,
-		left_round_score,
-		right_round_score,
-		GameSettings.ONLINE_SET_KILLS_TO_WIN,
-		left_color,
-		right_color
+func _refresh_offline_scoreboard() -> void:
+	var left_score: int = _game.get_score_for_slot(GameSettings.PLAYER_ONE_SLOT)
+	var right_score: int = _game.get_score_for_slot(GameSettings.PLAYER_TWO_SLOT)
+	_scoreboard.left_color = UiStyle.player_color(GameSettings.PLAYER_ONE_SLOT)
+	_scoreboard.right_color = UiStyle.player_color(GameSettings.PLAYER_TWO_SLOT)
+	_scoreboard.left_name = UiStyle.player_name(GameSettings.PLAYER_ONE_SLOT)
+	_scoreboard.right_name = UiStyle.player_name(GameSettings.PLAYER_TWO_SLOT)
+	_scoreboard.center_label = "R%d" % maxi(_game.get_round_number(), 1)
+	_scoreboard.set_state(left_score, right_score, left_score, right_score, _game.get_wins_needed())
+
+
+func _refresh_online_scoreboard() -> void:
+	_scoreboard.left_color = OnlineMatch.get_player_color(GameSettings.PLAYER_ONE_SLOT)
+	_scoreboard.right_color = OnlineMatch.get_player_color(GameSettings.PLAYER_TWO_SLOT)
+	_scoreboard.left_name = OnlineMatch.get_player_color_name(GameSettings.PLAYER_ONE_SLOT).to_upper()
+	_scoreboard.right_name = OnlineMatch.get_player_color_name(GameSettings.PLAYER_TWO_SLOT).to_upper()
+	var left_points: int = int(OnlineMatch.match_points.get(GameSettings.PLAYER_ONE_SLOT, 0))
+	var right_points: int = int(OnlineMatch.match_points.get(GameSettings.PLAYER_TWO_SLOT, 0))
+	_scoreboard.center_label = "S%d" % (left_points + right_points + 1)
+	_scoreboard.set_state(
+		left_points,
+		right_points,
+		int(OnlineMatch.set_kills.get(GameSettings.PLAYER_ONE_SLOT, 0)),
+		int(OnlineMatch.set_kills.get(GameSettings.PLAYER_TWO_SLOT, 0)),
+		GameSettings.ONLINE_SET_KILLS_TO_WIN
 	)
 
-	if OnlineMatch.phase == GameSettings.MATCH_PHASE_KILL_BANNER:
-		_show_winner_banner(OnlineMatch.last_winner_slot)
-	elif OnlineMatch.phase == GameSettings.MATCH_PHASE_FINAL:
-		_show_victory_screen(
-			OnlineMatch.final_winner_slot,
-			OnlineMatch.get_player_color(OnlineMatch.final_winner_slot),
-			OnlineMatch.get_player_color_name(OnlineMatch.final_winner_slot).to_upper()
-		)
-	else:
-		_banner_panel.hide()
+
+func _refresh_online_state() -> void:
+	if not NetworkSession.is_steam_match_active():
+		return
+	if OnlineMatch.phase == GameSettings.MATCH_PHASE_KILL_BANNER and OnlineMatch.last_winner_slot != 0:
+		var key: String = "%d:%d:%d:%d" % [
+			OnlineMatch.last_winner_slot,
+			int(OnlineMatch.set_kills.get(GameSettings.PLAYER_ONE_SLOT, 0)),
+			int(OnlineMatch.set_kills.get(GameSettings.PLAYER_TWO_SLOT, 0)),
+			OnlineMatch.match_generation,
+		]
+		if key != _last_online_banner_key:
+			_last_online_banner_key = key
+			var winner: int = OnlineMatch.last_winner_slot
+			var subtitle: String = "%d  —  %d" % [int(OnlineMatch.set_kills.get(GameSettings.PLAYER_ONE_SLOT, 0)), int(OnlineMatch.set_kills.get(GameSettings.PLAYER_TWO_SLOT, 0))]
+			_banner.play_point(OnlineMatch.get_player_color(winner), "%s SCORES" % OnlineMatch.get_player_color_name(winner).to_upper(), subtitle)
+	elif OnlineMatch.phase == GameSettings.MATCH_PHASE_PLAYING_SET:
+		_last_online_banner_key = ""
+	if OnlineMatch.phase == GameSettings.MATCH_PHASE_FINAL and OnlineMatch.final_winner_slot != 0 and not _victory.is_shown():
+		_show_online_results()
 
 
-func _refresh_offline_score() -> void:
-	_banner_panel.hide()
-	var left_score: int = 0
-	var right_score: int = 0
-	if _game != null:
-		left_score = _game.get_score_for_slot(GameSettings.PLAYER_ONE_SLOT)
-		right_score = _game.get_score_for_slot(GameSettings.PLAYER_TWO_SLOT)
+func _on_round_intro_started(round_number: int, duration: float) -> void:
+	var wins_needed: int = _game.get_wins_needed()
+	var subtitle: String = ""
+	if round_number == 1:
+		subtitle = "FIRST TO %d" % wins_needed
+	elif _game.get_score_for_slot(GameSettings.PLAYER_ONE_SLOT) == wins_needed - 1 or _game.get_score_for_slot(GameSettings.PLAYER_TWO_SLOT) == wins_needed - 1:
+		subtitle = "MATCH POINT"
+	_banner.play_intro(round_number, duration, subtitle)
+	if round_number == 1 and HudControlsHint.should_show():
+		_controls_hint.play(duration * 0.35)
 
-	_apply_scoreboard(
-		left_score,
-		right_score,
-		left_score,
-		right_score,
-		GameSettings.MATCH_WINS_NEEDED,
-		GameSettings.player_color_value(GameSettings.ONLINE_DEFAULT_LOCAL_COLOR),
-		GameSettings.player_color_value(GameSettings.ONLINE_DEFAULT_REMOTE_COLOR)
+
+func _on_offline_point_awarded(winner_slot: int) -> void:
+	if NetworkSession.is_training():
+		return
+	var color: Color = UiStyle.player_color(winner_slot)
+	var local_won: bool = winner_slot == GameSettings.PLAYER_ONE_SLOT
+	var left: int = _game.get_score_for_slot(GameSettings.PLAYER_ONE_SLOT)
+	var right: int = _game.get_score_for_slot(GameSettings.PLAYER_TWO_SLOT)
+	var final_point: bool = maxi(left, right) >= _game.get_wins_needed()
+	var title: String = "KNOCKOUT" if final_point else ("ROUND WON" if local_won else "ROUND LOST")
+	_banner.play_point(color, title, "%d  —  %d" % [left, right], final_point)
+	if local_won and not final_point:
+		_announce_round_award(_game.get_player_by_slot(winner_slot))
+
+
+## Small extra recognition for standout rounds; shown after the point banner has landed.
+func _announce_round_award(winner: Player) -> void:
+	if winner == null or not is_instance_valid(winner) or winner.health_component == null:
+		return
+	var ratio: float = float(winner.health_component.health) / maxf(float(winner.health_component.max_health), 1.0)
+	var title: String = ""
+	var detail: String = ""
+	if ratio >= 0.999:
+		title = "PERFECT ROUND"
+		detail = "Won without taking a single hit"
+	elif ratio <= 0.25:
+		title = "CLUTCH"
+		detail = "Survived on the last sliver of health"
+	if title == "":
+		return
+	await get_tree().create_timer(0.7, true, false, true).timeout
+	if is_inside_tree():
+		HudToasts.notify(title, detail, UiStyle.ACCENT_HOT, &"reward")
+
+
+func _on_match_finished(winner_slot: int) -> void:
+	if _results_pending:
+		return
+	_results_pending = true
+	await get_tree().create_timer(RESULTS_DELAY_SECONDS, true, false, true).timeout
+	_results_pending = false
+	if not is_inside_tree():
+		return
+	var local_won: bool = winner_slot == GameSettings.PLAYER_ONE_SLOT
+	var left: int = _game.get_score_for_slot(GameSettings.PLAYER_ONE_SLOT)
+	var right: int = _game.get_score_for_slot(GameSettings.PLAYER_TWO_SLOT)
+	var winner_name: String = UiStyle.player_name(winner_slot)
+	_victory.show_result(
+		local_won,
+		UiStyle.player_color(winner_slot).lightened(0.2),
+		"%s WIN%s   %d — %d" % [winner_name, "" if winner_name == "YOU" else "S", left, right],
+		_build_stats(GameSettings.PLAYER_ONE_SLOT),
+		true,
+		"REMATCH"
 	)
 
-	if _game != null and _game.is_match_over():
-		var winner_slot: int = _game.get_winner_slot()
-		var winner_color: Color = GameSettings.player_color_value(
-			GameSettings.ONLINE_DEFAULT_REMOTE_COLOR if winner_slot == GameSettings.PLAYER_TWO_SLOT else GameSettings.ONLINE_DEFAULT_LOCAL_COLOR
-		)
-		_show_victory_screen(winner_slot, winner_color, "PLAYER %d" % winner_slot)
+
+func _show_online_results() -> void:
+	var winner: int = OnlineMatch.final_winner_slot
+	var local_won: bool = winner == NetworkSession.local_player_slot
+	var left: int = int(OnlineMatch.match_points.get(GameSettings.PLAYER_ONE_SLOT, 0))
+	var right: int = int(OnlineMatch.match_points.get(GameSettings.PLAYER_TWO_SLOT, 0))
+	var can_rematch: bool = NetworkSession.is_host()
+	var no_stats: Array[Dictionary] = []
+	_victory.show_result(
+		local_won,
+		OnlineMatch.get_player_color(winner).lightened(0.2),
+		"%s HOLDS THE FRONT   %d — %d" % [OnlineMatch.get_player_color_name(winner).to_upper(), left, right],
+		no_stats,
+		can_rematch,
+		"PLAY AGAIN" if can_rematch else "HOST DECIDES"
+	)
 
 
-func _apply_scoreboard(
-	left_match_score: int,
-	right_match_score: int,
-	left_round_score: int,
-	right_round_score: int,
-	round_target: int,
-	left_color: Color,
-	right_color: Color
-) -> void:
-	_left_score.text = str(left_match_score)
-	_right_score.text = str(right_match_score)
-	_left_score.add_theme_color_override("font_color", left_color.lightened(0.12))
-	_right_score.add_theme_color_override("font_color", right_color.lightened(0.12))
-
-	if round_target != _round_dot_target:
-		_rebuild_round_dots(round_target)
-	_update_round_dots(_left_round_dots, left_round_score, left_color)
-	_update_round_dots(_right_round_dots, right_round_score, right_color)
+func _build_stats(slot: int) -> Array[Dictionary]:
+	var stats: Dictionary = _game.get_match_stats(slot)
+	var shots: int = int(stats.get("shots", 0))
+	var hits: int = int(stats.get("hits", 0))
+	var accuracy: float = (float(hits) / float(shots) * 100.0) if shots > 0 else 0.0
+	var result: Array[Dictionary] = [
+		{"label": "ACCURACY", "value": accuracy, "format": "%d%%"},
+		{"label": "DAMAGE", "value": float(stats.get("damage", 0)), "format": "%d"},
+		{"label": "BLOCKS", "value": float(stats.get("blocks", 0)), "format": "%d"},
+		{"label": "ROUNDS", "value": float(_game.get_score_for_slot(slot)), "format": "%d"},
+	]
+	return result
 
 
-func _rebuild_round_dots(round_target: int) -> void:
-	var dot_containers: Array[HBoxContainer] = [_left_round_dots, _right_round_dots]
-	for container in dot_containers:
-		for child in container.get_children():
-			container.remove_child(child)
-			child.queue_free()
-		for dot_index in range(maxi(round_target, 0)):
-			var dot: RoundScoreDot = ROUND_SCORE_DOT_SCENE.instantiate() as RoundScoreDot
-			if dot != null:
-				container.add_child(dot)
-	_round_dot_target = round_target
-
-
-func _update_round_dots(container: HBoxContainer, score: int, player_color: Color) -> void:
-	for dot_index in range(container.get_child_count()):
-		var dot: RoundScoreDot = container.get_child(dot_index) as RoundScoreDot
-		if dot != null:
-			dot.set_state(dot_index < score, player_color)
-
-
-func _show_winner_banner(winner_slot: int) -> void:
-	if winner_slot == 0:
-		_banner_panel.hide()
-		return
-
-	_banner_panel.custom_minimum_size = Vector2(520, 140)
-	_victory_actions.hide()
-	_victory_kicker.hide()
-	_victory_subtitle.hide()
-	_banner_label.custom_minimum_size = Vector2(460, 100)
-	_banner_label.add_theme_font_size_override("font_size", 64)
-	var winner_name: String = OnlineMatch.get_player_color_name(winner_slot).to_upper()
-	_banner_label.text = "%s WINS" % winner_name
-	var winner_color: Color = OnlineMatch.get_player_color(winner_slot)
-	_apply_banner_winner_style(winner_color)
-	_banner_label.add_theme_color_override("font_color", winner_color.lightened(0.12))
-	if not _banner_panel.visible or _last_banner_text != _banner_label.text:
-		_play_banner_animation()
-		_play_round_transition(winner_slot, winner_color)
-	_last_banner_text = _banner_label.text
-	_banner_panel.show()
-
-
-func _show_victory_screen(winner_slot: int, winner_color: Color, winner_name: String) -> void:
-	if winner_slot == 0:
-		_banner_panel.hide()
-		return
-
-	_banner_panel.custom_minimum_size = Vector2(820, 330)
-	_victory_actions.show()
-	_victory_kicker.show()
-	_victory_subtitle.show()
-	_play_again_button.disabled = NetworkSession.is_steam_match_active() and not NetworkSession.is_host()
-	_play_again_button.tooltip_text = "Only the host can restart an online match." if _play_again_button.disabled else ""
-	_banner_label.custom_minimum_size = Vector2(760, 155)
-	_banner_label.add_theme_font_size_override("font_size", 70)
-	_victory_kicker.text = "MATCH DECIDED"
-	_banner_label.text = "%s\nHOLDS THE FRONT" % winner_name
-	_apply_banner_winner_style(winner_color)
-	_banner_label.add_theme_color_override("font_color", winner_color.lightened(0.2))
-	_victory_subtitle.text = "VICTORY CLAIMED  -  THE ARENA IS YOURS"
-	if not _banner_panel.visible or _last_banner_text != _banner_label.text:
-		_play_banner_animation()
-		GameJuice.play_sound(&"spawn", -2.0, 0.02)
-	_last_banner_text = _banner_label.text
-	_banner_panel.show()
-
-
-func _on_play_again_pressed() -> void:
-	GameJuice.play_sound(&"ui_click", -8.0, 0.03)
+func _on_rematch_pressed() -> void:
 	get_tree().paused = false
 	if NetworkSession.is_steam_match_active():
 		if NetworkSession.is_host():
 			OnlineMatch.enter_locker(true)
 		return
-
-	if NetworkSession.is_training():
-		NetworkSession.start_training()
-	else:
-		NetworkSession.start_offline()
-	var main_node: Variant = get_node_or_null("/root/Main")
-	if main_node != null:
-		main_node.start_game()
+	if Main.instance == null:
+		return
+	Main.instance.transition_to(func() -> void:
+		if NetworkSession.is_training():
+			NetworkSession.start_training()
+		elif NetworkSession.is_bot_duel():
+			NetworkSession.start_bot_duel()
+		else:
+			NetworkSession.start_offline()
+		Main.instance.start_game()
+	)
 
 
 func _on_main_menu_pressed() -> void:
-	GameJuice.play_sound(&"ui_click", -8.0, 0.03)
 	get_tree().paused = false
-	NetworkSession.leave_round()
-	var main_node: Variant = get_node_or_null("/root/Main")
-	if main_node != null:
-		main_node.show_menu()
-
-
-func _on_offline_point_awarded(winner_slot: int) -> void:
-	var winner_color: Color = GameSettings.player_color_value(
-		GameSettings.ONLINE_DEFAULT_REMOTE_COLOR if winner_slot == GameSettings.PLAYER_TWO_SLOT else GameSettings.ONLINE_DEFAULT_LOCAL_COLOR
+	if Main.instance == null:
+		return
+	Main.instance.transition_to(func() -> void:
+		NetworkSession.leave_round()
+		Main.instance.show_menu()
 	)
-	_play_round_transition(winner_slot, winner_color)
-
-
-func _play_banner_animation() -> void:
-	_banner_panel.pivot_offset = _banner_panel.size * 0.5
-	_banner_panel.scale = Vector2(0.9, 0.9)
-	_banner_panel.modulate.a = 0.0
-	GameJuice.play_sound(&"ui_click", -8.0, 0.03)
-	var tween: Tween = create_tween()
-	tween.set_parallel(true)
-	tween.tween_property(_banner_panel, "scale", Vector2.ONE, 0.36).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	tween.tween_property(_banner_panel, "modulate:a", 1.0, 0.28).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-
-
-func _apply_banner_winner_style(winner_color: Color) -> void:
-	if _banner_panel == null:
-		return
-	var base_style: StyleBoxFlat = _base_banner_style
-	if base_style == null:
-		base_style = _banner_panel.get_theme_stylebox("panel") as StyleBoxFlat
-	if base_style == null:
-		return
-	var style: StyleBoxFlat = base_style.duplicate() as StyleBoxFlat
-	if style == null:
-		return
-	style.border_color = winner_color.lightened(0.22)
-	style.bg_color = winner_color.darkened(0.72)
-	style.bg_color.a = 0.97
-	_banner_panel.add_theme_stylebox_override("panel", style)
-
-
-func _build_round_transition_layer() -> void:
-	_transition_layer = Control.new()
-	_transition_layer.name = "RoundTransition"
-	_transition_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_transition_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_transition_layer.z_index = 90
-	_transition_layer.visible = false
-	add_child(_transition_layer)
-
-	_transition_flash = ColorRect.new()
-	_transition_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_transition_flash.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_transition_layer.add_child(_transition_flash)
-
-	_transition_top_bar = _create_transition_bar("TopSlash")
-	_transition_bottom_bar = _create_transition_bar("BottomSlash")
-
-	_transition_center_line = ColorRect.new()
-	_transition_center_line.name = "CenterLine"
-	_transition_center_line.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_transition_layer.add_child(_transition_center_line)
-
-func _create_transition_bar(node_name: String) -> ColorRect:
-	var bar: ColorRect = ColorRect.new()
-	bar.name = node_name
-	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	bar.pivot_offset = Vector2(620.0, 40.0)
-	_transition_layer.add_child(bar)
-	return bar
-
-func _play_round_transition(winner_slot: int, winner_color: Color) -> void:
-	if winner_slot == 0 or _transition_layer == null:
-		return
-
-	var transition_key: String = str(winner_slot)
-	if transition_key == _last_transition_key and _transition_layer.visible:
-		return
-	_last_transition_key = transition_key
-
-	if _transition_tween != null and _transition_tween.is_valid():
-		_transition_tween.kill()
-
-	var viewport_size: Vector2 = get_viewport_rect().size
-	var sweep_width: float = viewport_size.x + 360.0
-	var winner_tint: Color = winner_color.lightened(0.18)
-	var dark_tint: Color = winner_color.darkened(0.55)
-
-	_transition_layer.visible = true
-	_transition_layer.modulate = Color.WHITE
-	_transition_flash.color = Color(winner_tint.r, winner_tint.g, winner_tint.b, 0.38)
-	_transition_flash.modulate.a = 1.0
-
-	_transition_top_bar.color = Color(dark_tint.r, dark_tint.g, dark_tint.b, 0.88)
-	_transition_top_bar.size = Vector2(sweep_width, 86.0)
-	_transition_top_bar.position = Vector2(-sweep_width, viewport_size.y * 0.27)
-	_transition_top_bar.rotation = -0.08
-
-	_transition_bottom_bar.color = Color(winner_tint.r, winner_tint.g, winner_tint.b, 0.78)
-	_transition_bottom_bar.size = Vector2(sweep_width, 72.0)
-	_transition_bottom_bar.position = Vector2(viewport_size.x + 120.0, viewport_size.y * 0.59)
-	_transition_bottom_bar.rotation = -0.08
-
-	_transition_center_line.modulate.a = 0.0
-
-	GameJuice.shake(3.5, 0.42)
-	GameJuice.play_sound(&"spawn", -4.0, 0.03)
-
-	_transition_tween = create_tween()
-	_transition_tween.set_parallel(true)
-	_transition_tween.tween_property(_transition_flash, "modulate:a", 0.0, 0.72).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	_transition_tween.tween_property(_transition_top_bar, "position:x", -70.0, 0.36).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	_transition_tween.tween_property(_transition_top_bar, "position:x", viewport_size.x + 110.0, 0.56).set_delay(1.12).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
-	_transition_tween.tween_property(_transition_bottom_bar, "position:x", -130.0, 0.4).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	_transition_tween.tween_property(_transition_bottom_bar, "position:x", -sweep_width - 120.0, 0.56).set_delay(1.12).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
-	_transition_tween.finished.connect(_on_round_transition_finished)
-
-
-func _on_round_transition_finished() -> void:
-	if _transition_layer != null:
-		_transition_layer.hide()

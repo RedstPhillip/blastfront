@@ -1,6 +1,7 @@
-[gd_resource type="SystemFont" format=3 uid="uid://cgk2wyc4vfkgc"]
+[gd_resource type="FontVariation" load_steps=2 format=3 uid="uid://cgk2wyc4vfkgc"]
+
+[ext_resource type="FontFile" path="res://assets/fonts/chakra_petch/ChakraPetch-Bold.ttf" id="1_chakra"]
 
 [resource]
-font_names = PackedStringArray("Bahnschrift Condensed", "Arial Narrow", "Arial Black")
-font_weight = 750
-font_stretch = 82
+base_font = ExtResource("1_chakra")
+spacing_glyph = 1

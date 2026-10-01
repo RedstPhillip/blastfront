@@ -1,23 +1,14 @@
 [gd_scene format=3 uid="uid://lpjfvx4lrgjo"]
 
 [ext_resource type="Script" uid="uid://cq0ljg6rpg73j" path="res://scenes/maps/map_bounds.gd" id="1_mapbounds"]
-[ext_resource type="Texture2D" uid="uid://buq51x7mcmglt" path="res://assets/arena_background.png" id="2_23d8d"]
 [ext_resource type="Shader" uid="uid://d3trsbnvhg2w" path="res://scenes/maps/platforms/platform.gdshader" id="3_leycp"]
 [ext_resource type="PackedScene" uid="uid://dvuxee5nnoh77" path="res://scenes/maps/platforms/rect_platform.tscn" id="3_yugup"]
 [ext_resource type="PackedScene" uid="uid://d8fo7sfpor56" path="res://scenes/maps/platforms/octagonal_platform.tscn" id="4_kpb4k"]
 [ext_resource type="PackedScene" uid="uid://ccva00o58sb32" path="res://scenes/maps/platforms/long_platform.tscn" id="5_4w2pl"]
 [ext_resource type="PackedScene" uid="uid://dol6a502uukfn" path="res://scenes/maps/platforms/small_platform.tscn" id="7_23d8d"]
-[ext_resource type="PackedScene" path="res://scenes/effects/ambient_atmosphere.tscn" id="8_atmo"]
 [ext_resource type="Script" uid="uid://burr2od1hnn0u" path="res://scenes/objectives/airdrop_manager.gd" id="9_airdrop_manager"]
-
-[sub_resource type="Gradient" id="Gradient_og561"]
-offsets = PackedFloat32Array(0.16346154, 0.71794873)
-colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
-
-[sub_resource type="GradientTexture2D" id="GradientTexture2D_wa6f0"]
-gradient = SubResource("Gradient_og561")
-fill = 1
-fill_from = Vector2(0.525641, 0.508547)
+[ext_resource type="PackedScene" path="res://scenes/maps/environment/arena_environment.tscn" id="10_env"]
+[ext_resource type="Script" path="res://scenes/maps/environment/platform_skin.gd" id="11_skin"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_23d8d"]
 shader = ExtResource("3_leycp")
@@ -91,6 +82,8 @@ polygon = PackedVector2Array(1680, 720, 1680, 536, 1610, 536, 1560, 560, 1510, 5
 
 [node name="Map03" type="Node2D" unique_id=865662757]
 
+[node name="ArenaEnvironment" parent="." instance=ExtResource("10_env")]
+
 [node name="MapBounds" type="Node" parent="." unique_id=1628206641]
 script = ExtResource("1_mapbounds")
 bounds = Rect2(0, 0, 2280, 720)
@@ -101,22 +94,8 @@ position = Vector2(200, 480)
 [node name="Spawn2" type="Marker2D" parent="." unique_id=365786691]
 position = Vector2(2080, 480)
 
-[node name="PointLight2D" type="PointLight2D" parent="." unique_id=1750659926]
-position = Vector2(1140, 0)
-scale = Vector2(67.917, 38.682)
-energy = 0.73
-shadow_enabled = true
-texture = SubResource("GradientTexture2D_wa6f0")
-
-[node name="TextureRect" type="TextureRect" parent="." unique_id=536264738]
-z_index = -1
-offset_right = 5846.154
-offset_bottom = 1846.1538
-scale = Vector2(0.39, 0.39)
-texture = ExtResource("2_23d8d")
-
-[node name="AmbientAtmosphere" parent="." unique_id=1381221742 instance=ExtResource("8_atmo")]
-position = Vector2(1181, 369)
+[node name="DummySpawn1" type="Marker2D" parent="."]
+position = Vector2(720, 536)
 
 [node name="AirdropManager" type="Node2D" parent="." unique_id=116337313]
 script = ExtResource("9_airdrop_manager")
@@ -284,3 +263,6 @@ scale = Vector2(3, 3)
 [node name="SmallPlatform12" parent="." unique_id=1434251662 instance=ExtResource("7_23d8d")]
 position = Vector2(1724, 248)
 scale = Vector2(3, 3)
+
+[node name="PlatformSkin" type="Node2D" parent="."]
+script = ExtResource("11_skin")
