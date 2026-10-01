@@ -51,6 +51,10 @@ const CAMERA_ZOOM_SPEED: float = 4.5
 const CAMERA_MIN_ZOOM: float = 0.64
 const CAMERA_MAX_ZOOM: float = 1.0
 const CAMERA_ONLINE_ZOOM: float = 0.86
+## Sky/abyss margin kept visible above and below the board.
+const CAMERA_BOARD_MARGIN_Y: float = 22.0
+## How strongly the duel camera follows the local player versus the map centre.
+const CAMERA_PLAYER_FOCUS: float = 0.72
 const CAMERA_DUEL_PADDING_X: float = 420.0
 const CAMERA_Y: float = 360.0
 const CAMERA_VERTICAL_FOLLOW: float = 0.22

@@ -15,6 +15,7 @@ const READY_HALO_RADIUS: float = 72.0
 const PLAYER_ONE_COLOR_RING_CENTER: Vector2 = Vector2(320.0, 426.5)
 const PLAYER_TWO_COLOR_RING_CENTER: Vector2 = Vector2(960.0, 426.5)
 const COLOR_RING_RADIUS: float = 183.0
+const LEAVE_CONFIRM_MSEC: int = 2600
 
 @onready var _player_one: Player = %PlayerOne
 @onready var _player_two: Player = %PlayerTwo
@@ -32,6 +33,8 @@ const COLOR_RING_RADIUS: float = 183.0
 
 var _local_slot: int = GameSettings.PLAYER_ONE_SLOT
 var _remote_slot: int = GameSettings.PLAYER_TWO_SLOT
+var _leave_armed_until: int = 0
+var _leave_prompt: Label = null
 var _local_player: Player = null
 var _remote_player: Player = null
 var _send_timer: float = 0.0
@@ -46,7 +49,12 @@ func _ready() -> void:
 	_configure_players()
 	_style_locker_selection_visuals()
 	_apply_ui_style()
+	_build_leave_hints()
+	_help_popup.add_to_group(&"modal_ui")
 	_show_help_for_newcomers()
+	var crosshair: HudCrosshair = HudCrosshair.new()
+	_help_popup.get_parent().add_child(crosshair)
+	_help_popup.get_parent().move_child(crosshair, _help_popup.get_index())
 
 	_invite_button.pressed.connect(_on_invite_pressed)
 	_help_dismiss_button.pressed.connect(_on_help_dismiss_pressed)
@@ -58,6 +66,64 @@ func _ready() -> void:
 	_refresh()
 
 ## The how-to card only greets the first couple of visits; regulars go straight to picking a colour.
+## ESC / B / Start: close the how-to card first, then leave the lobby. With a friend connected the first
+## press only arms the exit, so nobody drops out of a lobby by accident.
+func _unhandled_input(event: InputEvent) -> void:
+	if not (event.is_action_pressed(&"ui_cancel") or event.is_action_pressed(GameSettings.INPUT_PAUSE)):
+		return
+	get_viewport().set_input_as_handled()
+	if _help_popup.visible:
+		_help_popup.hide()
+		AudioDirector.play(&"ui_close")
+		return
+	if NetworkSession.remote_steam_id != 0 and Time.get_ticks_msec() > _leave_armed_until:
+		_leave_armed_until = Time.get_ticks_msec() + LEAVE_CONFIRM_MSEC
+		_show_leave_prompt()
+		AudioDirector.play(&"ui_toggle")
+		return
+	AudioDirector.play(&"ui_back")
+	if Main.instance != null:
+		Main.instance.leave_to_menu()
+
+
+func _show_leave_prompt() -> void:
+	_leave_prompt.text = "PRESS %s AGAIN TO LEAVE THE LOBBY" % InputDevice.prompt(&"ui_cancel")
+	_leave_prompt.modulate.a = 1.0
+	_leave_prompt.scale = Vector2(1.1, 1.1)
+	var tween: Tween = _leave_prompt.create_tween()
+	tween.tween_property(_leave_prompt, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_interval(float(LEAVE_CONFIRM_MSEC) / 1000.0 - 0.6)
+	tween.tween_property(_leave_prompt, "modulate:a", 0.0, 0.4)
+
+
+func _build_leave_hints() -> void:
+	var root: Control = _help_popup.get_parent() as Control
+	var hint: PanelContainer = PanelContainer.new()
+	hint.add_theme_stylebox_override("panel", UiStyle.with_margins(UiStyle.panel(Color(UiStyle.PANEL.r, UiStyle.PANEL.g, UiStyle.PANEL.b, 0.8), UiStyle.LINE, 4, 1), 12, 6))
+	hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+	hint.offset_left = 18.0
+	hint.offset_top = -52.0
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var label: Label = Label.new()
+	UiStyle.style_label(label, UiStyle.FONT_BOLD, 14, UiStyle.TEXT_DIM)
+	label.text = "%s   LEAVE LOBBY" % InputDevice.prompt(&"ui_cancel")
+	hint.add_child(label)
+	root.add_child(hint)
+	root.move_child(hint, _help_popup.get_index())
+	_leave_prompt = Label.new()
+	UiStyle.style_label(_leave_prompt, UiStyle.FONT_DISPLAY, 20, UiStyle.ACCENT_HOT, 6)
+	_leave_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_leave_prompt.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	_leave_prompt.offset_left = -320.0
+	_leave_prompt.offset_right = 320.0
+	_leave_prompt.offset_top = -120.0
+	_leave_prompt.offset_bottom = -90.0
+	_leave_prompt.pivot_offset = Vector2(320.0, 15.0)
+	_leave_prompt.modulate.a = 0.0
+	_leave_prompt.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(_leave_prompt)
+
+
 func _show_help_for_newcomers() -> void:
 	var seen: int = UserSettings.get_int(UserSettings.LOCKER_HELP_SEEN)
 	if seen >= 2:

@@ -7,6 +7,7 @@ const PHASE_WARNING: StringName = &"warning"
 const PHASE_FALLING: StringName = &"falling"
 const PHASE_LANDED: StringName = &"landed"
 const PHASE_CAPTURED: StringName = &"captured"
+const GROUP: StringName = &"airdrop_manager"
 
 var _round_running: bool = false
 var _phase: StringName = PHASE_INACTIVE
@@ -39,11 +40,23 @@ func _ready() -> void:
 		NetworkSession.packet_received.connect(_on_packet_received)
 	if not OnlineMatch.phase_changed.is_connected(_on_phase_changed):
 		OnlineMatch.phase_changed.connect(_on_phase_changed)
+	add_to_group(GROUP)
 	_previous_match_phase = OnlineMatch.phase
-	if NetworkSession.is_steam_match_active():
+	if NetworkSession.uses_set_flow():
 		_round_running = OnlineMatch.phase == GameSettings.MATCH_PHASE_PLAYING_SET
 		if _round_running and _has_authority():
 			_start_round_drop_countdown()
+
+
+## Where an AI should head for the current drop; empty while no drop is announced or on the ground.
+func get_capture_goal() -> Dictionary:
+	if _phase not in [PHASE_WARNING, PHASE_FALLING, PHASE_LANDED]:
+		return {}
+	return {
+		"position": _target_position,
+		"landed": _phase == PHASE_LANDED,
+		"radius": GameSettings.AIRDROP_BASE_CAPTURE_RADIUS,
+	}
 
 
 func _exit_tree() -> void:
@@ -62,8 +75,9 @@ func _process(delta: float) -> void:
 
 
 func _process_authority(delta: float) -> void:
-	if NetworkSession.is_steam_match_active():
-		_round_running = OnlineMatch.phase == GameSettings.MATCH_PHASE_PLAYING_SET
+	if not NetworkSession.uses_set_flow():
+		return
+	_round_running = OnlineMatch.phase == GameSettings.MATCH_PHASE_PLAYING_SET
 	if _round_running and _phase == PHASE_INACTIVE and _drop_delay_remaining >= 0.0:
 		_drop_delay_remaining = maxf(_drop_delay_remaining - delta, 0.0)
 	if _phase == PHASE_INACTIVE:
@@ -153,11 +167,11 @@ func _start_round_drop_countdown() -> void:
 	_drop_completed = _set_airdrop_captured
 	_drop_delay_remaining = -1.0
 	if _set_airdrop_captured or OnlineMatch.small_round_number < 2:
-		if NetworkSession.is_steam_match_active():
+		if NetworkSession.uses_set_flow():
 			OnlineMatch.reset_airdrop_for_round()
 		return
 	_drop_delay_remaining = GameSettings.AIRDROP_DROP_DELAY_SECONDS
-	if NetworkSession.is_steam_match_active():
+	if NetworkSession.uses_set_flow():
 		OnlineMatch.reset_airdrop_for_round()
 
 

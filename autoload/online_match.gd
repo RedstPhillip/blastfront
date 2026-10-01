@@ -63,7 +63,8 @@ func _process(delta: float) -> void:
 		if _both_ready(intermission_ready) or intermission_remaining <= 0.0:
 			start_next_set()
 	elif phase == GameSettings.MATCH_PHASE_PLAYING_SET:
-		_record_survival_time(delta)
+		if not (get_tree().paused and NetworkSession.is_bot_shop_duel()):
+			_record_survival_time(delta)
 
 
 func enter_locker(reset_scores: bool = true) -> void:
@@ -91,6 +92,39 @@ func enter_locker(reset_scores: bool = true) -> void:
 	_last_locker_countdown_second = -1
 	_set_phase(GameSettings.MATCH_PHASE_LOCKER, true)
 	call_deferred("_request_local_research_profile")
+
+
+## Offline counterpart of the locker: a shop-enabled bot duel starts straight into its first set.
+func begin_bot_match() -> void:
+	match_generation += 1
+	_reset_match_scores()
+	_reset_match_economy()
+	RoundRewardInventory.reset_match()
+	ExtensionInventory.reset_match()
+	ArmorInventory.reset_match()
+	ResearchQuestManager.reset_match()
+	ResearchManager.reset_for_new_game()
+	player_colors = GameSettings.default_player_colors()
+	locker_ready = GameSettings.default_ready_state()
+	intermission_ready = GameSettings.default_ready_state()
+	extension_loadouts = GameSettings.default_extension_loadouts()
+	armor_loadouts = GameSettings.default_armor_loadouts()
+	research_profiles = {}
+	last_winner_slot = 0
+	final_winner_slot = 0
+	phase = GameSettings.MATCH_PHASE_LOCKER
+	start_next_set()
+
+
+## Coins spent by an AI shopper on the authority side.
+func spend_coins_for_slot(slot: int, cost: int) -> bool:
+	if not _has_authority() or not _is_player_slot(slot):
+		return false
+	if cost <= 0 or get_coin_balance(slot) < cost:
+		return false
+	coin_balances[slot] = get_coin_balance(slot) - cost
+	state_changed.emit()
+	return true
 
 
 func start_next_set() -> void:
@@ -568,6 +602,9 @@ func _finish_kill_banner() -> void:
 		intermission_ready = GameSettings.default_ready_state()
 		intermission_remaining = GameSettings.ONLINE_INTERMISSION_SECONDS
 		_last_countdown_second = int(ceil(intermission_remaining))
+		if NetworkSession.is_bot_shop_duel():
+			BotShopper.shop(GameSettings.PLAYER_TWO_SLOT, UserSettings.get_int(UserSettings.BOT_DIFFICULTY))
+			intermission_ready[GameSettings.PLAYER_TWO_SLOT] = true
 		_set_phase(GameSettings.MATCH_PHASE_INTERMISSION, true)
 	elif _phase_after_banner == GameSettings.MATCH_PHASE_FINAL:
 		_set_phase(GameSettings.MATCH_PHASE_FINAL, true)
@@ -747,7 +784,7 @@ func _apply_nested_dictionary(source_variant: Variant, target: Dictionary) -> vo
 
 
 func _broadcast_state() -> void:
-	if not _has_authority():
+	if not _has_authority() or not NetworkSession.is_steam_match_active():
 		return
 	NetworkSession.send_reliable(
 		_make_packet(GameSettings.PACKET_ONLINE_MATCH_STATE, build_state()),
@@ -756,6 +793,8 @@ func _broadcast_state() -> void:
 
 
 func _send_request(packet_type: StringName, payload: Dictionary) -> void:
+	if not NetworkSession.is_steam_match_active():
+		return
 	NetworkSession.send_reliable(_make_packet(packet_type, payload), GameSettings.NETWORK_CHANNEL_CONTROL)
 
 
@@ -854,13 +893,15 @@ func _slot_from_packet(packet: Dictionary) -> int:
 
 
 func _both_ready(ready_state: Dictionary) -> bool:
+	if NetworkSession.is_bot_shop_duel():
+		return ready_state[GameSettings.PLAYER_ONE_SLOT] == true and ready_state[GameSettings.PLAYER_TWO_SLOT] == true
 	if NetworkSession.remote_steam_id == 0:
 		return false
 	return ready_state[GameSettings.PLAYER_ONE_SLOT] == true and ready_state[GameSettings.PLAYER_TWO_SLOT] == true
 
 
 func _has_authority() -> bool:
-	return NetworkSession.mode == GameSettings.NETWORK_MODE_HOST
+	return NetworkSession.mode == GameSettings.NETWORK_MODE_HOST or NetworkSession.is_bot_shop_duel()
 
 
 func _is_player_slot(slot: int) -> bool:

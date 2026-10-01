@@ -73,8 +73,22 @@ func get_equipped_item_for_player(player_slot: int, category_id: StringName) -> 
 	if player_slot == get_local_player_slot():
 		return get_equipped_item(category_id)
 	_ensure_online_loadouts()
-	var loadout_data: Dictionary = _online_loadouts[player_slot]
-	return loadout_data[category_id] as ArmorItemData
+	var loadout_data: Dictionary = _online_loadouts.get(player_slot, {})
+	return loadout_data.get(category_id) as ArmorItemData
+
+
+## Equips an item for a non-local slot (the bot in shop-enabled duels).
+func equip_for_player(player_slot: int, item: ArmorItemData) -> void:
+	if item == null or not item.is_valid_category():
+		return
+	if player_slot == get_local_player_slot():
+		equip_item(item)
+		return
+	_ensure_online_loadouts()
+	var loadout_data: Dictionary = _online_loadouts.get(player_slot, {})
+	loadout_data[item.category] = item
+	_online_loadouts[player_slot] = loadout_data
+	player_loadout_changed.emit(player_slot)
 
 
 func get_loadout_for_player(player_slot: int) -> ArmorLoadout:
@@ -82,7 +96,7 @@ func get_loadout_for_player(player_slot: int) -> ArmorLoadout:
 		return loadout
 	_ensure_online_loadouts()
 	var remote_loadout: ArmorLoadout = ArmorLoadout.new()
-	var loadout_data: Dictionary = _online_loadouts[player_slot]
+	var loadout_data: Dictionary = _online_loadouts.get(player_slot, {})
 	for category_id in ArmorItemData.category_ids():
 		var item: ArmorItemData = loadout_data.get(category_id) as ArmorItemData
 		if item != null:
@@ -401,7 +415,8 @@ func _connect_online_match() -> void:
 
 
 func _on_online_match_state_changed() -> void:
-	_apply_online_match_loadouts()
+	if NetworkSession.is_steam_match_active():
+		_apply_online_match_loadouts()
 
 
 func _apply_online_match_loadouts() -> void:

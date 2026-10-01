@@ -64,9 +64,9 @@ func _layout() -> void:
 
 
 ## Round intro: title, optional subtitle and a countdown ending in FIGHT exactly at `duration`.
-func play_intro(round_number: int, duration: float, subtitle: String) -> void:
+func play_intro(round_number: int, duration: float, subtitle: String, title_override: String = "") -> void:
 	_kill_sequences()
-	_title.text = "ROUND %d" % round_number
+	_title.text = title_override if title_override != "" else "ROUND %d" % round_number
 	_title.add_theme_color_override("font_color", UiStyle.TEXT)
 	_subtitle.text = subtitle
 	_title.modulate.a = 0.0

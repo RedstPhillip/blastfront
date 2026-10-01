@@ -23,6 +23,7 @@ const PARTICLES: StringName = &"gameplay_particles"
 const DAMAGE_NUMBERS: StringName = &"gameplay_damage_numbers"
 const HITSTOP: StringName = &"gameplay_hitstop"
 const BOT_DIFFICULTY: StringName = &"gameplay_bot_difficulty"
+const BOT_PHASE_SHOP: StringName = &"gameplay_bot_phase_shop"
 const CONTROLS_HINTS_SEEN: StringName = &"progress_controls_hints_seen"
 const MENU_LAST_CHOICE: StringName = &"progress_menu_last_choice"
 const LOCKER_HELP_SEEN: StringName = &"progress_locker_help_seen"
@@ -154,6 +155,7 @@ func _defaults() -> Dictionary:
 		DAMAGE_NUMBERS: true,
 		HITSTOP: true,
 		BOT_DIFFICULTY: 1,
+		BOT_PHASE_SHOP: false,
 		CONTROLS_HINTS_SEEN: 0,
 		MENU_LAST_CHOICE: 0,
 		LOCKER_HELP_SEEN: 0,

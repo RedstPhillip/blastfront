@@ -155,6 +155,23 @@ func has_reward(source_kind: StringName, source_index: int) -> bool:
 	return not _get_reward(source_kind, source_index).is_empty()
 
 
+## Fresh offers for an AI shopper; the player's own shop is left untouched.
+func generate_offers_for_bot(per_type: int = OFFER_COUNT_PER_TYPE) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	var extension_definitions: Array[WeaponExtensionDefinition] = ExtensionInventory.get_reward_definitions()
+	var armor_definitions: Array[ArmorItemData] = ArmorInventory.get_reward_definitions()
+	_shuffle_array(extension_definitions)
+	_shuffle_array(armor_definitions)
+	for row_index in range(per_type):
+		var extension_reward: Dictionary = _create_extension_reward(extension_definitions, row_index)
+		if not extension_reward.is_empty():
+			result.append(extension_reward)
+		var armor_reward: Dictionary = _create_armor_reward(armor_definitions, row_index)
+		if not armor_reward.is_empty():
+			result.append(armor_reward)
+	return result
+
+
 func _generate_offers() -> void:
 	offers.clear()
 	var extension_definitions: Array[WeaponExtensionDefinition] = ExtensionInventory.get_reward_definitions()

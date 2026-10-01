@@ -527,7 +527,8 @@ func _connect_online_match() -> void:
 
 
 func _on_online_match_state_changed() -> void:
-	_apply_online_match_loadouts()
+	if NetworkSession.is_steam_match_active():
+		_apply_online_match_loadouts()
 
 
 func _apply_online_match_loadouts() -> void:

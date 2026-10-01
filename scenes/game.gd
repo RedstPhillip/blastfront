@@ -39,7 +39,11 @@ func _ready() -> void:
 		_configure_training_players()
 	elif NetworkSession.is_bot_duel():
 		_configure_bot_duel_players()
-		_connect_offline_health()
+		if NetworkSession.uses_set_flow():
+			OnlineMatch.phase_changed.connect(_on_online_phase_changed)
+			_connect_set_flow_health()
+		else:
+			_connect_offline_health()
 	else:
 		_remove_offline_second_player()
 		_configure_offline_players()
@@ -54,7 +58,7 @@ func _ready() -> void:
 	_camera.snap_to_target()
 	FxWarmup.run(self, _camera.get_screen_center_position())
 	_spawn_initial_feedback()
-	if NetworkSession.is_steam_match_active():
+	if NetworkSession.uses_set_flow():
 		_apply_online_player_colors()
 		if OnlineMatch.phase == GameSettings.MATCH_PHASE_PLAYING_SET:
 			_prepare_online_round()
@@ -101,6 +105,18 @@ func record_stat(slot: int, key: String, amount: float = 1.0) -> void:
 	var stats: Dictionary = _match_stats.get(slot, {})
 	stats[key] = float(stats.get(key, 0.0)) + amount
 	_match_stats[slot] = stats
+	if NetworkSession.is_bot_shop_duel() and OnlineMatch.is_playing_set():
+		_report_set_flow_stat(slot, key, amount)
+
+
+## Shop-enabled bot duels earn coins and progress orders from the same events online matches report.
+func _report_set_flow_stat(slot: int, key: String, amount: float) -> void:
+	var other_slot: int = GameSettings.PLAYER_TWO_SLOT if slot == GameSettings.PLAYER_ONE_SLOT else GameSettings.PLAYER_ONE_SLOT
+	match key:
+		"damage":
+			OnlineMatch.record_damage(slot, other_slot, int(round(amount)))
+		"blocks":
+			OnlineMatch.record_block(slot, GameSettings.PROJECTILE_DAMAGE)
 
 
 func get_match_stats(slot: int) -> Dictionary:
@@ -116,6 +132,8 @@ func get_round_number() -> int:
 
 
 func get_wins_needed() -> int:
+	if NetworkSession.uses_set_flow():
+		return GameSettings.ONLINE_MATCH_SET_WINS_TO_WIN
 	if NetworkSession.is_bot_duel():
 		return GameSettings.BOT_MATCH_WINS_NEEDED
 	return GameSettings.MATCH_WINS_NEEDED
@@ -184,7 +202,7 @@ func spawn_projectile(projectile: Node2D, spawn_position: Vector2) -> void:
 
 
 func request_shot(owner: Node, spawn_position: Vector2, direction: Vector2, projectile_data: Dictionary) -> void:
-	if NetworkSession.is_steam_match_active() and not OnlineMatch.is_playing_set():
+	if NetworkSession.uses_set_flow() and not OnlineMatch.is_playing_set():
 		return
 
 	var owner_slot: int = 0
@@ -410,6 +428,8 @@ func get_score_for_slot(slot: int) -> int:
 
 
 func is_match_over() -> bool:
+	if NetworkSession.uses_set_flow():
+		return OnlineMatch.phase == GameSettings.MATCH_PHASE_FINAL
 	return _offline_match_over
 
 
@@ -500,8 +520,8 @@ func _apply_camera_bounds() -> void:
 
 
 func _get_camera_target_x() -> float:
-	if NetworkSession.is_steam_match_active() and _local_player != null:
-		return (_local_player.global_position.x + _get_map_center_x()) * 0.5
+	if (NetworkSession.is_steam_match_active() or NetworkSession.is_bot_duel()) and _local_player != null:
+		return lerpf(_get_map_center_x(), _local_player.global_position.x, GameSettings.CAMERA_PLAYER_FOCUS)
 
 	if NetworkSession.is_training():
 		return _local_player.global_position.x
@@ -530,11 +550,8 @@ func _get_camera_look_ahead() -> Vector2:
 
 
 func _get_camera_target_zoom() -> float:
-	if NetworkSession.is_steam_match_active():
-		return GameSettings.CAMERA_ONLINE_ZOOM
-
-	if NetworkSession.is_training():
-		return GameSettings.CAMERA_ONLINE_ZOOM
+	if NetworkSession.is_steam_match_active() or NetworkSession.is_training() or NetworkSession.is_bot_duel():
+		return _board_fit_zoom()
 
 	if not _has_player_two():
 		return GameSettings.CAMERA_MAX_ZOOM
@@ -546,6 +563,12 @@ func _get_camera_target_zoom() -> float:
 	)
 	var target_zoom: float = get_viewport_rect().size.x / desired_world_width
 	return clampf(target_zoom, GameSettings.CAMERA_MIN_ZOOM, GameSettings.CAMERA_MAX_ZOOM)
+
+
+## Zoom at which the whole board height fills the view with only a thin margin of sky and abyss.
+func _board_fit_zoom() -> float:
+	var visible_height: float = _camera_bounds.size.y + GameSettings.CAMERA_BOARD_MARGIN_Y * 2.0
+	return clampf(get_viewport_rect().size.y / maxf(visible_height, 1.0), GameSettings.CAMERA_MIN_ZOOM, GameSettings.CAMERA_MAX_ZOOM)
 
 
 func _get_map_center_x() -> float:
@@ -617,6 +640,21 @@ func _get_player_by_slot(slot: int) -> Player:
 	return null
 
 
+func _connect_set_flow_health() -> void:
+	for slot in [GameSettings.PLAYER_ONE_SLOT, GameSettings.PLAYER_TWO_SLOT]:
+		var player: Player = _get_player_by_slot(slot)
+		if player != null:
+			player.health_component.health_depleted.connect(_on_set_flow_health_depleted.bind(slot))
+
+
+func _on_set_flow_health_depleted(slot: int) -> void:
+	var player: Player = _get_player_by_slot(slot)
+	if player == null or player.health_component.health > 0 or not OnlineMatch.is_playing_set():
+		return
+	var winner_slot: int = GameSettings.PLAYER_TWO_SLOT if slot == GameSettings.PLAYER_ONE_SLOT else GameSettings.PLAYER_ONE_SLOT
+	OnlineMatch.record_kill(winner_slot)
+
+
 func _on_online_phase_changed(next_phase: StringName) -> void:
 	if next_phase == GameSettings.MATCH_PHASE_PLAYING_SET:
 		_prepare_online_round()
@@ -637,6 +675,8 @@ func _prepare_online_round() -> void:
 	respawn_players()
 	_set_player_controls_enabled(true)
 	_apply_online_player_colors()
+	if NetworkSession.is_bot_shop_duel():
+		_start_round_intro(GameSettings.MATCH_INTRO_SECONDS if OnlineMatch.small_round_number <= 1 else GameSettings.ROUND_INTRO_SECONDS)
 
 
 func _set_player_controls_enabled(enabled: bool) -> void:

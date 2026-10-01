@@ -112,7 +112,7 @@ func _bind_game() -> void:
 		_game.round_intro_started.connect(_on_round_intro_started)
 	if not _game.match_finished.is_connected(_on_match_finished):
 		_game.match_finished.connect(_on_match_finished)
-	var online: bool = NetworkSession.is_steam_match_active()
+	var online: bool = NetworkSession.uses_set_flow()
 	var training: bool = NetworkSession.is_training()
 	_quest_tracker.visible = online
 	_scoreboard.visible = not training
@@ -132,14 +132,14 @@ func _on_device_changed(_using_gamepad: bool) -> void:
 
 
 func _update_sandbox_hint() -> void:
-	_sandbox_hint_text.text = "Free practice  ·  %s  Loadout & Menu" % InputDevice.prompt(&"ui_cancel")
+	_sandbox_hint_text.text = "Free practice  ·  %s  Loadout & Menu" % InputDevice.prompt(&"pause")
 
 
 func _process(_delta: float) -> void:
 	if _game == null or not is_instance_valid(_game):
 		_bind_game()
 		return
-	if NetworkSession.is_steam_match_active():
+	if NetworkSession.uses_set_flow():
 		_refresh_online_scoreboard()
 	else:
 		_refresh_offline_scoreboard()
@@ -159,8 +159,8 @@ func _refresh_offline_scoreboard() -> void:
 func _refresh_online_scoreboard() -> void:
 	_scoreboard.left_color = OnlineMatch.get_player_color(GameSettings.PLAYER_ONE_SLOT)
 	_scoreboard.right_color = OnlineMatch.get_player_color(GameSettings.PLAYER_TWO_SLOT)
-	_scoreboard.left_name = OnlineMatch.get_player_color_name(GameSettings.PLAYER_ONE_SLOT).to_upper()
-	_scoreboard.right_name = OnlineMatch.get_player_color_name(GameSettings.PLAYER_TWO_SLOT).to_upper()
+	_scoreboard.left_name = _set_flow_name(GameSettings.PLAYER_ONE_SLOT)
+	_scoreboard.right_name = _set_flow_name(GameSettings.PLAYER_TWO_SLOT)
 	var left_points: int = int(OnlineMatch.match_points.get(GameSettings.PLAYER_ONE_SLOT, 0))
 	var right_points: int = int(OnlineMatch.match_points.get(GameSettings.PLAYER_TWO_SLOT, 0))
 	_scoreboard.center_label = "S%d" % (left_points + right_points + 1)
@@ -173,8 +173,14 @@ func _refresh_online_scoreboard() -> void:
 	)
 
 
+func _set_flow_name(slot: int) -> String:
+	if NetworkSession.is_bot_shop_duel():
+		return UiStyle.player_name(slot)
+	return OnlineMatch.get_player_color_name(slot).to_upper()
+
+
 func _refresh_online_state() -> void:
-	if not NetworkSession.is_steam_match_active():
+	if not NetworkSession.uses_set_flow():
 		return
 	if OnlineMatch.phase == GameSettings.MATCH_PHASE_KILL_BANNER and OnlineMatch.last_winner_slot != 0:
 		var key: String = "%d:%d:%d:%d" % [
@@ -187,7 +193,18 @@ func _refresh_online_state() -> void:
 			_last_online_banner_key = key
 			var winner: int = OnlineMatch.last_winner_slot
 			var subtitle: String = "%d  —  %d" % [int(OnlineMatch.set_kills.get(GameSettings.PLAYER_ONE_SLOT, 0)), int(OnlineMatch.set_kills.get(GameSettings.PLAYER_TWO_SLOT, 0))]
-			_banner.play_point(OnlineMatch.get_player_color(winner), "%s SCORES" % OnlineMatch.get_player_color_name(winner).to_upper(), subtitle)
+			var title: String = "%s SCORES" % OnlineMatch.get_player_color_name(winner).to_upper()
+			var set_over: bool = int(OnlineMatch.set_kills.get(winner, 0)) >= GameSettings.ONLINE_SET_KILLS_TO_WIN
+			if NetworkSession.is_bot_shop_duel():
+				var local_won: bool = winner == GameSettings.PLAYER_ONE_SLOT
+				if set_over:
+					title = "SET WON" if local_won else "SET LOST"
+					subtitle = "SETS  %d  —  %d" % [int(OnlineMatch.match_points.get(GameSettings.PLAYER_ONE_SLOT, 0)), int(OnlineMatch.match_points.get(GameSettings.PLAYER_TWO_SLOT, 0))]
+				else:
+					title = "ROUND WON" if local_won else "ROUND LOST"
+				if local_won and not set_over:
+					_announce_round_award(_game.get_player_by_slot(winner))
+			_banner.play_point(OnlineMatch.get_player_color(winner), title, subtitle, set_over)
 	elif OnlineMatch.phase == GameSettings.MATCH_PHASE_PLAYING_SET:
 		_last_online_banner_key = ""
 	if OnlineMatch.phase == GameSettings.MATCH_PHASE_FINAL and OnlineMatch.final_winner_slot != 0 and not _victory.is_shown():
@@ -195,6 +212,13 @@ func _refresh_online_state() -> void:
 
 
 func _on_round_intro_started(round_number: int, duration: float) -> void:
+	if NetworkSession.is_bot_shop_duel():
+		var set_number: int = int(OnlineMatch.match_points.get(GameSettings.PLAYER_ONE_SLOT, 0)) + int(OnlineMatch.match_points.get(GameSettings.PLAYER_TWO_SLOT, 0)) + 1
+		var set_subtitle: String = "FIRST TO %d SETS" % GameSettings.ONLINE_MATCH_SET_WINS_TO_WIN if set_number == 1 and OnlineMatch.small_round_number <= 1 else "ROUND %d" % OnlineMatch.small_round_number
+		_banner.play_intro(set_number, duration, set_subtitle, "SET %d" % set_number)
+		if set_number == 1 and OnlineMatch.small_round_number <= 1 and HudControlsHint.should_show():
+			_controls_hint.play(duration * 0.35)
+		return
 	var wins_needed: int = _game.get_wins_needed()
 	var subtitle: String = ""
 	if round_number == 1:
@@ -267,6 +291,17 @@ func _show_online_results() -> void:
 	var local_won: bool = winner == NetworkSession.local_player_slot
 	var left: int = int(OnlineMatch.match_points.get(GameSettings.PLAYER_ONE_SLOT, 0))
 	var right: int = int(OnlineMatch.match_points.get(GameSettings.PLAYER_TWO_SLOT, 0))
+	if NetworkSession.is_bot_shop_duel():
+		var winner_name: String = UiStyle.player_name(winner)
+		_victory.show_result(
+			local_won,
+			UiStyle.player_color(winner).lightened(0.2),
+			"%s WIN%s   SETS %d — %d" % [winner_name, "" if winner_name == "YOU" else "S", left, right],
+			_build_stats(GameSettings.PLAYER_ONE_SLOT),
+			true,
+			"REMATCH"
+		)
+		return
 	var can_rematch: bool = NetworkSession.is_host()
 	var no_stats: Array[Dictionary] = []
 	_victory.show_result(
@@ -277,7 +312,6 @@ func _show_online_results() -> void:
 		can_rematch,
 		"PLAY AGAIN" if can_rematch else "HOST DECIDES"
 	)
-
 
 func _build_stats(slot: int) -> Array[Dictionary]:
 	var stats: Dictionary = _game.get_match_stats(slot)
@@ -301,11 +335,12 @@ func _on_rematch_pressed() -> void:
 		return
 	if Main.instance == null:
 		return
+	if NetworkSession.is_bot_duel():
+		Main.instance.transition_to(Main.instance.start_bot_match)
+		return
 	Main.instance.transition_to(func() -> void:
 		if NetworkSession.is_training():
 			NetworkSession.start_training()
-		elif NetworkSession.is_bot_duel():
-			NetworkSession.start_bot_duel()
 		else:
 			NetworkSession.start_offline()
 		Main.instance.start_game()

@@ -1,7 +1,11 @@
 extends Node
 
-## Tracks whether the player is currently on mouse & keyboard or a gamepad, and provides right-stick
-## aiming. Switching is automatic: any meaningful input from a device makes it the active one.
+## Tracks whether the player is currently on mouse & keyboard or a gamepad, provides right-stick aiming,
+## and is the single owner of the mouse cursor state:
+##   - aiming in play with the mouse: cursor hidden and confined to the window (a reticle is drawn instead)
+##   - gamepad active: cursor hidden
+##   - everything else (menus, pause, shop, unfocused window): normal visible, free cursor
+## Gameplay reticles report themselves through `set_reticle_active`; nothing else touches mouse_mode.
 
 signal device_changed(using_gamepad: bool)
 
@@ -13,10 +17,21 @@ var using_gamepad: bool = false
 var aim_direction: Vector2 = Vector2.RIGHT
 
 var _raw_aim: Vector2 = Vector2.ZERO
+var _reticle_owners: Dictionary = {}
+var _window_focused: bool = true
 
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		_window_focused = false
+		_apply_cursor()
+	elif what == NOTIFICATION_APPLICATION_FOCUS_IN:
+		_window_focused = true
+		_apply_cursor()
 
 
 func _input(event: InputEvent) -> void:
@@ -36,6 +51,8 @@ func _input(event: InputEvent) -> void:
 
 
 func _process(delta: float) -> void:
+	_prune_reticles()
+	_apply_cursor()
 	if not using_gamepad:
 		return
 	var stick: Vector2 = Vector2(Input.get_joy_axis(0, JOY_AXIS_RIGHT_X), Input.get_joy_axis(0, JOY_AXIS_RIGHT_Y))
@@ -46,13 +63,26 @@ func _process(delta: float) -> void:
 	aim_direction = aim_direction.slerp(_raw_aim, weight).normalized()
 
 
+## Called every frame by gameplay reticles: while any owner reports active, the OS cursor stays hidden.
+func set_reticle_active(owner: Node, active: bool) -> void:
+	if active:
+		_reticle_owners[owner.get_instance_id()] = owner
+	else:
+		_reticle_owners.erase(owner.get_instance_id())
+	_apply_cursor()
+
+
+func is_reticle_active() -> bool:
+	return not _reticle_owners.is_empty()
+
+
 ## Short label for an action's binding on the active device, used in on-screen prompts.
 func prompt(action: StringName) -> String:
 	var gamepad: Dictionary = {
-		&"p1_shoot": "RT", &"p1_block": "LT", &"p1_jump": "A", &"p1_reload": "X", &"ui_cancel": "START",
+		&"p1_shoot": "RT", &"p1_block": "LT", &"p1_jump": "A", &"p1_reload": "X", &"ui_cancel": "B", &"pause": "START",
 	}
 	var keyboard: Dictionary = {
-		&"p1_shoot": "LMB", &"p1_block": "RMB", &"p1_jump": "SPACE", &"p1_reload": "R", &"ui_cancel": "ESC",
+		&"p1_shoot": "LMB", &"p1_block": "RMB", &"p1_jump": "SPACE", &"p1_reload": "R", &"ui_cancel": "ESC", &"pause": "ESC",
 	}
 	var table: Dictionary = gamepad if using_gamepad else keyboard
 	return str(table.get(action, ""))
@@ -62,8 +92,22 @@ func _set_gamepad(value: bool) -> void:
 	if using_gamepad == value:
 		return
 	using_gamepad = value
-	if value:
-		Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
-	elif Input.mouse_mode == Input.MOUSE_MODE_HIDDEN:
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	_apply_cursor()
 	device_changed.emit(value)
+
+
+func _prune_reticles() -> void:
+	for id in _reticle_owners.keys():
+		var owner: Variant = _reticle_owners[id]
+		if not is_instance_valid(owner) or not (owner as Node).is_inside_tree():
+			_reticle_owners.erase(id)
+
+
+func _apply_cursor() -> void:
+	var mode: Input.MouseMode = Input.MOUSE_MODE_VISIBLE
+	if _window_focused and is_reticle_active() and not using_gamepad:
+		mode = Input.MOUSE_MODE_CONFINED_HIDDEN
+	elif _window_focused and using_gamepad:
+		mode = Input.MOUSE_MODE_HIDDEN
+	if Input.mouse_mode != mode:
+		Input.mouse_mode = mode

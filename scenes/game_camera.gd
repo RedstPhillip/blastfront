@@ -7,8 +7,8 @@ extends Camera2D
 
 const LOOK_AHEAD_DISTANCE: float = 70.0
 const LOOK_AHEAD_SPEED: float = 3.5
-const VERTICAL_SLACK_TOP: float = 220.0
-const VERTICAL_SLACK_BOTTOM: float = 200.0
+const VERTICAL_SLACK_TOP: float = GameSettings.CAMERA_BOARD_MARGIN_Y
+const VERTICAL_SLACK_BOTTOM: float = GameSettings.CAMERA_BOARD_MARGIN_Y
 
 @export var follow_speed: float = 5.5
 @export var zoom_speed: float = 4.0

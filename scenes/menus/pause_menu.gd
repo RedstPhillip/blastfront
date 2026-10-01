@@ -157,7 +157,8 @@ func _mode_label() -> String:
 	if NetworkSession.is_steam_match_active():
 		return "ONLINE MATCH  ·  THE MATCH CONTINUES WHILE PAUSED"
 	if NetworkSession.is_bot_duel():
-		return "VERSUS BOT  ·  %s" % UiStyle.difficulty_name(UserSettings.get_int(UserSettings.BOT_DIFFICULTY))
+		var shop_note: String = "  ·  PHASE SHOP" if NetworkSession.is_bot_shop_duel() else ""
+		return "VERSUS BOT  ·  %s%s" % [UiStyle.difficulty_name(UserSettings.get_int(UserSettings.BOT_DIFFICULTY)), shop_note]
 	if NetworkSession.is_training():
 		return "SANDBOX  ·  TRY EVERY EXTENSION IN THE LOADOUT"
 	return "LOCAL MATCH"
@@ -218,10 +219,11 @@ func _on_restart_pressed() -> void:
 	AudioDirector.set_muffled(false)
 	Main.instance.transition_to(func() -> void:
 		get_tree().paused = false
+		if NetworkSession.is_bot_duel():
+			Main.instance.start_bot_match()
+			return
 		if NetworkSession.is_training():
 			NetworkSession.start_training()
-		elif NetworkSession.is_bot_duel():
-			NetworkSession.start_bot_duel()
 		else:
 			NetworkSession.start_offline()
 		Main.instance.start_game()

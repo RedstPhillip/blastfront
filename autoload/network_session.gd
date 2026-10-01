@@ -7,6 +7,8 @@ signal peer_changed
 signal packet_received(packet: Dictionary, sender_id: int)
 
 var mode: StringName = GameSettings.NETWORK_MODE_OFFLINE
+## Shop-enabled bot duels play in sets with coins and the between-set shop, like online matches.
+var bot_shop_enabled: bool = false
 var lobby_id: int = 0
 var lobby_members: Array[Dictionary] = []
 var local_player_slot: int = GameSettings.PLAYER_ONE_SLOT
@@ -36,6 +38,7 @@ func _process(_delta: float) -> void:
 func start_offline() -> void:
 	leave_round()
 	mode = GameSettings.NETWORK_MODE_OFFLINE
+	bot_shop_enabled = false
 	local_player_slot = GameSettings.PLAYER_ONE_SLOT
 	remote_steam_id = 0
 	_match_active = false
@@ -46,6 +49,7 @@ func start_offline() -> void:
 func start_training() -> void:
 	leave_round()
 	mode = GameSettings.NETWORK_MODE_TRAINING
+	bot_shop_enabled = false
 	local_player_slot = GameSettings.PLAYER_ONE_SLOT
 	remote_steam_id = 0
 	_match_active = false
@@ -54,9 +58,10 @@ func start_training() -> void:
 	_set_status("Sandbox mode")
 
 
-func start_bot_duel() -> void:
+func start_bot_duel(with_shop: bool = false) -> void:
 	leave_round()
 	mode = GameSettings.NETWORK_MODE_BOT
+	bot_shop_enabled = with_shop
 	local_player_slot = GameSettings.PLAYER_ONE_SLOT
 	remote_steam_id = 0
 	_match_active = false
@@ -71,6 +76,7 @@ func host_invite_round(open_overlay_when_ready: bool = false) -> void:
 
 	leave_round()
 	mode = GameSettings.NETWORK_MODE_HOST
+	bot_shop_enabled = false
 	local_player_slot = GameSettings.PLAYER_ONE_SLOT
 	_open_invite_overlay_when_lobby_ready = open_overlay_when_ready
 	_reset_equipment_progression()
@@ -101,6 +107,7 @@ func join_invited_round(target_lobby_id: int) -> void:
 
 	leave_round()
 	mode = GameSettings.NETWORK_MODE_CLIENT
+	bot_shop_enabled = false
 	local_player_slot = GameSettings.PLAYER_TWO_SLOT
 	_open_invite_overlay_when_lobby_ready = false
 	_reset_equipment_progression()
@@ -139,6 +146,16 @@ func is_training() -> bool:
 
 func is_bot_duel() -> bool:
 	return mode == GameSettings.NETWORK_MODE_BOT
+
+
+func is_bot_shop_duel() -> bool:
+	return mode == GameSettings.NETWORK_MODE_BOT and bot_shop_enabled
+
+
+## True whenever the match runs in sets with coins, orders, airdrops and the between-set shop:
+## online matches and shop-enabled bot duels.
+func uses_set_flow() -> bool:
+	return is_steam_match_active() or is_bot_shop_duel()
 
 
 func is_host() -> bool:

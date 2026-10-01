@@ -3,7 +3,7 @@ extends Control
 
 ## Dynamic reticle at the mouse: recoil bloom, ammo arc, reload ring and hit markers.
 ## The reticle is a child that is moved to the cursor every frame and only redrawn when its look
-## changes. Hides the OS cursor while it is active.
+## changes. While active it tells InputDevice to hide and confine the OS cursor.
 
 const OUTLINE: Color = Color(0.0, 0.03, 0.03, 0.85)
 const RELOAD_STEPS: float = 60.0
@@ -29,7 +29,7 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
-	_set_cursor_hidden(false)
+	InputDevice.set_reticle_active(self, false)
 
 
 func _process(delta: float) -> void:
@@ -43,7 +43,7 @@ func _process(delta: float) -> void:
 			if modal is CanvasItem and (modal as CanvasItem).is_visible_in_tree():
 				should_show = false
 				break
-	_set_cursor_hidden(should_show or InputDevice.using_gamepad)
+	InputDevice.set_reticle_active(self, should_show)
 	_active = should_show
 	_reticle.visible = should_show
 	if not should_show:
@@ -87,12 +87,6 @@ func _detect_hits() -> void:
 			_hit_heavy = health <= 0 or damage >= 40
 			AudioDirector.play(&"ui_slider", -2.0, 1.6 if not _hit_heavy else 1.1)
 		_enemy_health[id] = health
-
-
-func _set_cursor_hidden(hidden: bool) -> void:
-	var mode: Input.MouseMode = Input.MOUSE_MODE_HIDDEN if hidden else Input.MOUSE_MODE_VISIBLE
-	if Input.mouse_mode != mode and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
-		Input.mouse_mode = mode
 
 
 func _draw_reticle() -> void:

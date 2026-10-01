@@ -30,6 +30,9 @@ var _difficulty_text: Label = null
 var _selected_difficulty: int = 1
 var _online_button: Button = null
 var _bot_start_button: Button = null
+var _bot_caption: Label = null
+var _shop_buttons: Array[Button] = []
+var _shop_text: Label = null
 var _steam_label: Label = null
 var _steam_dot: ColorRect = null
 var _heroes: Array[MenuHero] = []
@@ -253,6 +256,60 @@ func _add_menu_button(parent: Container, text: String, primary: bool, callback: 
 	return button
 
 
+## Phase shop on/off for bot duels, styled like the difficulty picker and remembered between sessions.
+func _build_shop_toggle(box: VBoxContainer) -> void:
+	var divider: ColorRect = ColorRect.new()
+	divider.color = UiStyle.LINE
+	divider.custom_minimum_size = Vector2(0.0, 1.0)
+	box.add_child(divider)
+	var row: HBoxContainer = HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	box.add_child(row)
+	var label: Label = Label.new()
+	UiStyle.style_label(label, UiStyle.FONT_BOLD, 16, UiStyle.TEXT)
+	label.text = "PHASE SHOP"
+	label.custom_minimum_size = Vector2(130.0, 0.0)
+	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(label)
+	var group: ButtonGroup = ButtonGroup.new()
+	for index in range(2):
+		var option: Button = Button.new()
+		option.text = "OFF" if index == 0 else "ON"
+		option.toggle_mode = true
+		option.button_group = group
+		option.custom_minimum_size = Vector2(110.0, 42.0)
+		UiStyle.style_button(option, false, 17)
+		option.add_theme_stylebox_override("pressed", UiStyle.with_margins(UiStyle.panel(Color(UiStyle.ACCENT.r, UiStyle.ACCENT.g, UiStyle.ACCENT.b, 0.22), UiStyle.ACCENT, 3, 2, 0.18), 26, 10))
+		option.add_theme_color_override("font_pressed_color", UiStyle.ACCENT_HOT)
+		option.toggled.connect(_on_shop_toggled.bind(index == 1))
+		row.add_child(option)
+		_shop_buttons.append(option)
+	_shop_text = Label.new()
+	UiStyle.style_label(_shop_text, UiStyle.FONT_BODY, 14, UiStyle.TEXT_DIM)
+	_shop_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_shop_text.custom_minimum_size = Vector2(370.0, 40.0)
+	box.add_child(_shop_text)
+	var enabled: bool = UserSettings.get_bool(UserSettings.BOT_PHASE_SHOP)
+	_shop_buttons[1 if enabled else 0].set_pressed_no_signal(true)
+	_update_shop_text(enabled)
+
+
+func _on_shop_toggled(pressed: bool, enabled: bool) -> void:
+	if not pressed:
+		return
+	UserSettings.set_value(UserSettings.BOT_PHASE_SHOP, enabled)
+	_update_shop_text(enabled)
+
+
+func _update_shop_text(enabled: bool) -> void:
+	if enabled:
+		_bot_caption.text = "SETS OF %d KILLS  ·  FIRST TO %d SETS" % [GameSettings.ONLINE_SET_KILLS_TO_WIN, GameSettings.ONLINE_MATCH_SET_WINS_TO_WIN]
+		_shop_text.text = "Earn coins each set and shop, equip and research between sets. The bot shops too."
+	else:
+		_bot_caption.text = "FIRST TO %d ROUNDS  ·  PURE SKILL" % GameSettings.BOT_MATCH_WINS_NEEDED
+		_shop_text.text = "No shop: both fighters keep the standard weapon for the whole match."
+
+
 func _slide_button(button: Button, hovered: bool) -> void:
 	var target: float = 26.0 + (16.0 if hovered and not button.disabled else 0.0)
 	var tween: Tween = button.create_tween().set_parallel(true)
@@ -277,10 +334,9 @@ func _build_bot_panel() -> void:
 	UiStyle.style_label(title, UiStyle.FONT_DISPLAY, 28, UiStyle.TEXT)
 	title.text = "VERSUS BOT"
 	box.add_child(title)
-	var caption: Label = Label.new()
-	UiStyle.style_label(caption, UiStyle.FONT_BOLD, 13, UiStyle.ACCENT)
-	caption.text = "FIRST TO %d ROUNDS  ·  CHOOSE DIFFICULTY" % GameSettings.BOT_MATCH_WINS_NEEDED
-	box.add_child(caption)
+	_bot_caption = Label.new()
+	UiStyle.style_label(_bot_caption, UiStyle.FONT_BOLD, 13, UiStyle.ACCENT)
+	box.add_child(_bot_caption)
 	var row: HBoxContainer = HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
 	box.add_child(row)
@@ -302,6 +358,7 @@ func _build_bot_panel() -> void:
 	_difficulty_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_difficulty_text.custom_minimum_size = Vector2(370.0, 48.0)
 	box.add_child(_difficulty_text)
+	_build_shop_toggle(box)
 	var actions: HBoxContainer = HBoxContainer.new()
 	actions.add_theme_constant_override("separation", 12)
 	box.add_child(actions)

@@ -12,17 +12,17 @@ const PROFILES: Dictionary = {
 	Difficulty.EASY: {
 		"aim_error": 7.5, "reaction": 0.45, "fire_delay": 0.6, "block_chance": 0.18, "block_reaction": 0.3,
 		"lead": 0.35, "preferred_distance": 0.85, "dodge_chance": 0.12, "turn_rate": 4.0, "pressure": 0.35,
-		"use_lobs": false,
+		"use_lobs": false, "capture_drive": 2.2,
 	},
 	Difficulty.NORMAL: {
 		"aim_error": 3.2, "reaction": 0.27, "fire_delay": 0.25, "block_chance": 0.48, "block_reaction": 0.17,
 		"lead": 0.75, "preferred_distance": 0.7, "dodge_chance": 0.28, "turn_rate": 7.5, "pressure": 0.6,
-		"use_lobs": true,
+		"use_lobs": true, "capture_drive": 3.6,
 	},
 	Difficulty.HARD: {
 		"aim_error": 1.3, "reaction": 0.15, "fire_delay": 0.07, "block_chance": 0.78, "block_reaction": 0.09,
 		"lead": 1.0, "preferred_distance": 0.58, "dodge_chance": 0.42, "turn_rate": 13.0, "pressure": 0.85,
-		"use_lobs": true,
+		"use_lobs": true, "capture_drive": 4.6,
 	},
 }
 
@@ -69,6 +69,7 @@ var _search_bounds: Rect2 = Rect2()
 var _search_speed: float = 0.0
 var _search_gravity: float = 0.0
 var _search_range: float = 0.0
+var _search_capture: Dictionary = {}
 var _ray_query: PhysicsRayQueryParameters2D = null
 
 var _jump_hold_timer: float = 0.0
@@ -251,6 +252,7 @@ func _begin_goal_search() -> void:
 	_search_best_score = -INF
 	_search_bounds = _map_bounds()
 	_search_range = _weapon_range()
+	_search_capture = _capture_goal()
 	_search_speed = GameSettings.PROJECTILE_MUZZLE_SPEED
 	_search_gravity = GameSettings.PROJECTILE_GRAVITY
 	var gun: Variant = _player.get_gun()
@@ -306,6 +308,7 @@ func _score_candidate(candidate: int, feet: Vector2) -> float:
 		score += -2.0 if arrived and _blocked_time >= 1.2 else 0.6
 	if int(_bad_goals.get(candidate, 0)) > Time.get_ticks_msec():
 		score -= 3.0
+	score += _capture_bonus(point)
 	score += randf() * 0.15
 	# The ballistic check is by far the most expensive term, so skip it when it could not change the winner.
 	if score + SOLUTION_BONUS > _search_best_score:
@@ -313,6 +316,29 @@ func _score_candidate(candidate: int, feet: Vector2) -> float:
 		if from.distance_to(target_center) <= _search_range * 1.15 and _find_clear_shot(from, target_center, _search_speed, _search_gravity) != Vector2.ZERO:
 			score += SOLUTION_BONUS
 	return score
+
+
+## Pull towards supply drops in set-based matches: strong once the crate is down, a lighter lean
+## towards the landing zone while it is still announced or falling.
+func _capture_bonus(point: Vector2) -> float:
+	if _search_capture.is_empty():
+		return 0.0
+	var target: Vector2 = _search_capture["position"]
+	var radius: float = float(_search_capture["radius"])
+	var distance: float = Vector2(point.x - target.x, (point.y - target.y) * 1.6).length()
+	var drive: float = float(_profile.get("capture_drive", 3.0))
+	if not bool(_search_capture["landed"]):
+		return drive * 0.4 * clampf(1.0 - distance / 420.0, 0.0, 1.0)
+	if distance <= radius * 0.75:
+		return drive
+	return drive * clampf(1.0 - distance / 700.0, 0.0, 1.0) * 0.7
+
+
+func _capture_goal() -> Dictionary:
+	var manager: Node = _player.get_tree().get_first_node_in_group(&"airdrop_manager")
+	if manager == null or not manager.has_method(&"get_capture_goal"):
+		return {}
+	return manager.get_capture_goal()
 
 
 func _force_jump(hold_seconds: float) -> void:

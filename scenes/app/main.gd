@@ -20,6 +20,7 @@ static var instance: Main = null
 
 var _current_scene: Node = null
 var _reveal_serial: int = 0
+var _screen_covered: bool = false
 var _transition_tween: Tween = null
 var _transition_material: ShaderMaterial = null
 var _transitioning: bool = false
@@ -72,6 +73,7 @@ func transition_to(action: Callable) -> void:
 	_transition_tween.tween_method(_set_transition_progress.bind(1.0), 0.0, 1.0, COVER_SECONDS).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
 	await _transition_tween.finished
 	_transitioning = false
+	_screen_covered = true
 	action.call()
 
 
@@ -113,10 +115,20 @@ func _on_sandbox_requested() -> void:
 
 func _on_bot_requested(difficulty: int) -> void:
 	UserSettings.set_value(UserSettings.BOT_DIFFICULTY, difficulty)
-	transition_to(func() -> void:
-		NetworkSession.start_bot_duel()
+	transition_to(start_bot_match)
+
+
+## Starts a duel against the bot using the menu's choices. With the phase shop the match runs in sets
+## (the first set's phase change brings up the game scene), otherwise it is a straight first-to-N duel.
+func start_bot_match() -> void:
+	var with_shop: bool = UserSettings.get_bool(UserSettings.BOT_PHASE_SHOP)
+	NetworkSession.start_bot_duel(with_shop)
+	if with_shop:
+		OnlineMatch.begin_bot_match()
+		if _current_scene == null or _current_scene.name != "Game":
+			start_game()
+	else:
 		start_game()
-	)
 
 
 func _on_online_requested() -> void:
@@ -139,7 +151,19 @@ func _on_lobby_ready() -> void:
 
 
 func _on_lobby_left() -> void:
-	show_menu()
+	if _current_scene != null and _current_scene.name == "MainMenu":
+		return
+	_cover_then(show_menu)
+
+
+## Leaves any lobby or match and returns to the main menu behind the wipe.
+func leave_to_menu() -> void:
+	transition_to(func() -> void:
+		get_tree().paused = false
+		NetworkSession.leave_round()
+		if _current_scene == null or _current_scene.name != "MainMenu":
+			show_menu()
+	)
 
 
 func _on_online_phase_changed(next_phase: StringName) -> void:
@@ -147,10 +171,20 @@ func _on_online_phase_changed(next_phase: StringName) -> void:
 		_show_locker_room()
 	elif next_phase == GameSettings.MATCH_PHASE_PLAYING_SET:
 		if _current_scene == null or _current_scene.name != "Game":
-			start_game()
+			_cover_then(start_game)
 	elif next_phase == GameSettings.MATCH_PHASE_INTERMISSION:
-		change_scene(INTERMISSION_MENU_SCENE)
-		AudioDirector.play_music(&"locker")
+		_cover_then(func() -> void:
+			change_scene(INTERMISSION_MENU_SCENE)
+			AudioDirector.play_music(&"locker")
+		)
+
+
+## Runs a scene swap behind the wipe; if the screen is already covered it swaps right away.
+func _cover_then(action: Callable) -> void:
+	if _screen_covered or _transitioning:
+		action.call()
+	else:
+		transition_to(action)
 
 
 func _show_locker_room() -> void:
@@ -171,6 +205,7 @@ func _play_reveal() -> void:
 		await get_tree().process_frame
 		if serial != _reveal_serial:
 			return
+	_screen_covered = false
 	_transition_tween = create_tween().set_ignore_time_scale(true)
 	_transition_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	_transition_tween.tween_method(_set_transition_progress.bind(-1.0), 1.0, 0.0, REVEAL_SECONDS).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)

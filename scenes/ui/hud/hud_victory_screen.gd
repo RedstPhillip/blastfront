@@ -23,6 +23,7 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
+	add_to_group(&"modal_ui")
 	_dim = ColorRect.new()
 	_dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_dim.color = Color(0.0, 0.02, 0.02, 0.0)
