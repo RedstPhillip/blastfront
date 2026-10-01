@@ -24,6 +24,8 @@ var _mark_label: Label = null
 func _ready() -> void:
 	custom_minimum_size = Vector2(64, 64)
 	text = ""
+	if _price_label != null:
+		UiStyle.style_label(_price_label, UiStyle.FONT_BOLD, 13, UiStyle.ACCENT, 5)
 	_ensure_mark_label()
 	_clear_button_chrome()
 	mouse_entered.connect(_on_mouse_entered)

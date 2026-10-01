@@ -678,7 +678,8 @@ func _prepare_online_round() -> void:
 	_set_player_controls_enabled(true)
 	_apply_online_player_colors()
 	if NetworkSession.is_bot_shop_duel():
-		_start_round_intro(GameSettings.MATCH_INTRO_SECONDS if OnlineMatch.small_round_number <= 1 else GameSettings.ROUND_INTRO_SECONDS)
+		_set_player_controls_enabled(false)
+		_start_round_intro.call_deferred(GameSettings.MATCH_INTRO_SECONDS if OnlineMatch.small_round_number <= 1 else GameSettings.ROUND_INTRO_SECONDS)
 
 
 func _set_player_controls_enabled(enabled: bool) -> void:

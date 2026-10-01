@@ -46,6 +46,10 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if not _has_authority():
 		return
+	# Offline (bot) matches freeze completely while the pause menu is open.
+	if NetworkSession.is_bot_shop_duel() and get_tree().paused:
+		_kill_banner_deadline_msec += int(delta * 1000.0)
+		return
 
 	if phase == GameSettings.MATCH_PHASE_LOCKER:
 		_process_locker_countdown(delta)
@@ -54,7 +58,9 @@ func _process(delta: float) -> void:
 		if _kill_banner_remaining <= 0.0 or Time.get_ticks_msec() >= _kill_banner_deadline_msec:
 			_finish_kill_banner()
 	elif phase == GameSettings.MATCH_PHASE_INTERMISSION:
-		intermission_remaining = maxf(intermission_remaining - delta, 0.0)
+		# Against the bot there is no clock: the next set starts when the player readies up.
+		if not NetworkSession.is_bot_shop_duel():
+			intermission_remaining = maxf(intermission_remaining - delta, 0.0)
 		var next_countdown_second: int = int(ceil(intermission_remaining))
 		if next_countdown_second != _last_countdown_second:
 			_last_countdown_second = next_countdown_second
@@ -63,8 +69,7 @@ func _process(delta: float) -> void:
 		if _both_ready(intermission_ready) or intermission_remaining <= 0.0:
 			start_next_set()
 	elif phase == GameSettings.MATCH_PHASE_PLAYING_SET:
-		if not (get_tree().paused and NetworkSession.is_bot_shop_duel()):
-			_record_survival_time(delta)
+		_record_survival_time(delta)
 
 
 func enter_locker(reset_scores: bool = true) -> void:
@@ -613,7 +618,7 @@ func _finish_kill_banner() -> void:
 
 
 func _finish_kill_banner_after_timeout(banner_generation: int) -> void:
-	await get_tree().create_timer(GameSettings.ONLINE_KILL_BANNER_SECONDS, true).timeout
+	await get_tree().create_timer(GameSettings.ONLINE_KILL_BANNER_SECONDS, not NetworkSession.is_bot_shop_duel()).timeout
 	if not _has_authority():
 		return
 	if phase != GameSettings.MATCH_PHASE_KILL_BANNER:

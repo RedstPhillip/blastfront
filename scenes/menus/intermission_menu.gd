@@ -32,6 +32,7 @@ var _tab_buttons: Array[Button] = []
 var _earnings_animating: bool = false
 var _last_countdown: int = -1
 var _countdown_tween: Tween = null
+var _spend_button: Button = null
 
 
 func _ready() -> void:
@@ -44,6 +45,7 @@ func _ready() -> void:
 	_left_page_button.pressed.connect(_on_previous_page_pressed)
 	_right_page_button.pressed.connect(_on_next_page_pressed)
 	_build_tab_bar()
+	_build_spend_button()
 	_replace_quest_panel()
 	_left_page_button.get_parent().visible = false
 	if _loadout_page.has_method(&"set_top_inset"):
@@ -127,6 +129,7 @@ func _play_earnings_reveal() -> void:
 	var balance: int = OnlineMatch.get_local_coin_balance()
 	var start_balance: int = maxi(balance - earned, 0)
 	_earnings_animating = true
+	_spend_button.visible = false
 	for step in steps:
 		(step[0] as Label).text = "+0"
 	_earned_total_label.text = "EARNED  +0"
@@ -151,7 +154,31 @@ func _set_coin_text(value: float, label: Label, format: String) -> void:
 
 func _finish_earnings_reveal() -> void:
 	_earnings_animating = false
+	_update_spend_button(true)
 	_refresh_earnings()
+
+
+## Call to action under the earnings once the balance buys something, so the shop is never overlooked.
+func _build_spend_button() -> void:
+	_spend_button = Button.new()
+	_spend_button.text = "SPEND COINS  ·  Q"
+	_spend_button.custom_minimum_size = Vector2(260.0, 46.0)
+	_spend_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	UiStyle.style_button(_spend_button, false, 17)
+	_spend_button.pressed.connect(_set_page.bind(-1))
+	_spend_button.visible = false
+	_coin_balance_label.add_sibling(_spend_button)
+
+
+func _update_spend_button(animate: bool) -> void:
+	if _spend_button == null:
+		return
+	var affordable: bool = OnlineMatch.get_local_coin_balance() >= GameSettings.SHOP_MIN_PRICE
+	var was_visible: bool = _spend_button.visible
+	_spend_button.visible = affordable
+	if affordable and animate and not was_visible:
+		_spend_button.modulate.a = 0.0
+		_spend_button.create_tween().tween_property(_spend_button, "modulate:a", 1.0, 0.3)
 
 
 func _tick_reward(label: Label, rewarded: bool, big: bool) -> void:
@@ -206,6 +233,9 @@ func _on_next_page_pressed() -> void:
 func _refresh() -> void:
 	var local_name: String = OnlineMatch.get_player_color_name(_local_slot)
 	var remote_name: String = OnlineMatch.get_player_color_name(_remote_slot)
+	if NetworkSession.is_bot_shop_duel():
+		local_name = UiStyle.player_name(_local_slot)
+		remote_name = UiStyle.player_name(_remote_slot)
 	_title_label.text = "NEXT SET"
 	_score_label.text = "%s %d - %d %s" % [
 		local_name.to_upper(),
@@ -214,8 +244,14 @@ func _refresh() -> void:
 		remote_name.to_upper(),
 	]
 	var seconds: int = int(ceil(OnlineMatch.intermission_remaining))
-	_countdown_label.text = "%dS" % seconds
-	_update_countdown_urgency(seconds)
+	if NetworkSession.is_bot_shop_duel():
+		_countdown_label.text = "READY?"
+		var ready_title: Label = find_child("ReadyTitle", true, false) as Label
+		if ready_title != null:
+			ready_title.text = "NO TIME LIMIT"
+	else:
+		_countdown_label.text = "%dS" % seconds
+		_update_countdown_urgency(seconds)
 
 	var local_ready: bool = OnlineMatch.intermission_ready.get(_local_slot, false) == true
 	var remote_ready: bool = OnlineMatch.intermission_ready.get(_remote_slot, false) == true
@@ -272,6 +308,7 @@ func _refresh_earnings() -> void:
 	_first_hit_coins_label.text = "+%d" % int(earnings.get("first_hit_coins", 0))
 	_earned_total_label.text = "EARNED  +%d" % int(earnings.get("earned", 0))
 	_coin_balance_label.text = "BALANCE  %d COINS" % OnlineMatch.get_local_coin_balance()
+	_update_spend_button(false)
 
 
 func _set_page(next_page: int) -> void:
