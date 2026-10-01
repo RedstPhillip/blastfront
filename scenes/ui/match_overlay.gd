@@ -351,7 +351,4 @@ func _on_main_menu_pressed() -> void:
 	get_tree().paused = false
 	if Main.instance == null:
 		return
-	Main.instance.transition_to(func() -> void:
-		NetworkSession.leave_round()
-		Main.instance.show_menu()
-	)
+	Main.instance.leave_to_menu()

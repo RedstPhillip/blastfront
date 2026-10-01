@@ -35,6 +35,7 @@ var _local_slot: int = GameSettings.PLAYER_ONE_SLOT
 var _remote_slot: int = GameSettings.PLAYER_TWO_SLOT
 var _leave_armed_until: int = 0
 var _leave_prompt: Label = null
+var _leaving: bool = false
 var _local_player: Player = null
 var _remote_player: Player = null
 var _send_timer: float = 0.0
@@ -72,6 +73,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not (event.is_action_pressed(&"ui_cancel") or event.is_action_pressed(GameSettings.INPUT_PAUSE)):
 		return
 	get_viewport().set_input_as_handled()
+	if _leaving:
+		return
 	if _help_popup.visible:
 		_help_popup.hide()
 		AudioDirector.play(&"ui_close")
@@ -83,6 +86,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	AudioDirector.play(&"ui_back")
 	if Main.instance != null:
+		_leaving = true
 		Main.instance.leave_to_menu()
 
 

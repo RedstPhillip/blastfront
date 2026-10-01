@@ -234,11 +234,7 @@ func _on_main_menu_pressed() -> void:
 	AudioDirector.set_muffled(false)
 	if Main.instance == null:
 		return
-	Main.instance.transition_to(func() -> void:
-		get_tree().paused = false
-		NetworkSession.leave_round()
-		Main.instance.show_menu()
-	)
+	Main.instance.leave_to_menu()
 
 
 func _on_exit_pressed() -> void:
