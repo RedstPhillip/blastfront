@@ -126,6 +126,41 @@ const EVENTS: Dictionary = {
 		{"files": ["powerup_0", "powerup_1"], "volume": -7.0, "pitch": Vector2(1.08, 1.16)},
 		{"files": ["coins_0", "coins_1"], "volume": -10.0, "pitch": Vector2(1.1, 1.2)},
 	]},
+	&"shop_purchase": {"bus": &"UI", "voices": 2, "cooldown": 0.08, "layers": [
+		{"files": ["coins_0", "coins_1"], "volume": -5.0, "pitch": Vector2(1.0, 1.1)},
+		{"files": ["powerup_0"], "volume": -12.0, "pitch": Vector2(1.25, 1.35)},
+		{"files": ["ui:confirm"], "volume": -10.0, "pitch": Vector2(1.0, 1.05)},
+	]},
+	&"shop_denied": {"bus": &"UI", "voices": 1, "cooldown": 0.15, "layers": [
+		{"files": ["ui:error"], "volume": -7.0, "pitch": Vector2(0.9, 0.95)},
+		{"files": ["impact_soft_0", "impact_soft_2"], "volume": -14.0, "pitch": Vector2(0.7, 0.8)},
+	]},
+	&"equip": {"bus": &"UI", "voices": 2, "cooldown": 0.05, "layers": [
+		{"files": ["metal_heavy_1", "metal_heavy_3"], "volume": -15.0, "pitch": Vector2(1.6, 1.8)},
+		{"files": ["reload_end"], "volume": -10.0, "pitch": Vector2(1.05, 1.15)},
+	]},
+	&"unequip": {"bus": &"UI", "voices": 2, "cooldown": 0.05, "layers": [
+		{"files": ["reload_start"], "volume": -12.0, "pitch": Vector2(1.1, 1.2)},
+	]},
+	&"merge": {"bus": &"UI", "voices": 1, "cooldown": 0.2, "layers": [
+		{"files": ["powerup_1"], "volume": -6.0, "pitch": Vector2(1.0, 1.05)},
+		{"files": ["teleport_0", "teleport_1"], "volume": -10.0, "pitch": Vector2(1.1, 1.2)},
+		{"files": ["metal_heavy_0"], "volume": -12.0, "pitch": Vector2(1.3, 1.4)},
+	]},
+	&"recycle": {"bus": &"UI", "voices": 1, "cooldown": 0.15, "layers": [
+		{"files": ["zap_0", "zap_1"], "volume": -12.0, "pitch": Vector2(0.8, 0.9)},
+		{"files": ["coins_0", "coins_1"], "volume": -8.0, "pitch": Vector2(0.9, 1.0)},
+	]},
+	&"research_unlock": {"bus": &"UI", "voices": 1, "cooldown": 0.15, "layers": [
+		{"files": ["powerup_0", "powerup_1"], "volume": -6.0, "pitch": Vector2(1.12, 1.2)},
+		{"files": ["shield_1", "shield_2"], "volume": -13.0, "pitch": Vector2(1.4, 1.5)},
+	]},
+	&"item_move": {"bus": &"UI", "voices": 2, "cooldown": 0.05, "layers": [
+		{"files": ["impact_light_0", "impact_light_2", "impact_light_4"], "volume": -14.0, "pitch": Vector2(1.5, 1.7)},
+	]},
+	&"heartbeat": {"bus": &"SFX", "voices": 1, "cooldown": 0.5, "layers": [
+		{"files": ["heartbeat"], "volume": -7.0, "pitch": Vector2(1.0, 1.0)},
+	]},
 	&"coins": {"bus": &"UI", "voices": 2, "cooldown": 0.06, "layers": [
 		{"files": ["coins_0", "coins_1"], "volume": -6.0, "pitch": Vector2(0.95, 1.1)},
 	]},

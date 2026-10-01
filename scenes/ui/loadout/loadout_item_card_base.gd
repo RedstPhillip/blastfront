@@ -39,7 +39,8 @@ func _create_drag_preview() -> Control:
 func _set_card_frame(base_color: Color, item_mark: int) -> void:
 	var card_color: Color = base_color.lightened(0.22) if _has_merge_partner else base_color
 	var alpha: float = 0.96 if _has_merge_partner else 0.82
-	_background.texture = LoadoutPreviewFrame.create_condition_texture(
+	LoadoutPreviewFrame.apply_condition_style(
+		_background,
 		int(CARD_SIZE.x),
 		int(CARD_SIZE.y),
 		card_color,

@@ -182,8 +182,10 @@ func _on_player_died_for_camera(player: Player) -> void:
 		return
 	if NetworkSession.is_training() and player != _local_player:
 		return
-	_kill_focus_position = player.global_position
-	_kill_focus_timer = 1.1
+	# Against the bot the camera stays with the player's own fighter; only their own knockout is framed.
+	if not (NetworkSession.is_bot_duel() and player != _local_player):
+		_kill_focus_position = player.global_position
+		_kill_focus_timer = 1.1
 	if not NetworkSession.is_steam_match_active():
 		GameJuice.slow_motion(0.22, 0.55, 0.45)
 		var screen_fx: ScreenFx = get_node_or_null("ScreenFx") as ScreenFx

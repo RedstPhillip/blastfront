@@ -18,6 +18,7 @@ var _desaturate: float = 0.0
 var _desaturate_target: float = 0.0
 var _danger: float = 0.0
 var _waves: Array[Dictionary] = []
+var _heartbeat_timer: float = 0.0
 
 
 func _ready() -> void:
@@ -55,13 +56,15 @@ func set_desaturate(amount: float) -> void:
 
 
 func _process(delta: float) -> void:
+	var real_delta: float = delta / maxf(Engine.time_scale, 0.0001)
+	var danger_target: float = _compute_danger()
+	_update_heartbeat(real_delta, danger_target)
 	if not _rect.visible:
 		return
-	var real_delta: float = delta / maxf(Engine.time_scale, 0.0001)
 	_flash_amount = maxf(_flash_amount - _flash_decay * real_delta, 0.0)
 	_aberration = maxf(_aberration - _aberration_decay * real_delta, 0.0)
 	_desaturate = move_toward(_desaturate, _desaturate_target, real_delta * 2.5)
-	_danger = lerpf(_danger, _compute_danger(), clampf(real_delta * 4.0, 0.0, 1.0))
+	_danger = lerpf(_danger, danger_target, clampf(real_delta * 4.0, 0.0, 1.0))
 
 	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
 	_material.set_shader_parameter(&"aspect", viewport_size.x / maxf(viewport_size.y, 1.0))
@@ -92,6 +95,18 @@ func _update_waves(delta: float, viewport_size: Vector2) -> void:
 	while packed.size() < MAX_WAVES:
 		packed.append(Vector4.ZERO)
 	_material.set_shader_parameter(&"waves", packed)
+
+
+## Low-health heartbeat: starts below the danger threshold and quickens as health runs out.
+func _update_heartbeat(real_delta: float, danger_target: float) -> void:
+	if danger_target <= 0.0 or get_tree().paused:
+		_heartbeat_timer = 0.0
+		return
+	_heartbeat_timer -= real_delta
+	if _heartbeat_timer > 0.0:
+		return
+	_heartbeat_timer = lerpf(1.05, 0.62, clampf((danger_target - 0.15) / 0.55, 0.0, 1.0))
+	AudioDirector.play(&"heartbeat", lerpf(-6.0, 0.0, clampf(danger_target, 0.0, 1.0)))
 
 
 func _compute_danger() -> float:

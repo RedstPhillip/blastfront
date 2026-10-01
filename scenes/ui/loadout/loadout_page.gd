@@ -863,11 +863,13 @@ func _on_armor_selected(item: ArmorItemData) -> void:
 	if item == null:
 		return
 	ArmorInventory.equip_item(item)
+	AudioDirector.play(&"equip")
 	_show_armor_description(item)
 
 
 func _on_armor_cleared(category_id: StringName) -> void:
 	ArmorInventory.unequip_category(category_id)
+	AudioDirector.play(&"unequip")
 	_description_title.text = ArmorItemData.category_display_name(category_id)
 	_description_meta.text = "ARMOR SLOT  |  EMPTY"
 	_description_body.text = "Drag a matching armor item here to equip it."
@@ -910,6 +912,7 @@ func _on_weapon_extension_selected(item: WeaponExtensionItem) -> void:
 	if item == null:
 		return
 	ExtensionInventory.equip_item_for_local(item)
+	AudioDirector.play(&"equip")
 	_show_weapon_extension_description(item)
 
 
@@ -963,6 +966,7 @@ func _confirm_pending_extension_merge() -> void:
 		return
 
 	_refresh_shop_state()
+	AudioDirector.play(&"merge")
 	_show_weapon_extension_description(merged_item)
 	_description_title.text = "Extension merged"
 	_description_meta.text = "%s  |  MK%d  |  -%d COINS" % [
@@ -988,6 +992,7 @@ func _confirm_pending_armor_merge() -> void:
 		return
 
 	_refresh_shop_state()
+	AudioDirector.play(&"merge")
 	_show_armor_description(merged_item)
 	_description_title.text = "Armor merged"
 	_description_meta.text = "%s  |  MK%d  |  -%d COINS" % [
@@ -998,6 +1003,7 @@ func _confirm_pending_armor_merge() -> void:
 
 
 func _show_merge_error(title: String, body: String) -> void:
+	AudioDirector.play(&"shop_denied")
 	_description_title.text = title
 	_description_meta.text = "MERGE"
 	_description_body.text = body
@@ -1061,6 +1067,7 @@ func _cancel_pending_merge() -> void:
 
 func _on_weapon_extension_cleared(slot_key: StringName) -> void:
 	ExtensionInventory.unequip_local(slot_key)
+	AudioDirector.play(&"unequip")
 	_description_title.text = WeaponExtensionDefinition.slot_display_name(slot_key)
 	_description_meta.text = "WEAPON SLOT  |  EMPTY"
 	_description_body.text = "Drag a matching weapon extension here to equip it."
@@ -1082,6 +1089,7 @@ func _on_extension_loadout_changed(player_slot: int) -> void:
 func _on_round_reward_claimed(source_kind: StringName, source_index: int) -> void:
 	var price: int = RoundRewardInventory.get_reward_price(source_kind, source_index)
 	if not RoundRewardInventory.can_afford_reward(source_kind, source_index):
+		AudioDirector.play(&"shop_denied")
 		_description_title.text = "Not enough coins"
 		_description_meta.text = "SHOP  |  %d COINS REQUIRED" % price
 		_description_body.text = "Earn coins through damage, survival, blocking and the first hit of a set."
@@ -1090,6 +1098,7 @@ func _on_round_reward_claimed(source_kind: StringName, source_index: int) -> voi
 		_show_default_weapon_stats(current_modifiers)
 		return
 	if RoundRewardInventory.claim_reward(source_kind, source_index):
+		AudioDirector.play(&"shop_purchase")
 		_description_title.text = "Item purchased"
 		_description_meta.text = "INVENTORY UPDATED  |  -%d COINS" % price
 		_description_body.text = "The item was added to your inventory and is ready to equip."
@@ -1101,13 +1110,15 @@ func _on_round_reward_claimed(source_kind: StringName, source_index: int) -> voi
 func _on_reward_dropped_to_saved(payload: Dictionary, target_index: int) -> void:
 	var source_kind: StringName = StringName(str(payload.get("source_kind", "")))
 	var source_index: int = int(payload.get("source_index", -1))
-	RoundRewardInventory.move_to_saved(source_kind, source_index, target_index)
+	if RoundRewardInventory.move_to_saved(source_kind, source_index, target_index):
+		AudioDirector.play(&"item_move")
 
 
 func _on_reward_dropped_to_offer(payload: Dictionary, target_index: int) -> void:
 	var source_kind: StringName = StringName(str(payload.get("source_kind", "")))
 	var source_index: int = int(payload.get("source_index", -1))
-	RoundRewardInventory.move_to_offer(source_kind, source_index, target_index)
+	if RoundRewardInventory.move_to_offer(source_kind, source_index, target_index):
+		AudioDirector.play(&"item_move")
 
 
 func _on_reward_dropped_to_inventory(payload: Dictionary) -> void:
@@ -1124,6 +1135,7 @@ func _on_weapon_extension_reward_dropped(payload: Dictionary, target_slot: Strin
 		return
 	var price: int = RoundRewardInventory.get_reward_price(source_kind, source_index)
 	if not RoundRewardInventory.can_afford_reward(source_kind, source_index):
+		AudioDirector.play(&"shop_denied")
 		_description_title.text = "Not enough coins"
 		_description_meta.text = "SHOP  |  %d COINS REQUIRED" % price
 		_description_body.text = "Earn coins through damage, survival, blocking and the first hit of a set."
@@ -1133,7 +1145,9 @@ func _on_weapon_extension_reward_dropped(payload: Dictionary, target_slot: Strin
 		return
 	if not RoundRewardInventory.claim_reward(source_kind, source_index):
 		return
+	AudioDirector.play(&"shop_purchase")
 	if ExtensionInventory.equip_item_for_local(item):
+		AudioDirector.play(&"equip")
 		_description_title.text = "Item equipped"
 		_description_meta.text = "WEAPON SLOT  |  -%d COINS" % price
 		_description_body.text = "The blueprint was purchased and equipped in the matching slot."
@@ -1143,6 +1157,7 @@ func _on_weapon_extension_reward_dropped(payload: Dictionary, target_slot: Strin
 
 
 func _on_reward_recycled(refund: int) -> void:
+	AudioDirector.play(&"recycle")
 	_description_title.text = "Blueprint recycled"
 	_description_meta.text = "RECYCLER  |  +%d COINS" % refund
 	_description_body.text = "The blueprint was dismantled and its value returned to your balance."

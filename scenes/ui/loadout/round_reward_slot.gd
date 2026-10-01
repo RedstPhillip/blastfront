@@ -167,7 +167,7 @@ func _refresh_price(update_tooltip: bool) -> void:
 
 
 func _apply_background_gradient(base_color: Color, alpha: float) -> void:
-	_background.texture = LoadoutPreviewFrame.create_condition_texture(64, 64, base_color, alpha, LoadoutPreviewFrame.DEFAULT_CORNER_RADIUS, _is_hovered)
+	LoadoutPreviewFrame.apply_condition_style(_background, 64, 64, base_color, alpha, LoadoutPreviewFrame.DEFAULT_CORNER_RADIUS, _is_hovered)
 
 
 func _ensure_mark_label() -> void:

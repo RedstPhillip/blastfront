@@ -65,10 +65,28 @@ func _on_points_changed(_points: int) -> void:
 
 
 func _on_research_selected(research_id: StringName) -> void:
+	var node: Control = _find_node_for(research_id)
 	if ResearchManager.purchase(research_id):
-		_show_research_details(research_id)
+		AudioDirector.play(&"research_unlock")
+		if node != null:
+			node.pivot_offset = node.size * 0.5
+			node.scale = Vector2(1.25, 1.25)
+			node.create_tween().tween_property(node, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	else:
-		_show_research_details(research_id)
+		AudioDirector.play(&"shop_denied")
+		if node != null:
+			var origin: float = node.position.x
+			var shake: Tween = node.create_tween()
+			for offset in [6.0, -5.0, 3.0, 0.0]:
+				shake.tween_property(node, "position:x", origin + offset, 0.04)
+	_show_research_details(research_id)
+
+
+func _find_node_for(research_id: StringName) -> Control:
+	for node in find_children("*", "", true, false):
+		if node.get(&"research_id") == research_id and node is Control:
+			return node
+	return null
 
 
 func _show_research_details(research_id: StringName) -> void:
