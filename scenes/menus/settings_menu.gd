@@ -59,14 +59,6 @@ func _build() -> void:
 	UiStyle.style_label(title, UiStyle.FONT_DISPLAY, 34, UiStyle.TEXT)
 	title.text = "SETTINGS"
 	header.add_child(title)
-	var filler: Control = Control.new()
-	filler.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.add_child(filler)
-	var hint: Label = Label.new()
-	UiStyle.style_label(hint, UiStyle.FONT_UI, 14, UiStyle.TEXT_MUTED)
-	hint.text = "Changes apply instantly"
-	hint.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	header.add_child(hint)
 
 	_tabs = TabContainer.new()
 	_tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL

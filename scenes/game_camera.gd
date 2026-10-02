@@ -9,6 +9,9 @@ const LOOK_AHEAD_DISTANCE: float = 70.0
 const LOOK_AHEAD_SPEED: float = 3.5
 const VERTICAL_SLACK_TOP: float = GameSettings.CAMERA_BOARD_MARGIN_Y
 const VERTICAL_SLACK_BOTTOM: float = GameSettings.CAMERA_BOARD_MARGIN_Y
+## Dead zone around the framed point: small hops and dodges leave the view still (easier aiming); the
+## camera only moves once the focus leaves this box, and then just enough to keep it at the edge.
+const DEAD_ZONE: Vector2 = Vector2(56.0, 28.0)
 
 @export var follow_speed: float = 5.5
 @export var zoom_speed: float = 4.0
@@ -21,6 +24,7 @@ var bounds: Rect2 = GameSettings.DEFAULT_MAP_BOUNDS
 var _base_position: Vector2 = Vector2.ZERO
 var _base_zoom: float = 1.0
 var _look_ahead: Vector2 = Vector2.ZERO
+var _anchor: Vector2 = Vector2.INF
 
 
 func _ready() -> void:
@@ -39,6 +43,7 @@ func uses_juice_values() -> bool:
 func snap_to_target() -> void:
 	_base_zoom = target_zoom
 	_look_ahead = look_ahead_target
+	_anchor = focus_position
 	_base_position = _clamp_to_bounds(focus_position + _look_ahead, _base_zoom)
 	_apply()
 
@@ -48,9 +53,20 @@ func _process(delta: float) -> void:
 	real_delta = minf(real_delta, 0.1)
 	_look_ahead = _look_ahead.lerp(look_ahead_target, 1.0 - exp(-LOOK_AHEAD_SPEED * real_delta))
 	_base_zoom = lerpf(_base_zoom, target_zoom, 1.0 - exp(-zoom_speed * real_delta))
-	var desired: Vector2 = _clamp_to_bounds(focus_position + _look_ahead, _base_zoom)
+	var desired: Vector2 = _clamp_to_bounds(_dead_zone_anchor() + _look_ahead, _base_zoom)
 	_base_position = _base_position.lerp(desired, 1.0 - exp(-follow_speed * real_delta))
 	_apply()
+
+
+func _dead_zone_anchor() -> Vector2:
+	if _anchor == Vector2.INF:
+		_anchor = focus_position
+	var offset: Vector2 = focus_position - _anchor
+	_anchor += Vector2(
+		signf(offset.x) * maxf(absf(offset.x) - DEAD_ZONE.x, 0.0),
+		signf(offset.y) * maxf(absf(offset.y) - DEAD_ZONE.y, 0.0)
+	)
+	return _anchor
 
 
 func _apply() -> void:
