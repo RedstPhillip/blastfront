@@ -137,16 +137,18 @@ func _build_hit(intensity: float) -> void:
 
 func _build_impact() -> void:
 	var normal: Vector2 = _direction
+	# Sparks take on the round's colour (poison green, frost blue...), keeping a hot core.
+	var spark: Color = SPARK_COLOR.lerp(Color(_tint.r, _tint.g, _tint.b, 1.0), 0.55)
 	_emit({"texture": FxLib.TEX_SPARK, "amount": 9, "lifetime": 0.22, "direction": normal, "spread": 62.0,
 		"speed": Vector2(180.0, 420.0), "gravity": Vector2(0, 820), "size": Vector2(0.22, 0.42), "align": true,
-		"color": SPARK_COLOR, "additive": true, "damping": Vector2(0, 40)})
+		"color": spark, "additive": true, "damping": Vector2(0, 40)})
 	_emit({"amount": 3, "lifetime": 0.55, "direction": normal, "spread": 40.0, "speed": Vector2(25.0, 70.0),
 		"gravity": Vector2(0, -25), "size": Vector2(0.22, 0.38), "curve": &"puff", "color": Color(0.7, 0.72, 0.64, 0.42),
 		"damping": Vector2(40, 90)})
 	_emit({"texture": FxLib.TEX_DEBRIS, "amount": 4, "lifetime": 0.5, "direction": normal, "spread": 55.0,
 		"speed": Vector2(90.0, 220.0), "gravity": Vector2(0, 980), "size": Vector2(0.1, 0.2), "spin": Vector2(-600, 600),
 		"color": Color(0.24, 0.3, 0.22, 1.0), "fade": &"late"})
-	FxLib.glow_flash(self, Color(1.0, 0.72, 0.35, 0.5), 46.0, 0.12)
+	FxLib.glow_flash(self, Color(spark.r, spark.g * 0.9, spark.b * 0.8, 0.5), 46.0, 0.12)
 	_track(0.6)
 
 
@@ -237,57 +239,20 @@ func _spawn_light_column(color: Color) -> void:
 
 
 func _spawn_iceflakes(count: int) -> void:
-	var flake_count: int = maxi(1, int(roundf(float(count) * GameJuice.particles_multiplier)))
 	if GameJuice.particles_multiplier <= 0.0:
 		return
-	for flake_index in range(flake_count):
-		var flake: Node2D = Node2D.new()
-		flake.z_index = 5
-		flake.position = Vector2(randf_range(-16.0, 16.0), randf_range(-18.0, 12.0))
-		flake.rotation = randf_range(0.0, TAU)
-		flake.scale = Vector2.ONE * randf_range(0.75, 1.35)
-		flake.modulate = Color(0.8, 0.96, 1.0, 0.95)
-		add_child(flake)
-		var radius: float = randf_range(4.0, 7.5)
-		for arm_index in range(3):
-			var arm: Line2D = Line2D.new()
-			arm.width = 1.2
-			arm.default_color = Color(0.82, 0.97, 1.0, 0.9)
-			arm.antialiased = true
-			arm.rotation = float(arm_index) * TAU / 3.0
-			arm.points = PackedVector2Array([Vector2(-radius, 0.0), Vector2(radius, 0.0)])
-			flake.add_child(arm)
-		var tween: Tween = flake.create_tween().set_parallel(true)
-		tween.tween_property(flake, "position", flake.position + Vector2(randf_range(-8.0, 8.0), randf_range(-24.0, -8.0)), 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		tween.tween_property(flake, "rotation", flake.rotation + randf_range(-1.4, 1.4), 0.5)
-		tween.tween_property(flake, "modulate:a", 0.0, 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	var flakes: FlakeBurst = FlakeBurst.new()
+	flakes.kind = FlakeBurst.Kind.FLAKES
+	flakes.count = maxi(1, int(roundf(float(count) * GameJuice.particles_multiplier)))
+	flakes.duration = 0.5
+	add_child(flakes)
 
 
 func _spawn_electric_arcs(count: int) -> void:
 	if GameJuice.particles_multiplier <= 0.0:
 		return
-	var arc_count: int = maxi(1, int(roundf(float(count) * GameJuice.particles_multiplier)))
-	for arc_index in range(arc_count):
-		var arc: Line2D = Line2D.new()
-		arc.z_index = 6
-		arc.width = randf_range(1.6, 2.6)
-		arc.default_color = Color(1.0, 0.96, 0.5, 1.0)
-		arc.material = FxLib.additive_material()
-		arc.antialiased = true
-		arc.points = _build_electric_arc_points(randf_range(16.0, 28.0), randi_range(4, 6))
-		arc.rotation = randf_range(0.0, TAU)
-		arc.position = Vector2(randf_range(-6.0, 6.0), randf_range(-10.0, 10.0))
-		add_child(arc)
-		var tween: Tween = arc.create_tween().set_parallel(true)
-		tween.tween_property(arc, "scale", Vector2.ONE * randf_range(1.2, 1.6), 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		tween.tween_property(arc, "modulate:a", 0.0, 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-
-
-func _build_electric_arc_points(length: float, segment_count: int) -> PackedVector2Array:
-	var points: PackedVector2Array = PackedVector2Array()
-	var half_length: float = length * 0.5
-	for point_index in range(segment_count + 1):
-		var ratio: float = float(point_index) / float(segment_count)
-		var y: float = 0.0 if point_index == 0 or point_index == segment_count else randf_range(-5.0, 5.0)
-		points.append(Vector2(lerpf(-half_length, half_length, ratio), y))
-	return points
+	var arcs: FlakeBurst = FlakeBurst.new()
+	arcs.kind = FlakeBurst.Kind.ARCS
+	arcs.count = maxi(1, int(roundf(float(count) * GameJuice.particles_multiplier)))
+	arcs.duration = 0.18
+	add_child(arcs)

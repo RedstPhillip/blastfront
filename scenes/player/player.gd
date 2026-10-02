@@ -817,6 +817,15 @@ func get_wind_exposure() -> float:
 	return _wind_exposure if WorldConditions.has_wind() else 0.0
 
 
+## Players brace into a storm (lean upwind) and get buffeted by its gusts; sheltered players stand still.
+func _wind_lean() -> float:
+	if not WorldConditions.has_wind():
+		return 0.0
+	var strength: float = clampf(absf(WorldConditions.wind.x) / 250.0, 0.0, 1.0) * _wind_exposure
+	var buffet: float = sin(_step_clock * 23.0) * sin(_step_clock * 7.3) * 0.05 * WorldConditions.storm
+	return (-signf(WorldConditions.wind.x) * 0.14 + buffet) * strength
+
+
 func _update_wind_exposure(delta: float) -> void:
 	if not WorldConditions.has_wind():
 		_wind_exposure = 1.0
@@ -992,7 +1001,7 @@ func update_visual_movement(delta: float) -> void:
 		visual_direction = clampf(velocity.x / maxf(speed, 1.0), -1.0, 1.0)
 	rotation = lerp_angle(
 		rotation,
-		visual_direction * GameSettings.PLAYER_VISUAL_ROTATION_SCALE,
+		visual_direction * GameSettings.PLAYER_VISUAL_ROTATION_SCALE + _wind_lean(),
 		delta * GameSettings.PLAYER_VISUAL_ROTATION_LERP_SPEED
 	)
 	_update_body_sprite_direction()

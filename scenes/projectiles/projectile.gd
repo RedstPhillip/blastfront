@@ -31,6 +31,7 @@ var _head_glow: Sprite2D = null
 var _whiz_played: bool = false
 var _local_view_player: Player = null
 var _wind_response: float = 1.0
+var _impact_tint: Color = Color(0.98, 0.55, 0.18, 0.9)
 
 
 func configure_from_data(
@@ -78,6 +79,9 @@ func _ready() -> void:
 
 	velocity = initial_velocity if initial_velocity.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED else direction * muzzle_speed
 	var style: Dictionary = _get_projectile_visual_style()
+	if _get_visual_extension_id() != "":
+		var body: Color = style["body_color"]
+		_impact_tint = Color(body.r, body.g, body.b, 0.9)
 	_apply_projectile_visual_style(style)
 	_apply_projectile_scale()
 	_setup_tracer(style)
@@ -635,7 +639,7 @@ func _play_collision_feedback(collision: KinematicCollision2D, collider: Object)
 
 
 func _play_world_impact(impact_position: Vector2, normal: Vector2) -> void:
-	GameJuice.spawn_burst(&"impact", impact_position, normal, Color(0.98, 0.55, 0.18, 0.9), projectile_scale)
+	GameJuice.spawn_burst(&"impact", impact_position, normal, _impact_tint, projectile_scale)
 	GameJuice.play_sound_2d(&"impact", impact_position)
 	GameJuice.shake(GameSettings.PROJECTILE_IMPACT_SHAKE_STRENGTH, GameSettings.PROJECTILE_IMPACT_SHAKE_TIME)
 	ImpactDecals.add_hole(impact_position, normal)
@@ -684,7 +688,9 @@ func play_remote_despawn_feedback(reason: StringName, despawn_position: Vector2)
 func _setup_tracer(style: Dictionary) -> void:
 	var body_color: Color = style["body_color"]
 	_tracer = ProjectileTracer.new()
-	_tracer.setup(self, body_color.lightened(0.15), 3.2 * maxf(projectile_scale, 0.6), 70.0 + 30.0 * projectile_scale)
+	# Faster rounds draw longer streaks: a sniper shot reads as a line of light, pellets as short sparks.
+	var streak: float = clampf(muzzle_speed * 0.085, 60.0, 250.0) + 30.0 * projectile_scale
+	_tracer.setup(self, body_color.lightened(0.15), 3.2 * maxf(projectile_scale, 0.6), streak)
 	add_child(_tracer)
 	_head_glow = Sprite2D.new()
 	_head_glow.texture = FxLib.TEX_GLOW
