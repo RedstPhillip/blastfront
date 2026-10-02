@@ -176,6 +176,15 @@ const EVENTS: Dictionary = {
 		{"files": ["shield_1", "shield_3"], "volume": -15.0, "pitch": Vector2(1.25, 1.4)},
 		{"files": ["impact_soft_1", "impact_soft_3"], "volume": -12.0, "pitch": Vector2(0.9, 1.0)},
 	]},
+	&"dust_gust": {"bus": &"SFX", "voices": 1, "cooldown": 2.0, "layers": [
+		{"files": ["dust_gust"], "volume": -4.0, "pitch": Vector2(0.92, 1.06)},
+	]},
+	&"geyser_rumble": {"bus": &"SFX", "voices": 2, "cooldown": 0.3, "layers": [
+		{"files": ["geyser_rumble"], "volume": -6.0, "pitch": Vector2(0.9, 1.08)},
+	]},
+	&"geyser_blast": {"bus": &"SFX", "voices": 2, "cooldown": 0.3, "layers": [
+		{"files": ["geyser_blast"], "volume": -3.0, "pitch": Vector2(0.92, 1.06)},
+	]},
 	&"heartbeat": {"bus": &"SFX", "voices": 1, "cooldown": 0.5, "layers": [
 		{"files": ["heartbeat"], "volume": -7.0, "pitch": Vector2(1.0, 1.0)},
 	]},
@@ -244,6 +253,7 @@ const MUSIC_TRACKS: Dictionary = {
 	&"battle": "battle_theme.ogg",
 	&"locker": "locker_theme.ogg",
 	&"ambience_wind": "ambience_wind.ogg",
+	&"ambience_mars": "ambience_mars.ogg",
 }
 
 var _streams: Dictionary = {}

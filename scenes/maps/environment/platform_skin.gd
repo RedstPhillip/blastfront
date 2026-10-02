@@ -31,6 +31,12 @@ const GEOMETRY_LIGHT_MASK: int = 1 | 4
 @export var rim_color: Color = Color(0.78, 0.95, 0.66, 0.85)
 @export var vine_color: Color = Color(0.13, 0.24, 0.16)
 @export var lantern_color: Color = Color(1.0, 0.7, 0.36)
+@export var rock_tint: Color = Color(0.39, 0.38, 0.33)
+@export var warm_light: Color = Color(1.0, 0.78, 0.5)
+@export var strata_strength: float = 0.15
+@export var layer_contrast: float = 0.0
+@export var warm_strength: float = 0.035
+@export var crack_strength: float = 0.38
 @export var soil_top_color: Color = Color(0.29, 0.47, 0.25)
 @export var soil_deep_color: Color = Color(0.13, 0.19, 0.12)
 @export var soil_fleck_color: Color = Color(0.42, 0.36, 0.24)
@@ -72,6 +78,12 @@ func _ready() -> void:
 	_body_material.set_shader_parameter(&"low_color", low_color)
 	_body_material.set_shader_parameter(&"deep_color", deep_color)
 	_body_material.set_shader_parameter(&"noise_tex", NOISE_TEXTURE)
+	_body_material.set_shader_parameter(&"rock_tint", rock_tint)
+	_body_material.set_shader_parameter(&"warm_light", warm_light)
+	_body_material.set_shader_parameter(&"strata_strength", strata_strength)
+	_body_material.set_shader_parameter(&"layer_contrast", layer_contrast)
+	_body_material.set_shader_parameter(&"warm_strength", warm_strength)
+	_body_material.set_shader_parameter(&"crack_strength", crack_strength)
 	_glow_material = ShaderMaterial.new()
 	_glow_material.shader = LANTERN_GLOW_SHADER
 	_build()

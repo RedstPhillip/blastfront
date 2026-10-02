@@ -27,6 +27,24 @@ var _kill_focus_position: Vector2 = Vector2.ZERO
 var _match_stats: Dictionary = {}
 
 
+## Swaps the default arena for the selected world before anything reads map bounds or spawn markers.
+func _enter_tree() -> void:
+	var world_id: StringName = WorldCatalog.active_world_id()
+	if world_id == WorldCatalog.DEFAULT_WORLD:
+		return
+	var current: Node = get_node_or_null(^"Arena")
+	var scene: PackedScene = WorldCatalog.scene_for(world_id)
+	if current == null or scene == null:
+		return
+	var index: int = current.get_index()
+	remove_child(current)
+	current.free()
+	var world: Node = scene.instantiate()
+	world.name = "Arena"
+	add_child(world)
+	move_child(world, index)
+
+
 func _ready() -> void:
 	add_to_group(GameSettings.GAME_WORLD_GROUP)
 
@@ -67,7 +85,8 @@ func _ready() -> void:
 	elif NetworkSession.is_bot_duel():
 		_start_round_intro.call_deferred(GameSettings.MATCH_INTRO_SECONDS)
 	AudioDirector.play_music(&"battle")
-	AudioDirector.play_ambience(&"ambience_wind")
+	var profile: MapProfile = MapProfile.current(get_tree())
+	AudioDirector.play_ambience(profile.ambience if profile != null else &"ambience_wind")
 
 
 func _exit_tree() -> void:

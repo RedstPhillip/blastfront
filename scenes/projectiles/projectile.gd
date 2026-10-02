@@ -75,7 +75,8 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	ExtensionBehaviorRegistry.update_projectile_behaviors(self, delta)
 
-	velocity.y += gravity * delta
+	velocity.y += gravity * WorldConditions.projectile_gravity_scale * delta
+	velocity += WorldConditions.wind * delta
 	if linear_damping > 0.0:
 		velocity = velocity.move_toward(Vector2.ZERO, linear_damping * delta)
 	_update_rotation()

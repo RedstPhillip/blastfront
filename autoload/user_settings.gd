@@ -27,6 +27,7 @@ const BOT_PHASE_SHOP: StringName = &"gameplay_bot_phase_shop"
 const CONTROLS_HINTS_SEEN: StringName = &"progress_controls_hints_seen"
 const MENU_LAST_CHOICE: StringName = &"progress_menu_last_choice"
 const LOCKER_HELP_SEEN: StringName = &"progress_locker_help_seen"
+const SANDBOX_WORLD: StringName = &"progress_sandbox_world"
 const REVISION: StringName = &"settings_revision"
 ## Revision 2 made exclusive fullscreen the default (direct flip, steadier frame pacing on Windows).
 const CURRENT_REVISION: int = 2
@@ -83,7 +84,7 @@ func set_value(key: StringName, value: Variant) -> void:
 
 func reset_to_defaults() -> void:
 	var kept: Dictionary = {}
-	for key in [CONTROLS_HINTS_SEEN, MENU_LAST_CHOICE, LOCKER_HELP_SEEN]:
+	for key in [CONTROLS_HINTS_SEEN, MENU_LAST_CHOICE, LOCKER_HELP_SEEN, SANDBOX_WORLD]:
 		kept[key] = get_value(key)
 	_values = _defaults()
 	_values.merge(kept, true)
@@ -159,6 +160,7 @@ func _defaults() -> Dictionary:
 		CONTROLS_HINTS_SEEN: 0,
 		MENU_LAST_CHOICE: 0,
 		LOCKER_HELP_SEEN: 0,
+		SANDBOX_WORLD: "verdant",
 		REVISION: CURRENT_REVISION,
 	}
 

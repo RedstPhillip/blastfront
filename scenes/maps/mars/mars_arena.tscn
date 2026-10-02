@@ -1,0 +1,394 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/maps/map_profile.gd" id="1_sdpqx"]
+[ext_resource type="Script" path="res://scenes/maps/map_bounds.gd" id="2_raguh"]
+[ext_resource type="Script" path="res://scenes/maps/environment/parallax_depth.gd" id="3_7l3fn"]
+[ext_resource type="Shader" path="res://scenes/maps/mars/mars_sky.gdshader" id="4_0cu45"]
+[ext_resource type="Texture2D" path="res://assets/fx/noise_fbm.png" id="5_f8scn"]
+[ext_resource type="Shader" path="res://scenes/maps/mars/storm_front.gdshader" id="6_ffdou"]
+[ext_resource type="Script" path="res://scenes/maps/mars/mars_backdrop.gd" id="7_vl0j2"]
+[ext_resource type="Shader" path="res://scenes/maps/environment/fog.gdshader" id="8_ofceq"]
+[ext_resource type="Script" path="res://scenes/maps/mars/mars_activity.gd" id="9_ehshq"]
+[ext_resource type="Shader" path="res://scenes/maps/environment/abyss.gdshader" id="10_iudrs"]
+[ext_resource type="Texture2D" path="res://assets/fx/soft_circle.png" id="11_ppdsl"]
+[ext_resource type="Script" path="res://scenes/objectives/airdrop_manager.gd" id="12_r50fn"]
+[ext_resource type="Script" path="res://scenes/maps/mars/mars_geyser.gd" id="13_8pask"]
+[ext_resource type="Script" path="res://scenes/maps/mars/mars_weather.gd" id="14_sdvac"]
+[ext_resource type="Script" path="res://scenes/maps/mars/mars_skin.gd" id="15_lvtdd"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_2nkj5"]
+shader = ExtResource("4_0cu45")
+shader_parameter/noise_tex = ExtResource("5_f8scn")
+shader_parameter/sun_uv = Vector2(0.62, 0.6)
+shader_parameter/phobos_uv = Vector2(0.43, 0.435)
+shader_parameter/deimos_uv = Vector2(0.58, 0.36)
+shader_parameter/aspect = 7.391304347826087
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_j6yav"]
+shader = ExtResource("6_ffdou")
+shader_parameter/noise_tex = ExtResource("5_f8scn")
+shader_parameter/aspect = 6.136363636363637
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_0w3kg"]
+shader = ExtResource("8_ofceq")
+shader_parameter/noise_tex = ExtResource("5_f8scn")
+shader_parameter/fog_color = Color(0.88, 0.6, 0.42, 1)
+shader_parameter/density = 0.38
+shader_parameter/speed = 0.012
+shader_parameter/scale = 0.7
+shader_parameter/top_softness = 0.5
+shader_parameter/bottom_softness = 0.3
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_vsrgl"]
+shader = ExtResource("8_ofceq")
+shader_parameter/noise_tex = ExtResource("5_f8scn")
+shader_parameter/fog_color = Color(0.82, 0.52, 0.34, 1)
+shader_parameter/density = 0.24
+shader_parameter/speed = 0.02
+shader_parameter/scale = 1.0
+shader_parameter/top_softness = 0.45
+shader_parameter/bottom_softness = 0.3
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_d13tp"]
+shader = ExtResource("10_iudrs")
+shader_parameter/noise_tex = ExtResource("5_f8scn")
+shader_parameter/abyss_color = Color(0.09, 0.035, 0.025, 1)
+shader_parameter/mist_color = Color(0.78, 0.46, 0.3, 1)
+shader_parameter/mist_strength = 0.4
+
+[sub_resource type="Gradient" id="Gradient_y1l3e"]
+offsets = PackedFloat32Array(0, 0.7)
+colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_wt260"]
+gradient = SubResource("Gradient_y1l3e")
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_oexk0"]
+blend_mode = 1
+
+[sub_resource type="Gradient" id="Gradient_33o3r"]
+offsets = PackedFloat32Array(0, 0.25, 0.75, 1)
+colors = PackedColorArray(1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_hpqfw"]
+polygon = PackedVector2Array(-80, 960, -80, 418, 240, 418, 262, 423, 298, 427, 318, 440, 326, 482, 332, 520, 466, 520, 482, 527, 491, 560, 496, 960)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_15aoh"]
+polygon = PackedVector2Array(590, 960, 590, 556, 606, 546, 650, 548, 700, 566, 760, 610, 820, 652, 880, 680, 940, 690, 1040, 690, 1048, 650, 1056, 600, 1060, 566, 1046, 548, 1028, 532, 1022, 514, 1032, 500, 1062, 492, 1098, 492, 1128, 500, 1138, 514, 1132, 532, 1114, 548, 1100, 566, 1104, 600, 1112, 650, 1120, 690, 1220, 690, 1280, 680, 1340, 652, 1400, 610, 1460, 566, 1510, 548, 1554, 546, 1570, 556, 1570, 960)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_l7rbx"]
+polygon = PackedVector2Array(1664, 960, 1669, 560, 1678, 527, 1694, 520, 1828, 520, 1834, 482, 1842, 440, 1862, 427, 1898, 423, 1920, 418, 2240, 418, 2240, 960)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_upyb3"]
+polygon = PackedVector2Array(650, 402, 668, 388, 812, 384, 834, 396, 820, 418, 760, 432, 690, 428, 660, 416)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_unb64"]
+polygon = PackedVector2Array(1500, 416, 1470, 428, 1400, 432, 1340, 418, 1326, 396, 1348, 384, 1492, 388, 1510, 402)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_lh1cm"]
+polygon = PackedVector2Array(442, 334, 450, 320, 472, 314, 496, 318, 506, 330, 498, 344, 470, 350, 450, 346)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_ttygk"]
+polygon = PackedVector2Array(1710, 346, 1690, 350, 1662, 344, 1654, 330, 1664, 318, 1688, 314, 1710, 320, 1718, 334)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_k63w6"]
+polygon = PackedVector2Array(1004, 306, 1020, 294, 1140, 294, 1156, 306, 1142, 320, 1110, 332, 1050, 332, 1018, 320)
+
+[node name="MarsArena" type="Node2D" unique_id=1698773264]
+
+[node name="MapProfile" type="Node" parent="." unique_id=1606618725]
+script = ExtResource("1_sdpqx")
+world_id = &"mars"
+display_name = "Mars"
+ambience = &"ambience_mars"
+gravity_scale = 0.8
+projectile_gravity_scale = 0.72
+
+[node name="MapBounds" type="Node" parent="." unique_id=1500084622]
+script = ExtResource("2_raguh")
+bounds = Rect2(0, 0, 2160, 800)
+
+[node name="Environment" type="Node2D" parent="." unique_id=215972042]
+z_index = -10
+
+[node name="FarLayer" type="Node2D" parent="Environment" unique_id=1683730545]
+script = ExtResource("3_7l3fn")
+factor = Vector2(0.18, 0.12)
+anchor = Vector2(1080, 400)
+
+[node name="Sky" type="ColorRect" parent="Environment/FarLayer" unique_id=614202660]
+material = SubResource("ShaderMaterial_2nkj5")
+offset_left = -3400.0
+offset_top = -700.0
+offset_right = 3400.0
+offset_bottom = 220.0
+mouse_filter = 2
+
+[node name="StormWall" type="ColorRect" parent="Environment/FarLayer" unique_id=1867255713]
+material = SubResource("ShaderMaterial_j6yav")
+offset_left = -2900.0
+offset_top = -260.0
+offset_right = -200.0
+offset_bottom = 180.0
+mouse_filter = 2
+
+[node name="FarRidge" type="Node2D" parent="Environment/FarLayer" unique_id=316343730]
+script = ExtResource("7_vl0j2")
+kind = 0
+baseline = 150.0
+top_color = Color(0.8, 0.55, 0.4, 1)
+base_color = Color(0.74, 0.48, 0.34, 1)
+seed_value = 11
+
+[node name="FarHaze" type="ColorRect" parent="Environment/FarLayer" unique_id=871187194]
+material = SubResource("ShaderMaterial_0w3kg")
+offset_left = -3400.0
+offset_top = 60.0
+offset_right = 3400.0
+offset_bottom = 280.0
+mouse_filter = 2
+
+[node name="FarFill" type="ColorRect" parent="Environment/FarLayer" unique_id=1453669917]
+offset_left = -3400.0
+offset_top = 300.0
+offset_right = 3400.0
+offset_bottom = 1900.0
+mouse_filter = 2
+color = Color(0.7, 0.45, 0.32, 1)
+
+[node name="MidLayer" type="Node2D" parent="Environment" unique_id=636582280]
+script = ExtResource("3_7l3fn")
+factor = Vector2(0.36, 0.3)
+anchor = Vector2(1080, 400)
+
+[node name="Mesas" type="Node2D" parent="Environment/MidLayer" unique_id=1442126385]
+script = ExtResource("7_vl0j2")
+baseline = 170.0
+top_color = Color(0.7, 0.42, 0.29, 1)
+base_color = Color(0.56, 0.31, 0.21, 1)
+seed_value = 23
+
+[node name="Activity" type="Node2D" parent="Environment/MidLayer" unique_id=1335138190]
+script = ExtResource("9_ehshq")
+ground_path = NodePath("../Mesas")
+devil_ground_path = NodePath("../Mesas")
+outpost_x = 640.0
+rover_range = Vector2(-1100, 380)
+devil_range = Vector2(-1900, 1900)
+
+[node name="MidHaze" type="ColorRect" parent="Environment/MidLayer" unique_id=579047357]
+material = SubResource("ShaderMaterial_vsrgl")
+offset_left = -3400.0
+offset_top = 60.0
+offset_right = 3400.0
+offset_bottom = 280.0
+mouse_filter = 2
+
+[node name="NearLayer" type="Node2D" parent="Environment" unique_id=996463457]
+script = ExtResource("3_7l3fn")
+factor = Vector2(0.62, 0.55)
+anchor = Vector2(1080, 400)
+
+[node name="Ridge" type="Node2D" parent="Environment/NearLayer" unique_id=1568658106]
+script = ExtResource("7_vl0j2")
+kind = 2
+baseline = 330.0
+top_color = Color(0.44, 0.22, 0.15, 1)
+base_color = Color(0.3, 0.14, 0.1, 1)
+seed_value = 37
+
+[node name="NearFill" type="ColorRect" parent="Environment/NearLayer" unique_id=623715106]
+offset_left = -3400.0
+offset_top = 320.0
+offset_right = 3400.0
+offset_bottom = 1920.0
+mouse_filter = 2
+color = Color(0.3, 0.14, 0.1, 1)
+
+[node name="Abyss" type="ColorRect" parent="Environment" unique_id=78015931]
+z_index = 12
+material = SubResource("ShaderMaterial_d13tp")
+offset_left = -900.0
+offset_top = 690.0
+offset_right = 3060.0
+offset_bottom = 1390.0
+mouse_filter = 2
+
+[node name="SunLight" type="PointLight2D" parent="Environment" unique_id=1755268931]
+position = Vector2(1555.2, -140)
+scale = Vector2(70, 40)
+color = Color(1, 0.78, 0.6, 1)
+energy = 0.55
+range_item_cull_mask = 4
+shadow_enabled = true
+shadow_color = Color(0.1, 0.02, 0, 0.55)
+shadow_filter = 1
+shadow_filter_smooth = 6.0
+texture = SubResource("GradientTexture2D_wt260")
+
+[node name="DustMotes" type="CPUParticles2D" parent="Environment" unique_id=1642589648]
+z_index = 16
+material = SubResource("CanvasItemMaterial_oexk0")
+position = Vector2(1080, 420)
+amount = 50
+texture = ExtResource("11_ppdsl")
+lifetime = 10.0
+preprocess = 10.0
+randomness = 0.8
+emission_shape = 3
+emission_rect_extents = Vector2(1250, 360)
+direction = Vector2(1, -0.1)
+spread = 30.0
+gravity = Vector2(5, -2)
+initial_velocity_min = 6.0
+initial_velocity_max = 18.0
+scale_amount_min = 0.04
+scale_amount_max = 0.1
+color = Color(1, 0.78, 0.58, 0.32)
+color_ramp = SubResource("Gradient_33o3r")
+
+[node name="Spawn1" type="Marker2D" parent="." unique_id=638116751]
+position = Vector2(150, 380)
+
+[node name="Spawn2" type="Marker2D" parent="." unique_id=2024343335]
+position = Vector2(2010, 380)
+
+[node name="DummySpawn1" type="Marker2D" parent="." unique_id=1844552343]
+position = Vector2(1300, 640)
+
+[node name="AirdropPointCenter" type="Marker2D" parent="." unique_id=1745637790 groups=["airdrop_spawn"]]
+position = Vector2(1080, 262)
+
+[node name="AirdropPointLeft" type="Marker2D" parent="." unique_id=538550621 groups=["airdrop_spawn"]]
+position = Vector2(742, 352)
+
+[node name="AirdropPointRight" type="Marker2D" parent="." unique_id=917506119 groups=["airdrop_spawn"]]
+position = Vector2(1418, 352)
+
+[node name="LeftMesa" type="StaticBody2D" parent="." unique_id=1962079416]
+
+[node name="Polygon2D" type="Polygon2D" parent="LeftMesa" unique_id=2041347218]
+polygon = PackedVector2Array(-80, 960, -80, 418, 240, 418, 262, 423, 298, 427, 318, 440, 326, 482, 332, 520, 466, 520, 482, 527, 491, 560, 496, 960)
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="LeftMesa" unique_id=665036245]
+polygon = PackedVector2Array(-80, 960, -80, 418, 240, 418, 262, 423, 298, 427, 318, 440, 326, 482, 332, 520, 466, 520, 482, 527, 491, 560, 496, 960)
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="LeftMesa" unique_id=1359715931]
+occluder = SubResource("OccluderPolygon2D_hpqfw")
+
+[node name="Crater" type="StaticBody2D" parent="." unique_id=1052007107]
+
+[node name="Polygon2D" type="Polygon2D" parent="Crater" unique_id=459715002]
+polygon = PackedVector2Array(590, 960, 590, 556, 606, 546, 650, 548, 700, 566, 760, 610, 820, 652, 880, 680, 940, 690, 1040, 690, 1048, 650, 1056, 600, 1060, 566, 1046, 548, 1028, 532, 1022, 514, 1032, 500, 1062, 492, 1098, 492, 1128, 500, 1138, 514, 1132, 532, 1114, 548, 1100, 566, 1104, 600, 1112, 650, 1120, 690, 1220, 690, 1280, 680, 1340, 652, 1400, 610, 1460, 566, 1510, 548, 1554, 546, 1570, 556, 1570, 960)
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Crater" unique_id=1224498165]
+polygon = PackedVector2Array(590, 960, 590, 556, 606, 546, 650, 548, 700, 566, 760, 610, 820, 652, 880, 680, 940, 690, 1040, 690, 1048, 650, 1056, 600, 1060, 566, 1046, 548, 1028, 532, 1022, 514, 1032, 500, 1062, 492, 1098, 492, 1128, 500, 1138, 514, 1132, 532, 1114, 548, 1100, 566, 1104, 600, 1112, 650, 1120, 690, 1220, 690, 1280, 680, 1340, 652, 1400, 610, 1460, 566, 1510, 548, 1554, 546, 1570, 556, 1570, 960)
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Crater" unique_id=631797870]
+occluder = SubResource("OccluderPolygon2D_15aoh")
+
+[node name="RightMesa" type="StaticBody2D" parent="." unique_id=1213926897]
+
+[node name="Polygon2D" type="Polygon2D" parent="RightMesa" unique_id=1245661036]
+polygon = PackedVector2Array(1664, 960, 1669, 560, 1678, 527, 1694, 520, 1828, 520, 1834, 482, 1842, 440, 1862, 427, 1898, 423, 1920, 418, 2240, 418, 2240, 960)
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="RightMesa" unique_id=2032965999]
+polygon = PackedVector2Array(1664, 960, 1669, 560, 1678, 527, 1694, 520, 1828, 520, 1834, 482, 1842, 440, 1862, 427, 1898, 423, 1920, 418, 2240, 418, 2240, 960)
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="RightMesa" unique_id=1630797856]
+occluder = SubResource("OccluderPolygon2D_l7rbx")
+
+[node name="LeftSlab" type="StaticBody2D" parent="." unique_id=1979179347]
+
+[node name="Polygon2D" type="Polygon2D" parent="LeftSlab" unique_id=247537286]
+polygon = PackedVector2Array(650, 402, 668, 388, 812, 384, 834, 396, 820, 418, 760, 432, 690, 428, 660, 416)
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="LeftSlab" unique_id=1799048293]
+polygon = PackedVector2Array(650, 402, 668, 388, 812, 384, 834, 396, 820, 418, 760, 432, 690, 428, 660, 416)
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="LeftSlab" unique_id=771124841]
+occluder = SubResource("OccluderPolygon2D_upyb3")
+
+[node name="RightSlab" type="StaticBody2D" parent="." unique_id=468939025]
+
+[node name="Polygon2D" type="Polygon2D" parent="RightSlab" unique_id=1475791614]
+polygon = PackedVector2Array(1500, 416, 1470, 428, 1400, 432, 1340, 418, 1326, 396, 1348, 384, 1492, 388, 1510, 402)
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="RightSlab" unique_id=1695405514]
+polygon = PackedVector2Array(1500, 416, 1470, 428, 1400, 432, 1340, 418, 1326, 396, 1348, 384, 1492, 388, 1510, 402)
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="RightSlab" unique_id=2062575926]
+occluder = SubResource("OccluderPolygon2D_unb64")
+
+[node name="LeftBoulder" type="StaticBody2D" parent="." unique_id=599519694]
+
+[node name="Polygon2D" type="Polygon2D" parent="LeftBoulder" unique_id=1369927708]
+polygon = PackedVector2Array(442, 334, 450, 320, 472, 314, 496, 318, 506, 330, 498, 344, 470, 350, 450, 346)
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="LeftBoulder" unique_id=1375208864]
+polygon = PackedVector2Array(442, 334, 450, 320, 472, 314, 496, 318, 506, 330, 498, 344, 470, 350, 450, 346)
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="LeftBoulder" unique_id=1617278763]
+occluder = SubResource("OccluderPolygon2D_lh1cm")
+
+[node name="RightBoulder" type="StaticBody2D" parent="." unique_id=1639723403]
+
+[node name="Polygon2D" type="Polygon2D" parent="RightBoulder" unique_id=1523890230]
+polygon = PackedVector2Array(1710, 346, 1690, 350, 1662, 344, 1654, 330, 1664, 318, 1688, 314, 1710, 320, 1718, 334)
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="RightBoulder" unique_id=738019114]
+polygon = PackedVector2Array(1710, 346, 1690, 350, 1662, 344, 1654, 330, 1664, 318, 1688, 314, 1710, 320, 1718, 334)
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="RightBoulder" unique_id=2113114739]
+occluder = SubResource("OccluderPolygon2D_ttygk")
+
+[node name="Perch" type="StaticBody2D" parent="." unique_id=1683361384]
+
+[node name="Polygon2D" type="Polygon2D" parent="Perch" unique_id=2029840012]
+polygon = PackedVector2Array(1004, 306, 1020, 294, 1140, 294, 1156, 306, 1142, 320, 1110, 332, 1050, 332, 1018, 320)
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Perch" unique_id=284608433]
+polygon = PackedVector2Array(1004, 306, 1020, 294, 1140, 294, 1156, 306, 1142, 320, 1110, 332, 1050, 332, 1018, 320)
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Perch" unique_id=1180065449]
+occluder = SubResource("OccluderPolygon2D_k63w6")
+
+[node name="AirdropManager" type="Node2D" parent="." unique_id=845150189]
+script = ExtResource("12_r50fn")
+
+[node name="Geyser1" type="Node2D" parent="." unique_id=1323742178]
+position = Vector2(962, 690)
+script = ExtResource("13_8pask")
+
+[node name="Geyser2" type="Node2D" parent="." unique_id=1670310511]
+position = Vector2(1198, 690)
+script = ExtResource("13_8pask")
+phase_offset = 2.4
+
+[node name="Weather" type="Node2D" parent="." unique_id=1095407300]
+script = ExtResource("14_sdvac")
+storm_wall_path = NodePath("../Environment/FarLayer/StormWall")
+
+[node name="PlatformSkin" type="Node2D" parent="." unique_id=207670080]
+script = ExtResource("15_lvtdd")
+map_top_y = 280.0
+map_bottom_y = 760.0
+high_color = Color(0.36, 0.15, 0.09, 1)
+low_color = Color(0.5, 0.22, 0.12, 1)
+deep_color = Color(0.12, 0.045, 0.03, 1)
+outline_color = Color(0.13, 0.05, 0.03, 0.9)
+moss_color = Color(0.9, 0.6, 0.39, 1)
+rim_color = Color(1, 0.84, 0.64, 0.75)
+rock_tint = Color(0.52, 0.24, 0.14, 1)
+warm_light = Color(1, 0.72, 0.5, 1)
+strata_strength = 0.22
+layer_contrast = 0.3
+warm_strength = 0.06
+crack_strength = 0.16
+soil_top_color = Color(0.93, 0.63, 0.41, 1)
+soil_deep_color = Color(0.6, 0.3, 0.17, 1)
+soil_fleck_color = Color(0.3, 0.14, 0.09, 1)
+soil_depth = 7.0
+soil_depth_variation = 3.0

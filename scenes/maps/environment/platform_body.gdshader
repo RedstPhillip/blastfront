@@ -14,6 +14,10 @@ uniform vec4 low_color : source_color = vec4(0.27, 0.39, 0.25, 1.0);
 uniform vec4 deep_color : source_color = vec4(0.05, 0.08, 0.07, 1.0);
 uniform vec4 rock_tint : source_color = vec4(0.39, 0.38, 0.33, 1.0);
 uniform vec4 warm_light : source_color = vec4(1.0, 0.78, 0.5, 1.0);
+uniform float strata_strength = 0.15;
+uniform float layer_contrast = 0.0;
+uniform float warm_strength = 0.035;
+uniform float crack_strength = 0.38;
 uniform sampler2D noise_tex : repeat_enable, filter_linear_mipmap;
 
 varying vec2 world_pos;
@@ -44,13 +48,16 @@ void fragment() {
 	// Sedimentary strata.
 	float strata = fract(world_pos.y * 0.052 + n_large.r * 1.7 + world_pos.x * 0.0035);
 	float strata_line = smoothstep(0.86, 0.92, strata) * (1.0 - smoothstep(0.92, 1.0, strata));
-	base *= 1.0 - strata_line * 0.15 * (0.4 + depth);
+	base *= 1.0 - strata_line * strata_strength * (0.4 + depth);
+	// Broad sediment layers (used by desert rock; zero on the mossy world).
+	float layers = sin(world_pos.y * 0.085 + n_large.r * 2.4 + sin(world_pos.x * 0.004) * 1.5) * 0.5 + 0.5;
+	base *= 1.0 + (layers - 0.5) * layer_contrast;
 
 	// Organic cracks: thin contour lines of the noise field.
 	float crack_field = n_large.b;
 	float crack = 1.0 - smoothstep(0.0, 0.018, abs(crack_field - 0.5));
 	crack *= smoothstep(0.35, 0.65, n_small.g);
-	base *= 1.0 - crack * 0.38;
+	base *= 1.0 - crack * crack_strength;
 
 	// Pebbles and speckles.
 	float pebble = smoothstep(0.79, 0.82, n_small.b) * smoothstep(0.45, 0.6, n_large.g);
@@ -58,7 +65,7 @@ void fragment() {
 	base *= 0.9 + n_large.r * 0.16 + (n_small.r - 0.5) * 0.08;
 
 	// A faint warm bounce from the sunset on upper faces.
-	base += warm_light.rgb * 0.035 * (1.0 - smoothstep(0.0, 0.3, depth));
+	base += warm_light.rgb * warm_strength * (1.0 - smoothstep(0.0, 0.3, depth));
 
 	COLOR = vec4(base, 1.0);
 }

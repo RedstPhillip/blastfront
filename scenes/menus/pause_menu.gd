@@ -17,6 +17,9 @@ var _panel: VBoxContainer = null
 var _buttons: Array[Button] = []
 var _loadout_button: Button = null
 var _restart_button: Button = null
+var _world_row: HBoxContainer = null
+var _settings_button: Button = null
+var _world_buttons: Dictionary = {}
 var _subtitle: Label = null
 var _tween: Tween = null
 
@@ -45,12 +48,12 @@ func _build() -> void:
 
 	var stripe: ColorRect = ColorRect.new()
 	stripe.color = Color(UiStyle.ACCENT.r, UiStyle.ACCENT.g, UiStyle.ACCENT.b, 0.9)
-	stripe.position = Vector2(96.0, 150.0)
+	stripe.position = Vector2(96.0, 118.0)
 	stripe.size = Vector2(6.0, 74.0)
 	_menu_container.add_child(stripe)
 
 	_panel = VBoxContainer.new()
-	_panel.position = Vector2(122.0, 140.0)
+	_panel.position = Vector2(122.0, 108.0)
 	_panel.add_theme_constant_override("separation", 12)
 	_menu_container.add_child(_panel)
 	var title: Label = Label.new()
@@ -66,7 +69,8 @@ func _build() -> void:
 	_add_button("RESUME", true, resume_game)
 	_restart_button = _add_button("RESTART", false, _on_restart_pressed)
 	_loadout_button = _add_button("LOADOUT", false, _on_loadout_pressed)
-	_add_button("SETTINGS", false, _on_settings_pressed)
+	_build_world_row()
+	_settings_button = _add_button("SETTINGS", false, _on_settings_pressed)
 	_add_button("MAIN MENU", false, _on_main_menu_pressed)
 	_add_button("QUIT GAME", false, _on_exit_pressed)
 
@@ -83,6 +87,47 @@ func _add_button(text: String, primary: bool, callback: Callable) -> Button:
 	_panel.add_child(button)
 	_buttons.append(button)
 	return button
+
+
+## Sandbox only: pick the world. The other world loads behind the usual cover transition and the loadout
+## carries over.
+func _build_world_row() -> void:
+	_world_row = HBoxContainer.new()
+	_world_row.add_theme_constant_override("separation", 8)
+	var caption: Label = Label.new()
+	UiStyle.style_label(caption, UiStyle.FONT_BOLD, 14, UiStyle.TEXT_DIM)
+	caption.text = "WORLD"
+	caption.custom_minimum_size = Vector2(70.0, 0.0)
+	caption.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_world_row.add_child(caption)
+	for world_id in WorldCatalog.ids():
+		var button: Button = Button.new()
+		button.text = WorldCatalog.display_name(world_id).to_upper()
+		button.custom_minimum_size = Vector2(110.0, 44.0)
+		button.set_meta("juice_rotation_multiplier", 0.0)
+		button.pressed.connect(_on_world_pressed.bind(world_id))
+		_world_row.add_child(button)
+		_world_buttons[world_id] = button
+		_buttons.append(button)
+	_panel.add_child(_world_row)
+
+
+func _refresh_world_row() -> void:
+	var current: StringName = WorldCatalog.sandbox_world_id()
+	for world_id in _world_buttons.keys():
+		UiStyle.style_button(_world_buttons[world_id], world_id == current, 16)
+
+
+func _on_world_pressed(world_id: StringName) -> void:
+	if world_id == WorldCatalog.sandbox_world_id() or Main.instance == null:
+		return
+	UserSettings.set_value(UserSettings.SANDBOX_WORLD, str(world_id))
+	_refresh_world_row()
+	AudioDirector.set_muffled(false)
+	Main.instance.transition_to(func() -> void:
+		get_tree().paused = false
+		Main.instance.start_game()
+	)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -105,6 +150,8 @@ func _unhandled_input(event: InputEvent) -> void:
 func pause_game() -> void:
 	_is_paused = true
 	_loadout_button.visible = NetworkSession.is_training()
+	_world_row.visible = NetworkSession.is_training()
+	_refresh_world_row()
 	_restart_button.visible = not NetworkSession.is_steam_match_active()
 	_subtitle.text = _mode_label()
 	show()
@@ -160,7 +207,7 @@ func _mode_label() -> String:
 		var shop_note: String = "  ·  PHASE SHOP" if NetworkSession.is_bot_shop_duel() else ""
 		return "VERSUS BOT  ·  %s%s" % [UiStyle.difficulty_name(UserSettings.get_int(UserSettings.BOT_DIFFICULTY)), shop_note]
 	if NetworkSession.is_training():
-		return "SANDBOX  ·  TRY EVERY EXTENSION IN THE LOADOUT"
+		return "SANDBOX  ·  %s" % WorldCatalog.display_name(WorldCatalog.sandbox_world_id()).to_upper()
 	return "LOCAL MATCH"
 
 
@@ -183,7 +230,7 @@ func _on_settings_back() -> void:
 	_close_settings()
 	AudioDirector.play(&"ui_back")
 	_menu_container.show()
-	_buttons[3].grab_focus()
+	_settings_button.grab_focus()
 
 
 func _on_loadout_pressed() -> void:

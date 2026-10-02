@@ -116,6 +116,7 @@ var _armor_attributes: Dictionary = {}
 var _base_speed: float = GameSettings.PLAYER_SPEED
 var _base_air_speed: float = GameSettings.PLAYER_AIR_SPEED
 var _base_jump_velocity: float = GameSettings.PLAYER_JUMP_VELOCITY
+var _external_launch: bool = false
 var _base_wall_jump_velocity: Vector2 = GameSettings.PLAYER_WALL_JUMP_VELOCITY
 var _base_block_duration: float = GameSettings.PLAYER_BLOCK_DURATION
 var _base_block_cooldown: float = GameSettings.PLAYER_BLOCK_COOLDOWN
@@ -833,14 +834,23 @@ func get_status_speed_multiplier() -> float:
 
 
 func apply_gravity(delta: float, multiplier: float = 1.0) -> void:
-	velocity.y = minf(velocity.y + gravity * multiplier * delta, max_fall_speed)
+	velocity.y = minf(velocity.y + gravity * multiplier * WorldConditions.gravity_scale * delta, max_fall_speed)
+
+
+## Throws the player (geysers and other launchers): the short-hop gravity cut is skipped until the apex,
+## so the throw reaches its full height whether or not jump is held.
+func launch(launch_velocity: Vector2) -> void:
+	velocity = launch_velocity
+	_external_launch = true
 
 
 func apply_better_jump_gravity(delta: float) -> void:
 	var multiplier: float = 1.0
+	if velocity.y >= 0.0:
+		_external_launch = false
 	if velocity.y > 0.0:
 		multiplier = fall_gravity_multiplier
-	elif velocity.y < 0.0 and not is_jump_held():
+	elif velocity.y < 0.0 and not is_jump_held() and not _external_launch:
 		multiplier = low_jump_gravity_multiplier
 	apply_gravity(delta, multiplier)
 
