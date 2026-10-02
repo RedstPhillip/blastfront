@@ -39,6 +39,7 @@ var _slowmo_recover: float = 0.0
 var _time_scale_current: float = 1.0
 var _button_tweens: Dictionary = {}
 var _damage_numbers: Dictionary = {}
+var _damage_label_settings: Dictionary = {}
 
 
 func _ready() -> void:
@@ -339,18 +340,27 @@ func spawn_damage_number(world_position: Vector2, amount: int, color: Color = Co
 		_damage_numbers[target_key] = {"label": label, "total": amount, "time": now, "heal": is_heal}
 
 
-## Shared look of floating damage numbers (also used to pre-warm their glyphs).
+## Shared look of floating damage numbers (also used to pre-warm their glyphs). The settings are cached per
+## size/colour, so a number costs one assignment instead of eight theme overrides and re-layouts.
 func style_damage_label(label: Label, amount: int, color: Color, is_heal: bool) -> void:
 	var heavy: float = clampf(float(amount) / 50.0, 0.0, 1.0)
+	var font_size: int = int(lerpf(22.0, 36.0, heavy))
 	var font_color: Color = Color(0.55, 1.0, 0.62) if is_heal else Color(1.0, 0.97, 0.9).lerp(Color(1.0, 0.82, 0.3), heavy)
-	label.add_theme_font_override("font", DAMAGE_FONT)
-	label.add_theme_font_size_override("font_size", int(lerpf(22.0, 36.0, heavy)))
-	label.add_theme_color_override("font_color", font_color)
-	label.add_theme_color_override("font_outline_color", Color(0.04, 0.05, 0.06, 1.0) if is_heal else color.darkened(0.55))
-	label.add_theme_constant_override("outline_size", 9)
-	label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.45))
-	label.add_theme_constant_override("shadow_offset_x", 2)
-	label.add_theme_constant_override("shadow_offset_y", 3)
+	var outline: Color = Color(0.04, 0.05, 0.06, 1.0) if is_heal else color.darkened(0.55)
+	var key: String = "%d|%d|%d" % [font_size, font_color.to_rgba32(), outline.to_rgba32()]
+	var settings: LabelSettings = _damage_label_settings.get(key) as LabelSettings
+	if settings == null:
+		settings = LabelSettings.new()
+		settings.font = DAMAGE_FONT
+		settings.font_size = font_size
+		settings.font_color = font_color
+		settings.outline_size = 9
+		settings.outline_color = outline
+		settings.shadow_color = Color(0.0, 0.0, 0.0, 0.45)
+		settings.shadow_offset = Vector2(2, 3)
+		settings.shadow_size = 1
+		_damage_label_settings[key] = settings
+	label.label_settings = settings
 
 
 func _animate_damage_label(label: Label, is_merge: bool) -> void:

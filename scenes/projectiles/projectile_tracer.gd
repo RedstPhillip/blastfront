@@ -11,6 +11,7 @@ var _target: Node2D = null
 var _detached: bool = false
 
 static var _width_curve: Curve = null
+static var _ramps: Dictionary = {}
 
 
 func setup(target: Node2D, color: Color, width_px: float, length: float) -> void:
@@ -25,10 +26,7 @@ func setup(target: Node2D, color: Color, width_px: float, length: float) -> void
 	end_cap_mode = Line2D.LINE_CAP_ROUND
 	antialiased = true
 	width_curve = _get_width_curve()
-	var ramp: Gradient = Gradient.new()
-	ramp.offsets = PackedFloat32Array([0.0, 0.55, 1.0])
-	ramp.colors = PackedColorArray([Color(color.r, color.g, color.b, 0.0), Color(color.r, color.g, color.b, 0.45), Color(1.0, 0.98, 0.9, 0.95)])
-	gradient = ramp
+	gradient = _get_ramp(color)
 
 
 func _physics_process(delta: float) -> void:
@@ -74,6 +72,18 @@ func _trim_to_length() -> void:
 				remove_point(0)
 			return
 		index -= 1
+
+
+## One shared gradient per tracer colour; projectiles spawn in volleys, so this avoids rebuilding it each shot.
+static func _get_ramp(color: Color) -> Gradient:
+	var key: int = color.to_rgba32()
+	var ramp: Gradient = _ramps.get(key) as Gradient
+	if ramp == null:
+		ramp = Gradient.new()
+		ramp.offsets = PackedFloat32Array([0.0, 0.55, 1.0])
+		ramp.colors = PackedColorArray([Color(color.r, color.g, color.b, 0.0), Color(color.r, color.g, color.b, 0.45), Color(1.0, 0.98, 0.9, 0.95)])
+		_ramps[key] = ramp
+	return ramp
 
 
 static func _get_width_curve() -> Curve:

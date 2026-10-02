@@ -16,9 +16,19 @@ const TEX_SQUARE: Texture2D = preload("res://assets/particles/square_particle.pn
 ## Light layers: 2 = characters, 4 = level geometry. Flashes light both but leave the sky alone.
 const FLASH_LIGHT_MASK: int = 2 | 4
 
+## Most effects are world-space one-shots, so their emitters are pooled: creating a CPUParticles2D
+## allocates its mesh and multimesh buffers, which showed up as frame spikes when a volley hit.
+const POOL_LIMIT: int = 160
+
 static var _additive: CanvasItemMaterial = null
 static var _gradients: Dictionary = {}
 static var _curves: Dictionary = {}
+static var _pool_host: Node2D = null
+## Idle emitters keyed by the params they were configured with: an exact match only needs a new
+## transform and a restart, which is what keeps volleys of identical effects cheap.
+static var _idle_by_key: Dictionary = {}
+static var _idle_count: int = 0
+static var _pooled_count: int = 0
 
 
 static func additive_material() -> CanvasItemMaterial:
@@ -32,23 +42,47 @@ static func additive_material() -> CanvasItemMaterial:
 ## Spawns a one-shot CPUParticles2D. Keys: texture, amount, lifetime, direction, spread, speed (Vector2),
 ## gravity, damping (Vector2), size (Vector2 min/max), curve (&"shrink"/&"grow"/&"pop"/&"flat"),
 ## color, fade (&"out"/&"late"/&"flash"), additive, align, spin (Vector2), explosiveness, radius,
-## z, randomness, local.
+## z, randomness, local, offset (Vector2, in the parent's space).
 static func emit(parent: Node, params: Dictionary) -> CPUParticles2D:
 	var multiplier: float = GameJuice.particles_multiplier
 	if multiplier <= 0.0:
 		return null
-	var particles: CPUParticles2D = CPUParticles2D.new()
+	var parent_2d: Node2D = parent as Node2D
+	var pooled: bool = not bool(params.get("local", false)) and parent_2d != null and _pool_available(parent_2d)
+	var key: int = 0
+	var particles: CPUParticles2D = null
+	if pooled:
+		# Direction and offset only change the emitter's placement, so they stay out of the key.
+		var keyed: Dictionary = params.duplicate()
+		keyed.erase("direction")
+		keyed.erase("offset")
+		key = keyed.hash() ^ hash(multiplier)
+		particles = _take_configured(parent_2d, key)
+		if particles != null:
+			_place_pooled(particles, parent_2d, params)
+			return particles
+		particles = _take_emitter(parent_2d)
+		particles.set_meta(&"fx_key", key)
+	else:
+		particles = CPUParticles2D.new()
 	particles.one_shot = true
 	particles.emitting = false
-	particles.texture = params.get("texture", TEX_SOFT)
-	particles.amount = maxi(1, int(round(float(params.get("amount", 8)) * multiplier)))
+	var texture: Texture2D = params.get("texture", TEX_SOFT)
+	if particles.texture != texture:
+		particles.texture = texture
+	var amount: int = maxi(1, int(round(float(params.get("amount", 8)) * multiplier)))
+	if particles.amount != amount:
+		particles.amount = amount
 	particles.lifetime = float(params.get("lifetime", 0.4))
 	particles.explosiveness = float(params.get("explosiveness", 0.95))
 	particles.randomness = float(params.get("randomness", 0.4))
 	particles.lifetime_randomness = float(params.get("lifetime_randomness", 0.35))
 	particles.local_coords = bool(params.get("local", false))
 	var direction: Vector2 = params.get("direction", Vector2.UP)
-	particles.direction = direction.normalized() if direction.length_squared() > 0.0001 else Vector2.UP
+	if pooled:
+		particles.direction = Vector2.RIGHT
+	else:
+		particles.direction = direction.normalized() if direction.length_squared() > 0.0001 else Vector2.UP
 	particles.spread = float(params.get("spread", 45.0))
 	var speed: Vector2 = params.get("speed", Vector2(60.0, 160.0))
 	particles.initial_velocity_min = speed.x
@@ -69,17 +103,111 @@ static func emit(parent: Node, params: Dictionary) -> CPUParticles2D:
 	if spin != Vector2.ZERO:
 		particles.angle_min = -180.0
 		particles.angle_max = 180.0
+	else:
+		particles.angle_min = 0.0
+		particles.angle_max = 0.0
 	particles.particle_flag_align_y = bool(params.get("align", false))
 	var radius: float = float(params.get("radius", 0.0))
 	if radius > 0.0:
 		particles.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
 		particles.emission_sphere_radius = radius
-	if bool(params.get("additive", false)):
-		particles.material = additive_material()
-	particles.z_index = int(params.get("z", 0))
-	parent.add_child(particles)
-	particles.emitting = true
+	elif particles.emission_shape != CPUParticles2D.EMISSION_SHAPE_POINT:
+		particles.emission_shape = CPUParticles2D.EMISSION_SHAPE_POINT
+	particles.material = additive_material() if bool(params.get("additive", false)) else null
+	if pooled:
+		_place_pooled(particles, parent_2d, params)
+	else:
+		particles.z_index = int(params.get("z", 0))
+		particles.position = params.get("offset", Vector2.ZERO)
+		parent.add_child(particles)
+		particles.emitting = true
 	return particles
+
+
+## Pooled emitters live outside the effect node: copy its placement and resolve its draw depth.
+static func _place_pooled(particles: CPUParticles2D, parent_2d: Node2D, params: Dictionary) -> void:
+	var direction: Vector2 = params.get("direction", Vector2.UP)
+	if direction.length_squared() <= 0.0001:
+		direction = Vector2.UP
+	# Pooled emitters always fire along +x; the requested direction becomes the emitter's rotation.
+	particles.global_transform = parent_2d.global_transform.translated_local(params.get("offset", Vector2.ZERO)) * Transform2D(direction.angle(), Vector2.ZERO)
+	particles.z_as_relative = false
+	particles.z_index = clampi(_absolute_z(parent_2d) + int(params.get("z", 0)), RenderingServer.CANVAS_ITEM_Z_MIN, RenderingServer.CANVAS_ITEM_Z_MAX)
+	particles.restart()
+
+
+## The pool lives directly under the viewport that shows the effects, so it survives scene changes.
+## Effects in any other viewport (previews) fall back to plain emitters.
+static func _pool_available(near: Node2D) -> bool:
+	if not near.is_inside_tree():
+		return false
+	var viewport: Viewport = near.get_viewport()
+	if is_instance_valid(_pool_host):
+		# A host that is not in the tree yet is still waiting for its deferred add.
+		return _pool_host.is_inside_tree() and _pool_host.get_viewport() == viewport
+	_pool_host = Node2D.new()
+	_pool_host.name = "FxEmitterPool"
+	_pool_host.process_mode = Node.PROCESS_MODE_PAUSABLE
+	_idle_by_key.clear()
+	_idle_count = 0
+	_pooled_count = 0
+	viewport.add_child.call_deferred(_pool_host)
+	return false
+
+
+static func _take_configured(_near: Node2D, key: int) -> CPUParticles2D:
+	var idle: Array = _idle_by_key.get(key, [])
+	while not idle.is_empty():
+		var particles: CPUParticles2D = idle.pop_back()
+		_idle_count -= 1
+		if is_instance_valid(particles):
+			return particles
+	return null
+
+
+static func _take_emitter(_near: Node2D) -> CPUParticles2D:
+	if _idle_count > 0:
+		# No exact match: repurpose an idle emitter of another effect before allocating a new one.
+		for other_key in _idle_by_key.keys():
+			var idle: Array = _idle_by_key[other_key]
+			while not idle.is_empty():
+				var candidate: CPUParticles2D = idle.pop_back()
+				_idle_count -= 1
+				if is_instance_valid(candidate):
+					return candidate
+	var particles: CPUParticles2D = CPUParticles2D.new()
+	particles.one_shot = true
+	particles.emitting = false
+	particles.local_coords = false
+	_pool_host.add_child(particles)
+	if _pooled_count < POOL_LIMIT:
+		_pooled_count += 1
+		particles.finished.connect(FxLib._return_emitter.bind(particles))
+	else:
+		particles.finished.connect(particles.queue_free)
+	return particles
+
+
+static func _return_emitter(particles: CPUParticles2D) -> void:
+	if not is_instance_valid(particles) or particles.is_queued_for_deletion():
+		return
+	var key: int = int(particles.get_meta(&"fx_key", 0))
+	if not _idle_by_key.has(key):
+		_idle_by_key[key] = []
+	(_idle_by_key[key] as Array).append(particles)
+	_idle_count += 1
+
+
+static func _absolute_z(node: Node) -> int:
+	var z: int = 0
+	var current: Node = node
+	while current is CanvasItem:
+		var item: CanvasItem = current as CanvasItem
+		z += item.z_index
+		if not item.z_as_relative:
+			break
+		current = current.get_parent()
+	return z
 
 
 ## Quick additive glow sprite that pops and fades.

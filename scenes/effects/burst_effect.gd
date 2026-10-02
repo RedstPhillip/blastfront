@@ -66,9 +66,9 @@ func _build() -> void:
 			if strength > 1.0:
 				FxLib.ring(self, Color(1, 1, 1, 0.3), 16.0, 90.0 * strength, 0.32, false)
 		&"hit":
-			_build_hit(1.0)
+			_build_hit(clampf(_power, 1.0, 1.5))
 		&"hit_heavy":
-			_build_hit(1.6)
+			_build_hit(1.6 * clampf(_power, 1.0, 1.35))
 		&"impact":
 			_build_impact()
 		&"block":

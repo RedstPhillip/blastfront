@@ -94,6 +94,11 @@ var _body_motion_scale: Vector2 = Vector2.ONE
 var _body_punch_scale: Vector2 = Vector2.ONE
 var _hit_flash_timer: float = 0.0
 var _hit_feedback_guard_timer: float = 0.0
+## Hits landing in the same frame (shotgun pellets, multi-barrel volleys, splash) are gathered here and
+## played as one combined hit at the end of the frame: one burst, one sound, one shove sized by the total.
+var _pending_hit_damage: int = 0
+var _pending_hit_count: int = 0
+var _pending_hit_direction: Vector2 = Vector2.ZERO
 var _run_dust_timer: float = 0.0
 var _step_sound_timer: float = 0.0
 var _last_feedback_grounded: bool = false
@@ -1007,13 +1012,30 @@ func apply_hit_feedback(source_position: Vector2, damage: int = GameSettings.PRO
 	var away_from_source: Vector2 = global_position - source_position
 	if away_from_source.length_squared() <= GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
 		away_from_source = Vector2(-last_dir, -0.25)
-	var hit_direction: Vector2 = away_from_source.normalized()
-	var tint: Color = GameSettings.player_color_value(_get_effective_color_id())
-	var damage_ratio: float = clampf(float(damage) / maxf(float(GameSettings.PROJECTILE_DAMAGE), 1.0), 0.75, 1.8)
-
-	var heavy: bool = damage >= 40
 	_hit_flash_timer = GameSettings.PLAYER_HIT_FLASH_TIME
 	_hit_feedback_guard_timer = 0.09
+	if _pending_hit_count == 0:
+		_flush_hit_feedback.call_deferred()
+	_pending_hit_count += 1
+	_pending_hit_damage += maxi(damage, 0)
+	_pending_hit_direction += away_from_source.normalized() * float(maxi(damage, 1))
+
+
+func _flush_hit_feedback() -> void:
+	var damage: int = _pending_hit_damage
+	var hits: int = _pending_hit_count
+	var hit_direction: Vector2 = _pending_hit_direction.normalized() if _pending_hit_direction.length_squared() > 0.0001 else Vector2(-last_dir, -0.25).normalized()
+	_pending_hit_damage = 0
+	_pending_hit_count = 0
+	_pending_hit_direction = Vector2.ZERO
+	if hits <= 0 or not is_inside_tree():
+		return
+	var tint: Color = GameSettings.player_color_value(_get_effective_color_id())
+	# Several pellets at once may shove harder than a single bullet, but stay controllable.
+	var max_ratio: float = 1.8 if hits == 1 else 2.4
+	var damage_ratio: float = clampf(float(damage) / maxf(float(GameSettings.PROJECTILE_DAMAGE), 1.0), 0.75, max_ratio)
+
+	var heavy: bool = damage >= 40
 	_body_punch_scale = Vector2(1.24, 0.78) if heavy else Vector2(1.18, 0.84)
 	if _face != null:
 		_face.set_expression(PlayerFace.Mood.HURT, 0.38)
@@ -1022,12 +1044,14 @@ func apply_hit_feedback(source_position: Vector2, damage: int = GameSettings.PRO
 		velocity.x += hit_direction.x * GameSettings.PLAYER_HIT_KNOCKBACK_X * damage_ratio
 		velocity.y -= GameSettings.PLAYER_HIT_KNOCKBACK_Y * damage_ratio
 
-	GameJuice.spawn_burst(&"hit_heavy" if heavy else &"hit", global_position, hit_direction, tint)
+	GameJuice.spawn_burst(&"hit_heavy" if heavy else &"hit", global_position, hit_direction, tint, 1.0 + 0.12 * float(hits - 1))
 	GameJuice.play_sound_2d(&"hit_heavy" if heavy else &"hit", global_position)
 	GameJuice.shake(GameSettings.PLAYER_HIT_SHAKE_STRENGTH * damage_ratio, GameSettings.PLAYER_HIT_SHAKE_TIME)
 	GameJuice.kick(hit_direction, 4.0 * damage_ratio)
 	GameJuice.spawn_damage_number(global_position, damage, tint, get_instance_id())
 	ImpactDecals.splatter_around(global_position, tint, 1 if not heavy else 2, 70.0)
+	if heavy:
+		GameJuice.hitstop(0.035, 0.08)
 	if _is_local_view_player():
 		GameJuice.flash(Color(0.9, 0.05, 0.08, 1.0), 0.16 * damage_ratio, 0.22)
 		GameJuice.aberration(0.6 * damage_ratio, 0.22)

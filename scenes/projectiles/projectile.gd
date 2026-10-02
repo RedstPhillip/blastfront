@@ -73,9 +73,10 @@ func _ready() -> void:
 	direction = direction.normalized()
 
 	velocity = initial_velocity if initial_velocity.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED else direction * muzzle_speed
-	_apply_projectile_visual_style()
+	var style: Dictionary = _get_projectile_visual_style()
+	_apply_projectile_visual_style(style)
 	_apply_projectile_scale()
-	_setup_tracer()
+	_setup_tracer(style)
 	_local_view_player = _find_local_view_player()
 	if extension_tags.has("bouncy"):
 		_bounces_left = _get_bouncy_bounces()
@@ -171,6 +172,8 @@ func _on_collision(collision: KinematicCollision2D) -> void:
 
 func _apply_projectile_scale() -> void:
 	var safe_scale: float = maxf(projectile_scale, 0.1)
+	if is_equal_approx(safe_scale, 1.0):
+		return
 	var collision_shape: CollisionShape2D = get_node_or_null("CollisionShape2D") as CollisionShape2D
 	if collision_shape != null and collision_shape.shape != null:
 		var scaled_shape: Shape2D = collision_shape.shape.duplicate(true) as Shape2D
@@ -186,8 +189,7 @@ func _apply_projectile_scale() -> void:
 			visual.scale *= safe_scale
 
 
-func _apply_projectile_visual_style() -> void:
-	var style: Dictionary = _get_projectile_visual_style()
+func _apply_projectile_visual_style(style: Dictionary) -> void:
 	var body: Polygon2D = get_node_or_null("Polygon2D") as Polygon2D
 	var outline: Polygon2D = get_node_or_null("Outline") as Polygon2D
 	var trail: CPUParticles2D = get_node_or_null("Trail") as CPUParticles2D
@@ -206,7 +208,9 @@ func _apply_projectile_visual_style() -> void:
 
 	if trail != null:
 		trail.color = style.get("trail_color", trail.color)
-		trail.amount = int(style.get("trail_amount", trail.amount))
+		var trail_amount: int = int(style.get("trail_amount", trail.amount))
+		if trail.amount != trail_amount:
+			trail.amount = trail_amount
 		trail.lifetime = float(style.get("trail_lifetime", trail.lifetime))
 		trail.spread = float(style.get("trail_spread", trail.spread))
 		trail.scale_amount_min = float(style.get("trail_scale_min", trail.scale_amount_min))
@@ -667,8 +671,7 @@ func play_remote_despawn_feedback(reason: StringName, despawn_position: Vector2)
 	_release_tracer()
 
 
-func _setup_tracer() -> void:
-	var style: Dictionary = _get_projectile_visual_style()
+func _setup_tracer(style: Dictionary) -> void:
 	var body_color: Color = style["body_color"]
 	_tracer = ProjectileTracer.new()
 	_tracer.setup(self, body_color.lightened(0.15), 3.2 * maxf(projectile_scale, 0.6), 70.0 + 30.0 * projectile_scale)

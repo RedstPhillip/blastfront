@@ -252,11 +252,10 @@ func _open() -> void:
 	GameJuice.shake(1.6 * _distance_falloff(), 0.12)
 	FxLib.glow_flash(self, Color(0.45, 1.0, 0.88, 0.9), 220.0, 0.7, 5).position = _crate_point(Vector2(0.0, -BODY_HEIGHT))
 	FxLib.light_flash(self, Color(0.5, 1.0, 0.9), 1.2, 180.0, 0.6)
-	var motes: CPUParticles2D = FxLib.emit(self, {"texture": FxLib.TEX_SQUARE, "amount": 18, "lifetime": 1.1, "direction": Vector2.UP, "spread": 30.0,
+	FxLib.emit(self, {"texture": FxLib.TEX_SQUARE, "amount": 18, "lifetime": 1.1, "direction": Vector2.UP, "spread": 30.0,
 		"speed": Vector2(60.0, 170.0), "gravity": Vector2(0, -40), "damping": Vector2(40, 80), "size": Vector2(0.18, 0.4),
-		"color": Color(0.5, 1.0, 0.88, 0.95), "fade": &"out", "additive": true, "radius": 14.0, "spin": Vector2(-200, 200), "z": 5})
-	if motes != null:
-		motes.position = _crate_point(Vector2(0.0, -BODY_HEIGHT))
+		"color": Color(0.5, 1.0, 0.88, 0.95), "fade": &"out", "additive": true, "radius": 14.0, "spin": Vector2(-200, 200), "z": 5,
+		"offset": _crate_point(Vector2(0.0, -BODY_HEIGHT))})
 	var local_won: bool = _capturing_slot == NetworkSession.local_player_slot
 	if local_won:
 		HudRewardFlight.launch(global_position + _crate_point(Vector2(0.0, -BODY_HEIGHT - 10.0)), _reward)
@@ -282,11 +281,9 @@ func _update_latches() -> void:
 		var at: Vector2 = global_position + _crate_point(Vector2(LATCH_X[index], -BODY_HEIGHT))
 		if open:
 			AudioDirector.play_at(&"airdrop_latch", at, 0.0, 1.0 + 0.09 * float(index))
-			var sparks: CPUParticles2D = FxLib.emit(self, {"texture": FxLib.TEX_SPARK, "amount": 5, "lifetime": 0.25, "direction": Vector2.UP, "spread": 70.0,
+			FxLib.emit(self, {"texture": FxLib.TEX_SPARK, "amount": 5, "lifetime": 0.25, "direction": Vector2.UP, "spread": 70.0,
 				"speed": Vector2(60.0, 140.0), "gravity": Vector2(0, 500), "size": Vector2(0.12, 0.22), "align": true,
-				"color": Color(1.0, 0.8, 0.45, 1.0), "z": 7})
-			if sparks != null:
-				sparks.position = _crate_point(Vector2(LATCH_X[index], -BODY_HEIGHT))
+				"color": Color(1.0, 0.8, 0.45, 1.0), "z": 7, "offset": _crate_point(Vector2(LATCH_X[index], -BODY_HEIGHT))})
 		else:
 			AudioDirector.play_at(&"airdrop_latch", at, -8.0, 0.78)
 
