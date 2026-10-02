@@ -1,8 +1,9 @@
 class_name LoadoutItemTile
 extends Button
 
-## Inventory card for a weapon part or an armor piece: graphite card, the part art, a quality stripe and
-## tier pips. Installed cards dim and carry a check; hover brightens; dragging leaves an outline behind.
+## Locker card for a weapon part or an armor piece. The art carries the card; around it only what the
+## player needs at a glance: the mark (II / III, MK I is the default and stays quiet), a condition bar
+## whose length is the wear and whose colour is the grade, and an amber frame while the piece is equipped.
 ## Cards never change size, so the grid never moves.
 
 signal inspected(tile: LoadoutItemTile)
@@ -10,7 +11,7 @@ signal activated(tile: LoadoutItemTile)
 signal secondary_activated(tile: LoadoutItemTile)
 signal merge_requested(source_item: Variant, target_item: Variant)
 
-const TILE_SIZE: Vector2 = Vector2(62.0, 62.0)
+const TILE_SIZE: Vector2 = Vector2(68.0, 68.0)
 const HOVER_SPEED: float = 14.0
 
 var item: Variant = null
@@ -24,6 +25,8 @@ var _hover: float = 0.0
 var _press: float = 0.0
 var _pop: float = 0.0
 var _hovered: bool = false
+var _mouse_over: bool = false
+var _focused: bool = false
 var _drag_source: bool = false
 var _armor_icon: ArmorVisualPreview = null
 var _style: StyleBoxFlat = StyleBoxFlat.new()
@@ -41,19 +44,26 @@ func _init() -> void:
 	var empty: StyleBoxEmpty = StyleBoxEmpty.new()
 	for style_name in [&"normal", &"hover", &"pressed", &"focus", &"disabled", &"hover_pressed"]:
 		add_theme_stylebox_override(style_name, empty)
-	_style.set_corner_radius_all(4)
+	_style.set_corner_radius_all(3)
 	_style.anti_aliasing = true
 
 
 func _ready() -> void:
-	mouse_entered.connect(_on_hover_changed.bind(true))
-	mouse_exited.connect(_on_hover_changed.bind(false))
-	focus_entered.connect(_on_hover_changed.bind(true))
-	focus_exited.connect(_on_hover_changed.bind(false))
+	mouse_entered.connect(_on_mouse_changed.bind(true))
+	mouse_exited.connect(_on_mouse_changed.bind(false))
+	focus_entered.connect(_on_focus_changed.bind(true))
+	focus_exited.connect(_on_focus_changed.bind(false))
 	pressed.connect(_on_pressed)
 	button_down.connect(func() -> void: _press = 1.0; set_process(true))
 	set_process(false)
 	_sync_icon()
+
+
+func set_tile_size(tile_size: Vector2) -> void:
+	custom_minimum_size = tile_size
+	size = tile_size
+	if _armor_icon != null:
+		_sync_icon()
 
 
 func setup(next_item: Variant, is_equipped: bool = false, has_merge_partner: bool = false) -> void:
@@ -83,6 +93,10 @@ func pop() -> void:
 	set_process(true)
 
 
+func is_hovered_tile() -> bool:
+	return _hovered
+
+
 func get_mark() -> int:
 	if item is WeaponExtensionItem:
 		return (item as WeaponExtensionItem).mark
@@ -97,6 +111,14 @@ func get_grade_color() -> Color:
 	if item is ArmorItemData:
 		return (item as ArmorItemData).get_condition_color()
 	return LoadoutStyle.HAIRLINE
+
+
+func get_condition() -> float:
+	if item is WeaponExtensionItem:
+		return (item as WeaponExtensionItem).condition
+	if item is ArmorItemData:
+		return (item as ArmorItemData).condition
+	return 0.0
 
 
 func get_slot() -> StringName:
@@ -183,10 +205,22 @@ func _process(delta: float) -> void:
 		set_process(false)
 
 
-func _on_hover_changed(entered: bool) -> void:
-	_hovered = entered
+func _on_mouse_changed(entered: bool) -> void:
+	_mouse_over = entered
+	_update_hovered(entered)
+
+
+## Keyboard focus only counts as hover for pad players; a mouse click also focuses the card, and that must
+## not leave it lit (or inspected) after the pointer has moved on.
+func _on_focus_changed(entered: bool) -> void:
+	_focused = entered
+	_update_hovered(entered and InputDevice.using_gamepad)
+
+
+func _update_hovered(announce: bool) -> void:
+	_hovered = _mouse_over or (_focused and InputDevice.using_gamepad)
 	set_process(true)
-	if entered and item != null:
+	if announce and _hovered and item != null:
 		inspected.emit(self)
 
 
@@ -197,71 +231,104 @@ func _on_pressed() -> void:
 
 # --- Drawing ---------------------------------------------------------------------------------------------
 
+## The card itself; shop tiles are taller than their card and print the price underneath.
+func _card_size() -> Vector2:
+	return size
+
+
+func _art_rect() -> Rect2:
+	return Rect2(Vector2(9.0, 8.0), _card_size() - Vector2(18.0, 20.0))
+
+
 func _draw() -> void:
-	var w: float = size.x
 	if item == null:
 		_style.bg_color = LoadoutStyle.CARD_EMPTY
 		_style.set_border_width_all(0)
-		draw_style_box(_style, Rect2(Vector2.ZERO, size))
+		draw_style_box(_style, Rect2(Vector2.ZERO, _card_size()))
 		return
 	var ease_hover: float = _hover * _hover * (3.0 - 2.0 * _hover)
-	var card_scale: float = (1.0 + sin(_pop * PI) * 0.07) * (1.0 - _press * 0.04)
-	var center: Vector2 = size * 0.5
-	var base: Transform2D = Transform2D(0.0, Vector2.ONE * card_scale, 0.0, center + Vector2(0.0, -ease_hover))
+	var card_scale: float = (1.0 + sin(_pop * PI) * 0.08) * (1.0 - _press * 0.04)
+	var card: Vector2 = _card_size()
+	var center: Vector2 = card * 0.5
+	var base: Transform2D = Transform2D(0.0, Vector2.ONE * card_scale, 0.0, center + Vector2(0.0, -ease_hover * 1.5))
 	draw_set_transform_matrix(base)
-	var rect: Rect2 = Rect2(-center, size)
-	var grade: Color = get_grade_color()
+	var rect: Rect2 = Rect2(-center, card)
 
 	_style.bg_color = LoadoutStyle.CARD.lerp(LoadoutStyle.CARD_HOVER, ease_hover)
 	_style.set_border_width_all(0)
-	if drop_highlight:
-		var pulse: float = 0.55 + 0.45 * sin(_pulse_time * 7.0)
-		_style.border_color = Color(LoadoutStyle.ACCENT.r, LoadoutStyle.ACCENT.g, LoadoutStyle.ACCENT.b, pulse)
-		_style.set_border_width_all(2)
-	elif ease_hover > 0.0:
-		_style.border_color = Color(1, 1, 1, 0.4 * ease_hover)
-		_style.set_border_width_all(1)
 	draw_style_box(_style, rect)
-	var dim: bool = equipped or _drag_source
-	LoadoutStyle.draw_gradient_rect(self, Rect2(rect.position.x, rect.end.y - 24.0, w, 21.0), Color(grade.r, grade.g, grade.b, 0.0), Color(grade.r, grade.g, grade.b, 0.03 if dim else 0.07))
-	draw_rect(Rect2(rect.position.x, rect.end.y - 2.0, w, 2.0), Color(grade.r, grade.g, grade.b, 0.3 if dim else 0.85))
+	# A hairline of light along the top edge gives the card a little thickness.
+	draw_line(rect.position + Vector2(3.0, 0.5), Vector2(rect.end.x - 3.0, rect.position.y + 0.5), Color(1, 1, 1, 0.05 + 0.05 * ease_hover), 1.0)
 
 	if item is WeaponExtensionItem:
-		var icon_rect: Rect2 = Rect2(rect.position + Vector2(9.0, 9.0), size - Vector2(18.0, 21.0)).grow(ease_hover * 1.5)
-		WeaponArt.draw_part_icon(self, icon_rect, (item as WeaponExtensionItem).get_definition_id(), {
-			"desaturate": 0.85 if dim else 0.0,
-			"alpha": 0.22 if _drag_source else (0.4 if equipped else 1.0),
+		var art: Rect2 = Rect2(rect.position + _art_rect().position, _art_rect().size).grow(ease_hover * 1.5)
+		WeaponArt.draw_part_icon(self, art, (item as WeaponExtensionItem).get_definition_id(), {
+			"alpha": 0.25 if _drag_source else 1.0,
 			"accent": LoadoutStyle.local_accent(),
 			"base": base,
 		})
 		draw_set_transform_matrix(base)
 
-	LoadoutStyle.draw_pips(self, rect.position + Vector2(6.0, 6.0), get_mark(), 3, 1.4, 1.4)
+	_draw_condition(rect)
+	var mark: int = get_mark()
+	if mark >= 2:
+		draw_string(UiStyle.FONT_BOLD, rect.position + Vector2(6.0, 13.0), LoadoutStyle.roman(mark), HORIZONTAL_ALIGNMENT_LEFT, -1, 10, LoadoutStyle.ACCENT if mark >= 3 else LoadoutStyle.TEXT_SECONDARY)
+
 	if equipped:
-		LoadoutStyle.draw_check(self, Vector2(rect.end.x - 9.5, rect.position.y + 9.5), 6.0, LoadoutStyle.TEXT, LoadoutStyle.BG_BOTTOM)
-	elif merge_ready:
-		var glow: float = 0.6 + 0.4 * sin(_pulse_time * 4.0)
-		var c: Vector2 = Vector2(rect.end.x - 9.5, rect.position.y + 9.5)
-		draw_circle(c, 5.5, Color(LoadoutStyle.ACCENT.r, LoadoutStyle.ACCENT.g, LoadoutStyle.ACCENT.b, glow), true, -1.0, true)
-		draw_line(c + Vector2(-2.8, 0.0), c + Vector2(2.8, 0.0), LoadoutStyle.BG_BOTTOM, 1.5)
-		draw_line(c + Vector2(0.0, -2.8), c + Vector2(0.0, 2.8), LoadoutStyle.BG_BOTTOM, 1.5)
-	if price >= 0:
+		_style.bg_color = Color(0, 0, 0, 0)
+		_style.border_color = LoadoutStyle.with_alpha(LoadoutStyle.ACCENT, 0.9)
+		_style.set_border_width_all(2)
+		draw_style_box(_style, rect)
+		var tab: Vector2 = Vector2(rect.end.x - 8.0, rect.position.y + 8.0)
+		LoadoutStyle.draw_check(self, tab, 6.0, LoadoutStyle.ACCENT, LoadoutStyle.SURFACE_DEEP)
+	elif drop_highlight:
+		var pulse: float = 0.55 + 0.45 * sin(_pulse_time * 7.0)
+		_style.bg_color = Color(0, 0, 0, 0)
+		_style.border_color = LoadoutStyle.with_alpha(LoadoutStyle.ACCENT, pulse)
+		_style.set_border_width_all(2)
+		draw_style_box(_style, rect)
+	elif ease_hover > 0.0:
+		_style.bg_color = Color(0, 0, 0, 0)
+		_style.border_color = Color(1, 1, 1, 0.32 * ease_hover)
+		_style.set_border_width_all(1)
+		draw_style_box(_style, rect)
+	if merge_ready and not equipped:
+		_draw_merge_badge(Vector2(rect.end.x - 8.0, rect.position.y + 8.0))
+	if price >= 0 and _card_size().y >= size.y:
 		_draw_price(rect)
 	if _drag_source:
-		LoadoutStyle.draw_dashed_rect(self, rect.grow(-1.0), Color(1, 1, 1, 0.35), 4.0)
+		LoadoutStyle.draw_dashed_rect(self, rect.grow(-1.0), Color(1, 1, 1, 0.3), 4.0)
 	draw_set_transform_matrix(Transform2D.IDENTITY)
+
+
+## Condition bar along the bottom: track plus a fill as long as the remaining condition.
+func _draw_condition(rect: Rect2) -> void:
+	var grade: Color = get_grade_color()
+	var track: Rect2 = Rect2(rect.position.x + 8.0, rect.end.y - 7.0, rect.size.x - 16.0, 2.0)
+	draw_rect(track, Color(1, 1, 1, 0.07))
+	var ratio: float = clampf(get_condition() / 100.0, 0.06, 1.0)
+	var alpha: float = 0.35 if _drag_source else 0.95
+	draw_rect(Rect2(track.position, Vector2(track.size.x * ratio, track.size.y)), LoadoutStyle.with_alpha(grade, alpha))
+
+
+func _draw_merge_badge(center: Vector2) -> void:
+	draw_circle(center, 5.5, LoadoutStyle.with_alpha(LoadoutStyle.ACCENT, 0.18), true, -1.0, true)
+	draw_arc(center, 5.5, 0.0, TAU, 16, LoadoutStyle.ACCENT, 1.2, true)
+	draw_line(center + Vector2(-2.6, 0.0), center + Vector2(2.6, 0.0), LoadoutStyle.ACCENT, 1.4)
+	draw_line(center + Vector2(0.0, -2.6), center + Vector2(0.0, 2.6), LoadoutStyle.ACCENT, 1.4)
 
 
 func _draw_price(rect: Rect2) -> void:
 	var font: Font = UiStyle.FONT_BOLD
 	var text_value: String = str(price)
-	var width: float = font.get_string_size(text_value, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x + 14.0
-	var origin: Vector2 = Vector2(rect.end.x - width - 3.0, rect.end.y - 18.0)
-	var color: Color = WeaponArt.GOLD if affordable else LoadoutStyle.NEGATIVE
-	draw_rect(Rect2(origin, Vector2(width, 13.0)), Color(0.0, 0.0, 0.0, 0.65))
-	var diamond: Vector2 = origin + Vector2(5.0, 6.5)
-	draw_colored_polygon(PackedVector2Array([diamond + Vector2(0, -2.6), diamond + Vector2(2.6, 0), diamond + Vector2(0, 2.6), diamond + Vector2(-2.6, 0)]), color)
-	draw_string(font, origin + Vector2(10.0, 10.5), text_value, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, color)
+	var text_width: float = font.get_string_size(text_value, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x
+	var width: float = text_width + 17.0
+	var origin: Vector2 = Vector2(rect.end.x - width - 3.0, rect.position.y + 3.0)
+	var color: Color = LoadoutStyle.COIN if affordable else LoadoutStyle.NEGATIVE
+	var plate: StyleBoxFlat = LoadoutStyle.flat(Color(0.0, 0.0, 0.0, 0.62), 2)
+	draw_style_box(plate, Rect2(origin, Vector2(width, 14.0)))
+	LoadoutStyle.draw_coin(self, origin + Vector2(6.5, 7.0), 3.4, color)
+	draw_string(font, origin + Vector2(12.0, 11.0), text_value, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, color)
 
 
 func _sync_icon() -> void:
@@ -270,7 +337,7 @@ func _sync_icon() -> void:
 			_armor_icon = ArmorVisualPreview.new()
 			_armor_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			add_child(_armor_icon)
-		_armor_icon.size = size - Vector2(18.0, 21.0)
+		_armor_icon.size = _art_rect().size
 		_armor_icon.pivot_offset = _armor_icon.size * 0.5
 		_layout_armor_icon()
 		_armor_icon.visible = true
@@ -285,16 +352,11 @@ func _layout_armor_icon() -> void:
 	if _armor_icon == null:
 		return
 	var ease_hover: float = _hover * _hover * (3.0 - 2.0 * _hover)
-	_armor_icon.position = Vector2(9.0, 9.0 - ease_hover)
-	_armor_icon.scale = Vector2.ONE * (1.0 + sin(_pop * PI) * 0.07) * (1.0 - _press * 0.04) * (1.0 + ease_hover * 0.05)
+	_armor_icon.position = _art_rect().position + Vector2(0.0, -ease_hover * 1.5)
+	_armor_icon.scale = Vector2.ONE * (1.0 + sin(_pop * PI) * 0.08) * (1.0 - _press * 0.04) * (1.0 + ease_hover * 0.05)
 
 
 func _sync_armor_tint() -> void:
 	if _armor_icon == null:
 		return
-	if _drag_source:
-		_armor_icon.modulate = Color(0.6, 0.6, 0.6, 0.22)
-	elif equipped:
-		_armor_icon.modulate = Color(0.55, 0.55, 0.55, 0.42)
-	else:
-		_armor_icon.modulate = Color.WHITE
+	_armor_icon.modulate = Color(0.6, 0.6, 0.6, 0.25) if _drag_source else Color.WHITE

@@ -1,7 +1,7 @@
 class_name LoadoutRewardTile
 extends LoadoutItemTile
 
-## Shop offer or saved blueprint. Same card as the inventory, plus a price tag; click buys, dragging onto
+## Shop offer or saved blueprint. Same card as the locker, plus a price tag; click buys, dragging onto
 ## the weapon or operator buys and installs, and blueprints can be swapped between offer and saved slots.
 
 signal reward_claimed(source_kind: StringName, source_index: int)
@@ -62,18 +62,37 @@ func _on_pressed() -> void:
 		reward_claimed.emit(source_kind, source_index)
 
 
+const PRICE_LINE: float = 18.0
+
+
+## Offers are a square card with the price printed underneath, so the price never covers the art.
+func set_tile_size(tile_size: Vector2) -> void:
+	super.set_tile_size(Vector2(tile_size.x, tile_size.x + PRICE_LINE))
+
+
+func _card_size() -> Vector2:
+	return Vector2(size.x, size.x)
+
+
 func _draw() -> void:
-	if item == null and source_kind == RoundRewardInventory.SOURCE_SAVED:
-		_style.bg_color = LoadoutStyle.TILE_EMPTY
-		_style.border_color = LoadoutStyle.EDGE_SOFT
-		_style.set_border_width_all(1)
-		_style.shadow_size = 0
-		draw_style_box(_style, Rect2(Vector2.ZERO, size))
-		var color: Color = Color(1, 1, 1, 0.12)
+	var card: Rect2 = Rect2(Vector2.ZERO, _card_size())
+	if item == null:
+		_style.bg_color = LoadoutStyle.CARD_EMPTY
+		_style.set_border_width_all(0)
+		draw_style_box(_style, card)
 		if drop_highlight:
-			color = Color(LoadoutStyle.TARGET.r, LoadoutStyle.TARGET.g, LoadoutStyle.TARGET.b, 0.7)
-		var corners: Array[Vector2] = [Vector2(6, 6), Vector2(size.x - 6, 6), size - Vector2(6, 6), Vector2(6, size.y - 6)]
-		for index in range(4):
-			draw_dashed_line(corners[index], corners[(index + 1) % 4], color, 1.0, 3.0)
+			var pulse: float = 0.55 + 0.45 * sin(_pulse_time * 7.0)
+			LoadoutStyle.draw_brackets(self, card.grow(-2.0), LoadoutStyle.with_alpha(LoadoutStyle.ACCENT, pulse), 9.0, 1.5)
+		elif source_kind == RoundRewardInventory.SOURCE_OFFER:
+			# A bought-out offer: a quiet dash where the item was.
+			draw_line(card.get_center() + Vector2(-6.0, 0.0), card.get_center() + Vector2(6.0, 0.0), Color(1, 1, 1, 0.12), 1.5)
 		return
 	super._draw()
+	if price < 0:
+		return
+	var color: Color = LoadoutStyle.COIN if affordable else LoadoutStyle.NEGATIVE
+	var text_value: String = str(price)
+	var text_width: float = UiStyle.FONT_BOLD.get_string_size(text_value, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
+	var start: float = (size.x - text_width - 11.0) * 0.5
+	LoadoutStyle.draw_coin(self, Vector2(start + 3.5, card.end.y + 10.0), 3.5, color)
+	draw_string(UiStyle.FONT_BOLD, Vector2(start + 11.0, card.end.y + 14.5), text_value, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, color)

@@ -1,10 +1,10 @@
 class_name LoadoutInventoryDrop
 extends Control
 
-## The inventory grid area as a drop target: dropping an installed part back here takes it off,
-## dropping a shop offer here buys it into the inventory.
+## The locker as a drop target: dropping a fitted part back here takes it off, dropping a shop offer
+## here buys it into the locker.
 
-var kind: StringName = &"extension"
+var kind: StringName = &""
 var page: LoadoutPage = null
 
 var _active: bool = false
@@ -22,10 +22,14 @@ func _accepts(data: Variant) -> bool:
 	var payload: Dictionary = data
 	var type: StringName = StringName(str(payload.get("type", "")))
 	if type == &"round_reward":
+		if kind == &"":
+			return true
 		var wanted: StringName = RoundRewardInventory.REWARD_EXTENSION if kind == &"extension" else RoundRewardInventory.REWARD_ARMOR
 		return StringName(str(payload.get("reward_type", ""))) == wanted
 	if StringName(str(payload.get("source", ""))) != &"slot":
 		return false
+	if kind == &"":
+		return type == &"weapon_extension_item" or type == &"armor_item"
 	return type == (&"weapon_extension_item" if kind == &"extension" else &"armor_item")
 
 
@@ -70,11 +74,7 @@ func _draw() -> void:
 	if not _active:
 		return
 	var pulse: float = 0.5 + 0.5 * sin(_time * 6.0)
-	var alpha: float = (0.55 + pulse * 0.35) if _over else 0.22
-	var color: Color = Color(LoadoutStyle.TARGET.r, LoadoutStyle.TARGET.g, LoadoutStyle.TARGET.b, alpha)
+	var alpha: float = (0.6 + pulse * 0.35) if _over else 0.25
 	if _over:
-		draw_rect(Rect2(Vector2.ZERO, size), Color(LoadoutStyle.TARGET.r, LoadoutStyle.TARGET.g, LoadoutStyle.TARGET.b, 0.05))
-	var rect: Rect2 = Rect2(Vector2.ZERO, size).grow(-1.0)
-	var corners: Array[Vector2] = [rect.position, Vector2(rect.end.x, rect.position.y), rect.end, Vector2(rect.position.x, rect.end.y)]
-	for index in range(4):
-		draw_dashed_line(corners[index], corners[(index + 1) % 4], color, 1.4, 6.0, true)
+		draw_rect(Rect2(Vector2.ZERO, size), LoadoutStyle.with_alpha(LoadoutStyle.TARGET, 0.04))
+	LoadoutStyle.draw_brackets(self, Rect2(Vector2.ZERO, size).grow(-2.0), LoadoutStyle.with_alpha(LoadoutStyle.TARGET, alpha), 14.0, 1.5)

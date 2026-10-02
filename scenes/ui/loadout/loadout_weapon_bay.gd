@@ -1,10 +1,11 @@
 class_name LoadoutWeaponBay
 extends Control
 
-## The workbench: the configured carbine at a fixed size and position, three labelled sockets around it
-## and drag & drop straight onto the gun. While a part is dragged its socket lights up and a hologram of
-## the part appears on the gun; dropping snaps the part in with a flash, sparks and a small recoil of the
-## whole weapon, and the replaced part flies off.
+## The weapon on the bench: the configured carbine large and lit, three callouts (optic, barrel, ammo)
+## tied to their parts by leader lines, drag & drop straight onto the gun. Hovering a part in the locker
+## shows it on the gun as a hologram; dropping snaps it in with a flash, sparks and a small recoil of the
+## whole weapon, and the replaced part flies off. The gun and the callouts never move with the build, so
+## the eye always finds them in the same place.
 
 signal part_dropped(item: WeaponExtensionItem)
 signal reward_dropped(payload: Dictionary, slot: StringName)
@@ -13,9 +14,10 @@ signal slot_selected(slot: StringName)
 signal slot_inspected(slot: StringName)
 
 const SLOTS: Array[StringName] = [&"middle", &"front", &"ammo"]
-const GUN_SCALE: float = 1.72
+const GUN_SCALE: float = 1.7
+const GUN_SPAN: Vector2 = Vector2(-105.0, 157.0)
 const SNAP_TIME: float = 0.34
-const EJECT_TIME: float = 0.22
+const EJECT_TIME: float = 0.24
 const SLOT_DIRECTIONS: Dictionary = {
 	&"front": Vector2(1.0, 0.0),
 	&"middle": Vector2(0.0, -1.0),
@@ -39,14 +41,13 @@ var _drag_slot: StringName = &""
 var _drag_id: StringName = &""
 var _drag_over: bool = false
 var _hover_slot: StringName = &""
+var _preview_slot: StringName = &""
+var _preview_id: StringName = &""
 var _parallax: Vector2 = Vector2.ZERO
 var _accent: Color = Color(0.32, 0.67, 1.0)
-var _title: Label = null
-var _subtitle: Label = null
 
 
 func _ready() -> void:
-	clip_contents = true
 	mouse_filter = Control.MOUSE_FILTER_PASS
 	_accent = LoadoutStyle.local_accent()
 	_gun_canvas = Control.new()
@@ -61,14 +62,11 @@ func _ready() -> void:
 	_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_overlay.draw.connect(_draw_overlay)
 	add_child(_overlay)
-	_title = LoadoutStyle.label("B7 CARBINE", UiStyle.FONT_DISPLAY, 16, LoadoutStyle.TEXT)
-	add_child(_title)
-	_subtitle = LoadoutStyle.caption("", LoadoutStyle.TEXT_MUTED, 10)
-	add_child(_subtitle)
 	for slot in SLOTS:
 		var chip: LoadoutSocketChip = LoadoutSocketChip.new()
 		chip.slot = slot
 		chip.drop_owner = self
+		chip.align_right = slot == &"middle"
 		chip.inspected.connect(func(_chip: LoadoutSocketChip) -> void: slot_inspected.emit(slot))
 		chip.remove_requested.connect(func(removed: StringName) -> void: part_removed.emit(removed))
 		chip.selected.connect(func(picked: StringName) -> void: slot_selected.emit(picked))
@@ -95,14 +93,36 @@ func set_equipped(equipped: Dictionary, animate: bool) -> void:
 		if before != &"":
 			_ejects.append({"slot": slot, "id": before, "mark": WeaponArt.part_mark(_config, slot), "t": 0.0})
 		_snaps[slot] = 0.0
-		_burst(slot, 14 if after != &"" else 6)
-		_kick += SLOT_DIRECTIONS[slot] * (-5.0 if after != &"" else 3.0)
+		_burst(slot, 16 if after != &"" else 6)
+		_kick += SLOT_DIRECTIONS[slot] * (-6.0 if after != &"" else 3.0)
 		_kick_spin += 0.02 if slot == &"middle" else -0.015
 	_config = next_config
 	_equipped = equipped.duplicate()
-	_update_title()
+	if _preview_slot != &"" and WeaponArt.part_id(_config, _preview_slot) == _preview_id:
+		_preview_slot = &""
+		_preview_id = &""
 	_gun_canvas.queue_redraw()
 	set_process(true)
+
+
+## Hologram of a part the player is looking at in the locker (null clears).
+func set_preview(item: WeaponExtensionItem) -> void:
+	var slot: StringName = item.get_slot() if item != null else &""
+	var id: StringName = item.get_definition_id() if item != null else &""
+	if item != null and WeaponArt.part_id(_config, slot) == id:
+		slot = &""
+		id = &""
+	if slot == _preview_slot and id == _preview_id:
+		return
+	_preview_slot = slot
+	_preview_id = id
+	_gun_canvas.queue_redraw()
+
+
+## Ties a callout to the locker filter so the player sees which socket the list belongs to.
+func set_linked_slot(slot: StringName) -> void:
+	for key in SLOTS:
+		(_chips[key] as LoadoutSocketChip).set_linked(key == slot)
 
 
 func flash_slot(slot: StringName) -> void:
@@ -112,14 +132,6 @@ func flash_slot(slot: StringName) -> void:
 		chip.set_process(true)
 
 
-func _update_title() -> void:
-	var count: int = 0
-	for slot in SLOTS:
-		if WeaponArt.part_id(_config, slot) != &"":
-			count += 1
-	_subtitle.text = "STOCK" if count == 0 else "%d / 3 MODS" % count
-
-
 func _layout() -> void:
 	if _gun_canvas == null:
 		return
@@ -127,12 +139,14 @@ func _layout() -> void:
 	_gun_canvas.pivot_offset = size * 0.5
 	_fx_canvas.size = size
 	_overlay.size = size
-	_gun_origin = Vector2(size.x * 0.5 - 26.0 * GUN_SCALE, size.y * 0.5 + 2.0)
-	(_chips[&"middle"] as Control).position = Vector2(12.0, 12.0)
-	(_chips[&"front"] as Control).position = Vector2(size.x - LoadoutSocketChip.CHIP_SIZE.x - 12.0, 12.0)
-	(_chips[&"ammo"] as Control).position = Vector2(size.x - LoadoutSocketChip.CHIP_SIZE.x - 12.0, size.y - LoadoutSocketChip.CHIP_SIZE.y - 12.0)
-	_title.position = Vector2(16.0, size.y - 42.0)
-	_subtitle.position = Vector2(17.0, size.y - 22.0)
+	var span_center: float = (GUN_SPAN.x + GUN_SPAN.y) * 0.5
+	_gun_origin = Vector2(size.x * 0.5 - span_center * GUN_SCALE, size.y * 0.5 + 4.0)
+	var chip_size: Vector2 = LoadoutSocketChip.CHIP_SIZE
+	var optic_pin: Vector2 = _gun_xform() * (WeaponArt.SLOT_FOCUS[&"middle"] as Vector2)
+	var ammo_pin: Vector2 = _gun_xform() * (WeaponArt.SLOT_FOCUS[&"ammo"] as Vector2)
+	(_chips[&"middle"] as Control).position = Vector2(optic_pin.x - 46.0 - chip_size.x, 18.0)
+	(_chips[&"front"] as Control).position = Vector2(size.x - chip_size.x - 4.0, 18.0)
+	(_chips[&"ammo"] as Control).position = Vector2(ammo_pin.x + 52.0, size.y - chip_size.y - 14.0)
 	queue_redraw()
 
 
@@ -198,8 +212,9 @@ func _notification(what: int) -> void:
 		var info: Dictionary = _drag_info(get_viewport().gui_get_drag_data())
 		_drag_slot = info.get("slot", &"")
 		_drag_id = info.get("id", &"")
+		var dragging_armor: bool = _drag_slot == &"" and get_viewport().gui_get_drag_data() is Dictionary
 		for slot in SLOTS:
-			(_chips[slot] as LoadoutSocketChip).set_drag_state(_drag_slot != &"", slot == _drag_slot)
+			(_chips[slot] as LoadoutSocketChip).set_drag_state(_drag_slot != &"" or dragging_armor, slot == _drag_slot)
 		set_process(true)
 	elif what == NOTIFICATION_DRAG_END:
 		_drag_slot = &""
@@ -244,9 +259,9 @@ func _process(delta: float) -> void:
 	_kick = _kick.lerp(Vector2.ZERO, 1.0 - exp(-9.0 * delta))
 	_kick_spin = lerpf(_kick_spin, 0.0, 1.0 - exp(-8.0 * delta))
 	_gun_canvas.position = Vector2(0.0, sin(_time * 1.3) * 2.0) + _parallax + _kick
-	_gun_canvas.rotation = sin(_time * 0.9) * 0.006 + _parallax.x * 0.002 + _kick_spin
+	_gun_canvas.rotation = sin(_time * 0.9) * 0.005 + _parallax.x * 0.002 + _kick_spin
 	_update_hover_slot(mouse, inside)
-	if animating:
+	if animating or _preview_slot != &"" or _drag_over:
 		_gun_canvas.queue_redraw()
 	_fx_canvas.queue_redraw()
 	_overlay.queue_redraw()
@@ -255,7 +270,7 @@ func _process(delta: float) -> void:
 func _update_hover_slot(mouse: Vector2, inside: bool) -> void:
 	var best: StringName = &""
 	if inside and not get_viewport().gui_is_dragging():
-		var best_distance: float = 34.0
+		var best_distance: float = 36.0
 		for slot in SLOTS:
 			var distance: float = mouse.distance_to(_slot_screen_position(slot))
 			if distance < best_distance:
@@ -269,6 +284,18 @@ func _update_hover_slot(mouse: Vector2, inside: bool) -> void:
 			AudioDirector.play(&"ui_hover", -10.0, 1.15)
 
 
+func _gui_input(event: InputEvent) -> void:
+	var button: InputEventMouseButton = event as InputEventMouseButton
+	if button == null or not button.pressed or _hover_slot == &"":
+		return
+	if button.button_index == MOUSE_BUTTON_LEFT:
+		slot_selected.emit(_hover_slot)
+		accept_event()
+	elif button.button_index == MOUSE_BUTTON_RIGHT and WeaponArt.part_id(_config, _hover_slot) != &"":
+		part_removed.emit(_hover_slot)
+		accept_event()
+
+
 func _burst(slot: StringName, count: int) -> void:
 	var origin: Vector2 = _slot_screen_position(slot)
 	var direction: Vector2 = -(SLOT_DIRECTIONS[slot] as Vector2)
@@ -276,7 +303,7 @@ func _burst(slot: StringName, count: int) -> void:
 		var spread: Vector2 = direction.rotated(randf_range(-1.3, 1.3))
 		_sparks.append({
 			"p": origin + Vector2(randf_range(-6.0, 6.0), randf_range(-4.0, 4.0)),
-			"v": spread * randf_range(80.0, 230.0) + Vector2(0.0, -60.0),
+			"v": spread * randf_range(80.0, 240.0) + Vector2(0.0, -60.0),
 			"life": randf_range(0.25, 0.5),
 			"max": 0.5,
 			"c": WeaponArt.GOLD.lerp(Color.WHITE, randf() * 0.6),
@@ -286,13 +313,10 @@ func _burst(slot: StringName, count: int) -> void:
 # --- Drawing ---------------------------------------------------------------------------------------------
 
 func _draw() -> void:
-	var rect: Rect2 = Rect2(Vector2.ZERO, size)
-	draw_style_box(LoadoutStyle.flat(Color(1, 1, 1, 0.022), 6), rect)
-	var center: Vector2 = Vector2(size.x * 0.5, size.y * 0.5)
-	LoadoutStyle.draw_glow(self, center + Vector2(0.0, -6.0), Vector2(size.x * 0.52, size.y * 0.5), Color(1.0, 1.0, 1.0, 0.045))
-	LoadoutStyle.draw_glow(self, center + Vector2(20.0, -6.0), Vector2(size.x * 0.22, size.y * 0.24), Color(1.0, 0.96, 0.9, 0.035))
-	var floor_y: float = _gun_origin.y + 52.0 * GUN_SCALE * 0.5 + 18.0
-	LoadoutStyle.draw_glow(self, Vector2(center.x + 10.0, floor_y), Vector2(size.x * 0.33, 6.0), Color(0.0, 0.0, 0.0, 0.55))
+	# A work light on the bench: warm pool behind the gun and a soft contact shadow below it.
+	var center: Vector2 = _gun_origin + Vector2(10.0 * GUN_SCALE, 0.0)
+	LoadoutStyle.draw_glow(self, center + Vector2(0.0, -8.0), Vector2(size.x * 0.5, size.y * 0.46), Color(1.0, 0.86, 0.6, 0.05))
+	LoadoutStyle.draw_glow(self, center + Vector2(0.0, 74.0), Vector2(size.x * 0.36, 9.0), Color(0.0, 0.0, 0.0, 0.5))
 
 
 func _draw_gun() -> void:
@@ -305,12 +329,19 @@ func _draw_gun() -> void:
 		offsets[slot] = (SLOT_DIRECTIONS[slot] as Vector2) * (1.0 - settle) * 30.0
 		alphas[slot] = clampf(t * 3.0, 0.0, 1.0)
 		flashes[slot] = (1.0 - t) * 0.85
-	if _hover_slot != &"" and not flashes.has(_hover_slot):
-		flashes[_hover_slot] = 0.16
+	var focus_slot: StringName = _hover_slot
+	for slot in SLOTS:
+		if (_chips[slot] as LoadoutSocketChip).is_hot() and not (_chips[slot] as LoadoutSocketChip).linked:
+			focus_slot = slot
+	if focus_slot != &"" and not flashes.has(focus_slot):
+		flashes[focus_slot] = 0.18
 	var ghosts: Dictionary = {}
 	if _drag_over and _drag_slot != &"":
 		ghosts[_drag_slot] = _drag_id
-		alphas[_drag_slot] = 0.22
+		alphas[_drag_slot] = 0.2
+	elif _preview_slot != &"" and not get_viewport().gui_is_dragging():
+		ghosts[_preview_slot] = _preview_id
+		alphas[_preview_slot] = 0.2
 	WeaponArt.draw_weapon(_gun_canvas, _gun_xform(), _config, {
 		"accent": _accent,
 		"offsets": offsets,
@@ -321,7 +352,7 @@ func _draw_gun() -> void:
 	for eject in _ejects:
 		var t: float = float(eject["t"])
 		var slot: StringName = eject["slot"]
-		var travel: Vector2 = (SLOT_DIRECTIONS[slot] as Vector2) * (t * t * 34.0) + Vector2(0.0, t * t * 18.0)
+		var travel: Vector2 = (SLOT_DIRECTIONS[slot] as Vector2) * (t * t * 36.0) + Vector2(0.0, t * t * 22.0)
 		WeaponArt.draw_socket_part(_gun_canvas, _gun_xform(), slot, eject["id"], int(eject["mark"]), travel, 1.0 - t, 0.0, _accent)
 
 
@@ -332,23 +363,24 @@ func _draw_fx() -> void:
 func _draw_overlay() -> void:
 	for slot in SLOTS:
 		var chip: LoadoutSocketChip = _chips[slot]
-		var target: Vector2 = _slot_screen_position(slot)
-		var anchor: Vector2 = chip.position + Vector2(chip.size.x * 0.5, chip.size.y if chip.position.y < size.y * 0.5 else 0.0)
-		var active: bool = _drag_slot == slot
-		var hovered: bool = _hover_slot == slot
-		var color: Color = Color(1, 1, 1, 0.1)
-		if active:
-			color = Color(LoadoutStyle.ACCENT.r, LoadoutStyle.ACCENT.g, LoadoutStyle.ACCENT.b, 0.55 + 0.35 * sin(_time * 7.0))
-		elif hovered:
-			color = Color(1, 1, 1, 0.35)
-		var elbow: Vector2 = Vector2(anchor.x, lerpf(anchor.y, target.y, 0.55))
-		_overlay.draw_polyline(PackedVector2Array([anchor, elbow, target]), color, 1.0, true)
+		var pin: Vector2 = _slot_screen_position(slot)
+		var tick: Vector2 = chip.position + chip.tick_point()
+		var color: Color = chip.accent_color()
+		var hot: bool = chip.is_hot() or _hover_slot == slot
+		var line_color: Color = LoadoutStyle.with_alpha(color, color.a * (0.7 if hot else 0.3))
+		var out: float = 14.0 if chip.align_right else -14.0
+		var elbow: Vector2 = tick + Vector2(out, 0.0)
+		_overlay.draw_polyline(PackedVector2Array([tick, elbow, pin]), line_color, 1.0, true)
 		var empty: bool = WeaponArt.part_id(_config, slot) == &""
-		var radius: float = 3.0
-		if active:
-			radius = 5.0 + 2.0 * sin(_time * 7.0)
-			_overlay.draw_arc(target, radius + 6.0, 0.0, TAU, 24, Color(color.r, color.g, color.b, 0.35), 1.2, true)
-		_overlay.draw_circle(target, radius, color if (empty or active) else Color(1, 1, 1, 0.55), true, -1.0, true)
+		var drop_ready: bool = chip.target_active and chip.compatible_drag
+		if drop_ready:
+			var radius: float = 5.0 + 1.5 * sin(_time * 7.0)
+			_overlay.draw_arc(pin, radius + 5.0, 0.0, TAU, 24, LoadoutStyle.with_alpha(color, 0.35), 1.2, true)
+			_overlay.draw_circle(pin, radius, color, true, -1.0, true)
+		elif empty:
+			_overlay.draw_arc(pin, 3.5, 0.0, TAU, 16, line_color, 1.2, true)
+		else:
+			_overlay.draw_circle(pin, 3.0 if not hot else 3.8, LoadoutStyle.with_alpha(color, 0.9), true, -1.0, true)
 	for spark in _sparks:
 		var life: float = float(spark["life"]) / float(spark["max"])
 		var p: Vector2 = spark["p"]
