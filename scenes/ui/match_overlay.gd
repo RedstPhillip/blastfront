@@ -4,7 +4,7 @@ extends Control
 ## Works for online matches, versus-bot duels and the sandbox.
 
 const RESULTS_DELAY_SECONDS: float = 1.6
-const CARD_MARGIN: float = 18.0
+const CARD_MARGIN: float = 20.0
 
 var _game: Game = null
 var _quest_tracker: HudQuestTracker = null
@@ -17,8 +17,8 @@ var _crosshair: HudCrosshair = null
 var _indicators: HudOffscreenIndicators = null
 var _banner: HudRoundBanner = null
 var _victory: HudVictoryScreen = null
-var _sandbox_hint: PanelContainer = null
-var _sandbox_hint_text: Label = null
+var _sandbox_hint: Control = null
+var _sandbox_hint_time: float = 0.0
 var _last_online_banner_key: String = ""
 var _results_pending: bool = false
 
@@ -42,7 +42,7 @@ func _build_hud() -> void:
 
 	_scoreboard = HudScoreboard.new()
 	_scoreboard.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_scoreboard.position = Vector2(-HudScoreboard.BOARD_SIZE.x * 0.5, 6.0)
+	_scoreboard.position = Vector2(-HudScoreboard.BOARD_SIZE.x * 0.5, 8.0)
 	add_child(_scoreboard)
 
 	_left_card = HudPlayerCard.new()
@@ -56,22 +56,15 @@ func _build_hud() -> void:
 	_right_card.position = Vector2(-HudPlayerCard.CARD_SIZE.x - CARD_MARGIN, -HudPlayerCard.CARD_SIZE.y - CARD_MARGIN)
 	add_child(_right_card)
 
-	_sandbox_hint = PanelContainer.new()
-	_sandbox_hint.add_theme_stylebox_override("panel", UiStyle.with_margins(UiStyle.panel(UiStyle.PANEL, UiStyle.LINE, 4, 1, 0.15), 22, 8))
-	_sandbox_hint.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_sandbox_hint.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	# Sandbox: a quiet line at the top instead of a panel; it dims once it has been read.
+	_sandbox_hint = Control.new()
+	_sandbox_hint.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	_sandbox_hint.offset_left = -200.0
+	_sandbox_hint.offset_right = 200.0
+	_sandbox_hint.offset_top = 16.0
+	_sandbox_hint.offset_bottom = 40.0
 	_sandbox_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var hint_row: HBoxContainer = HBoxContainer.new()
-	hint_row.add_theme_constant_override("separation", 14)
-	_sandbox_hint.add_child(hint_row)
-	var hint_title: Label = Label.new()
-	UiStyle.style_label(hint_title, UiStyle.FONT_DISPLAY, 18, UiStyle.ACCENT)
-	hint_title.text = "SANDBOX"
-	hint_row.add_child(hint_title)
-	_sandbox_hint_text = Label.new()
-	UiStyle.style_label(_sandbox_hint_text, UiStyle.FONT_UI, 14, UiStyle.TEXT_DIM)
-	_update_sandbox_hint()
-	hint_row.add_child(_sandbox_hint_text)
+	_sandbox_hint.draw.connect(_draw_sandbox_hint)
 	InputDevice.device_changed.connect(_on_device_changed)
 	_sandbox_hint.visible = false
 	add_child(_sandbox_hint)
@@ -121,11 +114,6 @@ func _bind_game() -> void:
 	_sandbox_hint.visible = training
 	if (training or online) and HudControlsHint.should_show():
 		_controls_hint.play(1.2)
-	if training:
-		var hint_width: float = _sandbox_hint.get_combined_minimum_size().x
-		_sandbox_hint.offset_left = -hint_width * 0.5
-		_sandbox_hint.offset_right = hint_width * 0.5
-		_sandbox_hint.offset_top = 10.0
 	_refresh_online_state()
 
 
@@ -134,10 +122,32 @@ func _on_device_changed(_using_gamepad: bool) -> void:
 
 
 func _update_sandbox_hint() -> void:
-	_sandbox_hint_text.text = "Free practice  ·  %s  Loadout & Menu" % InputDevice.prompt(&"pause")
+	_sandbox_hint.queue_redraw()
 
 
-func _process(_delta: float) -> void:
+func _draw_sandbox_hint() -> void:
+	var caption: String = "SANDBOX"
+	var action: String = "Loadout & menu"
+	var key: String = InputDevice.prompt(&"pause")
+	var caption_width: float = UiStyle.FONT_BOLD.get_string_size(caption, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
+	var key_width: float = maxf(UiStyle.FONT_BOLD.get_string_size(key, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x + 10.0, 18.0)
+	var action_width: float = UiStyle.FONT_UI.get_string_size(action, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
+	var total: float = caption_width + 18.0 + key_width + 7.0 + action_width
+	var x: float = (_sandbox_hint.size.x - total) * 0.5
+	LoadoutStyle.draw_glow(_sandbox_hint, Vector2(_sandbox_hint.size.x * 0.5, 11.0), Vector2(total * 0.75, 22.0), Color(0.0, 0.012, 0.016, 0.45), 32)
+	_sandbox_hint.draw_string_outline(UiStyle.FONT_BOLD, Vector2(x, 16.0), caption, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, 4, Color(0, 0, 0, 0.6))
+	_sandbox_hint.draw_string(UiStyle.FONT_BOLD, Vector2(x, 16.0), caption, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, UiStyle.ACCENT)
+	x += caption_width + 18.0
+	LoadoutStyle.draw_key_chip(_sandbox_hint, Vector2(x, 2.0), key, 18.0, UiStyle.TEXT)
+	x += key_width + 7.0
+	_sandbox_hint.draw_string_outline(UiStyle.FONT_UI, Vector2(x, 16.0), action, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, 4, Color(0, 0, 0, 0.6))
+	_sandbox_hint.draw_string(UiStyle.FONT_UI, Vector2(x, 16.0), action, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, UiStyle.TEXT)
+
+
+func _process(delta: float) -> void:
+	if _sandbox_hint.visible:
+		_sandbox_hint_time += delta
+		_sandbox_hint.modulate.a = lerpf(1.0, 0.45, smoothstep(6.0, 7.5, _sandbox_hint_time))
 	if _game == null or not is_instance_valid(_game):
 		_bind_game()
 		return
@@ -155,6 +165,7 @@ func _refresh_offline_scoreboard() -> void:
 	_scoreboard.left_name = UiStyle.player_name(GameSettings.PLAYER_ONE_SLOT)
 	_scoreboard.right_name = UiStyle.player_name(GameSettings.PLAYER_TWO_SLOT)
 	_scoreboard.center_label = "R%d" % maxi(_game.get_round_number(), 1)
+	_scoreboard.pips_enabled = false
 	_scoreboard.set_state(left_score, right_score, left_score, right_score, _game.get_wins_needed())
 
 
@@ -166,6 +177,7 @@ func _refresh_online_scoreboard() -> void:
 	var left_points: int = int(OnlineMatch.match_points.get(GameSettings.PLAYER_ONE_SLOT, 0))
 	var right_points: int = int(OnlineMatch.match_points.get(GameSettings.PLAYER_TWO_SLOT, 0))
 	_scoreboard.center_label = "S%d" % (left_points + right_points + 1)
+	_scoreboard.pips_enabled = true
 	_scoreboard.set_state(
 		left_points,
 		right_points,

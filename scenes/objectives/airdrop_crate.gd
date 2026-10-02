@@ -560,3 +560,10 @@ func _update_lid_flight(delta: float) -> void:
 
 func _crate_point(local: Vector2) -> Vector2:
 	return local * CRATE_SCALE
+
+
+## Where the HUD should point while the drop is off screen: the crate while it falls, else the landing spot.
+func get_focus_position() -> Vector2:
+	if _rig != null and _rig.visible:
+		return global_position + _rig.position + _crate_point(Vector2(0.0, -BODY_HEIGHT * 0.5))
+	return global_position + _crate_point(Vector2(0.0, -BODY_HEIGHT * 0.5))

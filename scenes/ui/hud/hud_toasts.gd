@@ -1,13 +1,14 @@
 class_name HudToasts
 extends Control
 
-## Stacked notifications in the top-right corner: slide in, hold, slide out. Anything can raise one
+## Short notices in the top-right corner: a right-anchored accent tick, a small-caps title and one quiet
+## line of detail on a soft ink fade (no box). They slide in, hold, and slide out. Anything can raise one
 ## with `HudToasts.notify(...)`; while no HUD is present the call is simply ignored.
 
 const GROUP: StringName = &"hud_toasts"
-const TOAST_SIZE: Vector2 = Vector2(316.0, 58.0)
-const MARGIN: Vector2 = Vector2(18.0, 96.0)
-const SPACING: float = 8.0
+const TOAST_SIZE: Vector2 = Vector2(320.0, 46.0)
+const MARGIN: Vector2 = Vector2(20.0, 18.0)
+const SPACING: float = 4.0
 const HOLD_SECONDS: float = 2.8
 const MAX_VISIBLE: int = 3
 
@@ -49,11 +50,11 @@ func _spawn(data: Dictionary) -> void:
 	if data["sound"] != &"" and AudioDirector.has_event(data["sound"]):
 		AudioDirector.play(data["sound"], -3.0)
 	var resting_x: float = toast.position.x
-	toast.position.x = resting_x + TOAST_SIZE.x + 40.0
+	toast.position.x = resting_x + 36.0
 	toast.modulate.a = 0.0
 	var tween: Tween = toast.create_tween().set_ignore_time_scale(true)
 	tween.set_parallel(true)
-	tween.tween_property(toast, "position:x", resting_x, 0.38).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(toast, "position:x", resting_x, 0.32).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	tween.tween_property(toast, "modulate:a", 1.0, 0.18)
 	tween.chain().tween_interval(HOLD_SECONDS)
 	tween.chain().tween_property(toast, "modulate:a", 0.0, 0.3)
@@ -83,42 +84,19 @@ func _build_toast(data: Dictionary) -> Control:
 	var toast: Control = Control.new()
 	toast.size = TOAST_SIZE
 	toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	toast.draw.connect(_draw_toast.bind(toast, color))
-	var title: Label = Label.new()
-	UiStyle.style_label(title, UiStyle.FONT_DISPLAY, 17, color.lightened(0.15))
-	title.text = str(data["title"])
-	title.position = Vector2(46.0, 8.0)
-	title.size = Vector2(TOAST_SIZE.x - 58.0, 22.0)
-	title.clip_text = true
-	toast.add_child(title)
-	var detail_text: String = str(data["detail"])
-	if detail_text != "":
-		var detail: Label = Label.new()
-		UiStyle.style_label(detail, UiStyle.FONT_BODY, 13, UiStyle.TEXT_DIM)
-		detail.text = detail_text
-		detail.position = Vector2(46.0, 31.0)
-		detail.size = Vector2(TOAST_SIZE.x - 58.0, 18.0)
-		detail.clip_text = true
-		toast.add_child(detail)
-	else:
-		title.position.y = 18.0
+	toast.draw.connect(_draw_toast.bind(toast, color, str(data["title"]), str(data["detail"])))
 	return toast
 
 
-func _draw_toast(toast: Control, color: Color) -> void:
+func _draw_toast(toast: Control, color: Color, title: String, detail: String) -> void:
 	var w: float = TOAST_SIZE.x
 	var h: float = TOAST_SIZE.y
-	var shape: PackedVector2Array = PackedVector2Array([Vector2(10.0, 0.0), Vector2(w, 0.0), Vector2(w - 10.0, h), Vector2(0.0, h)])
-	toast.draw_colored_polygon(shape, Color(UiStyle.PANEL_SOLID.r, UiStyle.PANEL_SOLID.g, UiStyle.PANEL_SOLID.b, 0.94))
-	toast.draw_colored_polygon(shape, Color(color.r, color.g, color.b, 0.08))
-	var outline: PackedVector2Array = shape.duplicate()
-	outline.append(shape[0])
-	toast.draw_polyline(outline, Color(color.r, color.g, color.b, 0.55), 1.2, true)
-	toast.draw_colored_polygon(PackedVector2Array([Vector2(10.0, 0.0), Vector2(16.0, 0.0), Vector2(6.0, h), Vector2(0.0, h)]), color)
-	var badge: Vector2 = Vector2(27.0, h * 0.5)
-	var diamond: PackedVector2Array = PackedVector2Array([badge + Vector2(0, -10), badge + Vector2(10, 0), badge + Vector2(0, 10), badge + Vector2(-10, 0)])
-	toast.draw_colored_polygon(diamond, Color(color.r, color.g, color.b, 0.22))
-	var diamond_outline: PackedVector2Array = diamond.duplicate()
-	diamond_outline.append(diamond[0])
-	toast.draw_polyline(diamond_outline, color, 1.6, true)
-	toast.draw_circle(badge, 3.0, color, true, -1.0, true)
+	LoadoutStyle.draw_hgradient_rect(toast, Rect2(0.0, 0.0, w, h), Color(0.0, 0.012, 0.016, 0.0), Color(0.0, 0.012, 0.016, 0.62))
+	toast.draw_rect(Rect2(w - 3.0, 7.0, 3.0, h - 14.0), color)
+	var right: float = w - 14.0
+	var title_y: float = 20.0 if detail != "" else h * 0.5 + 5.0
+	toast.draw_string_outline(UiStyle.FONT_BOLD, Vector2(0.0, title_y), title, HORIZONTAL_ALIGNMENT_RIGHT, right, 15, 4, Color(0, 0, 0, 0.55))
+	toast.draw_string(UiStyle.FONT_BOLD, Vector2(0.0, title_y), title, HORIZONTAL_ALIGNMENT_RIGHT, right, 15, color.lightened(0.2))
+	if detail != "":
+		toast.draw_string_outline(UiStyle.FONT_BODY, Vector2(0.0, 37.0), detail, HORIZONTAL_ALIGNMENT_RIGHT, right, 12, 3, Color(0, 0, 0, 0.5))
+		toast.draw_string(UiStyle.FONT_BODY, Vector2(0.0, 37.0), detail, HORIZONTAL_ALIGNMENT_RIGHT, right, 12, UiStyle.TEXT_DIM)

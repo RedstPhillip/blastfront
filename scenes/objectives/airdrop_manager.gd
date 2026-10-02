@@ -46,6 +46,13 @@ func _ready() -> void:
 			_start_round_drop_countdown()
 
 
+## Where the HUD points while the drop is announced, falling or waiting to be captured; null otherwise.
+func get_indicator_target() -> Variant:
+	if _phase not in [PHASE_WARNING, PHASE_FALLING, PHASE_LANDED] or _airdrop == null or not is_instance_valid(_airdrop):
+		return null
+	return _airdrop.get_focus_position()
+
+
 ## Where an AI should head for the current drop; empty while no drop is announced or on the ground.
 func get_capture_goal() -> Dictionary:
 	if _phase not in [PHASE_WARNING, PHASE_FALLING, PHASE_LANDED]:

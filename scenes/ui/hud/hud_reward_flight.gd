@@ -25,6 +25,16 @@ static func launch(world_position: Vector2, amount: int) -> void:
 		host.spawn(world_position, amount)
 
 
+## Same as launch, from a point already in screen space (e.g. an order row in the HUD).
+static func launch_from_screen(screen_position: Vector2, amount: int) -> void:
+	var tree: SceneTree = Engine.get_main_loop() as SceneTree
+	if tree == null or amount <= 0:
+		return
+	var host: HudRewardFlight = tree.get_first_node_in_group(GROUP) as HudRewardFlight
+	if host != null:
+		host.spawn_screen(screen_position, amount)
+
+
 func _ready() -> void:
 	add_to_group(GROUP)
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -34,7 +44,10 @@ func _ready() -> void:
 
 
 func spawn(world_position: Vector2, amount: int) -> void:
-	var origin: Vector2 = get_viewport().get_canvas_transform() * world_position
+	spawn_screen(get_viewport().get_canvas_transform() * world_position, amount)
+
+
+func spawn_screen(origin: Vector2, amount: int) -> void:
 	var counter: Node = get_tree().get_first_node_in_group(COUNTER_GROUP)
 	if counter != null and counter.has_method(&"reserve_points"):
 		counter.reserve_points(amount)

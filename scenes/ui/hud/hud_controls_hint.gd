@@ -7,7 +7,7 @@ extends Control
 const SHOW_COUNT: int = 3
 const HOLD_SECONDS: float = 6.5
 const CHIP_HEIGHT: float = 34.0
-const CHIP_GAP: float = 10.0
+const CHIP_GAP: float = 22.0
 
 var _row: HBoxContainer = null
 var _tween: Tween = null
@@ -42,7 +42,7 @@ func play(delay: float = 0.6) -> void:
 
 
 func _row_y() -> float:
-	return size.y - 190.0
+	return size.y - 54.0
 
 
 func _on_device_changed(_using_gamepad: bool) -> void:
@@ -74,22 +74,14 @@ func _rebuild() -> void:
 
 
 func _chip(key_text: String, action_text: String) -> Control:
-	var chip: PanelContainer = PanelContainer.new()
+	var chip: Control = Control.new()
 	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	chip.add_theme_stylebox_override("panel", UiStyle.with_margins(UiStyle.panel(Color(UiStyle.PANEL.r, UiStyle.PANEL.g, UiStyle.PANEL.b, 0.86), UiStyle.LINE, 4, 1), 10, 4))
-	var row: HBoxContainer = HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
-	chip.add_child(row)
-	var key: PanelContainer = PanelContainer.new()
-	key.add_theme_stylebox_override("panel", UiStyle.with_margins(UiStyle.panel(Color(1.0, 1.0, 1.0, 0.1), Color(1.0, 1.0, 1.0, 0.45), 3, 1), 7, 1))
-	var key_label: Label = Label.new()
-	UiStyle.style_label(key_label, UiStyle.FONT_BOLD, 13, UiStyle.TEXT)
-	key_label.text = key_text
-	key.add_child(key_label)
-	row.add_child(key)
-	var action_label: Label = Label.new()
-	UiStyle.style_label(action_label, UiStyle.FONT_BOLD, 13, UiStyle.ACCENT)
-	action_label.text = action_text
-	action_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	row.add_child(action_label)
+	var key_width: float = maxf(UiStyle.FONT_BOLD.get_string_size(key_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x + 10.0, 20.0)
+	var action_width: float = UiStyle.FONT_BOLD.get_string_size(action_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
+	chip.custom_minimum_size = Vector2(key_width + 8.0 + action_width, 22.0)
+	chip.draw.connect(func() -> void:
+		LoadoutStyle.draw_glow(chip, Vector2(chip.size.x * 0.5, 11.0), Vector2(chip.size.x * 0.7, 18.0), Color(0.0, 0.012, 0.016, 0.5), 24)
+		LoadoutStyle.draw_key_chip(chip, Vector2(0.0, 1.0), key_text, 20.0, UiStyle.TEXT)
+		chip.draw_string_outline(UiStyle.FONT_BOLD, Vector2(key_width + 8.0, 16.0), action_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, 4, Color(0, 0, 0, 0.6))
+		chip.draw_string(UiStyle.FONT_BOLD, Vector2(key_width + 8.0, 16.0), action_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, UiStyle.TEXT))
 	return chip

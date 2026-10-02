@@ -108,7 +108,8 @@ func _pop_count(text: String, color: Color, is_final: bool) -> void:
 		AudioDirector.play(&"count_tick", 0.0, 1.0 + (0.12 if text == "1" else 0.0))
 
 
-## Point banner with diagonal bars sweeping across in the scorer's colour.
+## Point banner: a feathered ink band sweeps in behind the title with one thin stripe in the scorer's colour,
+## so the moment lands without slabs of colour covering the arena.
 func play_point(color: Color, title: String, subtitle: String, big: bool = false) -> void:
 	_kill_sequences()
 	_title.text = title
@@ -118,9 +119,10 @@ func play_point(color: Color, title: String, subtitle: String, big: bool = false
 	var w: float = size.x
 	var h: float = size.y
 	var sweep: float = w + 400.0
-	_setup_bar(_bar_top, Color(color.darkened(0.55), 0.92), h * 0.5 - 135.0, 120.0, sweep)
-	_setup_bar(_bar_stripe, Color(color.lightened(0.1), 0.95), h * 0.5 - 18.0, 8.0, sweep)
-	_setup_bar(_bar_bottom, Color(color.darkened(0.25), 0.85), h * 0.5 + 2.0, 54.0, sweep)
+	var ink: Color = Color(0.0, 0.012, 0.016, 0.78)
+	_setup_bar(_bar_top, ink, h * 0.5 - 150.0, 82.0, sweep, true)
+	_setup_bar(_bar_bottom, ink, h * 0.5 - 68.0, 104.0, sweep, false)
+	_setup_bar(_bar_stripe, Color(color.lightened(0.15), 0.95), h * 0.5 - 22.0, 3.0, sweep)
 	_bar_top.position.x = -sweep
 	_bar_stripe.position.x = w + 200.0
 	_bar_bottom.position.x = w + 200.0
@@ -155,16 +157,25 @@ func hide_banner() -> void:
 		bar.visible = false
 
 
-func _setup_bar(bar: Polygon2D, color: Color, y: float, height: float, width: float) -> void:
+## A slanted band; fade_in feathers it from transparent at the top, fade_out towards the bottom.
+func _setup_bar(bar: Polygon2D, color: Color, y: float, height: float, width: float, fade_in: Variant = null) -> void:
 	bar.visible = true
-	bar.color = color
-	var slant: float = height * 0.6
+	bar.color = Color.WHITE
+	var slant: float = height * 0.25
 	bar.polygon = PackedVector2Array([
 		Vector2(slant, y),
 		Vector2(width, y),
 		Vector2(width - slant, y + height),
 		Vector2(0.0, y + height),
 	])
+	var clear: Color = Color(color.r, color.g, color.b, 0.0)
+	var top: Color = color
+	var bottom: Color = color
+	if fade_in == true:
+		top = clear
+	elif fade_in == false:
+		bottom = clear
+	bar.vertex_colors = PackedColorArray([top, top, bottom, bottom])
 
 
 func _kill_sequences() -> void:
