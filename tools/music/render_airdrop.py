@@ -14,7 +14,7 @@ import sys
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(__file__))
-from synth import SR, bandpass, highpass, lowpass, normalize_rms, perc_env, reverb, t_axis, write_ogg
+from synth import SR, bandpass, highpass, lowpass, normalize_rms, perc_env, reverb, t_axis, write_ogg, write_wav
 
 OUT_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "assets", "audio", "sfx")
 RNG = np.random.default_rng(4401)
@@ -257,22 +257,23 @@ def render_tick():
 def main():
     os.makedirs(OUT_DIR, exist_ok=True)
     renders = {
-        "airdrop_alert.ogg": render_alert,
-        "airdrop_flyover.ogg": render_flyover,
-        "airdrop_chute.ogg": render_chute,
+        "airdrop_alert.wav": render_alert,
+        "airdrop_flyover.wav": render_flyover,
+        "airdrop_chute.wav": render_chute,
         "airdrop_descent.ogg": render_descent,
-        "airdrop_impact.ogg": render_impact,
-        "airdrop_latch.ogg": render_latch,
-        "airdrop_open.ogg": render_open,
-        "research_reward.ogg": render_reward,
-        "research_tick.ogg": render_tick,
+        "airdrop_impact.wav": render_impact,
+        "airdrop_latch.wav": render_latch,
+        "airdrop_open.wav": render_open,
+        "research_reward.wav": render_reward,
+        "research_tick.wav": render_tick,
     }
     only = set(sys.argv[1:])
     for name, render in renders.items():
         if only and name not in only:
             continue
         path = os.path.join(OUT_DIR, name)
-        write_ogg(render(), path)
+        # Event one-shots ship as WAV (cheap to start); the descent bed is a single long Ogg.
+        (write_ogg if name.endswith(".ogg") else write_wav)(render(), path)
         print("wrote", os.path.relpath(path))
 
 
