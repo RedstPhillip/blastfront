@@ -212,7 +212,24 @@ func _begin_fall() -> void:
 	_send_state(true)
 
 
+## The crate lands on whatever ground is under the chosen marker (markers are placed loosely above
+## platforms), so it never ends up hovering in the air.
 func _choose_target_position() -> Vector2:
+	return _ground_below(_choose_marker_position())
+
+
+func _ground_below(point: Vector2) -> Vector2:
+	var space: PhysicsDirectSpaceState2D = get_world_2d().direct_space_state if is_inside_tree() else null
+	if space == null:
+		return point
+	var query: PhysicsRayQueryParameters2D = PhysicsRayQueryParameters2D.create(point + Vector2(0.0, -12.0), point + Vector2(0.0, 700.0), 1)
+	var hit: Dictionary = space.intersect_ray(query)
+	if hit.is_empty() or (hit["normal"] as Vector2).y > -0.5:
+		return point
+	return hit["position"]
+
+
+func _choose_marker_position() -> Vector2:
 	var preferred_name: StringName = &"AirdropPointCenter"
 	var player_one_points: int = int(OnlineMatch.match_points.get(GameSettings.PLAYER_ONE_SLOT, 0))
 	var player_two_points: int = int(OnlineMatch.match_points.get(GameSettings.PLAYER_TWO_SLOT, 0))

@@ -28,7 +28,7 @@ func _ready() -> void:
 	add_to_group(&"modal_ui")
 	_dim = ColorRect.new()
 	_dim.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_dim.color = Color(0.0, 0.02, 0.02, 0.0)
+	_dim.color = Color(0.0, 0.0, 0.0, 0.0)
 	add_child(_dim)
 
 	_confetti = CPUParticles2D.new()
@@ -67,11 +67,11 @@ func _ready() -> void:
 	box.add_child(_kicker)
 	_title = _label(UiStyle.FONT_DISPLAY, 86, UiStyle.TEXT, "VICTORY")
 	_title.add_theme_constant_override("outline_size", 10)
-	_title.add_theme_color_override("font_outline_color", Color(0, 0.02, 0.02, 1))
+	_title.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
 	box.add_child(_title)
 	_score = _label(UiStyle.FONT_BOLD, 20, UiStyle.TEXT, "")
 	_score.add_theme_constant_override("outline_size", 4)
-	_score.add_theme_color_override("font_outline_color", Color(0, 0.02, 0.02, 0.8))
+	_score.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.7))
 	box.add_child(_score)
 	var separator: ColorRect = ColorRect.new()
 	separator.custom_minimum_size = Vector2(280, 1)
@@ -122,7 +122,7 @@ func show_result(won: bool, headline_color: Color, score_text: String, stats: Ar
 	_shown = true
 	visible = true
 	_title.text = "VICTORY" if won else "DEFEAT"
-	_title.add_theme_color_override("font_color", headline_color if won else UiStyle.DANGER.lerp(Color.WHITE, 0.1))
+	_title.add_theme_color_override("font_color", UiStyle.ACCENT if won else UiStyle.DANGER)
 	_kicker.text = "MATCH COMPLETE"
 	_score.text = score_text
 	_rematch_button.disabled = not can_rematch

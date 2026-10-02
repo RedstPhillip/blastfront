@@ -534,9 +534,9 @@ func _draw_overlay() -> void:
 	var width: float = UiStyle.FONT_BOLD.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x + 14.0
 	var x: float = -width * 0.5
 	ResearchNodeButton.draw_rp_glyph(_overlay, Vector2(x + 5.0, y - 5.0), 6.0, Color(0, 0, 0, 0.6))
-	ResearchNodeButton.draw_rp_glyph(_overlay, Vector2(x + 5.0, y - 5.0), 4.6, UiStyle.TEAL)
+	ResearchNodeButton.draw_rp_glyph(_overlay, Vector2(x + 5.0, y - 5.0), 4.6, UiStyle.INTEL)
 	_overlay.draw_string_outline(UiStyle.FONT_BOLD, Vector2(x + 14.0, y), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, 5, Color(0, 0, 0, 0.7))
-	_overlay.draw_string(UiStyle.FONT_BOLD, Vector2(x + 14.0, y), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, UiStyle.TEAL.lerp(Color.WHITE, 0.25))
+	_overlay.draw_string(UiStyle.FONT_BOLD, Vector2(x + 14.0, y), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, UiStyle.INTEL.lerp(Color.WHITE, 0.25))
 
 
 ## The lid's way off: popped up and over in one flip, landing on its edge, leaning against the crate's

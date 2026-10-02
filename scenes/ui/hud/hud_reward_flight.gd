@@ -122,4 +122,4 @@ func _draw() -> void:
 		var appear: float = clampf(t / 0.08, 0.0, 1.0)
 		var radius: float = 6.5 * appear
 		ResearchNodeButton.draw_rp_glyph(self, p, radius + 2.0, Color(0.0, 0.03, 0.03, 0.7 * appear))
-		ResearchNodeButton.draw_rp_glyph(self, p, radius, UiStyle.TEAL.lerp(Color.WHITE, 0.15))
+		ResearchNodeButton.draw_rp_glyph(self, p, radius, UiStyle.INTEL.lerp(Color.WHITE, 0.15))

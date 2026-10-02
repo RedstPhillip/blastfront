@@ -13,8 +13,8 @@ const ROW_HEIGHT: float = 26.0
 const MINI_BAR: Vector2 = Vector2(30.0, 4.0)
 const OPEN_ON_SET_START: float = 5.0
 const OPEN_ON_RESULT: float = 3.2
-const COMPLETE_COLOR: Color = Color(0.49, 0.92, 0.58)
-const FAILED_COLOR: Color = Color(1.0, 0.38, 0.3)
+const COMPLETE_COLOR: Color = UiStyle.SUCCESS
+const FAILED_COLOR: Color = UiStyle.DANGER
 
 var always_open: bool = false
 
@@ -209,22 +209,21 @@ func _draw_tracker() -> void:
 func _draw_counter() -> void:
 	var pop: float = sin(_points_pop * PI) * 0.18
 	var center: Vector2 = Vector2(10.0, LINE_HEIGHT * 0.5)
-	ResearchNodeButton.draw_rp_glyph(_canvas, center, 9.0 * (1.0 + pop), Color(0.0, 0.03, 0.03, 0.7))
-	ResearchNodeButton.draw_rp_glyph(_canvas, center, 7.0 * (1.0 + pop), UiStyle.TEAL)
+	ResearchNodeButton.draw_rp_glyph(_canvas, center, 9.0 * (1.0 + pop), Color(0.0, 0.0, 0.0, 0.6))
+	ResearchNodeButton.draw_rp_glyph(_canvas, center, 7.0 * (1.0 + pop), UiStyle.INTEL)
 	var text: String = str(_shown_points)
-	var color: Color = UiStyle.TEAL.lerp(Color.WHITE, _points_pop * 0.6)
+	var color: Color = UiStyle.INTEL.lerp(Color.WHITE, _points_pop * 0.6)
 	_canvas.draw_string_outline(UiStyle.FONT_DISPLAY, Vector2(23.0, LINE_HEIGHT * 0.5 + 8.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 20, 5, Color(0, 0, 0, 0.65))
 	_canvas.draw_string(UiStyle.FONT_DISPLAY, Vector2(23.0, LINE_HEIGHT * 0.5 + 8.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 20, color)
 	var x: float = 23.0 + UiStyle.FONT_DISPLAY.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 20).x + 14.0
 	for quest in _quests:
 		var key: String = _key(quest)
 		var status: StringName = _states.get(key, {}).get("status", &"open")
-		var tier: Color = _tier_color(StringName(str(quest.get("tier", ""))))
 		var bar: Rect2 = Rect2(Vector2(x, LINE_HEIGHT * 0.5 - MINI_BAR.y * 0.5), MINI_BAR)
 		var flash: float = float(_flashes.get(key, 0.0))
-		_canvas.draw_rect(bar.grow(1.5), Color(0.0, 0.015, 0.02, 0.75))
-		_canvas.draw_rect(bar, LoadoutStyle.with_alpha(tier, 0.18))
-		var fill_color: Color = COMPLETE_COLOR if status == &"done" else (FAILED_COLOR if status == &"failed" else tier)
+		_canvas.draw_rect(bar.grow(1.5), Color(0.0, 0.0, 0.0, 0.6))
+		_canvas.draw_rect(bar, Color(1, 1, 1, 0.14))
+		var fill_color: Color = COMPLETE_COLOR if status == &"done" else (FAILED_COLOR if status == &"failed" else UiStyle.TEXT)
 		var fill: float = 1.0 if status == &"failed" else float(_fills.get(key, 0.0))
 		_canvas.draw_rect(Rect2(bar.position, Vector2(bar.size.x * fill, bar.size.y)), fill_color.lerp(Color.WHITE, flash * 0.6))
 		x += MINI_BAR.x + 6.0
@@ -235,12 +234,10 @@ func _draw_counter() -> void:
 func _draw_row(quest: Dictionary, y: float, alpha: float) -> void:
 	var key: String = _key(quest)
 	var status: StringName = _states.get(key, {}).get("status", &"open")
-	var tier: Color = _tier_color(StringName(str(quest.get("tier", ""))))
 	var flash: float = float(_flashes.get(key, 0.0))
-	var accent: Color = COMPLETE_COLOR if status == &"done" else (FAILED_COLOR if status == &"failed" else tier)
+	var accent: Color = COMPLETE_COLOR if status == &"done" else (FAILED_COLOR if status == &"failed" else UiStyle.TEXT)
 	if flash > 0.0:
 		_canvas.draw_rect(Rect2(-4.0, y - 2.0, WIDTH + 8.0, ROW_HEIGHT - 2.0), LoadoutStyle.with_alpha(accent, flash * 0.18 * alpha))
-	_canvas.draw_rect(Rect2(0.0, y + 2.0, 2.0, 14.0), LoadoutStyle.with_alpha(accent, alpha))
 	var title: String = str(quest.get("title", ""))
 	var title_color: Color = COMPLETE_COLOR.lightened(0.3) if status == &"done" else (UiStyle.TEXT_MUTED if status == &"failed" else UiStyle.TEXT)
 	_canvas.draw_string_outline(UiStyle.FONT_UI, Vector2(10.0, y + 14.0), title, HORIZONTAL_ALIGNMENT_LEFT, WIDTH - 96.0, 13, 3, Color(0, 0, 0, 0.6 * alpha))
@@ -254,21 +251,13 @@ func _draw_row(quest: Dictionary, y: float, alpha: float) -> void:
 	_canvas.draw_string_outline(UiStyle.FONT_BOLD, Vector2(WIDTH - 86.0, y + 14.0), progress_text, HORIZONTAL_ALIGNMENT_RIGHT, 44.0, 11, 3, Color(0, 0, 0, 0.6 * alpha))
 	_canvas.draw_string(UiStyle.FONT_BOLD, Vector2(WIDTH - 86.0, y + 14.0), progress_text, HORIZONTAL_ALIGNMENT_RIGHT, 44.0, 11, LoadoutStyle.with_alpha(progress_color, alpha))
 	var reward: String = "+%d" % int(quest.get("reward", 0))
-	ResearchNodeButton.draw_rp_glyph(_canvas, Vector2(WIDTH - 30.0, y + 10.0), 4.5, LoadoutStyle.with_alpha(UiStyle.TEAL, alpha))
+	ResearchNodeButton.draw_rp_glyph(_canvas, Vector2(WIDTH - 30.0, y + 10.0), 4.5, LoadoutStyle.with_alpha(UiStyle.INTEL, alpha))
 	_canvas.draw_string_outline(UiStyle.FONT_BOLD, Vector2(WIDTH - 22.0, y + 14.0), reward, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, 3, Color(0, 0, 0, 0.6 * alpha))
-	_canvas.draw_string(UiStyle.FONT_BOLD, Vector2(WIDTH - 22.0, y + 14.0), reward, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, LoadoutStyle.with_alpha(UiStyle.TEAL, alpha))
+	_canvas.draw_string(UiStyle.FONT_BOLD, Vector2(WIDTH - 22.0, y + 14.0), reward, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, LoadoutStyle.with_alpha(UiStyle.INTEL, alpha))
 	var bar: Rect2 = Rect2(10.0, y + 19.0, WIDTH - 96.0, 2.0)
 	_canvas.draw_rect(bar, Color(1, 1, 1, 0.08 * alpha))
 	var fill: float = 1.0 if status == &"failed" else float(_fills.get(key, 0.0))
 	_canvas.draw_rect(Rect2(bar.position, Vector2(bar.size.x * fill, bar.size.y)), LoadoutStyle.with_alpha(accent, 0.9 * alpha))
-
-
-func _tier_color(tier: StringName) -> Color:
-	if tier == ResearchQuestManager.TIER_HARD:
-		return Color(0.94, 0.42, 0.3, 1.0)
-	if tier == ResearchQuestManager.TIER_MEDIUM:
-		return Color(0.94, 0.7, 0.3, 1.0)
-	return Color(0.6, 0.84, 0.54, 1.0)
 
 
 func _inside_match() -> bool:

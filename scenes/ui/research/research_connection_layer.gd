@@ -2,7 +2,7 @@ extends Control
 class_name ResearchConnectionLayer
 
 ## The links between projects, drawn under the badges. A link is faint until its requirement is met, then
-## teal ("powered"). Links into a project you can research right now carry a slow travelling light, so the
+## in the intel colour ("powered"). Links into a project you can research right now carry a slow travelling light, so the
 ## eye finds the next step without reading. Where a project needs more than MK I of its parent the link
 ## carries a small mark tag. Researching a project sends a pulse down its links; the projects it opens
 ## wake up when the pulse arrives.
@@ -83,13 +83,13 @@ func _powered(link: Dictionary) -> bool:
 
 
 func _draw() -> void:
-	var teal: Color = UiStyle.TEAL
+	var intel: Color = UiStyle.INTEL
 	for link in _links:
 		var target: ResearchNodeButton = link["target"]
 		var points: PackedVector2Array = _path(link)
 		var powered: bool = _powered(link)
 		var planned: bool = target.get_state() == ResearchNodeButton.PLANNED
-		var color: Color = LoadoutStyle.with_alpha(teal, 0.42) if powered else Color(1, 1, 1, 0.07)
+		var color: Color = LoadoutStyle.with_alpha(intel, 0.42) if powered else Color(1, 1, 1, 0.07)
 		if planned:
 			color = Color(1, 1, 1, 0.04)
 		draw_polyline(points, color, LINE_WIDTH, true)
@@ -99,7 +99,7 @@ func _draw() -> void:
 			_draw_mark_tag(points, int(link["mark"]), powered)
 	for pulse in _pulses:
 		var t: float = float(pulse["t"])
-		_draw_runner(_path(pulse["link"]), t * t * (3.0 - 2.0 * t), Color(0.85, 1.0, 0.96, 1.0), 5.0)
+		_draw_runner(_path(pulse["link"]), t * t * (3.0 - 2.0 * t), Color(0.97, 0.951, 0.903, 1.0), 5.0)
 
 
 ## A short bright dash travelling along a path at progress t (0..1).
@@ -132,7 +132,7 @@ func _draw_mark_tag(points: PackedVector2Array, mark: int, powered: bool) -> voi
 	var width: float = UiStyle.FONT_BOLD.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 9).x + 10.0
 	var rect: Rect2 = Rect2(center - Vector2(width * 0.5, 7.0), Vector2(width, 14.0))
 	var style: StyleBoxFlat = LoadoutStyle.flat(Color(0.03, 0.05, 0.055, 1.0), 2)
-	style.border_color = LoadoutStyle.with_alpha(UiStyle.TEAL, 0.5) if powered else Color(1, 1, 1, 0.14)
+	style.border_color = LoadoutStyle.with_alpha(UiStyle.INTEL, 0.5) if powered else Color(1, 1, 1, 0.14)
 	style.set_border_width_all(1)
 	draw_style_box(style, rect)
-	draw_string(UiStyle.FONT_BOLD, Vector2(rect.position.x, rect.position.y + 10.5), text, HORIZONTAL_ALIGNMENT_CENTER, width, 9, UiStyle.TEAL if powered else LoadoutStyle.TEXT_MUTED)
+	draw_string(UiStyle.FONT_BOLD, Vector2(rect.position.x, rect.position.y + 10.5), text, HORIZONTAL_ALIGNMENT_CENTER, width, 9, UiStyle.INTEL if powered else LoadoutStyle.TEXT_MUTED)

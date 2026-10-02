@@ -1,38 +1,39 @@
 class_name LoadoutStyle
 extends RefCounted
 
-## Shared look of the loadout, built on the game's ink-and-amber palette (UiStyle): ink washes instead of
-## boxed panels, white type in three strengths, amber for "equipped / selected / drop here", the quality
-## grade only as a thin condition bar on items and the team colour only on the operator.
-## Slots are named in the player's words (barrel / optic / ammo).
+## Shared look of the loadout and the other between-rounds pages, on the game's neutral charcoal palette
+## (UiStyle): flat surfaces instead of boxed panels, off-white type in three strengths, the accent only for
+## "equipped / selected / drop here", the quality grade only as a thin bar on items and the team colour only
+## on the operator. Slots are named in the player's words (barrel / optic / ammo).
 
-const BACKDROP: Color = Color(0.018, 0.032, 0.035, 0.95)
-const DOCK: Color = Color(0.0, 0.008, 0.01, 0.5)
-const CARD: Color = Color(0.072, 0.1, 0.104, 1.0)
-const CARD_HOVER: Color = Color(0.105, 0.145, 0.15, 1.0)
-const CARD_EMPTY: Color = Color(0.62, 0.86, 0.8, 0.028)
-const SLOT: Color = Color(0.62, 0.86, 0.8, 0.05)
-const HAIRLINE: Color = Color(0.62, 0.86, 0.8, 0.11)
+const BG_TOP: Color = Color(0.075, 0.075, 0.07, 1.0)
+const BG_BOTTOM: Color = Color(0.035, 0.035, 0.033, 1.0)
+const BACKDROP: Color = Color(0.03, 0.03, 0.028, 0.96)
+const DOCK: Color = Color(0.0, 0.0, 0.0, 0.32)
+const CARD: Color = Color(0.11, 0.11, 0.104, 1.0)
+const CARD_HOVER: Color = Color(0.16, 0.16, 0.15, 1.0)
+const CARD_EMPTY: Color = Color(1.0, 1.0, 1.0, 0.025)
+const SLOT: Color = Color(1.0, 1.0, 1.0, 0.045)
+const HAIRLINE: Color = UiStyle.LINE
 const TEXT: Color = UiStyle.TEXT
-const TEXT_SECONDARY: Color = Color(0.86, 0.93, 0.9, 0.64)
-const TEXT_MUTED: Color = Color(0.78, 0.9, 0.86, 0.36)
+const TEXT_SECONDARY: Color = Color(0.93, 0.92, 0.88, 0.66)
+const TEXT_MUTED: Color = Color(0.93, 0.92, 0.88, 0.38)
 const ACCENT: Color = UiStyle.ACCENT
-const POSITIVE: Color = Color(0.49, 0.9, 0.56, 1.0)
-const NEGATIVE: Color = Color(1.0, 0.42, 0.4, 1.0)
-const COIN: Color = Color(1.0, 0.8, 0.36, 1.0)
+const POSITIVE: Color = UiStyle.SUCCESS
+const NEGATIVE: Color = UiStyle.DANGER
+const COIN: Color = Color(0.95, 0.78, 0.34, 1.0)
 const TARGET: Color = ACCENT
 const DANGER: Color = NEGATIVE
 
-## Older names still used by the drag ghost and the merge dialog.
+## Older names still used by the drag ghost, the merge dialog and the research page.
 const TILE: Color = CARD
 const TILE_HOVER: Color = CARD_HOVER
 const TILE_EMPTY: Color = CARD_EMPTY
 const EDGE: Color = HAIRLINE
-const EDGE_SOFT: Color = Color(0.62, 0.86, 0.8, 0.06)
-const SURFACE: Color = Color(0.62, 0.86, 0.8, 0.03)
+const EDGE_SOFT: Color = Color(1.0, 1.0, 1.0, 0.05)
+const SURFACE: Color = Color(1.0, 1.0, 1.0, 0.03)
 const SURFACE_RAISED: Color = SLOT
-const SURFACE_DEEP: Color = Color(0.02, 0.032, 0.035, 1.0)
-const BG_BOTTOM: Color = SURFACE_DEEP
+const SURFACE_DEEP: Color = BG_BOTTOM
 const INSTALLED: Color = TEXT
 
 const SLOT_LABELS: Dictionary = {
@@ -72,15 +73,15 @@ static func with_alpha(color: Color, alpha: float) -> Color:
 	return Color(color.r, color.g, color.b, alpha)
 
 
-static func flat(fill: Color, radius: int = 3) -> StyleBoxFlat:
+static func flat(fill: Color, radius: int = 2) -> StyleBoxFlat:
 	var style: StyleBoxFlat = StyleBoxFlat.new()
 	style.bg_color = fill
-	style.set_corner_radius_all(radius)
+	style.set_corner_radius_all(mini(radius, 3))
 	style.anti_aliasing = true
 	return style
 
 
-static func panel_style(fill: Color = SURFACE, border: Color = Color(0, 0, 0, 0), radius: int = 3) -> StyleBoxFlat:
+static func panel_style(fill: Color = SURFACE, border: Color = Color(0, 0, 0, 0), radius: int = 2) -> StyleBoxFlat:
 	var style: StyleBoxFlat = flat(fill, radius)
 	if border.a > 0.0:
 		style.border_color = border
@@ -147,7 +148,8 @@ static func draw_hgradient_rect(canvas: CanvasItem, rect: Rect2, left: Color, ri
 	)
 
 
-## Soft radial light (triangle fan, centre colour fading out).
+## Soft radial light (triangle fan, centre colour fading out). Use for lighting a scene (the operator's
+## spotlight), never as a halo around UI.
 static func draw_glow(canvas: CanvasItem, center: Vector2, radius: Vector2, color: Color, segments: int = 32) -> void:
 	var edge: Color = Color(color.r, color.g, color.b, 0.0)
 	for index in range(segments):
@@ -159,8 +161,15 @@ static func draw_glow(canvas: CanvasItem, center: Vector2, radius: Vector2, colo
 		)
 
 
+## Mark pips as small squares (filled up to the mark).
+static func draw_pips(canvas: CanvasItem, origin: Vector2, mark: int, max_mark: int, size: float = 2.0, gap: float = 2.0) -> void:
+	for index in range(max_mark):
+		var rect: Rect2 = Rect2(origin + Vector2(float(index) * (size * 2.0 + gap), 0.0), Vector2(size * 2.0, size * 2.0))
+		canvas.draw_rect(rect, Color(1, 1, 1, 0.85) if index < mark else Color(1, 1, 1, 0.16))
+
+
 static func draw_check(canvas: CanvasItem, center: Vector2, radius: float, fill: Color, mark: Color) -> void:
-	canvas.draw_circle(center, radius, fill, true, -1.0, true)
+	canvas.draw_rect(Rect2(center - Vector2(radius, radius), Vector2(radius, radius) * 2.0), fill)
 	var s: float = radius * 0.5
 	canvas.draw_polyline(PackedVector2Array([center + Vector2(-s, 0.0), center + Vector2(-s * 0.25, s * 0.7), center + Vector2(s, -s * 0.6)]), mark, maxf(radius * 0.3, 1.4), true)
 
@@ -177,7 +186,7 @@ static func draw_dashed_rect(canvas: CanvasItem, rect: Rect2, color: Color, dash
 		canvas.draw_dashed_line(corners[index], corners[(index + 1) % 4], color, 1.0, dash, true)
 
 
-## Corner brackets around a rect: the loadout's "selected / targeted" mark.
+## Corner brackets around a rect: a targeting mark.
 static func draw_brackets(canvas: CanvasItem, rect: Rect2, color: Color, length: float = 7.0, width: float = 1.5) -> void:
 	var p: Vector2 = rect.position
 	var e: Vector2 = rect.end
@@ -186,16 +195,13 @@ static func draw_brackets(canvas: CanvasItem, rect: Rect2, color: Color, length:
 		canvas.draw_polyline(PackedVector2Array([origin + (corner[1] as Vector2) * length, origin, origin + (corner[2] as Vector2) * length]), color, width, true)
 
 
-## A keyboard / pad prompt chip: rounded outline with the key name, followed by nothing (caller draws the label).
-## Returns the chip width so callers can lay out the action text after it.
+## A keyboard / pad prompt chip: a small filled key cap with the key name. Returns the chip width so callers
+## can lay out the action text after it.
 static func draw_key_chip(canvas: CanvasItem, origin: Vector2, key: String, height: float = 18.0, color: Color = TEXT_SECONDARY) -> float:
 	var font: Font = UiStyle.FONT_BOLD
 	var text_width: float = font.get_string_size(key, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
 	var width: float = maxf(text_width + 10.0, height)
 	var rect: Rect2 = Rect2(origin, Vector2(width, height))
-	var style: StyleBoxFlat = flat(Color(1, 1, 1, 0.06), 3)
-	style.border_color = with_alpha(color, 0.45)
-	style.set_border_width_all(1)
-	canvas.draw_style_box(style, rect)
+	canvas.draw_style_box(flat(Color(1, 1, 1, 0.12), 2), rect)
 	canvas.draw_string(font, Vector2(rect.position.x, rect.position.y + height * 0.5 + 3.5), key, HORIZONTAL_ALIGNMENT_CENTER, width, 10, color)
 	return width

@@ -22,7 +22,7 @@ func refresh() -> void:
 	if item == null:
 		_equipped_label.text = "Empty"
 		_condition_label.text = "Drag a matching extension here"
-		_condition_label.add_theme_color_override("font_color", Color(0.7, 0.76, 0.78, 1.0))
+		_condition_label.add_theme_color_override("font_color", Color(0.759, 0.744, 0.707, 1.0))
 		_clear_button.disabled = true
 		return
 

@@ -10,7 +10,6 @@ signal bot_requested(difficulty: int)
 signal exit_requested
 
 const SETTINGS_MENU_SCENE: PackedScene = preload("res://scenes/menus/settings_menu.tscn")
-const LOGO_SHADER: Shader = preload("res://scenes/menus/logo.gdshader")
 const FOG_SHADER: Shader = preload("res://scenes/maps/environment/fog.gdshader")
 const NOISE_TEXTURE: Texture2D = preload("res://assets/fx/noise_fbm.png")
 const PARALLAX_STRENGTH: Vector2 = Vector2(22.0, 12.0)
@@ -125,7 +124,7 @@ func _build_atmosphere() -> void:
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var gradient: Gradient = Gradient.new()
 	gradient.offsets = PackedFloat32Array([0.0, 0.45, 1.0])
-	gradient.colors = PackedColorArray([Color(0.01, 0.03, 0.03, 0.88), Color(0.01, 0.03, 0.03, 0.45), Color(0.01, 0.03, 0.03, 0.05)])
+	gradient.colors = PackedColorArray([Color(0.012, 0.012, 0.011, 0.88), Color(0.012, 0.012, 0.011, 0.45), Color(0.012, 0.012, 0.011, 0.05)])
 	var gradient_texture: GradientTexture2D = GradientTexture2D.new()
 	gradient_texture.gradient = gradient
 	gradient_texture.width = 256
@@ -177,7 +176,7 @@ func _build_heroes() -> void:
 	stage.add_child(spotlight)
 	var ground_shadow: Sprite2D = Sprite2D.new()
 	ground_shadow.texture = FxLib.TEX_SOFT
-	ground_shadow.modulate = Color(0.0, 0.02, 0.02, 0.55)
+	ground_shadow.modulate = Color(0.0, 0.0, 0.0, 0.55)
 	ground_shadow.scale = Vector2(7.5, 0.7)
 	ground_shadow.position = Vector2(viewport_size.x * 0.795, viewport_size.y * 0.62 + 72.0)
 	stage.add_child(ground_shadow)
@@ -206,23 +205,19 @@ func _build_menu() -> void:
 	var logo_holder: Control = Control.new()
 	logo_holder.custom_minimum_size = Vector2(620.0, 112.0)
 	column.add_child(logo_holder)
+	# Plain, heavy wordmark: solid off-white with a tight drop shadow (no metal gradient, no shine).
 	var logo_shadow: Label = Label.new()
-	UiStyle.style_label(logo_shadow, UiStyle.FONT_DISPLAY, 96, Color(0.01, 0.03, 0.03, 1.0), 18)
+	UiStyle.style_label(logo_shadow, UiStyle.FONT_DISPLAY, 96, Color(0.0, 0.0, 0.0, 0.55))
 	logo_shadow.text = "BLASTFRONT"
-	logo_shadow.position = Vector2(4.0, 6.0)
+	logo_shadow.position = Vector2(3.0, 4.0)
 	logo_holder.add_child(logo_shadow)
 	_logo = Label.new()
-	UiStyle.style_label(_logo, UiStyle.FONT_DISPLAY, 96, Color.WHITE)
+	UiStyle.style_label(_logo, UiStyle.FONT_DISPLAY, 96, UiStyle.TEXT)
 	_logo.text = "BLASTFRONT"
-	var logo_material: ShaderMaterial = ShaderMaterial.new()
-	logo_material.shader = LOGO_SHADER
-	logo_material.set_shader_parameter(&"text_top", 20.0)
-	logo_material.set_shader_parameter(&"text_bottom", 100.0)
-	_logo.material = logo_material
 	logo_holder.add_child(_logo)
 
 	var tagline: Label = Label.new()
-	UiStyle.style_label(tagline, UiStyle.FONT_BOLD, 17, UiStyle.TEXT_DIM)
+	UiStyle.style_label(tagline, UiStyle.FONT_BOLD, 15, UiStyle.TEXT_MUTED)
 	tagline.text = "ARTILLERY  ·  PARKOUR  ·  DUELS"
 	column.add_child(tagline)
 	var spacer: Control = Control.new()
@@ -246,6 +241,9 @@ func _add_menu_button(parent: Container, text: String, primary: bool, callback: 
 	button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	UiStyle.style_button(button, primary, 24 if primary else 20)
+	if not primary:
+		# Menu entries are plain text until hovered or focused.
+		button.add_theme_stylebox_override("normal", UiStyle.with_margins(UiStyle.panel(Color(0, 0, 0, 0)), 26, 10))
 	button.set_meta("juice_rotation_multiplier", 0.0)
 	button.pressed.connect(callback)
 	button.mouse_entered.connect(_slide_button.bind(button, true))
@@ -277,9 +275,7 @@ func _build_world_choice(box: VBoxContainer) -> void:
 		option.toggle_mode = true
 		option.button_group = group
 		option.custom_minimum_size = Vector2(110.0, 42.0)
-		UiStyle.style_button(option, false, 17)
-		option.add_theme_stylebox_override("pressed", UiStyle.with_margins(UiStyle.panel(Color(UiStyle.ACCENT.r, UiStyle.ACCENT.g, UiStyle.ACCENT.b, 0.22), UiStyle.ACCENT, 3, 2, 0.18), 26, 10))
-		option.add_theme_color_override("font_pressed_color", UiStyle.ACCENT_HOT)
+		UiStyle.style_option(option, 17)
 		option.toggled.connect(_on_world_toggled.bind(world_id))
 		option.set_pressed_no_signal(world_id == current)
 		row.add_child(option)
@@ -312,9 +308,7 @@ func _build_shop_toggle(box: VBoxContainer) -> void:
 		option.toggle_mode = true
 		option.button_group = group
 		option.custom_minimum_size = Vector2(110.0, 42.0)
-		UiStyle.style_button(option, false, 17)
-		option.add_theme_stylebox_override("pressed", UiStyle.with_margins(UiStyle.panel(Color(UiStyle.ACCENT.r, UiStyle.ACCENT.g, UiStyle.ACCENT.b, 0.22), UiStyle.ACCENT, 3, 2, 0.18), 26, 10))
-		option.add_theme_color_override("font_pressed_color", UiStyle.ACCENT_HOT)
+		UiStyle.style_option(option, 17)
 		option.toggled.connect(_on_shop_toggled.bind(index == 1))
 		row.add_child(option)
 		_shop_buttons.append(option)
@@ -355,7 +349,7 @@ func _slide_button(button: Button, hovered: bool) -> void:
 
 func _build_bot_panel() -> void:
 	_bot_panel = PanelContainer.new()
-	_bot_panel.add_theme_stylebox_override("panel", UiStyle.with_shadow(UiStyle.with_margins(UiStyle.panel(UiStyle.PANEL_SOLID, UiStyle.LINE_STRONG, 8, 1), 28, 22), 24, Vector2(0, 10)))
+	_bot_panel.add_theme_stylebox_override("panel", UiStyle.with_shadow(UiStyle.with_margins(UiStyle.panel(UiStyle.PANEL_SOLID), 28, 22), 18, Vector2(0, 8), Color(0, 0, 0, 0.35)))
 	_bot_panel.position = Vector2(470.0, 236.0)
 	_bot_panel.custom_minimum_size = Vector2(430.0, 0.0)
 	_bot_panel.visible = false
@@ -381,9 +375,7 @@ func _build_bot_panel() -> void:
 		option.toggle_mode = true
 		option.button_group = group
 		option.custom_minimum_size = Vector2(118.0, 46.0)
-		UiStyle.style_button(option, false, 18)
-		option.add_theme_stylebox_override("pressed", UiStyle.with_margins(UiStyle.panel(Color(UiStyle.ACCENT.r, UiStyle.ACCENT.g, UiStyle.ACCENT.b, 0.22), UiStyle.ACCENT, 3, 2, 0.18), 26, 10))
-		option.add_theme_color_override("font_pressed_color", UiStyle.ACCENT_HOT)
+		UiStyle.style_option(option, 18)
 		option.toggled.connect(_on_difficulty_toggled.bind(index))
 		row.add_child(option)
 		_difficulty_buttons.append(option)

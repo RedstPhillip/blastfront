@@ -299,7 +299,7 @@ func _update_countdown_urgency(seconds: int) -> void:
 		return
 	_last_countdown = seconds
 	var urgent: bool = seconds <= URGENT_SECONDS and seconds > 0
-	_countdown_label.add_theme_color_override("font_color", UiStyle.DANGER.lightened(0.2) if urgent else Color(0.94, 0.99, 1.0))
+	_countdown_label.add_theme_color_override("font_color", UiStyle.DANGER.lightened(0.2) if urgent else Color(0.996, 0.976, 0.927))
 	if not urgent:
 		return
 	AudioDirector.play(&"count_tick", -8.0)

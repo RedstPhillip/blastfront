@@ -73,15 +73,15 @@ func _draw() -> void:
 		var outline: PackedVector2Array = PackedVector2Array()
 		for point in chevron:
 			outline.append(edge + (point - edge) * 1.3)
-		draw_colored_polygon(outline, Color(0.0, 0.02, 0.025, 0.75))
+		draw_colored_polygon(outline, Color(0.0, 0.0, 0.0, 0.75))
 		draw_colored_polygon(chevron, LoadoutStyle.with_alpha(color, pulse))
 		var label: String = target["label"]
 		var label_center: Vector2 = edge - direction * 24.0
 		if target["kind"] == &"drop":
 			var box: Rect2 = Rect2(label_center - Vector2(7.0, 12.0), Vector2(14.0, 9.0))
-			draw_rect(box.grow(1.5), Color(0.0, 0.02, 0.025, 0.75))
+			draw_rect(box.grow(1.5), Color(0.0, 0.0, 0.0, 0.75))
 			draw_rect(box, LoadoutStyle.with_alpha(color, pulse))
-			draw_rect(Rect2(box.position.x, box.position.y + 2.5, box.size.x, 1.0), Color(0.0, 0.02, 0.025, 0.6))
+			draw_rect(Rect2(box.position.x, box.position.y + 2.5, box.size.x, 1.0), Color(0.0, 0.0, 0.0, 0.6))
 			label_center.y += 8.0
 		draw_string_outline(UiStyle.FONT_BOLD, label_center + Vector2(-30.0, 4.0), label, HORIZONTAL_ALIGNMENT_CENTER, 60.0, 11, 4, Color(0, 0, 0, 0.7))
 		draw_string(UiStyle.FONT_BOLD, label_center + Vector2(-30.0, 4.0), label, HORIZONTAL_ALIGNMENT_CENTER, 60.0, 11, color.lightened(0.25))

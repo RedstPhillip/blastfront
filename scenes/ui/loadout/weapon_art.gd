@@ -210,7 +210,7 @@ static func draw_fx(canvas: CanvasItem, xform: Transform2D, config: Dictionary, 
 		canvas.draw_circle(muzzle, 1.6, Color(1.0, 1.0, 1.0, 0.5 * intensity * pulse), true, -1.0, true)
 	if top_id == &"laser_scope_mk1":
 		var emitter: Vector2 = SOCKET_POSITIONS[SLOT_TOP] + Vector2(20.5, -4.5)
-		var beam_end: Vector2 = emitter + Vector2(150.0, 0.0)
+		var beam_end: Vector2 = emitter + Vector2(72.0, 0.0)
 		var flicker: float = 0.75 + 0.25 * sin(time * 23.0) * sin(time * 7.0)
 		canvas.draw_line(emitter, beam_end, Color(1.0, 0.12, 0.08, 0.18 * intensity), 3.2, true)
 		canvas.draw_line(emitter, beam_end, Color(1.0, 0.35, 0.25, 0.65 * intensity * flicker), 0.9, true)

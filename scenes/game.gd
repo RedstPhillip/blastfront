@@ -566,6 +566,10 @@ func _get_camera_look_ahead() -> Vector2:
 		return Vector2.ZERO
 	if _local_player.control_mode != GameSettings.CONTROL_LOCAL:
 		return Vector2.ZERO
+	# With a mouse the camera must not chase the cursor: that slides the world under a still cursor and
+	# drags the aim point with it. Only the stick (aim relative to the player) gets a look-ahead.
+	if not InputDevice.using_gamepad:
+		return Vector2.ZERO
 	var to_aim: Vector2 = _local_player.get_aim_world_position() - _local_player.global_position
 	var reach: float = clampf(to_aim.length() / 420.0, 0.0, 1.0)
 	return to_aim.normalized() * GameCamera.LOOK_AHEAD_DISTANCE * reach * Vector2(1.0, 0.55)

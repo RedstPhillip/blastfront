@@ -321,7 +321,7 @@ func _draw_portrait(layer: Control) -> void:
 	var center: Vector2 = _portrait_center()
 	var texture: Texture2D = _get_portrait_texture()
 	var size_px: float = PORTRAIT_RADIUS * 2.0
-	layer.draw_circle(center, RING_RADIUS - 1.0, Color(0.02, 0.035, 0.04, 0.8), true, -1.0, true)
+	layer.draw_circle(center, RING_RADIUS - 1.0, Color(0.03, 0.03, 0.028, 0.8), true, -1.0, true)
 	if texture != null:
 		layer.draw_texture_rect(texture, Rect2(center - Vector2.ONE * size_px * 0.5, Vector2.ONE * size_px), false)
 	else:

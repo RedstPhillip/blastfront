@@ -2,7 +2,7 @@ extends Control
 class_name ResearchPage
 
 ## Research between sets. The tree fills the left: three lanes (economy, field, movement) read left to
-## right from first project to last, every project named, its marks shown as ring segments, links teal once
+## right from first project to last, every project named, its marks shown as ring segments, links light up in the intel colour once
 ## powered. The panel docked on the right (same place as the loadout's locker) holds the research points
 ## and the selected project: what it does, what each mark is worth, what it needs and the hold-to-research
 ## action. Hovering previews a project, clicking pins it, holding on a badge or the button researches it.
@@ -314,7 +314,7 @@ func _research(research_id: StringName) -> void:
 	AudioDirector.play(&"research_unlock")
 	var mark: int = ResearchManager.get_mark(research_id)
 	var tail: String = "  ·  %d NEW" % opened.size() if not opened.is_empty() else ""
-	_prompt_bar.notify("%s MK %s RESEARCHED%s" % [name.to_upper(), LoadoutStyle.roman(mark), tail], UiStyle.TEAL)
+	_prompt_bar.notify("%s MK %s RESEARCHED%s" % [name.to_upper(), LoadoutStyle.roman(mark), tail], UiStyle.INTEL)
 	_select(research_id)
 
 
@@ -340,7 +340,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), LoadoutStyle.BACKDROP)
 	var tree_width: float = size.x - DOCK_WIDTH
-	LoadoutStyle.draw_glow(self, Vector2(tree_width * 0.52, size.y * 0.5), Vector2(tree_width * 0.6, size.y * 0.5), Color(0.36, 0.9, 0.78, 0.025), 48)
+	LoadoutStyle.draw_glow(self, Vector2(tree_width * 0.52, size.y * 0.5), Vector2(tree_width * 0.6, size.y * 0.5), Color(0.739, 0.725, 0.689, 0.025), 48)
 
 
 func _draw_tree() -> void:
@@ -364,7 +364,7 @@ func _draw_tree() -> void:
 		var progress: String = "%d / %d" % [researched, total] if open else "LATER"
 		_tree.draw_string(UiStyle.FONT_BOLD, Vector2(48.0, y + 14.0), progress, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, LoadoutStyle.TEXT_MUTED if open else LoadoutStyle.with_alpha(LoadoutStyle.TEXT_MUTED, 0.2))
 		# A short lead-in from the lane name to its first project.
-		_tree.draw_line(Vector2(122.0, y), Vector2(TREE_LEFT - 34.0, y), Color(1, 1, 1, 0.07) if not open else LoadoutStyle.with_alpha(UiStyle.TEAL, 0.25), 2.0)
+		_tree.draw_line(Vector2(122.0, y), Vector2(TREE_LEFT - 34.0, y), Color(1, 1, 1, 0.07) if not open else LoadoutStyle.with_alpha(UiStyle.INTEL, 0.25), 2.0)
 
 
 func _draw_dock() -> void:
@@ -379,8 +379,8 @@ func _draw_dock() -> void:
 	y += 40.0
 	var pop: float = sin(_points_pop * PI) * 0.12
 	var points_text: String = str(int(roundf(_shown_points)))
-	ResearchNodeButton.draw_rp_glyph(_dock, Vector2(x + 10.0, y - 12.0), 10.0 * (1.0 + pop), UiStyle.TEAL)
-	_dock.draw_string(UiStyle.FONT_DISPLAY, Vector2(x + 28.0, y), points_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 34, UiStyle.TEAL.lerp(Color.WHITE, _points_pop * 0.5))
+	ResearchNodeButton.draw_rp_glyph(_dock, Vector2(x + 10.0, y - 12.0), 10.0 * (1.0 + pop), UiStyle.INTEL)
+	_dock.draw_string(UiStyle.FONT_DISPLAY, Vector2(x + 28.0, y), points_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 34, UiStyle.INTEL.lerp(Color.WHITE, _points_pop * 0.5))
 	var number_width: float = UiStyle.FONT_DISPLAY.get_string_size(points_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 34).x
 	_dock.draw_string(UiStyle.FONT_BODY, Vector2(x + 40.0 + number_width, y - 15.0), "Earned from orders and supply drops.", HORIZONTAL_ALIGNMENT_LEFT, inner - number_width - 40.0, 12, LoadoutStyle.TEXT_SECONDARY)
 	_dock.draw_string(UiStyle.FONT_BODY, Vector2(x + 40.0 + number_width, y + 1.0), "Unspent points expire next set.", HORIZONTAL_ALIGNMENT_LEFT, inner - number_width - 40.0, 12, LoadoutStyle.TEXT_MUTED)
@@ -404,10 +404,10 @@ func _draw_dock() -> void:
 		state_text = "LATER UPDATE"
 	elif mark >= max_mark:
 		state_text = "COMPLETE"
-		state_color = UiStyle.TEAL
+		state_color = UiStyle.INTEL
 	elif mark > 0:
 		state_text = "MK %s OF %s" % [LoadoutStyle.roman(mark), LoadoutStyle.roman(max_mark)]
-		state_color = UiStyle.TEAL
+		state_color = UiStyle.INTEL
 	elif not unlocked:
 		state_text = "LOCKED"
 	else:
@@ -431,19 +431,18 @@ func _draw_dock() -> void:
 		var row_mark: int = index + 1
 		var done: bool = row_mark <= mark
 		var next: bool = row_mark == mark + 1 and available and unlocked
-		var row_color: Color = UiStyle.TEAL if done else (LoadoutStyle.TEXT if next else LoadoutStyle.TEXT_MUTED)
+		var row_color: Color = UiStyle.INTEL if done else (LoadoutStyle.TEXT if next else LoadoutStyle.TEXT_MUTED)
 		if next:
-			_dock.draw_rect(Rect2(x - 10.0, y - 19.0, inner + 20.0, 27.0), Color(1, 1, 1, 0.035))
-			_dock.draw_rect(Rect2(x - 10.0, y - 19.0, 2.0, 27.0), UiStyle.ACCENT if ResearchManager.can_purchase(id) else Color(1, 1, 1, 0.3))
+			_dock.draw_rect(Rect2(x - 10.0, y - 19.0, inner + 20.0, 27.0), Color(1, 1, 1, 0.07 if ResearchManager.can_purchase(id) else 0.035))
 		_dock.draw_string(UiStyle.FONT_BOLD, Vector2(x, y), "MK " + LoadoutStyle.roman(row_mark), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, row_color)
 		var value: String = str(levels[index]) if index < levels.size() else ""
 		_dock.draw_string(UiStyle.FONT_DISPLAY, Vector2(x + 56.0, y + 1.0), value, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, row_color)
 		if done:
-			LoadoutStyle.draw_check(_dock, Vector2(x + inner - 7.0, y - 5.0), 7.0, UiStyle.TEAL, LoadoutStyle.SURFACE_DEEP)
+			LoadoutStyle.draw_check(_dock, Vector2(x + inner - 7.0, y - 5.0), 7.0, UiStyle.INTEL, LoadoutStyle.SURFACE_DEEP)
 		elif index < costs.size():
 			var cost: int = int(costs[index])
 			var affordable: bool = next and ResearchManager.research_points >= cost
-			var cost_color: Color = UiStyle.TEAL if affordable else (LoadoutStyle.with_alpha(LoadoutStyle.NEGATIVE, 0.8) if next else LoadoutStyle.TEXT_MUTED)
+			var cost_color: Color = UiStyle.INTEL if affordable else (LoadoutStyle.with_alpha(LoadoutStyle.NEGATIVE, 0.8) if next else LoadoutStyle.TEXT_MUTED)
 			var cost_text: String = str(cost)
 			var cost_width: float = UiStyle.FONT_BOLD.get_string_size(cost_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
 			ResearchNodeButton.draw_rp_glyph(_dock, Vector2(x + inner - cost_width - 9.0, y - 4.5), 4.5, cost_color)
@@ -462,7 +461,7 @@ func _draw_dock() -> void:
 			var child: Dictionary = entry["definition"]
 			var child_id: StringName = StringName(str(child["id"]))
 			var child_mark: int = ResearchManager.get_mark(child_id)
-			var child_color: Color = UiStyle.TEAL if child_mark > 0 else (LoadoutStyle.TEXT if _requirements_met(child) else LoadoutStyle.TEXT_SECONDARY)
+			var child_color: Color = UiStyle.INTEL if child_mark > 0 else (LoadoutStyle.TEXT if _requirements_met(child) else LoadoutStyle.TEXT_SECONDARY)
 			if child["available"] != true:
 				child_color = LoadoutStyle.TEXT_MUTED
 			_dock.draw_string(UiStyle.FONT_UI, Vector2(x, y), str(child["name"]), HORIZONTAL_ALIGNMENT_LEFT, inner - 70.0, 14, child_color)

@@ -43,7 +43,11 @@ var _last_locker_countdown_sound_second: int = -1
 var _visual_time: float = 0.0
 
 
+const BACKDROP_SHADER: Shader = preload("res://scenes/menus/desaturate.gdshader")
+
+
 func _ready() -> void:
+	_neutralize_backdrop()
 	add_to_group(GameSettings.GAME_WORLD_GROUP)
 	_local_slot = NetworkSession.local_player_slot
 	_remote_slot = NetworkSession.get_remote_slot()
@@ -154,7 +158,7 @@ func _apply_ui_style() -> void:
 			UiStyle.style_label(body, UiStyle.FONT_BODY, 20, UiStyle.TEXT_DIM)
 	var dim: ColorRect = _help_popup.get_node_or_null(^"Dim") as ColorRect
 	if dim != null:
-		dim.color = Color(0.0, 0.02, 0.02, 0.6)
+		dim.color = Color(0.0, 0.0, 0.0, 0.6)
 
 
 func _process(delta: float) -> void:
@@ -410,7 +414,7 @@ func _update_ready_target_visual(target: StaticBody2D, is_ready: bool) -> void:
 	if halo != null:
 		halo.modulate.a = 0.18 if is_ready else 0.1
 	if rim != null:
-		rim.modulate = Color(0.72, 1.0, 0.84, 0.95) if is_ready else Color(0.5, 0.92, 0.72, 0.72)
+		rim.modulate = Color(1.0, 1.0, 1.0, 0.9) if is_ready else Color(1.0, 1.0, 1.0, 0.45)
 
 
 func _update_color_target_visuals(targets_root: Node2D, owner_slot: int) -> void:
@@ -438,7 +442,7 @@ func _update_color_target_visual(target: StaticBody2D, is_unavailable: bool, is_
 	if selected_ring != null:
 		selected_ring.visible = is_selected
 	if edge != null and circle != null:
-		edge.default_color = circle.color.lightened(0.45) if is_selected else Color(0.9, 0.96, 1.0, 0.62)
+		edge.default_color = Color(1.0, 1.0, 1.0, 0.95) if is_selected else Color(1.0, 1.0, 1.0, 0.35)
 		edge.width = 3.5 if is_selected else 2.0
 	if blocked_ring != null:
 		blocked_ring.visible = false
@@ -458,7 +462,7 @@ func _style_color_ring(ring: Line2D, center: Vector2) -> void:
 		return
 	ring.points = _closed_circle_points_at(center, COLOR_RING_RADIUS, COLOR_RING_POINTS)
 	ring.width = 5.0
-	ring.default_color = Color(0.55, 0.95, 0.9, 0.22)
+	ring.default_color = Color(1.0, 1.0, 1.0, 0.12)
 	ring.antialiased = true
 
 
@@ -508,7 +512,7 @@ func _style_color_target(target: StaticBody2D) -> void:
 	var edge: Line2D = _ensure_line(target, "Edge")
 	edge.points = _closed_circle_points(COLOR_TARGET_RADIUS + 4.0, COLOR_TARGET_POINTS)
 	edge.width = 2.0
-	edge.default_color = Color(0.9, 0.96, 1.0, 0.62)
+	edge.default_color = Color(0.966, 0.947, 0.899, 0.62)
 	edge.antialiased = true
 	edge.z_index = 4
 
@@ -536,31 +540,31 @@ func _style_ready_target(target: StaticBody2D) -> void:
 	var check: Line2D = target.get_node_or_null("Check") as Line2D
 	if outline != null:
 		outline.polygon = _circle_points(READY_OUTER_RADIUS, READY_TARGET_POINTS)
-		outline.color = Color(0.16, 0.94, 0.58, 0.92)
+		outline.color = Color(0.86, 0.85, 0.8, 0.9)
 		outline.z_index = 1
 	if empty != null:
 		empty.polygon = _circle_points(READY_OUTER_RADIUS - 11.0, READY_TARGET_POINTS)
-		empty.color = Color(0.02, 0.025, 0.03, 0.82)
+		empty.color = Color(0.06, 0.06, 0.055, 0.86)
 		empty.z_index = 2
 	if fill != null:
 		fill.polygon = _circle_points(READY_OUTER_RADIUS - 11.0, READY_TARGET_POINTS)
-		fill.color = Color(0.14, 0.92, 0.56, 0.92)
+		fill.color = UiStyle.ACCENT
 		fill.z_index = 3
 	if check != null:
-		check.default_color = Color(0.96, 1.0, 0.92, 1.0)
+		check.default_color = UiStyle.INK
 		check.width = 7.0
 		check.antialiased = true
 		check.z_index = 5
 
 	var halo: Polygon2D = _ensure_polygon(target, "ReadyHalo")
 	halo.polygon = _circle_points(READY_HALO_RADIUS, READY_TARGET_POINTS)
-	halo.color = Color(0.16, 1.0, 0.66, 0.16)
+	halo.color = Color(1.0, 1.0, 1.0, 0.05)
 	halo.z_index = -3
 
 	var rim: Line2D = _ensure_line(target, "ReadyRim")
 	rim.points = _closed_circle_points(READY_OUTER_RADIUS + 5.0, READY_TARGET_POINTS)
 	rim.width = 4.0
-	rim.default_color = Color(0.5, 0.92, 0.72, 0.72)
+	rim.default_color = Color(1.0, 1.0, 1.0, 0.45)
 	rim.antialiased = true
 	rim.z_index = 4
 
@@ -570,7 +574,7 @@ func _style_ready_target(target: StaticBody2D) -> void:
 		Vector2(-13.0, 19.0),
 		Vector2(22.0, 0.0),
 	])
-	play_icon.color = Color(0.72, 1.0, 0.84, 0.95)
+	play_icon.color = Color(0.93, 0.92, 0.88, 0.95)
 	play_icon.z_index = 5
 
 
@@ -595,7 +599,7 @@ func _update_locker_selection_motion() -> void:
 		if ready_halo != null:
 			ready_halo.scale = Vector2.ONE * (1.0 + sin(_visual_time * 2.0) * 0.035)
 		if ready_rim != null:
-			ready_rim.rotation = _visual_time * 0.35
+			ready_rim.rotation = 0.0
 
 
 func _ensure_polygon(parent: Node, node_name: String) -> Polygon2D:
@@ -671,3 +675,15 @@ func _get_slot_name(slot: int) -> String:
 	if SteamService.steam_enabled:
 		return Steam.getFriendPersonaName(NetworkSession.remote_steam_id)
 	return "Remote player"
+
+
+## The painted locker room is lit teal; pull it towards the game's neutral charcoal palette.
+func _neutralize_backdrop() -> void:
+	var root: Node = get_node_or_null(^"BackgroundLayer/BackgroundRoot")
+	if root == null:
+		return
+	var material: ShaderMaterial = ShaderMaterial.new()
+	material.shader = BACKDROP_SHADER
+	for child in root.get_children():
+		if child is TextureRect:
+			(child as TextureRect).material = material

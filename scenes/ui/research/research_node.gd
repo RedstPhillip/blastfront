@@ -2,7 +2,7 @@ extends Control
 class_name ResearchNodeButton
 
 ## One research project on the tree: an icon badge whose ring is split into one segment per mark (filled
-## teal as they are researched), the name underneath and the next price. The next segment glows amber when
+## in the intel colour as they are researched), the name underneath and the next price. The next segment glows amber when
 ## the project can be researched right now. Click selects; press and hold researches (the amber arc fills
 ## around the badge first, so nothing is ever bought by accident). Unlocking flashes the badge, charges
 ## the new segment and throws a ring of sparks; projects that become reachable "wake up".
@@ -223,7 +223,7 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
-	var teal: Color = UiStyle.TEAL
+	var intel: Color = UiStyle.INTEL
 	var amber: Color = UiStyle.ACCENT
 	var hover: float = _hover * _hover * (3.0 - 2.0 * _hover)
 	var scale_factor: float = 1.0 + hover * 0.05 + sin(_punch * PI) * 0.12
@@ -245,8 +245,8 @@ func _draw() -> void:
 			edge = LoadoutStyle.with_alpha(amber, 0.55) if _can_buy else Color(1, 1, 1, 0.18)
 			icon_alpha = 1.0 if _can_buy else 0.7
 		RESEARCHED, MAXED:
-			disc = Color(0.05, 0.13, 0.125, 1.0)
-			edge = LoadoutStyle.with_alpha(teal, 0.45)
+			disc = Color(0.108, 0.106, 0.1, 1.0)
+			edge = LoadoutStyle.with_alpha(intel, 0.45)
 			icon_alpha = 1.0
 	if _wake < 1.0:
 		icon_alpha = lerpf(0.3, icon_alpha, _wake)
@@ -255,7 +255,7 @@ func _draw() -> void:
 		var wave: float = _wake
 		draw_arc(Vector2.ZERO, RING_RADIUS + wave * 16.0, 0.0, TAU, 40, LoadoutStyle.with_alpha(amber, (1.0 - wave) * 0.6), 2.0, true)
 	if _state == MAXED:
-		LoadoutStyle.draw_glow(self, Vector2.ZERO, Vector2(44.0, 44.0), LoadoutStyle.with_alpha(teal, 0.1), 24)
+		LoadoutStyle.draw_glow(self, Vector2.ZERO, Vector2(44.0, 44.0), LoadoutStyle.with_alpha(intel, 0.1), 24)
 	disc = disc.lerp(disc.lightened(0.12), hover)
 	draw_circle(Vector2.ZERO, RADIUS, disc, true, -1.0, true)
 	if _state == PLANNED:
@@ -268,10 +268,10 @@ func _draw() -> void:
 	if _icon != null:
 		var icon_color: Color = Color(1, 1, 1, icon_alpha)
 		if _state == MAXED or _state == RESEARCHED:
-			icon_color = Color(0.86, 1.0, 0.96, 1.0)
+			icon_color = Color(0.973, 0.954, 0.906, 1.0)
 		draw_texture_rect(_icon, Rect2(Vector2(-ICON_SIZE, -ICON_SIZE) * 0.5, Vector2(ICON_SIZE, ICON_SIZE)), false, icon_color)
 
-	_draw_ring(teal, amber)
+	_draw_ring(intel, amber)
 	if _hold > 0.0:
 		draw_arc(Vector2.ZERO, RING_RADIUS + 6.0, -PI * 0.5, -PI * 0.5 + TAU * _hold, 48, amber, 3.0, true)
 	if selected or has_focus():
@@ -280,13 +280,13 @@ func _draw() -> void:
 		var life: float = float(spark["life"]) / float(spark["max"])
 		var p: Vector2 = (spark["p"] as Vector2) - CENTER
 		var v: Vector2 = spark["v"]
-		draw_line(p, p - v * 0.05, LoadoutStyle.with_alpha(teal.lerp(Color.WHITE, 0.4), life), 1.6, true)
+		draw_line(p, p - v * 0.05, LoadoutStyle.with_alpha(intel.lerp(Color.WHITE, 0.4), life), 1.6, true)
 	draw_set_transform(Vector2.ZERO)
-	_draw_labels(teal)
+	_draw_labels(intel)
 
 
 ## One arc segment per mark around the badge.
-func _draw_ring(teal: Color, amber: Color) -> void:
+func _draw_ring(intel: Color, amber: Color) -> void:
 	var gap: float = 0.22 if _max_mark > 1 else 0.0
 	var span: float = TAU / float(_max_mark)
 	for index in range(_max_mark):
@@ -297,11 +297,11 @@ func _draw_ring(teal: Color, amber: Color) -> void:
 		if _state == PLANNED or _state == LOCKED:
 			color = Color(1, 1, 1, 0.06)
 		elif index < _mark:
-			color = teal
+			color = intel
 			if index == _mark - 1 and _charge < 1.0:
 				draw_arc(Vector2.ZERO, RING_RADIUS, from, to, 24, Color(1, 1, 1, 0.1), width, true)
 				to = lerpf(from, to, _charge * _charge * (3.0 - 2.0 * _charge))
-				color = teal.lerp(Color.WHITE, 1.0 - _charge)
+				color = intel.lerp(Color.WHITE, 1.0 - _charge)
 		elif index == _mark and _can_buy:
 			# Static amber says "ready"; only the badge under the pointer breathes, so a full purse does not
 			# set the whole tree pulsing.
@@ -311,7 +311,7 @@ func _draw_ring(teal: Color, amber: Color) -> void:
 		draw_arc(Vector2.ZERO, RING_RADIUS, from, to, 24, color, width, true)
 
 
-func _draw_labels(teal: Color) -> void:
+func _draw_labels(intel: Color) -> void:
 	var name_color: Color = LoadoutStyle.TEXT_SECONDARY
 	match _state:
 		PLANNED:
@@ -333,7 +333,7 @@ func _draw_labels(teal: Color) -> void:
 	if _state == MAXED or _state == LOCKED:
 		return
 	var text: String = str(_cost)
-	var color: Color = teal if _can_buy else LoadoutStyle.with_alpha(LoadoutStyle.NEGATIVE, 0.75)
+	var color: Color = intel if _can_buy else LoadoutStyle.with_alpha(LoadoutStyle.NEGATIVE, 0.75)
 	var width: float = UiStyle.FONT_BOLD.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x + 12.0
 	var start: float = (size.x - width) * 0.5
 	ResearchNodeButton.draw_rp_glyph(self, Vector2(start + 4.0, y - 3.5), 4.0, color)

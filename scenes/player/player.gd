@@ -700,6 +700,9 @@ func get_aim_world_position() -> Vector2:
 		return ai_brain.aim_position
 	if InputDevice.using_gamepad and player_slot == GameSettings.PLAYER_ONE_SLOT:
 		return global_position + InputDevice.aim_direction * GameSettings.GAMEPAD_AIM_DISTANCE
+	var camera: GameCamera = get_viewport().get_camera_2d() as GameCamera
+	if camera != null:
+		return camera.stable_mouse_world_position()
 	return get_global_mouse_position()
 
 

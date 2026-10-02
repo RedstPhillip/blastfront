@@ -61,6 +61,15 @@ func _apply() -> void:
 	rotation = GameJuice.get_camera_roll()
 
 
+## Where the mouse points in the world as the camera frames it before shake, kicks, roll and zoom punches.
+## Aiming uses this, so screen feedback never moves what the player is aiming at.
+func stable_mouse_world_position() -> Vector2:
+	var viewport: Viewport = get_viewport()
+	var screen: Vector2 = viewport.get_mouse_position()
+	var center: Vector2 = _clamp_to_bounds(_base_position, _base_zoom)
+	return center + (screen - viewport.get_visible_rect().size * 0.5) / maxf(_base_zoom, 0.01)
+
+
 func get_view_size(at_zoom: float) -> Vector2:
 	return get_viewport_rect().size / maxf(at_zoom, 0.01)
 

@@ -41,7 +41,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _build() -> void:
 	var dim: ColorRect = ColorRect.new()
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	dim.color = Color(0.0, 0.02, 0.02, 0.72)
+	dim.color = Color(0.0, 0.0, 0.0, 0.72)
 	add_child(dim)
 	var center: CenterContainer = CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

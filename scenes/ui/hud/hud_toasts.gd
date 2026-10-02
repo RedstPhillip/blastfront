@@ -1,8 +1,8 @@
 class_name HudToasts
 extends Control
 
-## Short notices in the top-right corner: a right-anchored accent tick, a small-caps title and one quiet
-## line of detail on a soft ink fade (no box). They slide in, hold, and slide out. Anything can raise one
+## Short notices in the top-right corner: a small-caps title in the notice's colour and one quiet line of
+## detail on a soft dark fade (no box, no side stripe). They slide in, hold, and slide out. Anything can raise one
 ## with `HudToasts.notify(...)`; while no HUD is present the call is simply ignored.
 
 const GROUP: StringName = &"hud_toasts"
@@ -91,9 +91,8 @@ func _build_toast(data: Dictionary) -> Control:
 func _draw_toast(toast: Control, color: Color, title: String, detail: String) -> void:
 	var w: float = TOAST_SIZE.x
 	var h: float = TOAST_SIZE.y
-	LoadoutStyle.draw_hgradient_rect(toast, Rect2(0.0, 0.0, w, h), Color(0.0, 0.012, 0.016, 0.0), Color(0.0, 0.012, 0.016, 0.62))
-	toast.draw_rect(Rect2(w - 3.0, 7.0, 3.0, h - 14.0), color)
-	var right: float = w - 14.0
+	LoadoutStyle.draw_hgradient_rect(toast, Rect2(0.0, 0.0, w, h), Color(0.0, 0.0, 0.0, 0.0), Color(0.0, 0.0, 0.0, 0.55))
+	var right: float = w - 8.0
 	var title_y: float = 20.0 if detail != "" else h * 0.5 + 5.0
 	toast.draw_string_outline(UiStyle.FONT_BOLD, Vector2(0.0, title_y), title, HORIZONTAL_ALIGNMENT_RIGHT, right, 15, 4, Color(0, 0, 0, 0.55))
 	toast.draw_string(UiStyle.FONT_BOLD, Vector2(0.0, title_y), title, HORIZONTAL_ALIGNMENT_RIGHT, right, 15, color.lightened(0.2))

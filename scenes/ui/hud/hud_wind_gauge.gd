@@ -37,6 +37,9 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_time += delta
+	visible = _should_show()
+	if not visible:
+		return
 	var strength: float = clampf(absf(wind) / full_wind, 0.0, 1.0)
 	_scroll = fposmod(_scroll + delta * (0.6 + 3.2 * strength), 1.0)
 	queue_redraw()
@@ -87,3 +90,16 @@ func _draw_chevron(at: Vector2, side: float, color: Color) -> void:
 	var colors: PackedColorArray = PackedColorArray([color, color, color, color])
 	draw_primitive(PackedVector2Array([top, tip, inner_tip, inner_top]), colors, PackedVector2Array())
 	draw_primitive(PackedVector2Array([inner_tip, tip, bottom, inner_bottom]), colors, PackedVector2Array())
+
+
+## Only during play: hidden under the pause menu, the loadout and the end-of-match screens.
+func _should_show() -> bool:
+	if get_tree().paused:
+		return false
+	for modal in get_tree().get_nodes_in_group(&"modal_ui"):
+		if modal is CanvasItem and (modal as CanvasItem).is_visible_in_tree():
+			return false
+	var world: Node = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)
+	if world != null and world.has_method(&"is_match_over") and world.is_match_over():
+		return false
+	return true

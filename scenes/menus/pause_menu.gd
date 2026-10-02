@@ -46,18 +46,12 @@ func _build() -> void:
 	_menu_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_menu_container)
 
-	var stripe: ColorRect = ColorRect.new()
-	stripe.color = Color(UiStyle.ACCENT.r, UiStyle.ACCENT.g, UiStyle.ACCENT.b, 0.9)
-	stripe.position = Vector2(96.0, 118.0)
-	stripe.size = Vector2(6.0, 74.0)
-	_menu_container.add_child(stripe)
-
 	_panel = VBoxContainer.new()
-	_panel.position = Vector2(122.0, 108.0)
+	_panel.position = Vector2(96.0, 108.0)
 	_panel.add_theme_constant_override("separation", 12)
 	_menu_container.add_child(_panel)
 	var title: Label = Label.new()
-	UiStyle.style_label(title, UiStyle.FONT_DISPLAY, 64, UiStyle.TEXT, 10)
+	UiStyle.style_label(title, UiStyle.FONT_DISPLAY, 64, UiStyle.TEXT)
 	title.text = "PAUSED"
 	_panel.add_child(title)
 	_subtitle = Label.new()
@@ -83,6 +77,8 @@ func _add_button(text: String, primary: bool, callback: Callable) -> Button:
 	button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	button.set_meta("juice_rotation_multiplier", 0.0)
 	UiStyle.style_button(button, primary, 22 if primary else 19)
+	if not primary:
+		button.add_theme_stylebox_override("normal", UiStyle.with_margins(UiStyle.panel(Color(0, 0, 0, 0)), 26, 10))
 	button.pressed.connect(callback)
 	_panel.add_child(button)
 	_buttons.append(button)
@@ -115,7 +111,15 @@ func _build_world_row() -> void:
 func _refresh_world_row() -> void:
 	var current: StringName = WorldCatalog.sandbox_world_id()
 	for world_id in _world_buttons.keys():
-		UiStyle.style_button(_world_buttons[world_id], world_id == current, 16)
+		var button: Button = _world_buttons[world_id]
+		UiStyle.style_button(button, false, 16)
+		if world_id == current:
+			# The world you are on reads as selected (light fill), not as a second call to action.
+			var selected: StyleBoxFlat = UiStyle.with_margins(UiStyle.panel(UiStyle.TEXT), 26, 10)
+			for state in ["normal", "hover", "focus", "pressed"]:
+				button.add_theme_stylebox_override(state, selected)
+			for color_name in ["font_color", "font_hover_color", "font_focus_color", "font_pressed_color"]:
+				button.add_theme_color_override(color_name, UiStyle.INK)
 
 
 func _on_world_pressed(world_id: StringName) -> void:

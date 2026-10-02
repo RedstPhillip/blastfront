@@ -40,7 +40,7 @@ text = "WEAPON EXTENSIONS"
 
 [node name="MarkLabel" type="Label" parent="Margin/RootVBox/Header"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.86, 0.92, 0.94, 1)
+theme_override_colors/font_color = Color(0.922, 0.904, 0.859, 1)
 theme_override_font_sizes/font_size = 22
 text = "MK I"
 vertical_alignment = 1
@@ -85,7 +85,7 @@ display_name = "FRONT"
 
 [node name="InventoryLabel" type="Label" parent="Margin/RootVBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.82, 0.88, 0.9, 1)
+theme_override_colors/font_color = Color(0.882, 0.864, 0.821, 1)
 theme_override_font_sizes/font_size = 18
 text = "INVENTORY"
 
