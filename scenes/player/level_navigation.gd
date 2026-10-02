@@ -30,6 +30,10 @@ var _astar: NavAStar = NavAStar.new()
 var _space: PhysicsDirectSpaceState2D = null
 var _query: PhysicsRayQueryParameters2D = PhysicsRayQueryParameters2D.new()
 var _bounds: Rect2 = GameSettings.DEFAULT_MAP_BOUNDS
+## Jump physics of the map being built (Mars has lower gravity, so arcs are higher and longer).
+var _gravity: float = GRAVITY
+var _max_climb: float = MAX_CLIMB
+var _max_reach: float = MAX_HORIZONTAL_REACH
 
 
 static func get_for(map_root: Node, space: PhysicsDirectSpaceState2D, bounds: Rect2) -> LevelNavigation:
@@ -77,6 +81,10 @@ func get_move(from_id: int, to_id: int) -> Dictionary:
 func _build(map_root: Node, space: PhysicsDirectSpaceState2D, bounds: Rect2) -> void:
 	_space = space
 	_bounds = bounds
+	var gravity_scale: float = clampf(WorldConditions.gravity_scale, 0.3, 2.0)
+	_gravity = GRAVITY * gravity_scale
+	_max_climb = MAX_CLIMB / gravity_scale
+	_max_reach = MAX_HORIZONTAL_REACH / sqrt(gravity_scale)
 	var chains: Array = []
 	for body in map_root.find_children("*", "StaticBody2D", true, false):
 		for child in body.get_children():
@@ -121,7 +129,7 @@ func _link_to_other_chains(source: int, chain_ranges: Array[Vector2i], climb_onl
 			var to: Vector2 = points[target]
 			var dx: float = to.x - from.x
 			var dy: float = to.y - from.y
-			if absf(dx) > MAX_HORIZONTAL_REACH or dy < -MAX_CLIMB or dy > MAX_DROP:
+			if absf(dx) > _max_reach or dy < -_max_climb or dy > MAX_DROP:
 				continue
 			if climb_only and (dy > -24.0 or absf(dx) > 150.0):
 				continue
@@ -175,22 +183,22 @@ func _arc_is_clear(from: Vector2, to: Vector2, launch_speed: float) -> bool:
 
 
 func _vertical_offset(t: float, launch_speed: float) -> float:
-	var rise_time: float = launch_speed / GRAVITY
+	var rise_time: float = launch_speed / _gravity
 	if t <= rise_time:
-		return -launch_speed * t + 0.5 * GRAVITY * t * t
-	var apex: float = -launch_speed * rise_time + 0.5 * GRAVITY * rise_time * rise_time
+		return -launch_speed * t + 0.5 * _gravity * t * t
+	var apex: float = -launch_speed * rise_time + 0.5 * _gravity * rise_time * rise_time
 	var fall_t: float = t - rise_time
-	return apex + 0.5 * GRAVITY * FALL_MULTIPLIER * fall_t * fall_t
+	return apex + 0.5 * _gravity * FALL_MULTIPLIER * fall_t * fall_t
 
 
 func _time_to_reach(start_y: float, end_y: float, launch_speed: float) -> float:
-	var rise_time: float = launch_speed / GRAVITY
-	var apex_offset: float = -launch_speed * rise_time + 0.5 * GRAVITY * rise_time * rise_time
+	var rise_time: float = launch_speed / _gravity
+	var apex_offset: float = -launch_speed * rise_time + 0.5 * _gravity * rise_time * rise_time
 	var needed: float = end_y - start_y
 	if needed < apex_offset - 0.5:
 		return -1.0
 	var fall_distance: float = needed - apex_offset
-	return rise_time + sqrt(maxf(fall_distance, 0.0) * 2.0 / (GRAVITY * FALL_MULTIPLIER))
+	return rise_time + sqrt(maxf(fall_distance, 0.0) * 2.0 / (_gravity * FALL_MULTIPLIER))
 
 
 func _sample_chain(chain: PackedVector2Array, chain_index: int) -> void:

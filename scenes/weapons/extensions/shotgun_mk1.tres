@@ -8,13 +8,13 @@ script = ExtResource("1_definition")
 extension_id = "shotgun_mk1"
 display_name = "Shotgun MK1"
 slot_key = "front"
-description = "Wide-bore barrel firing 5 short-range projectiles with a wider, less predictable spread. Damage -13, Fire Rate +0.24s, Speed -100, Range -1000, Ammo -1, Reload +0.2s."
+description = "Wide-bore barrel firing 5 short-range pellets in a wide cone: devastating up close, scattered at range. Damage -13, Fire Rate +0.24s, Speed -100, Range -1000, Ammo -1, Reload +0.2s."
 default_condition = 100.0
 minimum_condition_factor = 0.25
 attribute_modifiers = {
 "shots_per_fire": 4.0,
-"shot_spread_degrees": 12.0,
-"shot_random_spread_degrees": 4.0,
+"shot_spread_degrees": 26.0,
+"shot_random_spread_degrees": 3.5,
 "damage": -13.0,
 "fire_interval": 0.24,
 "projectile_speed": -100.0,
@@ -24,8 +24,8 @@ attribute_modifiers = {
 }
 mk2_attribute_modifiers = {
 "shots_per_fire": 5.0,
-"shot_spread_degrees": 14.0,
-"shot_random_spread_degrees": 4.5,
+"shot_spread_degrees": 28.0,
+"shot_random_spread_degrees": 3.5,
 "damage": -11.0,
 "fire_interval": 0.22,
 "projectile_speed": -85.0,
@@ -35,8 +35,8 @@ mk2_attribute_modifiers = {
 }
 mk3_attribute_modifiers = {
 "shots_per_fire": 6.0,
-"shot_spread_degrees": 16.0,
-"shot_random_spread_degrees": 5.0,
+"shot_spread_degrees": 30.0,
+"shot_random_spread_degrees": 3.5,
 "damage": -9.0,
 "fire_interval": 0.2,
 "projectile_speed": -70.0,

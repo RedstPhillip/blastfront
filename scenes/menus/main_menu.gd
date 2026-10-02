@@ -32,6 +32,7 @@ var _online_button: Button = null
 var _bot_start_button: Button = null
 var _bot_caption: Label = null
 var _shop_buttons: Array[Button] = []
+var _world_buttons: Array[Button] = []
 var _shop_text: Label = null
 var _steam_label: Label = null
 var _steam_dot: ColorRect = null
@@ -257,6 +258,39 @@ func _add_menu_button(parent: Container, text: String, primary: bool, callback: 
 
 
 ## Phase shop on/off for bot duels, styled like the difficulty picker and remembered between sessions.
+## Which world the duel is fought on: the green ridge, or Mars with its low gravity and dust storms.
+func _build_world_choice(box: VBoxContainer) -> void:
+	var row: HBoxContainer = HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	box.add_child(row)
+	var label: Label = Label.new()
+	UiStyle.style_label(label, UiStyle.FONT_BOLD, 16, UiStyle.TEXT)
+	label.text = "WORLD"
+	label.custom_minimum_size = Vector2(130.0, 0.0)
+	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(label)
+	var group: ButtonGroup = ButtonGroup.new()
+	var current: StringName = WorldCatalog.bot_world_id()
+	for world_id in WorldCatalog.ids():
+		var option: Button = Button.new()
+		option.text = WorldCatalog.display_name(world_id).to_upper()
+		option.toggle_mode = true
+		option.button_group = group
+		option.custom_minimum_size = Vector2(110.0, 42.0)
+		UiStyle.style_button(option, false, 17)
+		option.add_theme_stylebox_override("pressed", UiStyle.with_margins(UiStyle.panel(Color(UiStyle.ACCENT.r, UiStyle.ACCENT.g, UiStyle.ACCENT.b, 0.22), UiStyle.ACCENT, 3, 2, 0.18), 26, 10))
+		option.add_theme_color_override("font_pressed_color", UiStyle.ACCENT_HOT)
+		option.toggled.connect(_on_world_toggled.bind(world_id))
+		option.set_pressed_no_signal(world_id == current)
+		row.add_child(option)
+		_world_buttons.append(option)
+
+
+func _on_world_toggled(pressed: bool, world_id: StringName) -> void:
+	if pressed:
+		UserSettings.set_value(UserSettings.BOT_WORLD, str(world_id))
+
+
 func _build_shop_toggle(box: VBoxContainer) -> void:
 	var divider: ColorRect = ColorRect.new()
 	divider.color = UiStyle.LINE
@@ -358,6 +392,7 @@ func _build_bot_panel() -> void:
 	_difficulty_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_difficulty_text.custom_minimum_size = Vector2(370.0, 48.0)
 	box.add_child(_difficulty_text)
+	_build_world_choice(box)
 	_build_shop_toggle(box)
 	var actions: HBoxContainer = HBoxContainer.new()
 	actions.add_theme_constant_override("separation", 12)

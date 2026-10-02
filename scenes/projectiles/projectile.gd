@@ -30,6 +30,7 @@ var _tracer: ProjectileTracer = null
 var _head_glow: Sprite2D = null
 var _whiz_played: bool = false
 var _local_view_player: Player = null
+var _wind_response: float = 1.0
 
 
 func configure_from_data(
@@ -57,6 +58,9 @@ func configure_from_data(
 	source_extensions = _string_array(projectile_data.get("source_extensions", []))
 	var velocity_variant: Variant = projectile_data.get("initial_velocity", Vector2.ZERO)
 	initial_velocity = velocity_variant if velocity_variant is Vector2 else Vector2.ZERO
+	# A volley shares one data set; every pellet keeps the speed but flies along its own direction.
+	if initial_velocity.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED and direction.length_squared() > 0.0001:
+		initial_velocity = direction * initial_velocity.length()
 
 
 static func _string_array(value: Variant) -> Array[String]:
@@ -78,6 +82,8 @@ func _ready() -> void:
 	_apply_projectile_scale()
 	_setup_tracer(style)
 	_local_view_player = _find_local_view_player()
+	_wind_response = WorldConditions.projectile_wind_response(muzzle_speed, projectile_scale, extension_tags, source_extensions)
+	max_distance *= WorldConditions.projectile_range_scale
 	if extension_tags.has("bouncy"):
 		_bounces_left = _get_bouncy_bounces()
 	if extension_tags.has("drill"):
@@ -89,7 +95,7 @@ func _physics_process(delta: float) -> void:
 	ExtensionBehaviorRegistry.update_projectile_behaviors(self, delta)
 
 	velocity.y += gravity * WorldConditions.projectile_gravity_scale * delta
-	velocity += WorldConditions.wind * delta
+	velocity += WorldConditions.projectile_wind_acceleration(_wind_response) * delta
 	if linear_damping > 0.0:
 		velocity = velocity.move_toward(Vector2.ZERO, linear_damping * delta)
 	_update_rotation()
@@ -108,6 +114,10 @@ func _physics_process(delta: float) -> void:
 	_check_bullet_whiz()
 	if _distance_travelled >= max_distance:
 		_request_despawn(&"max_distance", null)
+
+
+func get_wind_response() -> float:
+	return _wind_response
 
 
 func apply_network_snapshot(snapshot: Dictionary) -> void:

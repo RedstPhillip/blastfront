@@ -16,6 +16,10 @@ uniform float sun_size = 0.012;
 uniform vec2 phobos_uv = vec2(0.26, 0.26);
 uniform vec2 deimos_uv = vec2(0.8, 0.16);
 uniform float aspect = 6.5;
+// 0 = clear evening, 1 = the sky choked with storm dust (raised by the weather).
+uniform float dust = 0.0;
+uniform float wind = 0.0;
+uniform vec4 dust_color : source_color = vec4(0.62, 0.36, 0.22, 1.0);
 
 const float TILE_UNITS = 4.5;
 
@@ -86,6 +90,17 @@ void fragment() {
 		float across = abs(dot(rel, vec2(-dn.y, dn.x)));
 		float streak = smoothstep(0.0025, 0.0, across) * smoothstep(0.12, 0.0, along) * step(0.0, along);
 		col += vec3(1.0, 0.92, 0.8) * streak * (1.0 - travel) * 0.8;
+	}
+
+	// Storm: a churning brown pall rolls over everything, the sun fades to a smudge.
+	if (dust > 0.001) {
+		vec2 sp = local_px * vec2(0.0009, 0.0024) / TILE_UNITS;
+		float churn = texture(noise_tex, sp + vec2(-TIME * 0.02 * wind, TIME * 0.003)).r;
+		float churn2 = texture(noise_tex, sp * 2.6 + vec2(-TIME * 0.045 * wind, 0.0)).g;
+		float body = mix(churn, churn2, 0.4);
+		vec3 storm = dust_color.rgb * (0.72 + 0.5 * body) * mix(0.75, 1.15, smoothstep(0.1, 0.95, uv.y));
+		storm += vec3(1.0, 0.8, 0.6) * exp(-dist * 9.0) * 0.18;
+		col = mix(col, storm, clamp(dust * (0.75 + 0.35 * body), 0.0, 1.0));
 	}
 
 	COLOR = vec4(col, 1.0);

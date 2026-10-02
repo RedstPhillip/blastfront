@@ -85,6 +85,10 @@ func _make_particles(amount: int, lifetime: float, gravity: Vector2, scale_min: 
 
 
 func _physics_process(delta: float) -> void:
+	# Plumes and vapour lean with the wind.
+	_plume.gravity.x = WorldConditions.wind.x * 1.3
+	_idle.gravity.x = WorldConditions.wind.x * 0.45
+	_hiss.gravity.x = WorldConditions.wind.x * 0.7
 	_timer -= delta
 	match _phase:
 		Phase.REST:

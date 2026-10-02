@@ -96,6 +96,11 @@ var _hit_flash_timer: float = 0.0
 var _hit_feedback_guard_timer: float = 0.0
 ## Hits landing in the same frame (shotgun pellets, multi-barrel volleys, splash) are gathered here and
 ## played as one combined hit at the end of the frame: one burst, one sound, one shove sized by the total.
+## Wind (Mars storms): how much of it reaches the player (terrain upwind gives shelter), and how much of
+## the air speed turns into drift on the ground and in the air.
+const WIND_GROUND_SHARE: float = 0.3
+const WIND_AIR_SHARE: float = 0.62
+var _wind_exposure: float = 1.0
 var _pending_hit_damage: int = 0
 var _pending_hit_count: int = 0
 var _pending_hit_direction: Vector2 = Vector2.ZERO
@@ -211,6 +216,7 @@ func _physics_process(delta: float) -> void:
 	_update_block_input()
 	_update_movement_timers(delta)
 	update_wall_coyote(delta)
+	_update_wind_exposure(delta)
 
 
 func configure_local_control(slot: int, move_left: StringName, move_right: StringName, jump: StringName, shoot: StringName, block: StringName, allow_shoot: bool) -> void:
@@ -789,12 +795,35 @@ func apply_horizontal_movement(delta: float, max_speed: float, acceleration: flo
 	max_speed *= slow
 	acceleration *= slow
 	friction *= slow
+	var drift: float = get_wind_drift_speed()
 	if direction != 0.0:
 		last_dir = signf(direction)
-		velocity.x = move_toward(velocity.x, direction * max_speed, acceleration * delta)
+		velocity.x = move_toward(velocity.x, direction * max_speed + drift, acceleration * delta)
 	else:
-		velocity.x = move_toward(velocity.x, 0.0, friction * delta)
+		velocity.x = move_toward(velocity.x, drift, friction * delta)
 	return direction
+
+
+## Sideways speed the wind adds right now: running with a storm is faster, against it slower, and standing
+## still lets it shove you. Airborne players catch far more of it than grounded ones.
+func get_wind_drift_speed() -> float:
+	if not WorldConditions.has_wind():
+		return 0.0
+	var share: float = WIND_GROUND_SHARE if is_grounded() else WIND_AIR_SHARE
+	return WorldConditions.wind.x * _wind_exposure * share
+
+
+func get_wind_exposure() -> float:
+	return _wind_exposure if WorldConditions.has_wind() else 0.0
+
+
+func _update_wind_exposure(delta: float) -> void:
+	if not WorldConditions.has_wind():
+		_wind_exposure = 1.0
+		return
+	var exclude: Array[RID] = [get_rid()]
+	var target: float = WorldConditions.wind_exposure_at(get_world_2d().direct_space_state, global_position, exclude)
+	_wind_exposure = move_toward(_wind_exposure, target, delta * 3.5)
 
 
 func _get_dynamic_armor_speed_bonus(direction: float) -> float:

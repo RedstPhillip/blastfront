@@ -31,6 +31,9 @@ var _kick_offset: Vector2 = Vector2.ZERO
 var _zoom_punch: float = 0.0
 var _camera_offset: Vector2 = Vector2.ZERO
 var _camera_roll: float = 0.0
+## Continuous camera motion from the environment (a storm leaning on the camera); set every frame by weather.
+var _ambient_offset: Vector2 = Vector2.ZERO
+var _ambient_shake: float = 0.0
 var _hitstop_until_usec: int = 0
 var _hitstop_scale: float = 1.0
 var _slowmo_until_usec: int = 0
@@ -73,6 +76,8 @@ func bind_camera(camera: Camera2D) -> void:
 	_zoom_punch = 0.0
 	_camera_offset = Vector2.ZERO
 	_camera_roll = 0.0
+	_ambient_offset = Vector2.ZERO
+	_ambient_shake = 0.0
 
 
 func clear_camera(camera: Camera2D) -> void:
@@ -83,6 +88,12 @@ func clear_camera(camera: Camera2D) -> void:
 	_camera = null
 	_camera_offset = Vector2.ZERO
 	reset_time_scale()
+
+
+## Environmental camera motion: a steady offset (e.g. leaning downwind) plus a low, constant rumble.
+func set_ambient_motion(offset: Vector2, shake_amount: float) -> void:
+	_ambient_offset = offset * shake_multiplier
+	_ambient_shake = maxf(shake_amount, 0.0) * shake_multiplier
 
 
 ## Classic short shake: strength in pixels, fades out quadratically over duration.
@@ -149,7 +160,10 @@ func _update_camera_juice(delta: float) -> void:
 
 	_kick_offset = _kick_offset.lerp(Vector2.ZERO, 1.0 - exp(-KICK_RETURN_SPEED * delta))
 	_zoom_punch = lerpf(_zoom_punch, 0.0, 1.0 - exp(-ZOOM_PUNCH_RETURN_SPEED * delta))
-	_camera_offset = shake_offset + _kick_offset
+	var ambient: Vector2 = _ambient_offset
+	if _ambient_shake > 0.0:
+		ambient += Vector2(_noise.get_noise_2d(_noise_time * 7.0, 517.0), _noise.get_noise_2d(211.0, _noise_time * 7.0)) * _ambient_shake
+	_camera_offset = shake_offset + _kick_offset + ambient
 
 	if _camera != null and is_instance_valid(_camera) and not _camera.has_method(&"uses_juice_values"):
 		_camera.offset = _camera_base_offset + _camera_offset
@@ -255,13 +269,15 @@ func spawn_muzzle(world_position: Vector2, direction: Vector2, tint: Color = Col
 	root_node.add_child(effect_node)
 
 
-func spawn_casing(world_position: Vector2, eject_direction: Vector2) -> void:
+func spawn_casing(world_position: Vector2, eject_direction: Vector2, tint: Color = Color.WHITE, size: float = 1.0) -> void:
 	if particles_multiplier <= 0.0:
 		return
 	var casing: ShellCasing = ShellCasing.new()
 	var root_node: Node = _effect_root()
 	_place_effect(casing, root_node, world_position)
 	casing.launch(eject_direction)
+	casing.self_modulate = tint
+	casing.size_factor = size
 	root_node.add_child(casing)
 
 

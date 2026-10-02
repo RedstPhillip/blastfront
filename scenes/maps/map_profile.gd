@@ -11,13 +11,18 @@ const GROUP: StringName = &"map_profile"
 @export var ambience: StringName = &"ambience_wind"
 @export_range(0.3, 1.5, 0.01) var gravity_scale: float = 1.0
 @export_range(0.3, 1.5, 0.01) var projectile_gravity_scale: float = 1.0
+## Thin air lets rounds carry further before they fade out.
+@export_range(0.5, 2.0, 0.01) var projectile_range_scale: float = 1.0
 
 
 func _enter_tree() -> void:
 	add_to_group(GROUP)
 	WorldConditions.gravity_scale = gravity_scale
 	WorldConditions.projectile_gravity_scale = projectile_gravity_scale
+	WorldConditions.projectile_range_scale = projectile_range_scale
 	WorldConditions.wind = Vector2.ZERO
+	WorldConditions.storm = 0.0
+	WorldConditions.visibility = 1.0
 
 
 func _exit_tree() -> void:

@@ -22,6 +22,7 @@ const BEACON_MIN_CHAIN: float = 150.0
 
 var _beacon_count: int = 0
 var _beacon_material: ShaderMaterial = null
+var _pennant_anchors: PackedVector2Array = PackedVector2Array()
 
 
 func _ready() -> void:
@@ -124,6 +125,7 @@ func _maybe_add_lantern(chain: Array, decorations: Node2D) -> void:
 	var light: Vector2 = top + Vector2(0.0, -1.8)
 	decorations.add_child(_beacon_sprite(GLOW_TEXTURE, light, 0.55, Color(beacon_color.r, beacon_color.g, beacon_color.b, 0.95)))
 	decorations.add_child(_beacon_sprite(SOFT_TEXTURE, light, 0.12, Color(1.0, 0.8, 0.7, 1.0)))
+	_pennant_anchors.append(base + Vector2(0.0, -20.0))
 
 
 func _beacon_sprite(texture: Texture2D, at: Vector2, size: float, color: Color) -> Sprite2D:
@@ -195,3 +197,11 @@ func _commit_mesh(decorations: Node2D) -> void:
 	instance.mesh = mesh
 	instance.light_mask = GEOMETRY_LIGHT_MASK
 	decorations.add_child(instance)
+	if not _pennant_anchors.is_empty():
+		# Windsocks on the beacon masts: the quickest read of where a storm is blowing.
+		var pennants: WindPennant = WindPennant.new()
+		pennants.name = "Pennants"
+		pennants.anchors = _pennant_anchors
+		pennants.cloth_color = Color(1.0, 0.52, 0.18)
+		pennants.light_mask = GEOMETRY_LIGHT_MASK
+		decorations.add_child(pennants)

@@ -9,6 +9,7 @@ const LIFETIME: float = 2.6
 const BOUNCE_DAMPING: float = 0.42
 const WORLD_MASK: int = 1
 
+var size_factor: float = 1.0
 var _velocity: Vector2 = Vector2.ZERO
 var _spin: float = 0.0
 var _age: float = 0.0
@@ -25,7 +26,7 @@ func launch(eject_direction: Vector2) -> void:
 
 func _ready() -> void:
 	texture = TEXTURE
-	scale = Vector2.ONE * 0.62
+	scale = Vector2.ONE * 0.62 * size_factor
 	z_index = 4
 
 

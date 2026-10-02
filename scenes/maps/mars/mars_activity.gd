@@ -70,6 +70,12 @@ func _build_outpost() -> void:
 	_add_glow(outpost, Vector2(0.0, -6.0), GLOW_TEXTURE, 1.2, Color(window_color.r, window_color.g, window_color.b, 0.18), null)
 	_add_glow(outpost, Vector2(-42.5, -60.0), GLOW_TEXTURE, 0.42, Color(1.0, 0.25, 0.18, 0.9), _blink)
 	_add_glow(outpost, Vector2(-42.5, -60.0), SOFT_TEXTURE, 0.08, Color(1.0, 0.8, 0.7, 1.0), _blink)
+	var sock: WindPennant = WindPennant.new()
+	sock.anchors = PackedVector2Array([Vector2(-42.5, -54.0)])
+	sock.length = 12.0
+	sock.width = 4.0
+	sock.cloth_color = silhouette_color.lerp(Color(1.0, 0.5, 0.2), 0.45)
+	outpost.add_child(sock)
 	_pad = base + Vector2(130.0, 0.0)
 	_pad.y = _surface(_ground, _pad.x)
 	var tower: Node2D = Node2D.new()
@@ -140,7 +146,8 @@ func _update_rover(delta: float) -> void:
 func _update_devils(delta: float) -> void:
 	for devil in _devils:
 		var rect: ColorRect = devil["node"]
-		devil["x"] = float(devil["x"]) + float(devil["speed"]) * delta
+		# Storm winds drag the dust devils along with them.
+		devil["x"] = float(devil["x"]) + (float(devil["speed"]) + WorldConditions.wind.x * 0.35) * delta
 		devil["life"] = float(devil["life"]) + delta / float(devil["duration"])
 		if float(devil["life"]) >= 1.0:
 			devil["life"] = 0.0

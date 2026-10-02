@@ -8,6 +8,9 @@ extends Node
 
 enum Difficulty { DUMMY = -1, EASY = 0, NORMAL = 1, HARD = 2 }
 
+## Distance the bot can see in the thickest storm and in clear air.
+const STORM_SIGHT_MIN: float = 380.0
+const STORM_SIGHT_MAX: float = 4000.0
 const PROFILES: Dictionary = {
 	Difficulty.EASY: {
 		"aim_error": 7.5, "reaction": 0.45, "fire_delay": 0.6, "block_chance": 0.18, "block_reaction": 0.3,
@@ -68,6 +71,8 @@ var _bad_goals: Dictionary = {}
 var _search_bounds: Rect2 = Rect2()
 var _search_speed: float = 0.0
 var _search_gravity: float = 0.0
+## Sideways acceleration the wind puts on the bot's own rounds (Mars storms); folded into every aim solve.
+var _wind_accel: float = 0.0
 var _search_range: float = 0.0
 var _search_capture: Dictionary = {}
 var _ray_query: PhysicsRayQueryParameters2D = null
@@ -258,6 +263,7 @@ func _begin_goal_search() -> void:
 	var gun: Variant = _player.get_gun()
 	if gun != null:
 		var ballistics: Dictionary = gun.get_ballistics()
+		_wind_accel = float(ballistics.get("wind", 0.0))
 		_search_speed = float(ballistics.get("speed", _search_speed))
 		_search_gravity = float(ballistics.get("gravity", _search_gravity))
 	var reach: float = _search_range * 1.6
@@ -419,6 +425,7 @@ func _update_aim_and_fire(delta: float) -> void:
 		_aim_error_angle = deg_to_rad(randfn(0.0, float(_profile["aim_error"])))
 
 	var ballistics: Dictionary = gun.get_ballistics()
+	_wind_accel = float(ballistics.get("wind", 0.0))
 	var speed: float = float(ballistics.get("speed", GameSettings.PROJECTILE_MUZZLE_SPEED))
 	var gravity: float = float(ballistics.get("gravity", GameSettings.PROJECTILE_GRAVITY))
 	var origin: Vector2 = _player.global_position
@@ -430,7 +437,9 @@ func _update_aim_and_fire(delta: float) -> void:
 	if _solution_timer <= 0.0:
 		_solution_timer = 0.08
 		_solution_direction = _find_clear_shot(origin, target_point, speed, gravity)
-	var clear: bool = _solution_direction != Vector2.ZERO
+	# In a dust storm the bot only sees as far as a player does.
+	var sight: float = lerpf(BotBrain.STORM_SIGHT_MIN, BotBrain.STORM_SIGHT_MAX, clampf(WorldConditions.visibility, 0.0, 1.0))
+	var clear: bool = _solution_direction != Vector2.ZERO and origin.distance_to(_target.global_position) <= sight
 	var desired: Vector2 = _solution_direction if clear else _aim_line(origin, target_point, speed, gravity, false)
 	desired = desired.rotated(_aim_error_angle)
 	var turn: float = clampf(float(_profile["turn_rate"]) * delta, 0.0, 1.0)
@@ -508,6 +517,7 @@ func _refine_aim(from: Vector2, to: Vector2, direction: Vector2, speed: float, g
 		var reached: bool = false
 		for _index in range(150):
 			velocity.y += gravity * step
+			velocity.x += _wind_accel * step
 			var next: Vector2 = position + velocity * step
 			if (next.x - to.x) * signf(dx) >= 0.0:
 				var ratio: float = absf(to.x - position.x) / maxf(absf(next.x - position.x), 0.0001)
@@ -533,6 +543,7 @@ func _trajectory_reaches(start: Vector2, velocity: Vector2, gravity: float, targ
 	var heading: float = signf(target_point.x - start.x)
 	for index in range(TRAJECTORY_STEPS):
 		current_velocity.y += gravity * step
+		current_velocity.x += _wind_accel * step
 		position += current_velocity * step
 		var last_step: bool = index == TRAJECTORY_STEPS - 1
 		if (index + 1) % TRAJECTORY_RAY_STRIDE != 0 and not last_step:
@@ -602,8 +613,10 @@ func _predict_impact_time(projectile: Projectile, me: Vector2) -> float:
 	var velocity: Vector2 = projectile.velocity
 	var step: float = 1.0 / 60.0
 	var t: float = 0.0
+	var drift: Vector2 = WorldConditions.projectile_wind_acceleration(projectile.get_wind_response())
 	while t < THREAT_HORIZON:
-		velocity.y += projectile.gravity * step
+		velocity.y += projectile.gravity * WorldConditions.projectile_gravity_scale * step
+		velocity += drift * step
 		position += velocity * step
 		t += step
 		if position.distance_to(me) < THREAT_RADIUS:
@@ -651,6 +664,7 @@ func _weapon_range() -> float:
 	if gun == null:
 		return 380.0
 	var ballistics: Dictionary = gun.get_ballistics()
+	_wind_accel = float(ballistics.get("wind", 0.0))
 	var speed: float = float(ballistics.get("speed", GameSettings.PROJECTILE_MUZZLE_SPEED))
 	var gravity: float = maxf(float(ballistics.get("gravity", GameSettings.PROJECTILE_GRAVITY)), 1.0)
 	return clampf(speed * speed / gravity, 220.0, 900.0)

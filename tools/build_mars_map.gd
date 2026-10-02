@@ -76,6 +76,7 @@ func _build_profile() -> void:
 	profile.ambience = &"ambience_mars"
 	profile.gravity_scale = 0.8
 	profile.projectile_gravity_scale = 0.72
+	profile.projectile_range_scale = 1.3
 	_add(_root, profile, "MapProfile")
 	var bounds: Node = Node.new()
 	bounds.set_script(load("res://scenes/maps/map_bounds.gd"))
@@ -143,7 +144,15 @@ func _build_geometry() -> void:
 		Vector2(1004, 306), Vector2(1020, 294), Vector2(1140, 294), Vector2(1156, 306), Vector2(1142, 320),
 		Vector2(1110, 332), Vector2(1050, 332), Vector2(1018, 320),
 	]
+	# Shelves on the spire's flanks: a walkable climb from the crater floor onto the cap (and cover
+	# from the side). They stay clear of the geyser columns.
+	var shelf: Array = [
+		Vector2(988, 612), Vector2(998, 602), Vector2(1030, 599), Vector2(1052, 603), Vector2(1056, 620),
+		Vector2(1046, 636), Vector2(1020, 642), Vector2(998, 630),
+	]
 	var bodies: Dictionary = {
+		"LeftShelf": shelf,
+		"RightShelf": _mirror(shelf),
 		"LeftMesa": left_mesa,
 		"Crater": crater,
 		"RightMesa": _mirror(left_mesa),

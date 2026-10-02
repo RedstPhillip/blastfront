@@ -15,12 +15,38 @@ const POOL_SIZE_GLOBAL: int = 16
 const MUSIC_FADE_DEFAULT: float = 1.6
 const MUFFLE_CUTOFF_OPEN: float = 20500.0
 const MUFFLE_CUTOFF_CLOSED: float = 850.0
+const MUFFLE_CUTOFF_STORM: float = 3200.0
 
 # event_id: {bus, layers: [{files, volume, pitch: Vector2}], voices, cooldown}
 const EVENTS: Dictionary = {
 	&"shoot": {"bus": &"SFX", "voices": 6, "cooldown": 0.02, "layers": [
 		{"files": ["legacy:gun_shot.mp3"], "volume": -3.0, "pitch": Vector2(0.94, 1.06)},
 		{"files": ["impact_light_0", "impact_light_1", "impact_light_2"], "volume": -15.0, "pitch": Vector2(0.55, 0.7)},
+	]},
+	&"shot_carbine": {"bus": &"SFX", "voices": 6, "cooldown": 0.02, "layers": [
+		{"files": ["shot_carbine"], "volume": -2.0, "pitch": Vector2(0.95, 1.05)},
+		{"files": ["legacy:gun_shot.mp3"], "volume": -9.0, "pitch": Vector2(0.96, 1.04)},
+	]},
+	&"shot_shotgun": {"bus": &"SFX", "voices": 4, "cooldown": 0.05, "layers": [
+		{"files": ["shot_shotgun"], "volume": 0.0, "pitch": Vector2(0.95, 1.04)},
+	]},
+	&"shot_sniper": {"bus": &"SFX", "voices": 3, "cooldown": 0.05, "layers": [
+		{"files": ["shot_sniper"], "volume": -1.0, "pitch": Vector2(0.97, 1.03)},
+	]},
+	&"shot_heavy": {"bus": &"SFX", "voices": 4, "cooldown": 0.03, "layers": [
+		{"files": ["shot_heavy"], "volume": -1.0, "pitch": Vector2(0.94, 1.04)},
+	]},
+	&"shot_light": {"bus": &"SFX", "voices": 6, "cooldown": 0.02, "layers": [
+		{"files": ["shot_light"], "volume": -3.0, "pitch": Vector2(0.96, 1.08)},
+	]},
+	&"shot_launcher": {"bus": &"SFX", "voices": 4, "cooldown": 0.04, "layers": [
+		{"files": ["shot_launcher"], "volume": -2.0, "pitch": Vector2(0.94, 1.05)},
+	]},
+	&"shotgun_pump": {"bus": &"SFX", "voices": 2, "cooldown": 0.1, "layers": [
+		{"files": ["shotgun_pump"], "volume": -5.0, "pitch": Vector2(0.97, 1.03)},
+	]},
+	&"sniper_bolt": {"bus": &"SFX", "voices": 2, "cooldown": 0.1, "layers": [
+		{"files": ["sniper_bolt"], "volume": -6.0, "pitch": Vector2(0.97, 1.03)},
 	]},
 	&"dry_fire": {"bus": &"SFX", "voices": 2, "cooldown": 0.12, "layers": [
 		{"files": ["ui:dry_fire"], "volume": -6.0, "pitch": Vector2(0.8, 0.9)},
@@ -199,6 +225,9 @@ const EVENTS: Dictionary = {
 	&"dust_gust": {"bus": &"SFX", "voices": 1, "cooldown": 2.0, "layers": [
 		{"files": ["dust_gust"], "volume": -4.0, "pitch": Vector2(0.92, 1.06)},
 	]},
+	&"storm_warning": {"bus": &"Ambience", "voices": 1, "cooldown": 3.0, "layers": [
+		{"files": ["storm_warning"], "volume": -2.0, "pitch": Vector2(0.96, 1.04)},
+	]},
 	&"geyser_rumble": {"bus": &"SFX", "voices": 2, "cooldown": 0.3, "layers": [
 		{"files": ["geyser_rumble"], "volume": -6.0, "pitch": Vector2(0.9, 1.08)},
 	]},
@@ -292,6 +321,7 @@ var _ambience_player: AudioStreamPlayer = null
 var _ambience_track: StringName = &""
 var _ambience_tween: Tween = null
 var _muffle_amount: float = 0.0
+var _environment_muffle: float = 0.0
 var _muffle_tween: Tween = null
 var _duck_tween: Tween = null
 var _music_duck_db: float = 0.0
@@ -413,6 +443,16 @@ func set_muffled(enabled: bool, duration: float = 0.35) -> void:
 	_muffle_tween.tween_method(_apply_muffle, _muffle_amount, 1.0 if enabled else 0.0, duration).set_trans(Tween.TRANS_SINE)
 
 
+## Muffles gameplay sounds for an environmental reason (a dense dust storm swallowing distant shots).
+## Independent of the menu muffle; music and ambience stay clear.
+func set_environment_muffle(amount: float) -> void:
+	amount = clampf(amount, 0.0, 1.0)
+	if absf(amount - _environment_muffle) < 0.01 and not (amount == 0.0 and _environment_muffle > 0.0):
+		return
+	_environment_muffle = amount
+	_apply_muffle(_muffle_amount)
+
+
 ## Temporarily lowers the music so a key moment cuts through.
 func duck_music(amount_db: float = -9.0, hold_seconds: float = 0.6, release_seconds: float = 1.2) -> void:
 	if _duck_tween != null and _duck_tween.is_valid():
@@ -434,16 +474,18 @@ func _apply_music_duck(value_db: float) -> void:
 
 func _apply_muffle(amount: float) -> void:
 	_muffle_amount = amount
-	var cutoff: float = lerpf(MUFFLE_CUTOFF_OPEN, MUFFLE_CUTOFF_CLOSED, amount * amount)
+	var menu_cutoff: float = lerpf(MUFFLE_CUTOFF_OPEN, MUFFLE_CUTOFF_CLOSED, amount * amount)
+	var storm_cutoff: float = lerpf(MUFFLE_CUTOFF_OPEN, MUFFLE_CUTOFF_STORM, sqrt(_environment_muffle))
 	for bus_name in [&"SFX", &"Music", &"Ambience"]:
 		var bus_index: int = AudioServer.get_bus_index(bus_name)
 		if bus_index == -1:
 			continue
+		var cutoff: float = minf(menu_cutoff, storm_cutoff) if bus_name == &"SFX" else menu_cutoff
 		for effect_index in range(AudioServer.get_bus_effect_count(bus_index)):
 			var effect: AudioEffect = AudioServer.get_bus_effect(bus_index, effect_index)
 			if effect is AudioEffectLowPassFilter:
 				(effect as AudioEffectLowPassFilter).cutoff_hz = cutoff
-				AudioServer.set_bus_effect_enabled(bus_index, effect_index, amount > 0.001)
+				AudioServer.set_bus_effect_enabled(bus_index, effect_index, cutoff < MUFFLE_CUTOFF_OPEN - 1.0)
 
 
 func _accept_trigger(event_id: StringName) -> bool:

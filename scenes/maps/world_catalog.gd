@@ -1,8 +1,8 @@
 class_name WorldCatalog
 extends RefCounted
 
-## The playable worlds. The sandbox remembers the last one picked in the pause menu; every other mode
-## plays on the default world.
+## The playable worlds. The sandbox remembers the last one picked in the pause menu and bot duels the one
+## picked in the bot setup; online matches always play on the default world.
 
 const DEFAULT_WORLD: StringName = &"verdant"
 const WORLDS: Dictionary = {
@@ -16,9 +16,16 @@ static func ids() -> Array[StringName]:
 
 
 static func active_world_id() -> StringName:
-	if not NetworkSession.is_training():
-		return DEFAULT_WORLD
-	return sandbox_world_id()
+	if NetworkSession.is_training():
+		return sandbox_world_id()
+	if NetworkSession.is_bot_duel():
+		return bot_world_id()
+	return DEFAULT_WORLD
+
+
+static func bot_world_id() -> StringName:
+	var id: StringName = StringName(str(UserSettings.get_value(UserSettings.BOT_WORLD)))
+	return id if WORLDS.has(id) else DEFAULT_WORLD
 
 
 static func sandbox_world_id() -> StringName:

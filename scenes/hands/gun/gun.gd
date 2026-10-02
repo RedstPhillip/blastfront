@@ -28,6 +28,9 @@ var _current_ammo: int = 3
 var _is_reloading: bool = false
 var _reload_timer: float = 0.0
 var _last_remote_fire_msec: int = -100000
+## How this build fires: report sound, recoil, camera, flash, casings and shove (see _build_fire_profile).
+var _fire_profile: Dictionary = {}
+var _cycle_timer: float = -1.0
 
 @onready var _player: Player = get_parent() as Player
 @onready var _visual_root: Node2D = $VisualRoot
@@ -70,13 +73,15 @@ func _update_laser_sight() -> void:
 func _build_laser_trajectory(world_start: Vector2, direction: Vector2) -> PackedVector2Array:
 	var points: PackedVector2Array = PackedVector2Array([Vector2.ZERO])
 	var speed: float = _get_modified_float(&"projectile_speed", projectile_speed, 1.0)
-	var gravity_value: float = projectile_gravity + _get_extension_attribute(&"projectile_gravity")
+	var gravity_value: float = (projectile_gravity + _get_extension_attribute(&"projectile_gravity")) * WorldConditions.projectile_gravity_scale
 	var extension_tags: Array[String] = _get_extension_tags()
 	var linear_damping_value: float = maxf(
 		0.0,
 		projectile_linear_damping + _get_extension_attribute(&"projectile_linear_damping")
 	)
-	var max_distance: float = maxf(50.0, projectile_max_distance + _get_extension_attribute(&"projectile_max_distance"))
+	var max_distance: float = maxf(50.0, projectile_max_distance + _get_extension_attribute(&"projectile_max_distance")) * WorldConditions.projectile_range_scale
+	# The sight bends with the wind exactly like the round will.
+	var wind_acceleration: Vector2 = WorldConditions.projectile_wind_acceleration(_get_wind_response())
 	var velocity: Vector2 = direction * speed
 	var extension_effects: Dictionary = _get_extension_effects()
 	var hover_effect_data: Dictionary = _get_effect_data(extension_effects, &"hover")
@@ -105,6 +110,7 @@ func _build_laser_trajectory(world_start: Vector2, direction: Vector2) -> Packed
 				float(hover_effect_data.get("max_correction_speed", HoverBehavior.MAX_CORRECTION_SPEED))
 			)
 		velocity.y += gravity_value * step_time
+		velocity += wind_acceleration * step_time
 		if linear_damping_value > 0.0:
 			velocity = velocity.move_toward(Vector2.ZERO, linear_damping_value * step_time)
 		var next_position: Vector2 = local_position + velocity * step_time
@@ -170,6 +176,7 @@ func _physics_process(delta: float) -> void:
 		_refresh_extension_loadout()
 
 	_fire_cooldown = maxf(_fire_cooldown - delta, 0.0)
+	_update_action_cycle(delta)
 	_recoil_offset = move_toward(_recoil_offset, 0.0, GameSettings.GUN_RECOIL_RETURN_SPEED * delta)
 	_recoil_rotation = lerp_angle(_recoil_rotation, 0.0, clampf(delta * 18.0, 0.0, 1.0))
 
@@ -362,17 +369,119 @@ func _build_projectile_data(direction: Vector2) -> Dictionary:
 
 
 func _play_fire_feedback(direction: Vector2, muzzle_position: Vector2) -> void:
-	_recoil_offset = GameSettings.GUN_RECOIL_DISTANCE
-	var recoil_side: float = -1.0 if _aim_direction.x > 0.0 else 1.0
-	var recoil_degrees: float = GameSettings.GUN_RECOIL_ROTATION_DEGREES + _get_extension_attribute(&"recoil_rotation_degrees")
-	_recoil_rotation = deg_to_rad(maxf(0.0, recoil_degrees)) * recoil_side
+	var profile: Dictionary = _get_fire_profile()
 	var power: float = clampf(float(_get_modified_damage()) / float(GameSettings.PROJECTILE_DAMAGE), 0.75, 1.8)
-	GameJuice.spawn_muzzle(muzzle_position, direction, Color(1.0, 0.82, 0.38, 1.0), power)
-	AudioDirector.play_at(&"shoot", muzzle_position, 0.0, 1.0 / sqrt(power))
-	GameJuice.shake(GameSettings.GUN_FIRE_SHAKE_STRENGTH * power, GameSettings.GUN_FIRE_SHAKE_TIME)
-	GameJuice.kick(-direction, 3.5 * power)
+	_recoil_offset = float(profile["recoil"])
+	var recoil_side: float = -1.0 if _aim_direction.x > 0.0 else 1.0
+	var recoil_degrees: float = float(profile["recoil_degrees"]) + _get_extension_attribute(&"recoil_rotation_degrees")
+	_recoil_rotation = deg_to_rad(maxf(0.0, recoil_degrees)) * recoil_side
+	GameJuice.spawn_muzzle(muzzle_position, direction, profile["flash_tint"], float(profile["flash"]) * sqrt(power))
+	AudioDirector.play_at(profile["sound"], muzzle_position, 0.0, randf_range(0.97, 1.03))
+	if profile["layer"] != &"":
+		AudioDirector.play_at(profile["layer"], muzzle_position, -3.0)
+	# Camera feedback belongs to whoever pulled the trigger; the opponent firing leaves your view still.
+	if _is_local_view():
+		GameJuice.shake(float(profile["shake"]) * power, GameSettings.GUN_FIRE_SHAKE_TIME * float(profile["shake_time"]))
+		GameJuice.kick(-direction, float(profile["kick"]) * power)
+		if float(profile["zoom"]) > 0.0:
+			GameJuice.zoom_punch(float(profile["zoom"]))
+		if float(profile["trauma"]) > 0.0:
+			GameJuice.add_trauma(float(profile["trauma"]))
+	_apply_shooter_push(direction, float(profile["push"]))
 	var eject: Vector2 = Vector2(-direction.x, -0.6).normalized()
-	GameJuice.spawn_casing(global_position, eject)
+	for casing_index in range(int(profile["casings"])):
+		GameJuice.spawn_casing(global_position, eject.rotated(randf_range(-0.25, 0.25)), profile["casing_tint"], float(profile["casing_size"]))
+	if profile["cycle"] != &"":
+		_cycle_timer = float(profile["cycle_delay"])
+
+
+## Pump or bolt after the shot: a sound and a short kick of the gun.
+func _update_action_cycle(delta: float) -> void:
+	if _cycle_timer < 0.0:
+		return
+	_cycle_timer -= delta
+	if _cycle_timer >= 0.0:
+		return
+	_cycle_timer = -1.0
+	var profile: Dictionary = _get_fire_profile()
+	if profile["cycle"] == &"" or not is_inside_tree():
+		return
+	AudioDirector.play_at(profile["cycle"], global_position)
+	_recoil_offset = maxf(_recoil_offset, float(profile["recoil"]) * 0.45)
+	_recoil_rotation = deg_to_rad(-9.0) * (-1.0 if _aim_direction.x > 0.0 else 1.0)
+
+
+## Heavy guns shove whoever fires them, a little on the ground and more in the air.
+func _apply_shooter_push(direction: Vector2, push: float) -> void:
+	if push <= 0.0 or _player == null or _player.control_mode == GameSettings.CONTROL_REMOTE or not _player.movement_enabled:
+		return
+	var share: float = 0.45 if _player.is_grounded() else 1.0
+	_player.velocity.x -= direction.x * push * share
+	if not _player.is_grounded():
+		_player.velocity.y -= direction.y * push * 0.6
+
+
+func _is_local_view() -> bool:
+	if _player == null:
+		return false
+	if NetworkSession.is_steam_match_active():
+		return int(_player.player_slot) == NetworkSession.local_player_slot
+	return _player.control_mode == GameSettings.CONTROL_LOCAL
+
+
+func _get_fire_profile() -> Dictionary:
+	if _fire_profile.is_empty():
+		_fire_profile = _build_fire_profile()
+	return _fire_profile
+
+
+## Each barrel gives the gun its own personality; the ammo adds a layer or tints the flash.
+func _build_fire_profile() -> Dictionary:
+	var profile: Dictionary = {
+		"sound": &"shot_carbine", "layer": &"", "cycle": &"", "cycle_delay": 0.0,
+		"recoil": GameSettings.GUN_RECOIL_DISTANCE, "recoil_degrees": GameSettings.GUN_RECOIL_ROTATION_DEGREES,
+		"kick": 3.5, "shake": GameSettings.GUN_FIRE_SHAKE_STRENGTH, "shake_time": 1.0, "zoom": 0.0, "trauma": 0.0,
+		"flash": 1.0, "flash_tint": Color(1.0, 0.82, 0.38, 1.0), "push": 0.0,
+		"casings": 1, "casing_tint": Color.WHITE, "casing_size": 1.0,
+	}
+	var sources: Array[String] = _get_source_extensions()
+	if sources.has("shotgun_mk1"):
+		profile.merge({"sound": &"shot_shotgun", "cycle": &"shotgun_pump", "cycle_delay": 0.24, "recoil": 19.0,
+			"recoil_degrees": 15.0, "kick": 9.0, "shake": 3.0, "shake_time": 1.8, "zoom": 0.012, "trauma": 0.12,
+			"flash": 1.9, "flash_tint": Color(1.0, 0.7, 0.3, 1.0), "push": 170.0,
+			"casing_tint": Color(1.0, 0.42, 0.32), "casing_size": 1.3}, true)
+	elif sources.has("sniper_barrel_mk1"):
+		profile.merge({"sound": &"shot_sniper", "cycle": &"sniper_bolt", "cycle_delay": 0.32, "recoil": 16.0,
+			"recoil_degrees": 11.0, "kick": 7.5, "shake": 2.2, "shake_time": 1.4, "zoom": 0.018, "trauma": 0.06,
+			"flash": 1.6, "flash_tint": Color(1.0, 0.9, 0.62, 1.0), "push": 70.0, "casing_size": 1.2}, true)
+	elif sources.has("heavy_barrel_mk1"):
+		profile.merge({"sound": &"shot_heavy", "recoil": 14.0, "recoil_degrees": 8.0, "kick": 5.5, "shake": 1.9,
+			"shake_time": 1.3, "flash": 1.35, "push": 60.0, "casing_size": 1.15}, true)
+	elif sources.has("lighter_barrel_mk1"):
+		profile.merge({"sound": &"shot_light", "recoil": 7.0, "recoil_degrees": 3.5, "kick": 2.2, "shake": 0.8,
+			"flash": 0.8, "casing_size": 0.85}, true)
+	elif sources.has("multi_barrel_mk1"):
+		profile.merge({"sound": &"shot_heavy", "recoil": 13.0, "recoil_degrees": 7.0, "kick": 5.0, "shake": 1.7,
+			"flash": 1.4, "casings": 2, "push": 40.0}, true)
+	elif sources.has("kinetic_amplifier_mk1"):
+		profile.merge({"layer": &"shock", "flash_tint": Color(0.95, 0.45, 1.0, 1.0), "kick": 4.5, "flash": 1.2}, true)
+	elif sources.has("extended_barrel_mk1"):
+		profile.merge({"recoil": 11.0, "kick": 4.0, "flash": 1.15}, true)
+	if sources.has("grenades_mk1") or sources.has("explosive_bullet_mk1"):
+		if profile["sound"] == &"shot_carbine":
+			profile["sound"] = &"shot_launcher"
+		else:
+			profile["layer"] = &"shot_launcher"
+		profile["kick"] = float(profile["kick"]) + 2.0
+		profile["flash_tint"] = Color(1.0, 0.62, 0.3, 1.0)
+	elif sources.has("freeze_rounds_mk1"):
+		profile["flash_tint"] = Color(0.6, 0.9, 1.0, 1.0)
+	elif sources.has("poison_rounds_mk1"):
+		profile["flash_tint"] = Color(0.55, 1.0, 0.45, 1.0)
+	elif sources.has("shocking_rounds_mk1"):
+		profile["flash_tint"] = Color(1.0, 0.95, 0.45, 1.0)
+		profile["layer"] = &"shock"
+	return profile
 
 
 func _start_reload() -> void:
@@ -405,11 +514,22 @@ func is_ready_to_fire() -> bool:
 	return _fire_cooldown <= 0.0 and _current_ammo > 0 and not _is_reloading
 
 
+## Effective flight model on the current map (gravity scale and wind included), for the bot's aim.
 func get_ballistics() -> Dictionary:
 	return {
 		"speed": _get_modified_float(&"projectile_speed", projectile_speed, 1.0),
-		"gravity": projectile_gravity + _get_extension_attribute(&"projectile_gravity"),
+		"gravity": (projectile_gravity + _get_extension_attribute(&"projectile_gravity")) * WorldConditions.projectile_gravity_scale,
+		"wind": WorldConditions.projectile_wind_acceleration(_get_wind_response()).x,
 	}
+
+
+func _get_wind_response() -> float:
+	return WorldConditions.projectile_wind_response(
+		_get_modified_float(&"projectile_speed", projectile_speed, 1.0),
+		_get_modified_float(&"projectile_scale", 1.0, 0.1),
+		_get_extension_tags(),
+		_get_source_extensions()
+	)
 
 
 func get_current_ammo() -> int:
@@ -446,9 +566,13 @@ func play_remote_fire_feedback(direction: Vector2) -> void:
 	_recoil_offset = GameSettings.GUN_RECOIL_DISTANCE
 	_recoil_rotation = deg_to_rad(GameSettings.GUN_RECOIL_ROTATION_DEGREES) * (-1.0 if shot_direction.x > 0.0 else 1.0)
 	var muzzle_position: Vector2 = get_muzzle_global_position()
-	GameJuice.spawn_muzzle(muzzle_position, shot_direction)
-	AudioDirector.play_at(&"shoot", muzzle_position)
-	GameJuice.spawn_casing(global_position, Vector2(-shot_direction.x, -0.6).normalized())
+	var profile: Dictionary = _get_fire_profile()
+	_recoil_offset = float(profile["recoil"])
+	GameJuice.spawn_muzzle(muzzle_position, shot_direction, profile["flash_tint"], float(profile["flash"]))
+	AudioDirector.play_at(profile["sound"], muzzle_position)
+	GameJuice.spawn_casing(global_position, Vector2(-shot_direction.x, -0.6).normalized(), profile["casing_tint"], float(profile["casing_size"]))
+	if profile["cycle"] != &"":
+		_cycle_timer = float(profile["cycle_delay"])
 
 
 func apply_remote_ammo_state(current_ammo: int, reloading: bool, reload_ratio: float) -> void:
@@ -489,6 +613,7 @@ func _refresh_extension_loadout() -> void:
 		_extension_visuals.set_extensions_by_slot(ExtensionInventory.get_equipped_for_player(_extension_player_slot))
 
 	_has_laser_scope = _get_source_extensions().has("laser_scope_mk1")
+	_fire_profile = _build_fire_profile()
 	if _laser_sight != null:
 		_laser_sight.visible = _can_show_laser_sight()
 
