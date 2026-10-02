@@ -217,11 +217,7 @@ func _draw() -> void:
 	# Durability along the bottom edge: the bar's length is the condition; it only takes a colour once the
 	# part is worn (amber) or nearly broken (red), so a shelf of fresh parts stays calm.
 	var condition: float = clampf(float(LoadoutStyle.item_info(item).get("condition", 100.0)) / 100.0, 0.0, 1.0)
-	var wear: Color = Color(1.0, 1.0, 1.0, 0.32)
-	if condition < 0.35:
-		wear = LoadoutStyle.NEGATIVE
-	elif condition < 0.6:
-		wear = LoadoutStyle.ACCENT
+	var wear: Color = LoadoutStyle.wear_color(condition)
 	if dim:
 		wear.a *= 0.45
 	draw_rect(Rect2(rect.position.x, rect.end.y - 2.0, w, 2.0), Color(0.0, 0.0, 0.0, 0.35))

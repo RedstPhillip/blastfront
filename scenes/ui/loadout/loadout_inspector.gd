@@ -67,7 +67,7 @@ func _ready() -> void:
 	_description = _label(UiStyle.FONT_BODY, 13, LoadoutStyle.TEXT_SECONDARY)
 	_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_description.custom_minimum_size = Vector2(10.0, 34.0)
-	_description.max_lines_visible = 2
+	_description.max_lines_visible = 4
 	_description.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_description.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	column.add_child(_description)
@@ -199,7 +199,8 @@ func _set_rows(caption: String, rows: Array) -> void:
 func _set_grade(mark: int, condition: float, grade_name: String, color: Color) -> void:
 	_grade.text = "MK %s   ·   %s   ·   %d%%" % [LoadoutStyle.roman(mark), grade_name.to_upper(), int(roundf(condition))]
 	_grade.add_theme_color_override("font_color", color)
-	_set_condition(condition, color)
+	var wear: Color = LoadoutStyle.wear_color(condition / 100.0)
+	_set_condition(condition, Color(wear.r, wear.g, wear.b, maxf(wear.a, 0.55)))
 
 
 func _set_condition(value: float, color: Color) -> void:

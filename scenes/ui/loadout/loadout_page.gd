@@ -418,22 +418,22 @@ func _make_reward_tile(kind: StringName, index: int) -> LoadoutRewardTile:
 	return tile
 
 
+## One quiet line of controls (key cap + action), like a console prompt bar.
 func _build_tips_panel() -> Control:
-	var column: VBoxContainer = VBoxContainer.new()
-	column.size_flags_vertical = Control.SIZE_SHRINK_END
-	column.alignment = BoxContainer.ALIGNMENT_END
-	column.add_theme_constant_override("separation", 6)
-	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	for entry in [["DRAG", "Install"], ["CLICK", "Install / remove"], ["RIGHT CLICK", "Remove"]]:
-		var row: HBoxContainer = HBoxContainer.new()
-		row.add_theme_constant_override("separation", 10)
-		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var key: Label = LoadoutStyle.label(entry[0], UiStyle.FONT_BOLD, 10, LoadoutStyle.TEXT_SECONDARY)
-		key.custom_minimum_size = Vector2(78.0, 0.0)
-		row.add_child(key)
-		row.add_child(LoadoutStyle.label(entry[1], UiStyle.FONT_BODY, 12, LoadoutStyle.TEXT_MUTED))
-		column.add_child(row)
-	return column
+	var tips: Control = Control.new()
+	tips.custom_minimum_size = Vector2(0.0, 24.0)
+	tips.size_flags_vertical = Control.SIZE_SHRINK_END
+	tips.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tips.draw.connect(func() -> void:
+		var entries: Array = [["LMB", "Install"], ["RMB", "Remove"], ["DRAG", "Move"]]
+		if _shop_enabled:
+			entries.append(["DRAG", "Sell"])
+		var x: float = 0.0
+		for entry in entries:
+			x += LoadoutStyle.draw_key_chip(tips, Vector2(x, 3.0), str(entry[0]), 18.0) + 7.0
+			tips.draw_string(UiStyle.FONT_BODY, Vector2(x, 16.0), str(entry[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, LoadoutStyle.TEXT_MUTED)
+			x += UiStyle.FONT_BODY.get_string_size(str(entry[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x + 16.0)
+	return tips
 
 
 func _focus_first_tile() -> void:

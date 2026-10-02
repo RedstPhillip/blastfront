@@ -132,6 +132,15 @@ static func item_info(item: Variant) -> Dictionary:
 	return {}
 
 
+## Durability colour: quiet while a part is in good shape, amber once worn, red when nearly broken.
+static func wear_color(condition_ratio: float) -> Color:
+	if condition_ratio < 0.35:
+		return NEGATIVE
+	if condition_ratio < 0.6:
+		return ACCENT
+	return Color(1.0, 1.0, 1.0, 0.32)
+
+
 ## Vertical gradient quad.
 static func draw_gradient_rect(canvas: CanvasItem, rect: Rect2, top: Color, bottom: Color) -> void:
 	canvas.draw_polygon(

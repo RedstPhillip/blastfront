@@ -69,16 +69,25 @@ func _build() -> void:
 	_add_button("QUIT GAME", false, _on_exit_pressed)
 
 
-func _add_button(text: String, primary: bool, callback: Callable) -> Button:
+## Same list look as the main menu: plain entries, the accent highlight follows focus (and the mouse).
+func _add_button(text: String, _primary: bool, callback: Callable) -> Button:
 	var button: Button = Button.new()
 	button.text = text
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	button.custom_minimum_size = Vector2(320.0 if primary else 290.0, 56.0 if primary else 48.0)
+	button.custom_minimum_size = Vector2(300.0, 48.0)
 	button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	button.set_meta("juice_rotation_multiplier", 0.0)
-	UiStyle.style_button(button, primary, 22 if primary else 19)
-	if not primary:
-		button.add_theme_stylebox_override("normal", UiStyle.with_margins(UiStyle.panel(Color(0, 0, 0, 0)), 26, 10))
+	UiStyle.style_button(button, false, 20)
+	var lit: StyleBoxFlat = UiStyle.with_margins(UiStyle.panel(UiStyle.ACCENT), 26, 10)
+	button.add_theme_stylebox_override("normal", UiStyle.with_margins(UiStyle.panel(Color(0, 0, 0, 0)), 26, 10))
+	button.add_theme_stylebox_override("hover", lit)
+	button.add_theme_stylebox_override("focus", lit)
+	button.add_theme_stylebox_override("pressed", UiStyle.with_margins(UiStyle.panel(UiStyle.ACCENT_DEEP), 26, 10))
+	for color_name in ["font_hover_color", "font_focus_color", "font_pressed_color", "font_hover_pressed_color"]:
+		button.add_theme_color_override(color_name, UiStyle.INK)
+	button.mouse_entered.connect(func() -> void:
+		if not button.disabled:
+			button.grab_focus())
 	button.pressed.connect(callback)
 	_panel.add_child(button)
 	_buttons.append(button)

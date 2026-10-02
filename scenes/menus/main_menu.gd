@@ -207,12 +207,12 @@ func _build_menu() -> void:
 	column.add_child(logo_holder)
 	# Plain, heavy wordmark: solid off-white with a tight drop shadow (no metal gradient, no shine).
 	var logo_shadow: Label = Label.new()
-	UiStyle.style_label(logo_shadow, UiStyle.FONT_DISPLAY, 96, Color(0.0, 0.0, 0.0, 0.55))
+	UiStyle.style_label(logo_shadow, UiStyle.FONT_DISPLAY, 84, Color(0.0, 0.0, 0.0, 0.55))
 	logo_shadow.text = "BLASTFRONT"
 	logo_shadow.position = Vector2(3.0, 4.0)
 	logo_holder.add_child(logo_shadow)
 	_logo = Label.new()
-	UiStyle.style_label(_logo, UiStyle.FONT_DISPLAY, 96, UiStyle.TEXT)
+	UiStyle.style_label(_logo, UiStyle.FONT_DISPLAY, 84, UiStyle.TEXT)
 	_logo.text = "BLASTFRONT"
 	logo_holder.add_child(_logo)
 
@@ -234,21 +234,30 @@ func _build_menu() -> void:
 	_add_menu_button(buttons, "QUIT", false, _on_exit_pressed)
 
 
-func _add_menu_button(parent: Container, text: String, primary: bool, callback: Callable) -> Button:
+## Menu entries are plain text; the highlight (solid accent) follows focus, and the mouse moves focus, so
+## exactly one entry is ever highlighted.
+func _add_menu_button(parent: Container, text: String, _primary: bool, callback: Callable) -> Button:
 	var button: Button = Button.new()
 	button.text = text
-	button.custom_minimum_size = Vector2(340.0 if primary else 300.0, 58.0 if primary else 50.0)
+	button.custom_minimum_size = Vector2(340.0, 52.0)
 	button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	UiStyle.style_button(button, primary, 24 if primary else 20)
-	if not primary:
-		# Menu entries are plain text until hovered or focused.
-		button.add_theme_stylebox_override("normal", UiStyle.with_margins(UiStyle.panel(Color(0, 0, 0, 0)), 26, 10))
+	UiStyle.style_button(button, false, 22)
+	var idle: StyleBoxFlat = UiStyle.with_margins(UiStyle.panel(Color(0, 0, 0, 0)), 26, 10)
+	var lit: StyleBoxFlat = UiStyle.with_margins(UiStyle.panel(UiStyle.ACCENT), 26, 10)
+	var pressed: StyleBoxFlat = UiStyle.with_margins(UiStyle.panel(UiStyle.ACCENT_DEEP), 26, 10)
+	button.add_theme_stylebox_override("normal", idle)
+	button.add_theme_stylebox_override("hover", lit)
+	button.add_theme_stylebox_override("focus", lit)
+	button.add_theme_stylebox_override("pressed", pressed)
+	for color_name in ["font_hover_color", "font_focus_color", "font_pressed_color", "font_hover_pressed_color"]:
+		button.add_theme_color_override(color_name, UiStyle.INK)
 	button.set_meta("juice_rotation_multiplier", 0.0)
 	button.pressed.connect(callback)
-	button.mouse_entered.connect(_slide_button.bind(button, true))
+	button.mouse_entered.connect(func() -> void:
+		if not button.disabled:
+			button.grab_focus())
 	button.focus_entered.connect(_slide_button.bind(button, true))
-	button.mouse_exited.connect(_slide_button.bind(button, false))
 	button.focus_exited.connect(_slide_button.bind(button, false))
 	parent.add_child(button)
 	_buttons.append(button)
