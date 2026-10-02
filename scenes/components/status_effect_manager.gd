@@ -50,7 +50,9 @@ func has_effect(name: StringName) -> bool:
 
 
 func get_active_effect_names() -> Array[StringName]:
-	return _active_effects.keys()
+	var names: Array[StringName] = []
+	names.assign(_active_effects.keys())
+	return names
 
 
 func get_active_count() -> int:
@@ -101,7 +103,11 @@ func _process(delta: float) -> void:
 	var expired: Array[StringName] = []
 
 	for effect_name in _active_effects.keys():
-		var instances: Array = _active_effects[effect_name]
+		# A tick can kill or respawn the player, which clears the effects mid-loop.
+		var instances_variant: Variant = _active_effects.get(effect_name)
+		if not (instances_variant is Array):
+			continue
+		var instances: Array = instances_variant
 		var i: int = instances.size() - 1
 		while i >= 0:
 			var instance: Dictionary = instances[i] as Dictionary
@@ -125,6 +131,9 @@ func _process(delta: float) -> void:
 			expired.append(effect_name)
 
 	for effect_name in expired:
+		var remaining: Variant = _active_effects.get(effect_name)
+		if remaining is Array and not (remaining as Array).is_empty():
+			continue
 		_active_effects.erase(effect_name)
 		effect_removed.emit(effect_name)
 

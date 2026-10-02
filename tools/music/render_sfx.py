@@ -8,7 +8,7 @@ import sys
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(__file__))
-from synth import SR, bandpass, highpass, lowpass, make_seamless, normalize_rms, perc_env, reverb, t_axis, write_ogg
+from synth import SR, bandpass, highpass, lowpass, make_seamless, normalize_rms, perc_env, reverb, t_axis, write_ogg, write_wav
 
 OUT_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "assets", "audio", "sfx")
 
@@ -191,20 +191,20 @@ def render_geyser_blast():
 def main():
     os.makedirs(OUT_DIR, exist_ok=True)
     renders = {
-        "heartbeat.ogg": render_heartbeat,
-        "loadout_snap.ogg": render_loadout_snap,
-        "loadout_detach.ogg": render_loadout_detach,
-        "loadout_pickup.ogg": render_loadout_pickup,
-        "loadout_hover.ogg": render_loadout_hover,
-        "dust_gust.ogg": render_dust_gust,
-        "geyser_rumble.ogg": render_geyser_rumble,
-        "geyser_blast.ogg": render_geyser_blast,
+        "heartbeat.wav": render_heartbeat,
+        "loadout_snap.wav": render_loadout_snap,
+        "loadout_detach.wav": render_loadout_detach,
+        "loadout_pickup.wav": render_loadout_pickup,
+        "loadout_hover.wav": render_loadout_hover,
+        "dust_gust.wav": render_dust_gust,
+        "geyser_rumble.wav": render_geyser_rumble,
+        "geyser_blast.wav": render_geyser_blast,
     }
     only = sys.argv[1:]
     for name, render in renders.items():
         if only and name not in only:
             continue
-        write_ogg(render(), os.path.join(OUT_DIR, name))
+        write_wav(render(), os.path.join(OUT_DIR, name))
         print("rendered", name)
     if not only or "ambience_mars.ogg" in only:
         loop = make_seamless(render_mars_ambience, 40.0)

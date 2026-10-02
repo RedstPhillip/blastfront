@@ -172,6 +172,17 @@ def make_seamless(render_fn, loop_seconds):
     return loop
 
 
+def write_wav(stereo, path):
+    """One-shot effects ship as WAV: Godot starts WAV voices far cheaper than Ogg ones."""
+    data = np.clip(stereo, -1, 1)
+    pcm = (data * 32767).astype(np.int16)
+    with wave.open(path, "wb") as w:
+        w.setnchannels(2 if pcm.ndim == 2 else 1)
+        w.setsampwidth(2)
+        w.setframerate(SR)
+        w.writeframes(pcm.tobytes())
+
+
 def write_ogg(stereo, path, quality=6):
     import shutil
     if shutil.which("ffmpeg") is None:

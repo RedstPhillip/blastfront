@@ -43,16 +43,28 @@ func configure_from_data(
 	owner_slot = shot_owner_slot
 	is_network_authority = authority
 	direction = shot_direction.normalized()
-	muzzle_speed = projectile_data.muzzle_speed
-	gravity = projectile_data.gravity
-	linear_damping = projectile_data.linear_damping
-	max_distance = projectile_data.max_distance
-	damage = projectile_data.damage
-	projectile_scale = projectile_data.projectile_scale
-	extension_tags = projectile_data.extension_tags
-	extension_effects = projectile_data.extension_effects
-	source_extensions = projectile_data.source_extensions
-	initial_velocity = projectile_data.initial_velocity
+	# Shot data can arrive over the network, where typed arrays come back untyped and keys may be
+	# missing; read it defensively so a malformed packet never stops the game.
+	muzzle_speed = float(projectile_data.get("muzzle_speed", muzzle_speed))
+	gravity = float(projectile_data.get("gravity", gravity))
+	linear_damping = float(projectile_data.get("linear_damping", linear_damping))
+	max_distance = float(projectile_data.get("max_distance", max_distance))
+	damage = int(projectile_data.get("damage", damage))
+	projectile_scale = float(projectile_data.get("projectile_scale", projectile_scale))
+	extension_tags = _string_array(projectile_data.get("extension_tags", []))
+	var effects_variant: Variant = projectile_data.get("extension_effects", {})
+	extension_effects = effects_variant if effects_variant is Dictionary else {}
+	source_extensions = _string_array(projectile_data.get("source_extensions", []))
+	var velocity_variant: Variant = projectile_data.get("initial_velocity", Vector2.ZERO)
+	initial_velocity = velocity_variant if velocity_variant is Vector2 else Vector2.ZERO
+
+
+static func _string_array(value: Variant) -> Array[String]:
+	var result: Array[String] = []
+	if value is Array:
+		for entry in value:
+			result.append(str(entry))
+	return result
 
 
 func _ready() -> void:

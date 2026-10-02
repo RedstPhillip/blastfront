@@ -233,7 +233,8 @@ func request_shot(owner: Node, spawn_position: Vector2, direction: Vector2, proj
 		_game_sync.request_shot(owner_slot, spawn_position, direction, projectile_data)
 		return
 
-	var directions: Array[Vector2] = projectile_data.get("volley_directions", [])
+	var directions: Array[Vector2] = []
+	directions.assign(projectile_data.get("volley_directions", [direction]))
 	record_stat(owner_slot, "shots", float(directions.size()))
 	for shot_direction in directions:
 		var projectile: Projectile = PROJECTILE_SCENE.instantiate() as Projectile

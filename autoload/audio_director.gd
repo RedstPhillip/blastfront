@@ -563,11 +563,13 @@ func _load_event_streams() -> void:
 func _resolve_path(key: String) -> String:
 	if key.begins_with("legacy:"):
 		return LEGACY_DIR + key.substr(7)
+	# One-shots are WAV (QOA-compressed on import): starting an Ogg voice rebuilds its Vorbis decoder,
+	# which costs ~1 ms per play() and stacks up into hitches when a volley hits.
 	if key.begins_with("ui:"):
-		return UI_DIR + key.substr(3) + ".ogg"
+		return UI_DIR + key.substr(3) + ".wav"
 	if key.begins_with("stinger:"):
-		return STINGER_DIR + key.substr(8) + ".ogg"
-	return SFX_DIR + key + ".ogg"
+		return STINGER_DIR + key.substr(8) + ".wav"
+	return SFX_DIR + key + ".wav"
 
 
 func _load_music(track_id: StringName) -> AudioStream:
