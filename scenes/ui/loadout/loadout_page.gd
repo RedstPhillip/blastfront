@@ -112,6 +112,8 @@ func _ready() -> void:
 	_refresh_all(false)
 	_show_overview()
 	_play_open()
+	if InputDevice.using_gamepad:
+		_focus_first_tile.call_deferred()
 
 
 func _exit_tree() -> void:
@@ -229,6 +231,7 @@ func _build_center_column() -> Control:
 		_inspector.row_count = 4
 		_inspector.custom_minimum_size = Vector2(0.0, 300.0)
 	else:
+		_inspector.preview_height = 176.0
 		_inspector.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(_inspector)
 	if _shop_enabled:
@@ -410,7 +413,7 @@ func _make_reward_tile(kind: StringName, index: int) -> LoadoutRewardTile:
 
 func _build_tips_panel() -> Control:
 	var column: VBoxContainer = VBoxContainer.new()
-	column.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.size_flags_vertical = Control.SIZE_SHRINK_END
 	column.alignment = BoxContainer.ALIGNMENT_END
 	column.add_theme_constant_override("separation", 6)
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -424,6 +427,13 @@ func _build_tips_panel() -> Control:
 		row.add_child(LoadoutStyle.label(entry[1], UiStyle.FONT_BODY, 12, LoadoutStyle.TEXT_MUTED))
 		column.add_child(row)
 	return column
+
+
+func _focus_first_tile() -> void:
+	for tile in _weapon_tiles:
+		if tile.visible and tile.item != null:
+			tile.grab_focus()
+			return
 
 
 func _play_open() -> void:

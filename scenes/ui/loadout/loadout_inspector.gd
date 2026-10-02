@@ -227,7 +227,7 @@ func _set_preview(kind: StringName, id: StringName, mark: int, config: Dictionar
 
 
 func _layout_armor_preview() -> void:
-	var box: float = minf(_preview.size.y - 16.0, 96.0)
+	var box: float = minf(_preview.size.y - 28.0, 140.0)
 	_armor_icon.size = Vector2(box, box)
 	_armor_icon.position = Vector2((_preview.size.x - box) * 0.5, (_preview.size.y - box) * 0.5)
 
