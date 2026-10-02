@@ -443,5 +443,32 @@ func _build_definitions() -> Dictionary:
 		_definition(CAPTURE_RADIUS, "Capture Radius", BRANCH_MISC, "res://assets/ui/research/capture_radius.svg", "Increase airdrop capture radius by 20, 42 or 68 units.", [4, 9, 15], Vector2(1070, 500), [_require(CAPTURE_BONUS)], true, 280),
 	]
 	for entry in entries:
+		var presentation: Dictionary = PRESENTATION.get(StringName(str(entry["id"])), {})
+		entry["summary"] = str(presentation.get("summary", entry["description"]))
+		entry["level_label"] = str(presentation.get("label", ""))
+		entry["levels"] = presentation.get("levels", [])
 		definitions[str(entry["id"])] = entry
 	return definitions
+
+
+## How each project reads on the research screen: one plain sentence, and what every mark is worth.
+const PRESENTATION: Dictionary = {
+	RECYCLING: {"summary": "Recycle shop blueprints for part of their price.", "label": "REFUND", "levels": ["50%", "75%", "100%"]},
+	BLUEPRINT_STORAGE: {"summary": "Keep blueprints for later sets in storage slots.", "label": "SLOTS", "levels": ["1", "2", "4"]},
+	COIN_INTEREST: {"summary": "Earn more coins from every completed set.", "label": "COIN BONUS", "levels": ["+5%", "+10%", "+15%"]},
+	CONDITION_WEAR: {"summary": "Your gear wears down slower in battle.", "label": "WEAR", "levels": ["70%", "35%", "None"]},
+	UPGRADE_DISCOUNT: {"summary": "Merging parts into a higher mark costs fewer coins.", "label": "MERGE COST", "levels": ["−10%", "−22%", "−35%"]},
+	RESEARCH_YIELD: {"summary": "Orders award more research points.", "label": "RP BONUS", "levels": ["+20%", "+40%", "+65%"]},
+	BONUS_MARK: {"summary": "Bought weapon blueprints can arrive one mark higher.", "label": "MK II CHANCE", "levels": ["6%", "14%", "26%"]},
+	LUCK: {"summary": "Shop blueprints roll in better condition.", "label": "EXTRA ROLLS", "levels": ["1", "2", "3"]},
+	DASHING: {"summary": "A quick dash; later a shorter cooldown and a protective shockwave.", "label": "DASH", "levels": ["Unlock", "Cooldown", "Shockwave"]},
+	SLIDING: {"summary": "A ground slide; later faster and easier to steer.", "label": "SLIDE", "levels": ["Unlock", "Speed", "Control"]},
+	LIFE_STEAL: {"summary": "Heal for part of the damage you deal.", "label": "HEAL", "levels": ["5%", "10%", "16%"]},
+	RAGE: {"summary": "Below 20% health your shots hit harder.", "label": "DAMAGE", "levels": ["+15%", "+30%", "+50%"]},
+	PASSIVE_HEALING: {"summary": "Stand still to heal slowly.", "label": "HEALS UP TO", "levels": ["50%", "75%", "100%"]},
+	PHOENIX: {"summary": "Once per set, survive a lethal hit and return with 40% health.", "label": "", "levels": ["Revive"]},
+	TIME_CONTROL: {"summary": "Slow the world down, then briefly freeze time.", "label": "", "levels": ["Slow", "Longer", "Freeze"]},
+	FASTER_CAPTURE: {"summary": "Capture supply drops faster.", "label": "CAPTURE TIME", "levels": ["−15%", "−30%", "−45%"]},
+	CAPTURE_BONUS: {"summary": "Captured supply drops award more research points.", "label": "RP PER DROP", "levels": ["6", "7", "8"]},
+	CAPTURE_RADIUS: {"summary": "A wider capture ring around supply drops.", "label": "RADIUS", "levels": ["+20", "+42", "+68"]},
+}

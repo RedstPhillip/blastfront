@@ -1,162 +1,368 @@
-extends Button
+extends Control
 class_name ResearchNodeButton
+
+## One research project on the tree: an icon badge whose ring is split into one segment per mark (filled
+## teal as they are researched), the name underneath and the next price. The next segment glows amber when
+## the project can be researched right now. Click selects; press and hold researches (the amber arc fills
+## around the badge first, so nothing is ever bought by accident). Unlocking flashes the badge, charges
+## the new segment and throws a ring of sparks; projects that become reachable "wake up".
 
 signal research_selected(research_id: StringName)
 signal research_hovered(research_id: StringName)
 signal research_unhovered
+signal research_requested(research_id: StringName)
 
-const COLOR_ECONOMY: Color = Color8(205, 151, 65, 255)
-const COLOR_MOVEMENT: Color = Color8(137, 148, 101, 255)
-const COLOR_MISC: Color = Color8(176, 91, 62, 255)
-const COLOR_LOCKED: Color = Color8(91, 88, 80, 255)
-const COLOR_PLANNED: Color = Color8(67, 64, 59, 255)
+const NODE_SIZE: Vector2 = Vector2(122.0, 102.0)
+const CENTER: Vector2 = Vector2(61.0, 30.0)
+const RADIUS: float = 24.0
+const RING_RADIUS: float = 30.0
+const HOLD_SECONDS: float = 0.42
+const ICON_SIZE: float = 26.0
+
+const PLANNED: int = 0
+const LOCKED: int = 1
+const AVAILABLE: int = 2
+const RESEARCHED: int = 3
+const MAXED: int = 4
 
 var research_id: StringName = &""
 var definition: Dictionary = {}
-var _loaded_icon_path: String = ""
+var selected: bool = false
 
-@onready var _icon_texture: TextureRect = %IconTexture
-@onready var _stars_label: Label = %StarsLabel
-@onready var _lock_label: Label = %LockLabel
-@onready var _cost_label: Label = %CostLabel
+var _state: int = LOCKED
+var _mark: int = 0
+var _max_mark: int = 1
+var _cost: int = 0
+var _can_buy: bool = false
+var _icon: Texture2D = null
+var _hover: float = 0.0
+var _hovered: bool = false
+var _holding: bool = false
+var _hold: float = 0.0
+var _flash: float = 0.0
+var _charge: float = 1.0
+var _wake: float = 1.0
+var _wake_waiting: bool = false
+var _punch: float = 0.0
+var _time: float = 0.0
+var _sparks: Array[Dictionary] = []
+var _name_lines: PackedStringArray = PackedStringArray()
+
+
+func _init() -> void:
+	custom_minimum_size = NODE_SIZE
+	size = NODE_SIZE
+	focus_mode = Control.FOCUS_ALL
+	mouse_filter = Control.MOUSE_FILTER_STOP
 
 
 func _ready() -> void:
-	pressed.connect(_on_pressed)
-	mouse_entered.connect(_on_mouse_entered)
-	focus_entered.connect(_on_mouse_entered)
-	mouse_exited.connect(_on_mouse_exited)
-	focus_exited.connect(_on_mouse_exited)
-	GameJuice.attach_button_feedback(self)
-	refresh()
+	mouse_entered.connect(func() -> void: _set_hovered(true))
+	mouse_exited.connect(func() -> void: _set_hovered(false); _cancel_hold())
+	focus_entered.connect(func() -> void: research_hovered.emit(research_id); queue_redraw())
+	focus_exited.connect(func() -> void: _cancel_hold(); queue_redraw())
+	_time = randf() * 10.0
 
 
 func setup(next_definition: Dictionary) -> void:
 	definition = next_definition.duplicate(true)
 	research_id = StringName(str(definition["id"]))
-	if is_node_ready():
-		refresh()
+	var icon_path: String = str(definition.get("icon_path", ""))
+	_icon = load(icon_path) as Texture2D if icon_path != "" else null
+	_name_lines = _wrap(str(definition["name"]))
+	refresh()
+
+
+func get_center() -> Vector2:
+	return position + CENTER
+
+
+func get_state() -> int:
+	return _state
+
+
+func is_actionable() -> bool:
+	return _state == AVAILABLE or (_state == RESEARCHED and _can_buy)
 
 
 func refresh() -> void:
 	if definition.is_empty():
 		return
-	var branch: StringName = StringName(str(definition["branch"]))
-	var available: bool = definition["available"] == true
-	var current_mark: int = ResearchManager.get_mark(research_id)
-	var max_mark: int = int(definition["max_mark"])
-	var next_cost: int = ResearchManager.get_next_cost(research_id)
-	var can_buy: bool = ResearchManager.can_purchase(research_id)
-	var requirements_met: bool = current_mark > 0 or _requirements_met()
-	var accent: Color = _branch_color(branch)
-	if not available:
-		accent = COLOR_PLANNED
-	elif current_mark <= 0 and not requirements_met:
-		accent = COLOR_LOCKED
-
-	_refresh_icon(accent, available, requirements_met)
-	_stars_label.text = _stars(current_mark, max_mark)
-	var star_color: Color = Color(1.0, 0.82, 0.24, 1.0) if current_mark > 0 else Color(0.74, 0.65, 0.48, 0.95)
-	if not available or (current_mark <= 0 and not requirements_met):
-		star_color = Color(0.42, 0.40, 0.36, 0.9)
-	_stars_label.add_theme_color_override("font_color", star_color)
-	_lock_label.visible = not available or (current_mark <= 0 and not requirements_met)
-	_lock_label.text = "SOON" if not available else "LOCK"
-	_cost_label.visible = available and requirements_met and current_mark < max_mark and next_cost > 0
-	_cost_label.text = "%d RP" % next_cost
-	_cost_label.add_theme_color_override("font_color", Color(1.0, 0.82, 0.28, 1.0) if can_buy else Color(0.78, 0.66, 0.47, 0.92))
-	disabled = not available or current_mark >= max_mark or not requirements_met or not can_buy
-	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if not disabled else Control.CURSOR_ARROW
-	_apply_styles(accent, current_mark > 0, can_buy)
-	tooltip_text = ""
-
-
-func _refresh_icon(accent: Color, available: bool, requirements_met: bool) -> void:
-	var icon_path: String = str(definition["icon_path"])
-	if icon_path != _loaded_icon_path:
-		_loaded_icon_path = icon_path
-		var icon_resource: Resource = load(icon_path) if not icon_path.is_empty() else null
-		_icon_texture.texture = icon_resource as Texture2D
-	if not available:
-		_icon_texture.modulate = Color8(125, 119, 107, 180)
-	elif not requirements_met:
-		_icon_texture.modulate = Color(accent.r, accent.g, accent.b, 0.58)
+	_mark = ResearchManager.get_mark(research_id)
+	_max_mark = int(definition["max_mark"])
+	_cost = ResearchManager.get_next_cost(research_id)
+	_can_buy = ResearchManager.can_purchase(research_id)
+	if definition["available"] != true:
+		_state = PLANNED
+	elif _mark >= _max_mark:
+		_state = MAXED
+	elif _mark > 0:
+		_state = RESEARCHED
+	elif _requirements_met():
+		_state = AVAILABLE
 	else:
-		_icon_texture.modulate = accent.lightened(0.28)
+		_state = LOCKED
+	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if _state != PLANNED else Control.CURSOR_ARROW
+	set_process(true)
+	queue_redraw()
 
 
 func _requirements_met() -> bool:
-	var requirements_variant: Variant = definition["requires"]
-	if not (requirements_variant is Array):
-		return true
-	var requirements: Array = requirements_variant
-	for requirement_variant in requirements:
-		if not (requirement_variant is Dictionary):
-			continue
-		var requirement: Dictionary = requirement_variant
-		var required_id: StringName = StringName(str(requirement["id"]))
-		if ResearchManager.get_mark(required_id) < int(requirement["mark"]):
+	for requirement in definition.get("requires", []):
+		if requirement is Dictionary and ResearchManager.get_mark(StringName(str(requirement["id"]))) < int(requirement["mark"]):
 			return false
 	return true
 
 
-func _apply_styles(accent: Color, unlocked: bool, can_buy: bool) -> void:
-	var normal: StyleBoxFlat = _style(accent, 0.16 if unlocked else 0.07, 2)
-	var hover: StyleBoxFlat = _style(accent.lightened(0.22), 0.28, 3)
-	var pressed_style: StyleBoxFlat = _style(accent.lightened(0.32), 0.36, 3)
-	var disabled_style: StyleBoxFlat = _style(accent, 0.1 if unlocked else 0.035, 1)
-	if can_buy:
-		normal.shadow_color = Color(0, 0, 0, 0.42)
-		normal.shadow_size = 5
-	add_theme_stylebox_override("normal", normal)
-	add_theme_stylebox_override("hover", hover)
-	add_theme_stylebox_override("focus", hover)
-	add_theme_stylebox_override("pressed", pressed_style)
-	add_theme_stylebox_override("disabled", disabled_style)
+## Played right after a mark was researched on this node.
+func play_unlock() -> void:
+	_flash = 1.0
+	_charge = 0.0
+	_punch = 1.0
+	for index in range(14):
+		var angle: float = TAU * float(index) / 14.0 + randf_range(-0.15, 0.15)
+		var direction: Vector2 = Vector2.from_angle(angle)
+		_sparks.append({"p": CENTER + direction * RING_RADIUS, "v": direction * randf_range(90.0, 170.0), "life": randf_range(0.35, 0.55), "max": 0.55})
+	set_process(true)
 
 
-func _style(accent: Color, background_alpha: float, border_width: int) -> StyleBoxFlat:
-	var style: StyleBoxFlat = StyleBoxFlat.new()
-	style.bg_color = Color(
-		0.04 + accent.r * 0.035,
-		0.048 + accent.g * 0.028,
-		0.05 + accent.b * 0.025,
-		0.9
-	)
-	style.border_color = Color(accent.r, accent.g, accent.b, 0.36 + background_alpha)
-	style.set_border_width_all(border_width)
-	style.set_corner_radius_all(6)
-	style.content_margin_left = 4.0
-	style.content_margin_top = 4.0
-	style.content_margin_right = 4.0
-	style.content_margin_bottom = 4.0
-	return style
+## Holds a project that is about to open in its dim look until the pulse from its parent arrives.
+func prime_wake() -> void:
+	_wake = 0.0
+	_wake_waiting = true
+	queue_redraw()
 
 
-func _branch_color(branch: StringName) -> Color:
-	match branch:
-		ResearchManager.BRANCH_ECONOMY:
-			return COLOR_ECONOMY
-		ResearchManager.BRANCH_MOVEMENT:
-			return COLOR_MOVEMENT
-		_:
-			return COLOR_MISC
+## Played when this project became reachable because a requirement was just researched.
+func play_wake() -> void:
+	_wake = 0.0
+	_wake_waiting = false
+	AudioDirector.play(&"ui_toggle", -10.0, 1.4)
+	set_process(true)
 
 
-func _stars(current_mark: int, max_mark: int) -> String:
-	var result: String = ""
-	for star_index in range(max_mark):
-		result += "\u2605" if star_index < current_mark else "\u2606"
-	return result
+func _set_hovered(value: bool) -> void:
+	_hovered = value
+	set_process(true)
+	if value:
+		research_hovered.emit(research_id)
+		AudioDirector.play(&"ui_hover", -8.0, 1.05)
+	else:
+		research_unhovered.emit()
 
 
-func _on_pressed() -> void:
+# --- Input -----------------------------------------------------------------------------------------------
+
+func _gui_input(event: InputEvent) -> void:
+	var button: InputEventMouseButton = event as InputEventMouseButton
+	if button != null and button.button_index == MOUSE_BUTTON_LEFT:
+		if button.pressed:
+			_press()
+		else:
+			_release()
+		accept_event()
+		return
+	if event.is_action_pressed(&"ui_accept"):
+		_press()
+		accept_event()
+	elif event.is_action_released(&"ui_accept"):
+		_release()
+		accept_event()
+
+
+func _press() -> void:
+	if _state == PLANNED:
+		research_selected.emit(research_id)
+		return
 	research_selected.emit(research_id)
+	if _can_buy:
+		_holding = true
+		AudioDirector.play(&"ui_click", -6.0, 0.9)
+	set_process(true)
 
 
-func _on_mouse_entered() -> void:
-	research_hovered.emit(research_id)
+func _release() -> void:
+	_cancel_hold()
 
 
-func _on_mouse_exited() -> void:
-	research_unhovered.emit()
+func _cancel_hold() -> void:
+	_holding = false
+	set_process(true)
+
+
+# --- Animation & drawing ---------------------------------------------------------------------------------
+
+func _process(delta: float) -> void:
+	_time += delta
+	_hover = move_toward(_hover, 1.0 if (_hovered or has_focus()) else 0.0, delta * 10.0)
+	if _holding:
+		_hold = minf(_hold + delta / HOLD_SECONDS, 1.0)
+		if _hold >= 1.0:
+			_holding = false
+			_hold = 0.0
+			research_requested.emit(research_id)
+	else:
+		_hold = move_toward(_hold, 0.0, delta * 4.0)
+	_flash = move_toward(_flash, 0.0, delta * 2.6)
+	_charge = move_toward(_charge, 1.0, delta / 0.35)
+	if not _wake_waiting:
+		_wake = move_toward(_wake, 1.0, delta / 0.6)
+	_punch = move_toward(_punch, 0.0, delta * 3.0)
+	for index in range(_sparks.size() - 1, -1, -1):
+		var spark: Dictionary = _sparks[index]
+		spark["life"] = float(spark["life"]) - delta
+		if float(spark["life"]) <= 0.0:
+			_sparks.remove_at(index)
+			continue
+		spark["v"] = (spark["v"] as Vector2) * exp(-5.0 * delta)
+		spark["p"] = (spark["p"] as Vector2) + (spark["v"] as Vector2) * delta
+	queue_redraw()
+	var idle: bool = not _holding and _hold <= 0.0 and _flash <= 0.0 and _charge >= 1.0 and _wake >= 1.0 and _punch <= 0.0 and _sparks.is_empty() and (_hover == 0.0 or _hover == 1.0)
+	if idle and not (_hovered or has_focus()):
+		set_process(false)
+
+
+func _draw() -> void:
+	var teal: Color = UiStyle.TEAL
+	var amber: Color = UiStyle.ACCENT
+	var hover: float = _hover * _hover * (3.0 - 2.0 * _hover)
+	var scale_factor: float = 1.0 + hover * 0.05 + sin(_punch * PI) * 0.12
+	draw_set_transform(CENTER, 0.0, Vector2.ONE * scale_factor)
+
+	var disc: Color = Color(0.058, 0.082, 0.086, 1.0)
+	var edge: Color = Color(1, 1, 1, 0.12)
+	var icon_alpha: float = 0.9
+	match _state:
+		PLANNED:
+			disc = Color(0.04, 0.055, 0.058, 0.7)
+			edge = Color(1, 1, 1, 0.07)
+			icon_alpha = 0.16
+		LOCKED:
+			disc = Color(0.045, 0.062, 0.066, 1.0)
+			edge = Color(1, 1, 1, 0.06)
+			icon_alpha = 0.3
+		AVAILABLE:
+			edge = LoadoutStyle.with_alpha(amber, 0.55) if _can_buy else Color(1, 1, 1, 0.18)
+			icon_alpha = 1.0 if _can_buy else 0.7
+		RESEARCHED, MAXED:
+			disc = Color(0.05, 0.13, 0.125, 1.0)
+			edge = LoadoutStyle.with_alpha(teal, 0.45)
+			icon_alpha = 1.0
+	if _wake < 1.0:
+		icon_alpha = lerpf(0.3, icon_alpha, _wake)
+		edge = edge.lerp(Color(1, 1, 1, 0.06), 1.0 - _wake)
+	if _wake < 1.0 and not _wake_waiting:
+		var wave: float = _wake
+		draw_arc(Vector2.ZERO, RING_RADIUS + wave * 16.0, 0.0, TAU, 40, LoadoutStyle.with_alpha(amber, (1.0 - wave) * 0.6), 2.0, true)
+	if _state == MAXED:
+		LoadoutStyle.draw_glow(self, Vector2.ZERO, Vector2(44.0, 44.0), LoadoutStyle.with_alpha(teal, 0.1), 24)
+	disc = disc.lerp(disc.lightened(0.12), hover)
+	draw_circle(Vector2.ZERO, RADIUS, disc, true, -1.0, true)
+	if _state == PLANNED:
+		_draw_dashed_circle(RADIUS, edge)
+	else:
+		draw_arc(Vector2.ZERO, RADIUS, 0.0, TAU, 48, edge.lerp(Color(1, 1, 1, 0.5), hover * 0.4), 1.2, true)
+	if _flash > 0.0:
+		draw_circle(Vector2.ZERO, RADIUS, Color(0.75, 1.0, 0.95, _flash * 0.55), true, -1.0, true)
+
+	if _icon != null:
+		var icon_color: Color = Color(1, 1, 1, icon_alpha)
+		if _state == MAXED or _state == RESEARCHED:
+			icon_color = Color(0.86, 1.0, 0.96, 1.0)
+		draw_texture_rect(_icon, Rect2(Vector2(-ICON_SIZE, -ICON_SIZE) * 0.5, Vector2(ICON_SIZE, ICON_SIZE)), false, icon_color)
+
+	_draw_ring(teal, amber)
+	if _hold > 0.0:
+		draw_arc(Vector2.ZERO, RING_RADIUS + 6.0, -PI * 0.5, -PI * 0.5 + TAU * _hold, 48, amber, 3.0, true)
+	if selected or has_focus():
+		draw_arc(Vector2.ZERO, RING_RADIUS + 6.0, 0.0, TAU, 48, Color(1, 1, 1, 0.22 if _hold <= 0.0 else 0.0), 1.0, true)
+	for spark in _sparks:
+		var life: float = float(spark["life"]) / float(spark["max"])
+		var p: Vector2 = (spark["p"] as Vector2) - CENTER
+		var v: Vector2 = spark["v"]
+		draw_line(p, p - v * 0.05, LoadoutStyle.with_alpha(teal.lerp(Color.WHITE, 0.4), life), 1.6, true)
+	draw_set_transform(Vector2.ZERO)
+	_draw_labels(teal)
+
+
+## One arc segment per mark around the badge.
+func _draw_ring(teal: Color, amber: Color) -> void:
+	var gap: float = 0.22 if _max_mark > 1 else 0.0
+	var span: float = TAU / float(_max_mark)
+	for index in range(_max_mark):
+		var from: float = -PI * 0.5 + float(index) * span + gap * 0.5
+		var to: float = from + span - gap
+		var color: Color = Color(1, 1, 1, 0.1)
+		var width: float = 3.0
+		if _state == PLANNED or _state == LOCKED:
+			color = Color(1, 1, 1, 0.06)
+		elif index < _mark:
+			color = teal
+			if index == _mark - 1 and _charge < 1.0:
+				draw_arc(Vector2.ZERO, RING_RADIUS, from, to, 24, Color(1, 1, 1, 0.1), width, true)
+				to = lerpf(from, to, _charge * _charge * (3.0 - 2.0 * _charge))
+				color = teal.lerp(Color.WHITE, 1.0 - _charge)
+		elif index == _mark and _can_buy:
+			# Static amber says "ready"; only the badge under the pointer breathes, so a full purse does not
+			# set the whole tree pulsing.
+			color = LoadoutStyle.with_alpha(amber, 0.75 + (0.25 * sin(_time * 4.0) if _hover > 0.5 else 0.0))
+		elif index == _mark and _state == AVAILABLE:
+			color = Color(1, 1, 1, 0.22)
+		draw_arc(Vector2.ZERO, RING_RADIUS, from, to, 24, color, width, true)
+
+
+func _draw_labels(teal: Color) -> void:
+	var name_color: Color = LoadoutStyle.TEXT_SECONDARY
+	match _state:
+		PLANNED:
+			name_color = LoadoutStyle.with_alpha(LoadoutStyle.TEXT_MUTED, 0.22)
+		LOCKED:
+			name_color = LoadoutStyle.TEXT_MUTED
+		RESEARCHED, MAXED:
+			name_color = LoadoutStyle.TEXT
+		AVAILABLE:
+			name_color = LoadoutStyle.TEXT if _can_buy else LoadoutStyle.TEXT_SECONDARY
+	name_color = name_color.lerp(LoadoutStyle.TEXT, _hover * 0.6)
+	var y: float = CENTER.y + RING_RADIUS + 17.0
+	for line in _name_lines:
+		draw_string(UiStyle.FONT_UI, Vector2(0.0, y), line, HORIZONTAL_ALIGNMENT_CENTER, size.x, 12, name_color)
+		y += 14.0
+	if _state == PLANNED:
+		draw_string(UiStyle.FONT_BOLD, Vector2(0.0, y + 1.0), "LATER", HORIZONTAL_ALIGNMENT_CENTER, size.x, 9, LoadoutStyle.with_alpha(LoadoutStyle.TEXT_MUTED, 0.22))
+		return
+	if _state == MAXED or _state == LOCKED:
+		return
+	var text: String = str(_cost)
+	var color: Color = teal if _can_buy else LoadoutStyle.with_alpha(LoadoutStyle.NEGATIVE, 0.75)
+	var width: float = UiStyle.FONT_BOLD.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x + 12.0
+	var start: float = (size.x - width) * 0.5
+	ResearchNodeButton.draw_rp_glyph(self, Vector2(start + 4.0, y - 3.5), 4.0, color)
+	draw_string(UiStyle.FONT_BOLD, Vector2(start + 11.0, y + 1.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, color)
+
+
+func _draw_dashed_circle(radius: float, color: Color) -> void:
+	var segments: int = 18
+	for index in range(segments):
+		var a: float = TAU * float(index) / float(segments)
+		draw_arc(Vector2.ZERO, radius, a, a + TAU / float(segments) * 0.5, 4, color, 1.0, true)
+
+
+func _wrap(text: String) -> PackedStringArray:
+	var lines: PackedStringArray = PackedStringArray()
+	if UiStyle.FONT_UI.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x <= NODE_SIZE.x - 6.0:
+		lines.append(text)
+		return lines
+	var words: PackedStringArray = text.split(" ")
+	var split_at: int = words.size() / 2
+	lines.append(" ".join(words.slice(0, maxi(split_at, 1))))
+	lines.append(" ".join(words.slice(maxi(split_at, 1))))
+	return lines
+
+
+## The research point token: a small hexagon cell (coins are discs, research is a cell).
+static func draw_rp_glyph(canvas: CanvasItem, center: Vector2, radius: float, color: Color) -> void:
+	var points: PackedVector2Array = PackedVector2Array()
+	for index in range(6):
+		points.append(center + Vector2.from_angle(TAU * float(index) / 6.0 + PI / 6.0) * radius)
+	canvas.draw_colored_polygon(points, color)
+	canvas.draw_circle(center, radius * 0.38, Color(0.0, 0.0, 0.0, 0.35 * color.a), true, -1.0, true)

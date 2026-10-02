@@ -50,7 +50,9 @@ func _ready() -> void:
 	_left_page_button.get_parent().visible = false
 	if _loadout_page.has_method(&"set_top_inset"):
 		_loadout_page.set_top_inset(66.0)
-	_research_page.offset_top = 40.0
+	if _research_page.has_method(&"set_top_inset"):
+		_research_page.set_top_inset(66.0)
+	_status_page.offset_top = 58.0
 	UiStyle.style_button(_ready_button, true, 20)
 	GameJuice.attach_button_feedback(self)
 	OnlineMatch.state_changed.connect(_refresh)
@@ -74,21 +76,46 @@ func _on_ready_pressed() -> void:
 	_refresh()
 
 
-## Labelled page tabs across the top; Q/E or LB/RB switch pages from anywhere.
+## Page tabs across the top on a thin ink header: text tabs with an amber underline for the open page,
+## flanked by the keys that switch them (Q / E, LB / RB on a pad).
 func _build_tab_bar() -> void:
+	var header: Control = Control.new()
+	header.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	header.offset_bottom = 58.0
+	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	header.draw.connect(func() -> void:
+		header.draw_rect(Rect2(Vector2.ZERO, header.size), Color(0.0, 0.01, 0.012, 0.55))
+		header.draw_line(Vector2(0.0, header.size.y - 0.5), Vector2(header.size.x, header.size.y - 0.5), LoadoutStyle.HAIRLINE, 1.0))
+	add_child(header)
 	var bar: HBoxContainer = HBoxContainer.new()
-	bar.add_theme_constant_override("separation", 10)
+	bar.add_theme_constant_override("separation", 6)
 	bar.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	bar.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	bar.offset_top = 14.0
+	bar.offset_top = 9.0
 	add_child(bar)
 	bar.add_child(_key_hint("Q"))
 	for index in range(TAB_NAMES.size()):
 		var tab: Button = Button.new()
 		tab.text = TAB_NAMES[index]
-		tab.custom_minimum_size = Vector2(150.0, 40.0)
+		tab.toggle_mode = true
+		tab.custom_minimum_size = Vector2(132.0, 40.0)
 		tab.focus_mode = Control.FOCUS_NONE
+		tab.set_meta("juice_feedback_connected", true)
+		tab.add_theme_font_override("font", UiStyle.FONT_BOLD)
+		tab.add_theme_font_size_override("font_size", 16)
+		for state in ["normal", "hover", "pressed", "hover_pressed", "focus"]:
+			var style: StyleBoxFlat = LoadoutStyle.flat(Color(0, 0, 0, 0), 0)
+			if state in ["pressed", "hover_pressed"]:
+				style.border_color = UiStyle.ACCENT
+				style.border_width_bottom = 2
+			style.content_margin_bottom = 4.0
+			tab.add_theme_stylebox_override(state, style)
+		tab.add_theme_color_override("font_color", LoadoutStyle.TEXT_MUTED)
+		tab.add_theme_color_override("font_hover_color", LoadoutStyle.TEXT_SECONDARY)
+		tab.add_theme_color_override("font_pressed_color", LoadoutStyle.TEXT)
+		tab.add_theme_color_override("font_hover_pressed_color", LoadoutStyle.TEXT)
 		tab.pressed.connect(_set_page.bind(index - 1))
+		tab.mouse_entered.connect(func() -> void: AudioDirector.play(&"ui_hover", -8.0))
 		bar.add_child(tab)
 		_tab_buttons.append(tab)
 	bar.add_child(_key_hint("E"))
@@ -106,13 +133,11 @@ func _replace_quest_panel() -> void:
 
 
 func _key_hint(text: String) -> Control:
-	var chip: PanelContainer = PanelContainer.new()
-	chip.add_theme_stylebox_override("panel", UiStyle.with_margins(UiStyle.panel(Color(1, 1, 1, 0.08), Color(1, 1, 1, 0.35), 3, 1), 9, 4))
-	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var label: Label = Label.new()
-	UiStyle.style_label(label, UiStyle.FONT_BOLD, 14, UiStyle.TEXT_DIM)
-	label.text = text
-	chip.add_child(label)
+	var chip: Control = Control.new()
+	chip.custom_minimum_size = Vector2(26.0, 40.0)
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chip.draw.connect(func() -> void: LoadoutStyle.draw_key_chip(chip, Vector2(3.0, 11.0), "LB" if InputDevice.using_gamepad and text == "Q" else ("RB" if InputDevice.using_gamepad else text), 20.0))
+	InputDevice.device_changed.connect(func(_pad: bool) -> void: chip.queue_redraw())
 	return chip
 
 
@@ -190,16 +215,12 @@ func _tick_reward(label: Label, rewarded: bool, big: bool) -> void:
 	label.create_tween().tween_property(label, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
+## Pages switch with Q / E (LB / RB). Arrow keys and the d-pad stay with the page itself: they move through
+## the locker grid and the research tree.
 func _input(event: InputEvent) -> void:
-	if _is_page_left_event(event):
-		if _page_index > -1:
-			_set_page(_page_index - 1)
-			get_viewport().set_input_as_handled()
-	elif _is_page_right_event(event):
-		if _page_index < 1:
-			_set_page(_page_index + 1)
-			get_viewport().set_input_as_handled()
-	elif _is_page_cancel_event(event) and _page_index != 0:
+	if _loadout_page.visible and _loadout_page.has_method(&"is_modal_open") and _loadout_page.is_modal_open():
+		return
+	if _is_page_cancel_event(event) and _page_index != 0:
 		_set_page(0)
 		get_viewport().set_input_as_handled()
 	elif _is_tab_event(event, KEY_Q, JOY_BUTTON_LEFT_SHOULDER):
@@ -320,7 +341,7 @@ func _set_page(next_page: int) -> void:
 	_left_page_button.visible = _page_index > -1
 	_right_page_button.visible = _page_index < 1
 	for index in range(_tab_buttons.size()):
-		UiStyle.style_button(_tab_buttons[index], index - 1 == _page_index, 16)
+		_tab_buttons[index].set_pressed_no_signal(index - 1 == _page_index)
 	if previous == _page_index or not is_inside_tree():
 		return
 	AudioDirector.play(&"ui_whoosh", -8.0)
@@ -331,21 +352,6 @@ func _set_page(next_page: int) -> void:
 	tween.tween_property(page, "modulate:a", 1.0, 0.18)
 	tween.tween_property(page, "position:x", 0.0, 0.26).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
-
-func _is_page_left_event(event: InputEvent) -> bool:
-	if event.is_action_pressed(&"ui_left"):
-		return true
-	var key_event: InputEventKey = event as InputEventKey
-	return key_event != null and key_event.pressed and not key_event.echo and key_event.keycode == KEY_LEFT
-
-
-func _is_page_right_event(event: InputEvent) -> bool:
-	if event.is_action_pressed(&"ui_right"):
-		return true
-	var key_event: InputEventKey = event as InputEventKey
-	if key_event == null or not key_event.pressed or key_event.echo:
-		return false
-	return key_event.keycode == KEY_RIGHT
 
 
 func _is_page_cancel_event(event: InputEvent) -> bool:

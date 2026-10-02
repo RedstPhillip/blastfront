@@ -66,7 +66,6 @@ const WEAPON_STRIP_KEYS: Array[StringName] = [&"damage", &"fire_interval", &"rel
 const ARMOR_STRIP_KEYS: Array[StringName] = [&"max_health", &"move_speed", &"jump_velocity", &"damage_reduction"]
 const MAX_EFFECTS: int = 3
 const HOVER_CLEAR_DELAY: float = 0.15
-const STATUS_SECONDS: float = 2.6
 
 var _shop_enabled: bool = false
 var _top_inset: float = 0.0
@@ -95,11 +94,7 @@ var _saved_tiles: Array[LoadoutRewardTile] = []
 var _recycler: LoadoutRecycler = null
 var _saved_caption: Label = null
 var _saved_row: Control = null
-var _prompt_bar: Control = null
-var _prompts: Array = []
-var _status_text: String = ""
-var _status_color: Color = LoadoutStyle.TEXT
-var _status_time: float = 0.0
+var _prompt_bar: UiPromptBar = null
 var _merge_dialog: LoadoutMergeDialog = null
 var _pending_merge_source: WeaponExtensionItem = null
 var _pending_merge_target: WeaponExtensionItem = null
@@ -168,9 +163,6 @@ func set_top_inset(pixels: float) -> void:
 
 
 func _process(delta: float) -> void:
-	if _status_time > 0.0:
-		_status_time = maxf(_status_time - delta, 0.0)
-		_prompt_bar.queue_redraw()
 	if not _inspecting:
 		return
 	var hovered: Control = get_viewport().gui_get_hovered_control()
@@ -227,9 +219,7 @@ func _build() -> void:
 	_armor_stats = LoadoutStatStrip.new()
 	add_child(_armor_stats)
 
-	_prompt_bar = Control.new()
-	_prompt_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_prompt_bar.draw.connect(_draw_prompts)
+	_prompt_bar = UiPromptBar.new()
 	add_child(_prompt_bar)
 
 	_bench_nodes = [_title, _subtitle, _weapon_bay, _operator, _weapon_plate, _armor_plate, _weapon_stats, _armor_stats, _prompt_bar]
@@ -1003,32 +993,11 @@ func _socket_prompts(filled: bool) -> Array:
 
 
 func _set_prompts(prompts: Array) -> void:
-	if prompts == _prompts:
-		return
-	_prompts = prompts
-	_prompt_bar.queue_redraw()
+	_prompt_bar.set_prompts(prompts)
 
 
 func _notify(text: String, color: Color) -> void:
-	_status_text = text
-	_status_color = color
-	_status_time = STATUS_SECONDS
-	_prompt_bar.queue_redraw()
-
-
-func _draw_prompts() -> void:
-	var x: float = 0.0
-	for prompt in _prompts:
-		x += LoadoutStyle.draw_key_chip(_prompt_bar, Vector2(x, 2.0), str(prompt[0]), 18.0) + 7.0
-		_prompt_bar.draw_string(UiStyle.FONT_UI, Vector2(x, 16.0), str(prompt[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, LoadoutStyle.TEXT_SECONDARY)
-		x += UiStyle.FONT_UI.get_string_size(str(prompt[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x + 22.0
-	if _status_time <= 0.0 or _status_text == "":
-		return
-	var alpha: float = clampf(_status_time / 0.4, 0.0, 1.0) * clampf((STATUS_SECONDS - _status_time) / 0.12, 0.0, 1.0)
-	var width: float = UiStyle.FONT_BOLD.get_string_size(_status_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
-	var right: float = _prompt_bar.size.x
-	_prompt_bar.draw_circle(Vector2(right - width - 12.0, 11.0), 3.0, LoadoutStyle.with_alpha(_status_color, alpha), true, -1.0, true)
-	_prompt_bar.draw_string(UiStyle.FONT_BOLD, Vector2(right - width, 16.0), _status_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, LoadoutStyle.with_alpha(_status_color, alpha))
+	_prompt_bar.notify(text, color)
 
 
 # --- Actions ---------------------------------------------------------------------------------------------
@@ -1470,3 +1439,8 @@ func _is_inspectable(control: Control) -> bool:
 			return true
 		current = current.get_parent_control()
 	return false
+
+
+## True while a dialog on the page (the merge confirmation) owns Escape.
+func is_modal_open() -> bool:
+	return _merge_dialog != null and _merge_dialog.visible
