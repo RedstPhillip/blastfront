@@ -158,6 +158,24 @@ const EVENTS: Dictionary = {
 	&"item_move": {"bus": &"UI", "voices": 2, "cooldown": 0.05, "layers": [
 		{"files": ["impact_light_0", "impact_light_2", "impact_light_4"], "volume": -14.0, "pitch": Vector2(1.5, 1.7)},
 	]},
+	&"loadout_snap": {"bus": &"UI", "voices": 3, "cooldown": 0.04, "layers": [
+		{"files": ["loadout_snap"], "volume": -3.0, "pitch": Vector2(0.96, 1.05)},
+		{"files": ["metal_heavy_1", "metal_heavy_3"], "volume": -20.0, "pitch": Vector2(1.7, 1.9)},
+	]},
+	&"loadout_detach": {"bus": &"UI", "voices": 2, "cooldown": 0.04, "layers": [
+		{"files": ["loadout_detach"], "volume": -5.0, "pitch": Vector2(0.95, 1.05)},
+	]},
+	&"loadout_pickup": {"bus": &"UI", "voices": 2, "cooldown": 0.05, "layers": [
+		{"files": ["loadout_pickup"], "volume": -4.0, "pitch": Vector2(0.95, 1.08)},
+	]},
+	&"loadout_hover": {"bus": &"UI", "voices": 3, "cooldown": 0.03, "layers": [
+		{"files": ["loadout_hover"], "volume": -8.0, "pitch": Vector2(0.92, 1.12)},
+	]},
+	&"loadout_armor": {"bus": &"UI", "voices": 2, "cooldown": 0.05, "layers": [
+		{"files": ["loadout_snap"], "volume": -8.0, "pitch": Vector2(0.72, 0.8)},
+		{"files": ["shield_1", "shield_3"], "volume": -15.0, "pitch": Vector2(1.25, 1.4)},
+		{"files": ["impact_soft_1", "impact_soft_3"], "volume": -12.0, "pitch": Vector2(0.9, 1.0)},
+	]},
 	&"heartbeat": {"bus": &"SFX", "voices": 1, "cooldown": 0.5, "layers": [
 		{"files": ["heartbeat"], "volume": -7.0, "pitch": Vector2(1.0, 1.0)},
 	]},
