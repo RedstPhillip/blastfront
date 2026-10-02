@@ -31,16 +31,18 @@ signal cancelled
 
 func _ready() -> void:
 	hide()
-	_panel.add_theme_stylebox_override(
-		"panel",
-		_create_style(Color8(14, 15, 16, 250), Color8(138, 151, 138, 220), 4, 20, 9)
-	)
-	_source_tile.add_theme_stylebox_override("panel", _create_style(Color8(30, 34, 36, 238), Color8(84, 96, 98, 185), 4, 0, 0))
-	_target_tile.add_theme_stylebox_override("panel", _create_style(Color8(30, 34, 36, 238), Color8(84, 96, 98, 185), 4, 0, 0))
-	_result_tile.add_theme_stylebox_override("panel", _create_style(Color8(36, 34, 22, 242), Color8(218, 172, 78, 210), 4, 0, 0))
-	_condition_panel.add_theme_stylebox_override("panel", _create_style(Color8(8, 10, 11, 214), Color8(86, 96, 92, 150), 3, 0, 0))
-	_cost_badge.add_theme_stylebox_override("panel", _create_style(Color8(80, 58, 22, 220), Color8(214, 158, 64, 180), 2, 0, 0))
-	_balance_badge.add_theme_stylebox_override("panel", _create_style(Color8(18, 52, 45, 218), Color8(88, 184, 150, 170), 2, 0, 0))
+	# Same quiet surfaces as the loadout: graphite, no coloured boxes, one accent for the result.
+	_panel.add_theme_stylebox_override("panel", _create_style(Color(0.085, 0.09, 0.102, 0.98), Color(1, 1, 1, 0.08), 8, 24, 10))
+	_source_tile.add_theme_stylebox_override("panel", _create_style(Color(1, 1, 1, 0.04), Color(0, 0, 0, 0), 5, 0, 0))
+	_target_tile.add_theme_stylebox_override("panel", _create_style(Color(1, 1, 1, 0.04), Color(0, 0, 0, 0), 5, 0, 0))
+	_result_tile.add_theme_stylebox_override("panel", _create_style(Color(1.0, 0.72, 0.3, 0.1), Color(1.0, 0.72, 0.3, 0.55), 5, 0, 0))
+	_condition_panel.add_theme_stylebox_override("panel", _create_style(Color(0, 0, 0, 0.22), Color(0, 0, 0, 0), 4, 0, 0))
+	_cost_badge.add_theme_stylebox_override("panel", _create_style(Color(1, 1, 1, 0.04), Color(0, 0, 0, 0), 4, 0, 0))
+	_balance_badge.add_theme_stylebox_override("panel", _create_style(Color(1, 1, 1, 0.04), Color(0, 0, 0, 0), 4, 0, 0))
+	for label in [_source_name_label, _target_name_label, _result_name_label]:
+		label.add_theme_font_override("font", UiStyle.FONT_BOLD)
+	_title_label.add_theme_font_override("font", UiStyle.FONT_DISPLAY)
+	_cost_label.add_theme_color_override("font_color", WeaponArt.GOLD)
 	_warning_dialog.add_theme_stylebox_override(
 		"panel",
 		_create_style(Color8(22, 15, 14, 248), Color8(225, 82, 72, 220), 3, 16, 7)
@@ -70,9 +72,10 @@ func show_merge(
 	visible = true
 	move_to_front()
 
+	accent = LoadoutStyle.ACCENT
 	_accent_bar.color = accent
 	_kind_label.text = kind_text
-	_kind_label.add_theme_color_override("font_color", accent)
+	_kind_label.add_theme_color_override("font_color", LoadoutStyle.TEXT_MUTED)
 	_title_label.text = title_text if not title_text.is_empty() else "Forge MK%d Upgrade" % next_mark
 	_source_name_label.text = _trim_item_name(source_name)
 	_source_meta_label.text = "MK%d  |  %.0f%%" % [source_mark, source_condition]
@@ -81,23 +84,21 @@ func show_merge(
 	_result_name_label.text = _trim_item_name(source_name)
 	_result_meta_label.text = "MK%d  |  %.0f%%" % [next_mark, result_condition]
 	_result_meta_label.add_theme_color_override("font_color", accent)
-	_condition_label.text = "Condition %.0f%% + %.0f%% -> %.0f%%" % [
+	_condition_label.text = "Condition  %.0f%%  +  %.0f%%   ›   %.0f%%" % [
 		source_condition,
 		target_condition,
 		result_condition,
 	]
-	_cost_label.text = "Cost\n%d coins" % merge_cost
-	_balance_label.text = "Balance\n%d coins" % balance
-	_balance_label.add_theme_color_override(
-		"font_color",
-		Color8(180, 230, 210, 255) if balance >= merge_cost else Color8(255, 120, 100, 255)
-	)
+	_cost_label.text = "COST\n%d" % merge_cost
+	_balance_label.text = "BALANCE\n%d" % balance
+	_balance_label.add_theme_color_override("font_color", LoadoutStyle.TEXT if balance >= merge_cost else LoadoutStyle.NEGATIVE)
 	_hint_label.text = "The two matching MK%d items are consumed." % source_mark
-	_confirm_button.text = "FORGE MK%d  -%d C" % [next_mark, merge_cost]
+	_confirm_button.text = "FORGE MK %s" % LoadoutStyle.roman(next_mark)
 	_cancel_button.text = "CANCEL"
-
-	_style_button(_confirm_button, true, accent)
-	_style_button(_cancel_button, false, accent)
+	UiStyle.style_button(_confirm_button, true, 16)
+	UiStyle.style_button(_cancel_button, false, 15)
+	_confirm_button.custom_minimum_size = Vector2(150, 40)
+	_cancel_button.custom_minimum_size = Vector2(120, 40)
 
 
 func show_coin_warning(body: String, item_label: String) -> void:
