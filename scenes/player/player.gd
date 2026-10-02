@@ -809,8 +809,22 @@ func apply_horizontal_movement(delta: float, max_speed: float, acceleration: flo
 func get_wind_drift_speed() -> float:
 	if not WorldConditions.has_wind():
 		return 0.0
-	var share: float = WIND_GROUND_SHARE if is_grounded() else WIND_AIR_SHARE
-	return WorldConditions.wind.x * _wind_exposure * share
+	var grounded: bool = is_grounded()
+	var share: float = WIND_GROUND_SHARE if grounded else WIND_AIR_SHARE
+	var drift: float = WorldConditions.wind.x * _wind_exposure * share
+	# Someone standing still digs in at a ledge: the storm alone never shoves a player off a cliff.
+	if grounded and get_move_direction() == 0.0 and not _has_ground_ahead(signf(drift)):
+		return 0.0
+	return drift
+
+
+func _has_ground_ahead(side: float) -> bool:
+	if side == 0.0:
+		return true
+	var from: Vector2 = global_position + Vector2(side * 22.0, 0.0)
+	var query: PhysicsRayQueryParameters2D = PhysicsRayQueryParameters2D.create(from, from + Vector2(0.0, hover_dist + 40.0), 1)
+	query.exclude = [get_rid()]
+	return not get_world_2d().direct_space_state.intersect_ray(query).is_empty()
 
 
 func get_wind_exposure() -> float:

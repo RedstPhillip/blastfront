@@ -356,7 +356,7 @@ func _slide_button(button: Button, hovered: bool) -> void:
 func _build_bot_panel() -> void:
 	_bot_panel = PanelContainer.new()
 	_bot_panel.add_theme_stylebox_override("panel", UiStyle.with_shadow(UiStyle.with_margins(UiStyle.panel(UiStyle.PANEL_SOLID, UiStyle.LINE_STRONG, 8, 1), 28, 22), 24, Vector2(0, 10)))
-	_bot_panel.position = Vector2(470.0, 290.0)
+	_bot_panel.position = Vector2(470.0, 236.0)
 	_bot_panel.custom_minimum_size = Vector2(430.0, 0.0)
 	_bot_panel.visible = false
 	_bot_panel.z_index = 2
