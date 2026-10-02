@@ -87,6 +87,8 @@ func _build_hud() -> void:
 	_toasts = HudToasts.new()
 	add_child(_toasts)
 
+	add_child(HudRewardFlight.new())
+
 	_crosshair = HudCrosshair.new()
 	_crosshair.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(_crosshair)

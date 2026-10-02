@@ -20,10 +20,12 @@ var _title: Label = null
 var _points: Label = null
 var _empty: Label = null
 var _background: Control = null
+var _reserved_points: int = 0
 
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_to_group(HudRewardFlight.COUNTER_GROUP)
 	_background = Control.new()
 	_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_background.draw.connect(_draw_background)
@@ -190,9 +192,25 @@ func _pop(label: Label, amount: float) -> void:
 
 
 func _on_points_changed(points: int, animate: bool = true) -> void:
-	_points.text = "%d RP" % points
-	if animate:
+	_points.text = "%d RP" % maxi(points - _reserved_points, 0)
+	if animate and _reserved_points == 0:
 		_pop(_points, 1.3)
+
+
+## Points that are still flying in (HudRewardFlight) are held back from the shown total.
+func reserve_points(amount: int) -> void:
+	_reserved_points += amount
+	_on_points_changed(ResearchManager.research_points, false)
+
+
+func release_points(amount: int) -> void:
+	_reserved_points = maxi(_reserved_points - amount, 0)
+	_on_points_changed(ResearchManager.research_points, false)
+	_pop(_points, 1.25)
+
+
+func get_points_target() -> Vector2:
+	return _points.get_global_rect().get_center()
 
 
 func _draw_background() -> void:

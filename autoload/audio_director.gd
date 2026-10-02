@@ -110,9 +110,29 @@ const EVENTS: Dictionary = {
 		{"files": ["shield_0", "shield_3"], "volume": -6.0, "pitch": Vector2(0.7, 0.8)},
 		{"files": ["hit_heavy_1", "hit_heavy_3"], "volume": -4.0, "pitch": Vector2(0.8, 0.9)},
 	]},
+	&"airdrop_alert": {"bus": &"UI", "voices": 1, "cooldown": 1.0, "layers": [
+		{"files": ["airdrop_alert"], "volume": -4.0, "pitch": Vector2(1.0, 1.0)},
+	]},
+	&"airdrop_flyover": {"bus": &"SFX", "voices": 1, "cooldown": 2.0, "layers": [
+		{"files": ["airdrop_flyover"], "volume": -2.0, "pitch": Vector2(0.97, 1.03)},
+	]},
+	&"airdrop_chute": {"bus": &"SFX", "voices": 1, "layers": [
+		{"files": ["airdrop_chute"], "volume": -2.0, "pitch": Vector2(0.95, 1.05)},
+	]},
 	&"airdrop_land": {"bus": &"SFX", "voices": 1, "layers": [
-		{"files": ["metal_heavy_0", "metal_heavy_2", "metal_heavy_4"], "volume": -1.0, "pitch": Vector2(0.7, 0.8)},
-		{"files": ["land_thud_0", "land_thud_2"], "volume": 0.0, "pitch": Vector2(0.7, 0.8)},
+		{"files": ["airdrop_impact"], "volume": 1.0, "pitch": Vector2(0.96, 1.03)},
+	]},
+	&"airdrop_latch": {"bus": &"SFX", "voices": 2, "cooldown": 0.05, "layers": [
+		{"files": ["airdrop_latch"], "volume": -2.0, "pitch": Vector2(0.98, 1.02)},
+	]},
+	&"airdrop_open": {"bus": &"SFX", "voices": 1, "layers": [
+		{"files": ["airdrop_open"], "volume": 0.0, "pitch": Vector2(0.97, 1.03)},
+	]},
+	&"research_reward": {"bus": &"UI", "voices": 1, "cooldown": 0.3, "layers": [
+		{"files": ["research_reward"], "volume": -3.0, "pitch": Vector2(1.0, 1.0)},
+	]},
+	&"research_tick": {"bus": &"UI", "voices": 4, "cooldown": 0.03, "layers": [
+		{"files": ["research_tick"], "volume": -6.0, "pitch": Vector2(1.0, 1.0)},
 	]},
 	&"capture": {"bus": &"SFX", "voices": 1, "layers": [
 		{"files": ["powerup_0", "powerup_1"], "volume": -3.0, "pitch": Vector2(1.0, 1.05)},

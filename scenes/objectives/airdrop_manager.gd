@@ -20,17 +20,15 @@ var _state_send_timer: float = 0.0
 var _previous_match_phase: StringName = &""
 var _capture_finish_pending: bool = false
 var _drop_completed: bool = false
-var _siren_pulses_remaining: int = 0
 var _remote_descent_target: float = 0.0
 var _remote_capture_target: float = 0.0
 var _last_remote_packet_msec: int = 0
 var _warning_complete: bool = false
 var _drop_delay_remaining: float = -1.0
 var _set_airdrop_captured: bool = false
+var _contested: bool = false
 
 @onready var _warning_timer: Timer = get_node_or_null("WarningTimer") as Timer
-@onready var _siren_timer: Timer = get_node_or_null("SirenTimer") as Timer
-@onready var _siren_player: AudioStreamPlayer = get_node_or_null("SirenPlayer") as AudioStreamPlayer
 
 
 func _ready() -> void:
@@ -254,22 +252,18 @@ func _set_phase(next_phase: StringName) -> void:
 func _announce_phase(next_phase: StringName) -> void:
 	match next_phase:
 		PHASE_WARNING:
-			HudToasts.notify("SUPPLY DROP INBOUND", "Hold the landing zone to earn research points", UiStyle.ACCENT, &"")
-		PHASE_LANDED:
-			HudToasts.notify("SUPPLY DROP LANDED", "Stand inside the ring to capture it", UiStyle.ACCENT_HOT, &"")
+			HudToasts.notify("SUPPLY DROP INBOUND", "Stand in its ring to open it for research", UiStyle.ACCENT, &"")
 		PHASE_CAPTURED:
-			if _capturing_slot == NetworkSession.local_player_slot:
-				HudToasts.notify("DROP SECURED", "Research points are on their way", UiStyle.SUCCESS, &"reward")
-			elif _capturing_slot != 0:
-				HudToasts.notify("DROP LOST", "Your opponent captured the supplies", UiStyle.DANGER, &"ui_error")
+			if _capturing_slot != NetworkSession.local_player_slot and _capturing_slot != 0:
+				HudToasts.notify("SUPPLY DROP LOST", "Your opponent opened it", UiStyle.DANGER, &"ui_error")
 
 
+## Anticipation: a short radio double-chirp, then a transport passing high overhead while the flare
+## starts smoking on the landing spot.
 func _begin_warning_feedback() -> void:
 	_ensure_airdrop()
-	_siren_pulses_remaining = GameSettings.AIRDROP_SIREN_PULSES
-	_play_siren_pulse()
-	if _siren_timer != null and _siren_pulses_remaining > 0:
-		_siren_timer.start(GameSettings.AIRDROP_SIREN_INTERVAL)
+	AudioDirector.play(&"airdrop_alert")
+	AudioDirector.play(&"airdrop_flyover")
 	if _warning_timer != null and _has_authority():
 		_warning_timer.start(GameSettings.AIRDROP_WARNING_SECONDS)
 
@@ -277,30 +271,6 @@ func _begin_warning_feedback() -> void:
 func _stop_warning_feedback() -> void:
 	if _warning_timer != null:
 		_warning_timer.stop()
-	if _siren_timer != null:
-		_siren_timer.stop()
-	if _siren_player != null:
-		_siren_player.stop()
-	_siren_pulses_remaining = 0
-
-
-func _on_siren_timer_timeout() -> void:
-	if _phase != PHASE_WARNING or _siren_pulses_remaining <= 0:
-		if _siren_timer != null:
-			_siren_timer.stop()
-		return
-	_play_siren_pulse()
-	if _siren_pulses_remaining <= 0 and _siren_timer != null:
-		_siren_timer.stop()
-
-
-func _play_siren_pulse() -> void:
-	if _siren_pulses_remaining <= 0:
-		return
-	_siren_pulses_remaining -= 1
-	if _siren_player != null:
-		_siren_player.pitch_scale = randf_range(0.98, 1.03)
-		_siren_player.play()
 
 
 func _on_warning_timer_timeout() -> void:
@@ -322,6 +292,7 @@ func _update_capture(delta: float) -> void:
 		if player.global_position.distance_squared_to(_target_position) <= capture_radius * capture_radius:
 			nearby_slots.append(slot)
 
+	_contested = nearby_slots.size() > 1
 	if nearby_slots.size() == 1:
 		var next_slot: int = nearby_slots[0]
 		if _capturing_slot != next_slot:
@@ -368,6 +339,8 @@ func _ensure_airdrop() -> void:
 
 
 func _clear_airdrop() -> void:
+	var was_captured: bool = _phase == PHASE_CAPTURED
+	_contested = false
 	_set_phase(PHASE_INACTIVE)
 	_descent_progress = 0.0
 	_capture_progress = 0.0
@@ -375,8 +348,9 @@ func _clear_airdrop() -> void:
 	_remote_capture_target = 0.0
 	_capturing_slot = 0
 	_warning_complete = false
+	# The crate plays its own way out (a captured one stays open a moment, then fades).
 	if _airdrop != null and is_instance_valid(_airdrop):
-		_airdrop.queue_free()
+		_airdrop.dismiss(was_captured)
 	_airdrop = null
 
 
@@ -397,6 +371,7 @@ func _build_visual_state() -> Dictionary:
 		"descent_progress": _descent_progress,
 		"capture_progress": _capture_progress,
 		"capturing_slot": _capturing_slot,
+		"contested": _contested,
 		"target_position": _target_position,
 		"local_capture_radius": ResearchManager.get_capture_radius(local_slot),
 		"local_reward": ResearchManager.get_capture_research_reward(local_slot),
@@ -411,6 +386,7 @@ func _send_state(reliable: bool) -> void:
 		"descent_progress": _descent_progress,
 		"capture_progress": _capture_progress,
 		"capturing_slot": _capturing_slot,
+		"contested": _contested,
 		"target_position": _target_position,
 	})
 	if reliable:
@@ -432,6 +408,7 @@ func _on_packet_received(packet: Dictionary, _sender_id: int) -> void:
 	_remote_descent_target = clampf(float(payload.get("descent_progress", 0.0)), 0.0, 1.0)
 	_remote_capture_target = clampf(float(payload.get("capture_progress", 0.0)), 0.0, 1.0)
 	_capturing_slot = int(payload.get("capturing_slot", 0))
+	_contested = bool(payload.get("contested", false))
 	_last_remote_packet_msec = Time.get_ticks_msec()
 
 	if next_phase != _phase:
@@ -458,50 +435,8 @@ func _ensure_feedback_nodes() -> void:
 		_warning_timer.name = "WarningTimer"
 		_warning_timer.one_shot = true
 		add_child(_warning_timer)
-	if _siren_timer == null:
-		_siren_timer = Timer.new()
-		_siren_timer.name = "SirenTimer"
-		add_child(_siren_timer)
-	if _siren_player == null:
-		_siren_player = AudioStreamPlayer.new()
-		_siren_player.name = "SirenPlayer"
-		add_child(_siren_player)
-	_siren_player.bus = &"SFX"
-	_siren_player.volume_db = 2.0
 	if not _warning_timer.timeout.is_connected(_on_warning_timer_timeout):
 		_warning_timer.timeout.connect(_on_warning_timer_timeout)
-	if not _siren_timer.timeout.is_connected(_on_siren_timer_timeout):
-		_siren_timer.timeout.connect(_on_siren_timer_timeout)
-	_siren_player.stream = _build_siren_stream()
-
-
-func _build_siren_stream() -> AudioStreamWAV:
-	var mix_rate: int = 44100
-	var duration: float = 0.42
-	var sample_count: int = int(float(mix_rate) * duration)
-	var samples: PackedByteArray = PackedByteArray()
-	samples.resize(sample_count * 2)
-	for sample_index in range(sample_count):
-		var time_seconds: float = float(sample_index) / float(mix_rate)
-		var phase_ratio: float = time_seconds / duration
-		var sweep: float = sin(phase_ratio * PI)
-		var frequency: float = lerpf(420.0, 980.0, sweep)
-		var attack: float = clampf(time_seconds / 0.035, 0.0, 1.0)
-		var release: float = clampf((duration - time_seconds) / 0.08, 0.0, 1.0)
-		var envelope: float = minf(attack, release)
-		var pulse_gate: float = 0.72 + 0.28 * sin(TAU * 9.0 * time_seconds)
-		var wave: float = sin(TAU * frequency * time_seconds) * 0.68
-		wave += sin(TAU * frequency * 1.5 * time_seconds) * 0.22
-		wave += sin(TAU * frequency * 0.5 * time_seconds) * 0.18
-		var grit: float = sin(TAU * 146.0 * time_seconds + sin(TAU * 7.0 * time_seconds)) * 0.025
-		var sample_value: int = int(clampf((wave * pulse_gate + grit) * envelope * 0.48, -1.0, 1.0) * 32767.0)
-		samples.encode_s16(sample_index * 2, sample_value)
-	var stream: AudioStreamWAV = AudioStreamWAV.new()
-	stream.format = AudioStreamWAV.FORMAT_16_BITS
-	stream.mix_rate = mix_rate
-	stream.stereo = false
-	stream.data = samples
-	return stream
 
 
 func _get_player(slot: int) -> Player:

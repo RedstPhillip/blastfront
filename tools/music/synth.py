@@ -173,6 +173,12 @@ def make_seamless(render_fn, loop_seconds):
 
 
 def write_ogg(stereo, path, quality=6):
+    import shutil
+    if shutil.which("ffmpeg") is None:
+        # No ffmpeg on this machine: libsndfile (via soundfile) writes Ogg Vorbis directly.
+        import soundfile
+        soundfile.write(path, np.clip(stereo, -1, 1), SR, format="OGG", subtype="VORBIS")
+        return
     wav_path = path.replace(".ogg", ".tmp.wav")
     data = np.clip(stereo, -1, 1)
     pcm = (data * 32767).astype(np.int16)
