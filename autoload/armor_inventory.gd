@@ -65,6 +65,19 @@ func unequip_category(category_id: StringName) -> void:
 		inventory_changed.emit()
 
 
+## Removes an owned armor piece for good (it was sold). A worn piece is taken off first.
+func remove_item(item: ArmorItemData) -> bool:
+	if item == null:
+		return false
+	if loadout.get_equipped_item(item.category) == item:
+		unequip_category(item.category)
+	if not inventory.has(item):
+		return false
+	inventory.erase(item)
+	inventory_changed.emit()
+	return true
+
+
 func get_equipped_item(category_id: StringName) -> ArmorItemData:
 	return loadout.get_equipped_item(category_id)
 

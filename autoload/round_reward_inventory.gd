@@ -6,6 +6,8 @@ const REWARD_EXTENSION: StringName = &"extension"
 const REWARD_ARMOR: StringName = &"armor"
 const SOURCE_OFFER: StringName = &"offer"
 const SOURCE_SAVED: StringName = &"saved"
+## Share of an owned item's shop value paid out when it is sold; the Recycling research raises it.
+const SELL_BASE_RATIO: float = 0.4
 const OFFER_COUNT_PER_TYPE: int = 3
 const MAX_SAVED_SLOT_COUNT: int = 4
 
@@ -148,6 +150,51 @@ func recycle_reward(source_kind: StringName, source_index: int) -> int:
 		return 0
 	_set_reward(source_kind, source_index, {})
 	rewards_changed.emit()
+	return refund
+
+
+## Coins paid for recycling an offered or saved blueprint (0 until the Recycling research is done).
+func recycle_value(source_kind: StringName, source_index: int) -> int:
+	var ratio: float = ResearchManager.get_recycling_refund_ratio()
+	var price: int = get_reward_price(source_kind, source_index)
+	if ratio <= 0.0 or price <= 0:
+		return 0
+	return maxi(1, int(roundf(float(price) * ratio)))
+
+
+func get_sell_ratio() -> float:
+	return maxf(SELL_BASE_RATIO, ResearchManager.get_recycling_refund_ratio())
+
+
+## What an owned part or armor piece would cost in the shop today (condition, mark and effects).
+func item_value(item: Variant) -> int:
+	if item is WeaponExtensionItem:
+		return _calculate_price(REWARD_EXTENSION, item)
+	if item is ArmorItemData:
+		return _calculate_price(REWARD_ARMOR, item)
+	return 0
+
+
+func sell_value(item: Variant) -> int:
+	var value: int = item_value(item)
+	if value <= 0:
+		return 0
+	return maxi(1, int(roundf(float(value) * get_sell_ratio())))
+
+
+## Sells an owned part or armor piece (installed ones come off first). Returns the coins paid, 0 if nothing
+## was sold.
+func sell_item(item: Variant) -> int:
+	var refund: int = sell_value(item)
+	if refund <= 0:
+		return 0
+	var removed: bool = false
+	if item is WeaponExtensionItem:
+		removed = ExtensionInventory.remove_item_for_player(ExtensionInventory.get_local_player_slot(), item)
+	elif item is ArmorItemData:
+		removed = ArmorInventory.remove_item(item)
+	if not removed or not OnlineMatch.add_local_coins(refund):
+		return 0
 	return refund
 
 

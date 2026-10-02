@@ -91,14 +91,6 @@ func get_mark() -> int:
 	return 0
 
 
-func get_grade_color() -> Color:
-	if item is WeaponExtensionItem:
-		return (item as WeaponExtensionItem).get_condition_color()
-	if item is ArmorItemData:
-		return (item as ArmorItemData).get_condition_color()
-	return LoadoutStyle.HAIRLINE
-
-
 func get_slot() -> StringName:
 	if item is WeaponExtensionItem:
 		return (item as WeaponExtensionItem).get_slot()
@@ -210,7 +202,6 @@ func _draw() -> void:
 	var base: Transform2D = Transform2D(0.0, Vector2.ONE * card_scale, 0.0, center + Vector2(0.0, -ease_hover))
 	draw_set_transform_matrix(base)
 	var rect: Rect2 = Rect2(-center, size)
-	var grade: Color = get_grade_color()
 
 	_style.bg_color = LoadoutStyle.CARD.lerp(LoadoutStyle.CARD_HOVER, ease_hover)
 	_style.set_border_width_all(0)
@@ -223,8 +214,18 @@ func _draw() -> void:
 		_style.set_border_width_all(1)
 	draw_style_box(_style, rect)
 	var dim: bool = equipped or _drag_source
-	# Condition grade as a plain 2 px bar along the bottom edge; no glow behind it.
-	draw_rect(Rect2(rect.position.x, rect.end.y - 2.0, w, 2.0), Color(grade.r, grade.g, grade.b, 0.25 if dim else 0.6))
+	# Durability along the bottom edge: the bar's length is the condition; it only takes a colour once the
+	# part is worn (amber) or nearly broken (red), so a shelf of fresh parts stays calm.
+	var condition: float = clampf(float(LoadoutStyle.item_info(item).get("condition", 100.0)) / 100.0, 0.0, 1.0)
+	var wear: Color = Color(1.0, 1.0, 1.0, 0.32)
+	if condition < 0.35:
+		wear = LoadoutStyle.NEGATIVE
+	elif condition < 0.6:
+		wear = LoadoutStyle.ACCENT
+	if dim:
+		wear.a *= 0.45
+	draw_rect(Rect2(rect.position.x, rect.end.y - 2.0, w, 2.0), Color(0.0, 0.0, 0.0, 0.35))
+	draw_rect(Rect2(rect.position.x, rect.end.y - 2.0, w * condition, 2.0), wear)
 
 	if item is WeaponExtensionItem:
 		var icon_rect: Rect2 = Rect2(rect.position + Vector2(9.0, 9.0), size - Vector2(18.0, 21.0)).grow(ease_hover * 1.5)

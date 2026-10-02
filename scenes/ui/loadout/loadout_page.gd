@@ -401,9 +401,10 @@ func _build_shop_panel() -> Control:
 		var saved: LoadoutRewardTile = _make_reward_tile(RoundRewardInventory.SOURCE_SAVED, index)
 		saved_row.add_child(saved)
 		_saved_tiles.append(saved)
+	# Sell zone: parts and armor always, blueprints once Recycling is researched.
 	_recycler = LoadoutRecycler.new()
-	_recycler.recycled.connect(_on_reward_recycled)
-	saved_row.add_child(_recycler)
+	_recycler.sold.connect(_on_item_sold)
+	column.add_child(_recycler)
 	return panel
 
 
@@ -601,7 +602,7 @@ func _refresh_shop() -> void:
 	if not _shop_enabled:
 		return
 	var saved_count: int = ResearchManager.get_blueprint_slot_count()
-	var saved_visible: bool = saved_count > 0 or (_recycler != null and _recycler.visible)
+	var saved_visible: bool = saved_count > 0
 	_saved_caption.visible = saved_visible
 	_saved_row.visible = saved_visible
 	for tile in _offer_tiles:
@@ -809,6 +810,8 @@ func _inspect_extension(item: WeaponExtensionItem, equipped: bool, price: int = 
 		hint = "CLICK TO BUY  ·  %d" % price
 	elif not equipped and ExtensionInventory.has_merge_partner_for_local(item):
 		hint = "DROP ON ITS TWIN TO MERGE  ·  %d" % ExtensionInventory.get_merge_cost_for_next_mark(item.mark + 1)
+	elif _shop_enabled:
+		hint += "  ·  SELLS FOR %d" % RoundRewardInventory.sell_value(item)
 	_inspector.show_extension(item, _short_description(item.definition.description), caption, rows, hint)
 	_preview_weapon(item)
 
@@ -832,6 +835,8 @@ func _inspect_armor(item: ArmorItemData, equipped: bool, price: int = -1) -> voi
 		hint = "CLICK TO BUY  ·  %d" % price
 	elif not equipped and ArmorInventory.has_merge_partner_for_local(item):
 		hint = "DROP ON ITS TWIN TO MERGE  ·  %d" % ArmorInventory.get_merge_cost_for_next_mark(item.get_mark() + 1)
+	elif _shop_enabled:
+		hint += "  ·  SELLS FOR %d" % RoundRewardInventory.sell_value(item)
 	_inspector.show_armor(item, _short_description(item.description), caption, rows, hint)
 	_preview_armor(item)
 
@@ -1076,9 +1081,10 @@ func _on_reward_moved(payload: Dictionary, target_kind: StringName, target_index
 		AudioDirector.play(&"item_move")
 
 
-func _on_reward_recycled(refund: int) -> void:
+func _on_item_sold(refund: int, title: String) -> void:
 	AudioDirector.play(&"recycle")
-	_inspector.show_message("Blueprint recycled", "RECYCLER  ·  +%d COINS" % refund, "The blueprint was dismantled and its value returned to your balance.", UiStyle.SUCCESS)
+	AudioDirector.play(&"coins")
+	_inspector.show_message(title, "+%d COINS" % refund, "", UiStyle.SUCCESS)
 
 
 # --- Merging ---------------------------------------------------------------------------------------------

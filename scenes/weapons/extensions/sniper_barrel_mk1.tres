@@ -8,14 +8,14 @@ script = ExtResource("1_definition")
 extension_id = "sniper_barrel_mk1"
 display_name = "Sniper Barrel MK1"
 slot_key = "front"
-description = "Precision barrel with drastically reduced bullet drop and high velocity. Speed +800, Gravity -2400, Fire Rate +0.72s, Damage -3, Ammo -1, Reload +0.1s."
+description = "Precision barrel with drastically reduced bullet drop and high velocity. Speed +800, Gravity -2400, Fire Rate +0.72s, Damage +25, Ammo -1, Reload +0.1s."
 default_condition = 100.0
 minimum_condition_factor = 0.25
 attribute_modifiers = {
 "projectile_speed": 800.0,
 "projectile_gravity": -2400.0,
 "fire_interval": 0.72,
-"damage": -3.0,
+"damage": 25.0,
 "ammo_max": -1.0,
 "reload_time": 0.1
 }
@@ -23,7 +23,7 @@ mk2_attribute_modifiers = {
 "projectile_speed": 1250.0,
 "projectile_gravity": -2550.0,
 "fire_interval": 0.58,
-"damage": -2.0,
+"damage": 27.0,
 "ammo_max": -1.0,
 "reload_time": 0.08
 }
@@ -31,7 +31,7 @@ mk3_attribute_modifiers = {
 "projectile_speed": 1700.0,
 "projectile_gravity": -2600.0,
 "fire_interval": 0.48,
-"damage": -1.0,
+"damage": 30.0,
 "ammo_max": -1.0,
 "reload_time": 0.05
 }

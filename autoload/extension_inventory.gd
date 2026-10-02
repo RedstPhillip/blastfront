@@ -179,6 +179,24 @@ func equip_item_for_player(player_slot: int, item: WeaponExtensionItem) -> bool:
 	return true
 
 
+## Removes an owned part for good (it was sold). An installed part is taken off the gun first.
+func remove_item_for_player(player_slot: int, item: WeaponExtensionItem) -> bool:
+	if item == null or not _is_player_slot(player_slot):
+		return false
+	_ensure_player_state(player_slot)
+	var loadout: Dictionary = _get_loadout_for_player(player_slot)
+	for slot in loadout.keys():
+		if loadout[slot] == item:
+			unequip_for_player(player_slot, slot)
+	var inventory: Array = _inventory_by_player.get(player_slot, [])
+	if not inventory.has(item):
+		return false
+	inventory.erase(item)
+	_inventory_by_player[player_slot] = inventory
+	inventory_changed.emit(player_slot)
+	return true
+
+
 func unequip_local(slot: StringName) -> void:
 	unequip_for_player(get_local_player_slot(), slot)
 
