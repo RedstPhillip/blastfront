@@ -914,7 +914,7 @@ func _inspect_weapon_slot(slot: StringName) -> void:
 	else:
 		_inspecting = true
 		_hover_clear_timer = HOVER_CLEAR_DELAY
-		_weapon_plate.show_content(LoadoutStyle.slot_label(slot), [["EMPTY", LoadoutStyle.TEXT_MUTED], [_owned_text(slot), LoadoutStyle.TEXT_SECONDARY]], "")
+		_weapon_plate.show_content(LoadoutStyle.slot_label(slot), [[str(LoadoutSocketChip.STOCK_NAMES.get(slot, "")).to_upper(), LoadoutStyle.TEXT_MUTED], [_owned_text(slot), LoadoutStyle.TEXT_SECONDARY]], "")
 		_preview_weapon(null)
 	_set_prompts(_socket_prompts(item != null))
 
@@ -928,7 +928,7 @@ func _inspect_armor_slot(category: StringName) -> void:
 	else:
 		_inspecting = true
 		_hover_clear_timer = HOVER_CLEAR_DELAY
-		_armor_plate.show_content(LoadoutStyle.slot_label(category), [["EMPTY", LoadoutStyle.TEXT_MUTED], [_owned_text(category), LoadoutStyle.TEXT_SECONDARY]], "")
+		_armor_plate.show_content(LoadoutStyle.slot_label(category), [["NOTHING WORN", LoadoutStyle.TEXT_MUTED], [_owned_text(category), LoadoutStyle.TEXT_SECONDARY]], "")
 		_preview_armor(null)
 	_set_prompts(_socket_prompts(item != null))
 

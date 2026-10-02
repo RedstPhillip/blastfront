@@ -3,5 +3,5 @@
 [ext_resource type="Script" path="res://scenes/objectives/airdrop_crate.gd" id="1_script"]
 
 [node name="AirdropCrate" type="Node2D"]
-z_index = 4
+z_index = 0
 script = ExtResource("1_script")

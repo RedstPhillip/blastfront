@@ -73,7 +73,8 @@ var _wind: AudioStreamPlayer2D = null
 
 
 func _ready() -> void:
-	z_index = 4
+	# Level with the players (who are drawn after it), so whoever captures stays visible in front of the crate.
+	z_index = 0
 	_zone = _layer(-3, _draw_zone)
 	_flare = _make_flare()
 	_flare_core = _glow_sprite(FLARE, 70.0, -1)
