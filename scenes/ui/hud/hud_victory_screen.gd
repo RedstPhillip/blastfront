@@ -1,13 +1,15 @@
 class_name HudVictoryScreen
 extends Control
 
-## End-of-match results: VICTORY/DEFEAT headline, final score, animated stat counters and actions.
+## End-of-match results on the same feathered ink band as the point banner (no box): VICTORY / DEFEAT,
+## the final score, stat counters that count up, and the two actions.
 
 signal rematch_pressed
 signal menu_pressed
 
 var _dim: ColorRect = null
-var _panel: PanelContainer = null
+var _panel: VBoxContainer = null
+var _band: Control = null
 var _kicker: Label = null
 var _title: Label = null
 var _score: Label = null
@@ -47,27 +49,34 @@ func _ready() -> void:
 	_confetti.color_ramp = FxLib.fade_ramp(&"late")
 	add_child(_confetti)
 
+	_band = Control.new()
+	_band.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_band.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_band.draw.connect(_draw_band)
+	_band.modulate.a = 0.0
+	add_child(_band)
 	var center: CenterContainer = CenterContainer.new()
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(center)
-	_panel = PanelContainer.new()
+	_panel = VBoxContainer.new()
 	_panel.custom_minimum_size = Vector2(640, 0)
-	_panel.add_theme_stylebox_override("panel", UiStyle.with_shadow(UiStyle.with_margins(UiStyle.panel(UiStyle.PANEL_SOLID, UiStyle.LINE_STRONG, 10, 1), 40, 30), 30, Vector2(0, 14)))
+	_panel.add_theme_constant_override("separation", 10)
 	center.add_child(_panel)
-	var box: VBoxContainer = VBoxContainer.new()
-	box.add_theme_constant_override("separation", 10)
-	_panel.add_child(box)
-	_kicker = _label(UiStyle.FONT_BOLD, 15, UiStyle.ACCENT, "MATCH COMPLETE")
+	var box: VBoxContainer = _panel
+	_kicker = _label(UiStyle.FONT_BOLD, 13, UiStyle.TEXT_DIM, "MATCH COMPLETE")
 	box.add_child(_kicker)
 	_title = _label(UiStyle.FONT_DISPLAY, 86, UiStyle.TEXT, "VICTORY")
 	_title.add_theme_constant_override("outline_size", 10)
 	_title.add_theme_color_override("font_outline_color", Color(0, 0.02, 0.02, 1))
 	box.add_child(_title)
-	_score = _label(UiStyle.FONT_BOLD, 24, UiStyle.TEXT_DIM, "")
+	_score = _label(UiStyle.FONT_BOLD, 20, UiStyle.TEXT, "")
+	_score.add_theme_constant_override("outline_size", 4)
+	_score.add_theme_color_override("font_outline_color", Color(0, 0.02, 0.02, 0.8))
 	box.add_child(_score)
 	var separator: ColorRect = ColorRect.new()
-	separator.custom_minimum_size = Vector2(0, 1)
-	separator.color = UiStyle.LINE
+	separator.custom_minimum_size = Vector2(280, 1)
+	separator.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	separator.color = LoadoutStyle.HAIRLINE
 	box.add_child(separator)
 	_stats_row = HBoxContainer.new()
 	_stats_row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -126,8 +135,8 @@ func show_result(won: bool, headline_color: Color, score_text: String, stats: Ar
 	for stat in stats:
 		var column: VBoxContainer = VBoxContainer.new()
 		column.add_theme_constant_override("separation", 0)
-		var value_label: Label = _label(UiStyle.FONT_DISPLAY, 34, UiStyle.TEXT, "0")
-		var name_label: Label = _label(UiStyle.FONT_BOLD, 12, UiStyle.TEXT_MUTED, str(stat.get("label", "")))
+		var value_label: Label = _label(UiStyle.FONT_DISPLAY, 30, UiStyle.TEXT, "0")
+		var name_label: Label = _label(UiStyle.FONT_BOLD, 11, UiStyle.TEXT_DIM, str(stat.get("label", "")))
 		column.add_child(value_label)
 		column.add_child(name_label)
 		_stats_row.add_child(column)
@@ -140,7 +149,8 @@ func show_result(won: bool, headline_color: Color, score_text: String, stats: Ar
 	_panel.modulate.a = 0.0
 	var tween: Tween = create_tween().set_ignore_time_scale(true)
 	tween.set_parallel(true)
-	tween.tween_property(_dim, "color:a", 0.62, 0.5)
+	tween.tween_property(_dim, "color:a", 0.35, 0.5)
+	tween.tween_property(_band, "modulate:a", 1.0, 0.4)
 	tween.tween_property(_panel, "modulate:a", 1.0, 0.3).set_delay(0.15)
 	tween.tween_property(_panel, "scale", Vector2.ONE, 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT).set_delay(0.15)
 	for index in range(counters.size()):
@@ -160,6 +170,7 @@ func show_result(won: bool, headline_color: Color, score_text: String, stats: Ar
 
 
 func hide_result() -> void:
+	_band.modulate.a = 0.0
 	_shown = false
 	visible = false
 	_confetti.emitting = false
@@ -170,3 +181,15 @@ func _confetti_colors(base: Color) -> Gradient:
 	gradient.offsets = PackedFloat32Array([0.0, 0.33, 0.66, 1.0])
 	gradient.colors = PackedColorArray([base, UiStyle.ACCENT, Color.WHITE, base.lightened(0.3)])
 	return gradient
+
+
+## A wide ink band behind the result, feathered at its top and bottom like the point banner.
+func _draw_band() -> void:
+	var mid: float = size.y * 0.5
+	var half: float = 190.0
+	var feather: float = 90.0
+	var ink: Color = Color(0.0, 0.012, 0.016, 0.82)
+	var clear: Color = Color(ink.r, ink.g, ink.b, 0.0)
+	LoadoutStyle.draw_gradient_rect(_band, Rect2(0.0, mid - half - feather, size.x, feather), clear, ink)
+	_band.draw_rect(Rect2(0.0, mid - half, size.x, half * 2.0), ink)
+	LoadoutStyle.draw_gradient_rect(_band, Rect2(0.0, mid + half, size.x, feather), ink, clear)
