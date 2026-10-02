@@ -55,6 +55,8 @@ static var _flash: float = 0.0
 static var _desaturate: float = 0.0
 static var _accent: Color = Color(0.32, 0.67, 1.0)
 static var _ammo_color: Color = Color(0.95, 0.75, 0.36)
+## Outline thickness in gun units; small renders (the in-game gun) ask for a heavier outline.
+static var _outline_width: float = OUTLINE_WIDTH
 
 
 ## Config: {slot: {"id": StringName, "mark": int}} for the three sockets; missing slots draw stock parts.
@@ -118,6 +120,7 @@ static func weapon_bounds(config: Dictionary) -> Rect2:
 ##   ghost: {slot: StringName} (hologram preview of a part), highlight: StringName slot, desaturate: float
 static func draw_weapon(canvas: CanvasItem, xform: Transform2D, config: Dictionary, style: Dictionary = {}) -> void:
 	_accent = style.get("accent", Color(0.32, 0.67, 1.0))
+	_outline_width = float(style.get("outline", OUTLINE_WIDTH))
 	var ghosts: Dictionary = style.get("ghost", {})
 	var offsets: Dictionary = style.get("offsets", {})
 	var alphas: Dictionary = style.get("alphas", {})
@@ -144,6 +147,7 @@ static func draw_weapon(canvas: CanvasItem, xform: Transform2D, config: Dictiona
 		_draw_ghost(canvas, xform, StringName(str(slot)), StringName(str(ghosts[slot])))
 	canvas.draw_set_transform_matrix(Transform2D.IDENTITY)
 	_begin(1.0, 0.0, 0.0)
+	_outline_width = OUTLINE_WIDTH
 
 
 ## One socket's part on its own (used for parts flying off the gun while another snaps in).
@@ -304,7 +308,7 @@ static func _draw_part_at(canvas: CanvasItem, xform: Transform2D, origin: Vector
 				for outline in op["outline"]:
 					canvas.draw_colored_polygon(outline, _c(OUTLINE))
 			elif op["t"] == "circle":
-				canvas.draw_circle(op["p"], float(op["r"]) + OUTLINE_WIDTH, _c(OUTLINE), true, -1.0, true)
+				canvas.draw_circle(op["p"], float(op["r"]) + float(op.get("ow", OUTLINE_WIDTH)), _c(OUTLINE), true, -1.0, true)
 	for op in part:
 		match op["t"]:
 			"poly":
@@ -420,7 +424,7 @@ static func _draw_ammo_accents(canvas: CanvasItem, xform: Transform2D, ammo_id: 
 # --- Part library ----------------------------------------------------------------------------------------
 
 static func _part(slot: StringName, definition_id: StringName) -> Array:
-	var key: String = "%s/%s" % [slot, definition_id]
+	var key: String = "%s/%s/%.1f" % [slot, definition_id, _outline_width]
 	if _part_cache.has(key):
 		return _part_cache[key]
 	var ops: Array = []
@@ -695,7 +699,8 @@ static func _ammo_part(id: StringName) -> Array:
 
 # --- Shape helpers ---------------------------------------------------------------------------------------
 
-static func _cached(key: String, builder: Callable) -> Array:
+static func _cached(base_key: String, builder: Callable) -> Array:
+	var key: String = "%s/%.1f" % [base_key, _outline_width]
 	if _part_cache.has(key):
 		return _part_cache[key]
 	var ops: Array = builder.call()
@@ -707,7 +712,8 @@ static func _cached(key: String, builder: Callable) -> Array:
 static func _prepare(ops: Array) -> void:
 	for op in ops:
 		if op["t"] == "poly" and op.get("o", false):
-			op["outline"] = Geometry2D.offset_polygon(op["pts"], OUTLINE_WIDTH, Geometry2D.JOIN_ROUND)
+			op["outline"] = Geometry2D.offset_polygon(op["pts"], _outline_width, Geometry2D.JOIN_ROUND)
+		op["ow"] = _outline_width
 
 
 static func _poly(points: Array, color: Color, outlined: bool = true, role: StringName = &"") -> Dictionary:

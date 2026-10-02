@@ -1359,6 +1359,9 @@ func _apply_player_palette() -> void:
 		_shield.self_modulate = limb_color
 	if _halo != null:
 		_halo.modulate = Color(limb_color.r, limb_color.g, limb_color.b, 0.2)
+	var gun_visuals: WeaponExtensionVisuals = get_node_or_null(^"Gun/VisualRoot/ExtensionVisuals") as WeaponExtensionVisuals
+	if gun_visuals != null:
+		gun_visuals.set_accent(limb_color)
 	_update_body_sprite_direction()
 
 
