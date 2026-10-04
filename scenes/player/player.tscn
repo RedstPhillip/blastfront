@@ -51,7 +51,6 @@ position = Vector2(0, 17)
 
 [node name="VestAnchor" type="Node2D" parent="ArmorVisualRoot" unique_id=7788003]
 unique_name_in_owner = true
-position = Vector2(0, -1)
 
 [node name="ShieldAnchor" type="Node2D" parent="ArmorVisualRoot" unique_id=7788004]
 unique_name_in_owner = true

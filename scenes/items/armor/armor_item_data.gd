@@ -13,7 +13,6 @@ const MAX_MARK: int = 3
 	set(value):
 		condition = ItemCondition.clamp_value(value)
 @export_range(0.0, 1.0, 0.01) var minimum_condition_scale: float = 0.25
-@export var visual_scene: PackedScene = null
 @export var attributes: Dictionary = {}
 @export_multiline var description: String = ""
 @export var metadata: Dictionary = {}
@@ -37,6 +36,15 @@ func get_condition_name() -> String:
 
 func get_condition_color() -> Color:
 	return ItemCondition.get_grade_color(condition)
+
+
+## The ArmorArt design this item is drawn with: its id without the _mkN suffix.
+func get_art_id() -> StringName:
+	var id_text: String = str(item_id)
+	var suffix_at: int = id_text.rfind("_mk")
+	if suffix_at > 0 and id_text.substr(suffix_at + 3).is_valid_int():
+		return StringName(id_text.substr(0, suffix_at))
+	return item_id
 
 
 func get_mark() -> int:

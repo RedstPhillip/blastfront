@@ -57,19 +57,27 @@ func _ready() -> void:
 		_shield.material = shield_mat
 
 
-func set_shield_visual_scene(visual_scene: PackedScene) -> void:
+func set_shield_item(item: ArmorItemData, team_color: Color, outline: float) -> void:
 	_clear_shield_visual()
 	if _shield == null or _shield_visual_root == null:
 		return
 
 	_shield.texture = null
-	if visual_scene == null:
+	if item == null:
 		return
-	_shield_visual_instance = visual_scene.instantiate()
+	_shield_visual_instance = ArmorArtView.create(item, team_color, outline)
 	_shield_visual_root.add_child(_shield_visual_instance)
 
 
-func clear_shield_visual_scene() -> void:
+func set_shield_team_color(color: Color) -> void:
+	if _shield_visual_instance == null or not is_instance_valid(_shield_visual_instance):
+		return
+	var view: ArmorArtView = _shield_visual_instance as ArmorArtView
+	if view != null:
+		view.set_team_color(color)
+
+
+func clear_shield_item() -> void:
 	_clear_shield_visual()
 	if _shield != null:
 		_shield.texture = null

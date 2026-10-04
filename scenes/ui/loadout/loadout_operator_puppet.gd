@@ -10,6 +10,8 @@ const BODY_PATH: String = "res://assets/player/body/%s.png"
 const BODY_SCALE: float = 0.25
 const ARMOR_SCALE: float = 4.0
 const GUN_SCALE: float = 0.78
+## Armor outline in art units at this size, about as heavy as the limbs' outline.
+const ARMOR_OUTLINE: float = 1.5
 const BODY_SHADER: Shader = preload("res://scenes/player/player_body.gdshader")
 
 var facing: float = 1.0
@@ -63,7 +65,7 @@ func _ready() -> void:
 	add_child(_vest_anchor)
 	for index in range(2):
 		var boot: Node2D = Node2D.new()
-		boot.scale = Vector2.ONE * ARMOR_SCALE * 0.58
+		boot.scale = Vector2.ONE * ARMOR_SCALE
 		boot.z_index = 1
 		add_child(boot)
 		_boot_anchors.append(boot)
@@ -90,8 +92,8 @@ func set_armor(category: StringName, item: ArmorItemData, animate: bool) -> void
 	for anchor in anchors:
 		for child in anchor.get_children():
 			child.queue_free()
-		if item != null and item.visual_scene != null:
-			anchor.add_child(item.visual_scene.instantiate())
+		if item != null:
+			anchor.add_child(ArmorArtView.create(item, _limb_color, ARMOR_OUTLINE, true))
 	if animate:
 		_hop = 1.0
 		_materialize[category] = 1.0
@@ -103,7 +105,7 @@ func set_armor(category: StringName, item: ArmorItemData, animate: bool) -> void
 func set_ghost(category: StringName, item: ArmorItemData) -> void:
 	for child in _ghost_anchor.get_children():
 		child.queue_free()
-	if item == null or item.visual_scene == null:
+	if item == null:
 		return
 	var targets: Array[Node2D] = _anchors_for(category)
 	for target in targets:
@@ -111,7 +113,7 @@ func set_ghost(category: StringName, item: ArmorItemData) -> void:
 		holder.set_meta("follow", target)
 		holder.scale = target.scale
 		holder.modulate = Color(1.0, 0.86, 0.62, 0.6)
-		holder.add_child(item.visual_scene.instantiate())
+		holder.add_child(ArmorArtView.create(item, _limb_color, ARMOR_OUTLINE))
 		_ghost_anchor.add_child(holder)
 	_sync_ghosts()
 
@@ -172,7 +174,7 @@ func _update_pose(_delta: float) -> void:
 	_vest_anchor.scale = Vector2.ONE * ARMOR_SCALE * Vector2(1.0 + breathe + squash, 1.0 - breathe - squash) * _materialize_scale(ArmorItemData.CATEGORY_VEST)
 	for index in range(2):
 		_boot_anchors[index].position = _feet[index] + Vector2(0.0, -6.0)
-		_boot_anchors[index].scale = Vector2(facing, 1.0) * ARMOR_SCALE * 0.58 * _materialize_scale(ArmorItemData.CATEGORY_BOOTS)
+		_boot_anchors[index].scale = Vector2(facing, 1.0) * ARMOR_SCALE * _materialize_scale(ArmorItemData.CATEGORY_BOOTS)
 	_shield_anchor.position = _guard_hand + Vector2(-facing * 8.0, -2.0)
 	_shield_anchor.rotation = -0.18 * facing
 	_shield_anchor.scale = Vector2(-facing, 1.0) * ARMOR_SCALE * _materialize_scale(ArmorItemData.CATEGORY_SHIELD)
