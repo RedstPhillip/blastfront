@@ -12,7 +12,7 @@ const CONTROL_ROWS: Array[Array] = [
 	["Move", "A / D", "Left stick"],
 	["Jump  ·  Wall jump", "Space / W", "A"],
 	["Aim", "Mouse", "Right stick"],
-	["Shoot  (hold to keep firing)", "Left mouse", "RT"],
+	["Shoot", "Left mouse", "RT"],
 	["Block", "Right mouse", "LT"],
 	["Reload", "R", "X"],
 	["Pause", "Esc", "Start"],

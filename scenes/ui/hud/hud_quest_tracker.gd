@@ -195,8 +195,8 @@ func _draw_tracker() -> void:
 		return
 	if _quests.is_empty():
 		var hint_alpha: float = open
-		_canvas.draw_string_outline(UiStyle.FONT_BODY, Vector2(0.0, LINE_HEIGHT + 22.0), "Orders arrive after the first set.", HORIZONTAL_ALIGNMENT_LEFT, WIDTH, 13, 3, Color(0, 0, 0, 0.6 * hint_alpha))
-		_canvas.draw_string(UiStyle.FONT_BODY, Vector2(0.0, LINE_HEIGHT + 22.0), "Orders arrive after the first set.", HORIZONTAL_ALIGNMENT_LEFT, WIDTH, 13, LoadoutStyle.with_alpha(UiStyle.TEXT_DIM, hint_alpha))
+		_canvas.draw_string_outline(UiStyle.FONT_BODY, Vector2(0.0, LINE_HEIGHT + 22.0), "No orders yet", HORIZONTAL_ALIGNMENT_LEFT, WIDTH, 13, 3, Color(0, 0, 0, 0.6 * hint_alpha))
+		_canvas.draw_string(UiStyle.FONT_BODY, Vector2(0.0, LINE_HEIGHT + 22.0), "No orders yet", HORIZONTAL_ALIGNMENT_LEFT, WIDTH, 13, LoadoutStyle.with_alpha(UiStyle.TEXT_DIM, hint_alpha))
 		return
 	for index in range(_quests.size()):
 		var row_open: float = clampf(open * 1.6 - float(index) * 0.25, 0.0, 1.0)

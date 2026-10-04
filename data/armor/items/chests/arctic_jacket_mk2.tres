@@ -16,7 +16,7 @@ attributes = {
 "max_health": 6.0,
 "move_speed": -6.0
 }
-description = "Strong freeze protection with modest armor and a small speed penalty."
+description = "Resists freezing."
 metadata = {
 "mark": 2
 }

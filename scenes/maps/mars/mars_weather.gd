@@ -3,7 +3,7 @@ extends Node2D
 
 ## Weather director for Mars. Calm spells with a light, wandering breeze alternate with dust storms. A storm
 ## is announced several seconds ahead: the storm wall rolls in on the upwind side, a deep howl rises and the
-## HUD gauge counts down. Then it blows from that side with gusts: players are shoved (much less in the lee
+## pennants swing round. Then it blows from that side with gusts: players are shoved (much less in the lee
 ## of rock), every round drifts (slow, light ones the most) and sand streams through the air. Every few
 ## storms one turns severe: the air goes brown, sight closes in to a pocket around you and distant sounds
 ## are swallowed. All gameplay values go through WorldConditions, so what you see is what pushes you.
@@ -65,7 +65,6 @@ var _tint: CanvasModulate = null
 var _screen_layer: CanvasLayer = null
 var _screen_veil: ColorRect = null
 var _screen_material: ShaderMaterial = null
-var _gauge: HudWindGauge = null
 var _audio: AudioStreamPlayer = null
 
 
@@ -95,8 +94,6 @@ func _exit_tree() -> void:
 	GameJuice.set_ambient_motion(Vector2.ZERO, 0.0)
 	if _screen_layer != null and is_instance_valid(_screen_layer):
 		_screen_layer.queue_free()
-	if _gauge != null and is_instance_valid(_gauge):
-		_gauge.queue_free()
 
 
 # --- Setup ------------------------------------------------------------------------------------------------
@@ -186,12 +183,6 @@ func _build_screen_fx() -> void:
 	_screen_veil.material = _screen_material
 	_screen_veil.visible = false
 	_screen_layer.add_child(_screen_veil)
-	var hud: Node = game.get_node_or_null(^"HUD")
-	if hud != null:
-		_gauge = HudWindGauge.new()
-		_gauge.name = "WindGauge"
-		_gauge.full_wind = SEVERE_WIND
-		hud.add_child(_gauge)
 
 
 func _make_streaks(amount: int, lifetime: float) -> CPUParticles2D:
@@ -336,7 +327,7 @@ func _begin_buildup(forced_direction: float = 0.0, forced_severe: int = -1) -> v
 	AudioDirector.play(&"storm_warning")
 	var arrow: String = "▶" if _direction > 0.0 else "◀"
 	if _severe:
-		HudToasts.notify("SEVERE DUST STORM", "%s  Visibility dropping" % arrow, Color(1.0, 0.45, 0.25), &"")
+		HudToasts.notify("SEVERE DUST STORM", "%s  Low visibility" % arrow, Color(1.0, 0.45, 0.25), &"")
 	else:
 		HudToasts.notify("DUST STORM", "%s  Wind and drift" % arrow, Color(0.96, 0.62, 0.36), &"")
 
@@ -433,27 +424,9 @@ func _update_local_dust(side: float) -> void:
 
 
 func _update_screen() -> void:
-	var player: Player = _local_player()
-	if _gauge != null and is_instance_valid(_gauge):
-		_gauge.wind = _wind
-		_gauge.countdown = _timer if _phase == Phase.BUILDUP else -1.0
-		_gauge.alert = 1.0 if _phase == Phase.BUILDUP else 0.0
-		match _phase:
-			Phase.CALM:
-				_gauge.state_text = "WIND"
-				_gauge.state_color = UiStyle.TEXT_DIM
-			Phase.BUILDUP:
-				_gauge.state_text = "SEVERE STORM" if _severe else "STORM"
-				_gauge.state_color = Color(1.0, 0.5, 0.3) if _severe else UiStyle.ACCENT
-			_:
-				_gauge.state_text = "SEVERE STORM" if _severe and _phase == Phase.STORM else "STORM"
-				_gauge.state_color = Color(1.0, 0.5, 0.3) if _severe else UiStyle.ACCENT
-		var sheltered: float = 0.0
-		if player != null and _storm > 0.3:
-			sheltered = clampf((0.55 - player.get_wind_exposure()) / 0.3, 0.0, 1.0)
-		_gauge.sheltered = sheltered
 	if _screen_material == null or not is_instance_valid(_screen_veil):
 		return
+	var player: Player = _local_player()
 	var thick: float = _severity
 	var front: float = 0.0
 	var front_alpha: float = 0.0

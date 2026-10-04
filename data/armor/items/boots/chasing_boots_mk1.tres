@@ -15,7 +15,7 @@ attributes = {
 "chase_speed_bonus": 28.0,
 "move_speed": 6.0
 }
-description = "Move faster while running towards an opponent."
+description = "Faster when running at the enemy."
 metadata = {
 "mark": 1
 }

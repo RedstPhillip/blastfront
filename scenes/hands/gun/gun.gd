@@ -5,6 +5,10 @@ const MUZZLE_WORLD_COLLISION_MASK: int = 1
 const MUZZLE_PLAYER_COLLISION_MASK: int = 2
 const MUZZLE_WALL_CLEARANCE: float = 6.0
 const LASER_MUZZLE_OCCLUSION_EPSILON: float = 1.0
+## On-screen widths (px) of the laser's dark edge, beam and core; they stay the same however far the camera
+## pulls out. The dark edge keeps the red readable on the red Mars ground and in bright skies alike.
+const LASER_WIDTHS: Array[float] = [4.0, 2.2, 0.9]
+const LASER_DOT_COLOR: Color = Color(1.0, 0.2, 0.14, 1.0)
 
 @export var orbit_radius: float = GameSettings.GUN_ORBIT_RADIUS
 @export var aim_angle_offset_degrees: float = GameSettings.GUN_AIM_ANGLE_OFFSET_DEGREES
@@ -24,6 +28,9 @@ var _recoil_rotation: float = 0.0
 var _extension_stats: Dictionary = {}
 var _extension_player_slot: int = -1
 var _has_laser_scope: bool = false
+## Where the laser ends on something solid (laser space), or Vector2.INF when it runs out of range.
+var _laser_hit_point: Vector2 = Vector2.INF
+var _laser_dot: Node2D = null
 var _current_ammo: int = 3
 var _is_reloading: bool = false
 var _reload_timer: float = 0.0
@@ -42,6 +49,10 @@ var _cycle_timer: float = -1.0
 
 
 func _ready() -> void:
+	_laser_dot = Node2D.new()
+	_laser_dot.z_index = 3
+	_laser_dot.draw.connect(_draw_laser_dot)
+	_laser_sight.add_child(_laser_dot)
 	_connect_extension_inventory()
 	_refresh_extension_loadout()
 	_reset_ammo()
@@ -63,15 +74,32 @@ func _update_laser_sight() -> void:
 	_laser_sight.global_rotation = 0.0
 	_laser_sight.global_scale = Vector2.ONE
 	var trajectory: PackedVector2Array = _build_laser_trajectory(laser_origin, direction)
+	var pixel: float = 1.0 / maxf(get_viewport().get_canvas_transform().get_scale().x, 0.25)
 	_laser_sight.points = trajectory
+	_laser_sight.width = LASER_WIDTHS[0] * pixel
 	if _laser_beam != null:
 		_laser_beam.points = trajectory
+		_laser_beam.width = LASER_WIDTHS[1] * pixel
 	if _laser_core != null:
 		_laser_core.points = trajectory
+		_laser_core.width = LASER_WIDTHS[2] * pixel
+	_laser_dot.visible = _laser_hit_point != Vector2.INF
+	if _laser_dot.visible:
+		_laser_dot.position = _laser_hit_point
+		_laser_dot.scale = Vector2.ONE * pixel
+		_laser_dot.queue_redraw()
+
+
+## The red dot where the round will land: a soft halo with a hot centre.
+func _draw_laser_dot() -> void:
+	_laser_dot.draw_circle(Vector2.ZERO, 4.6, Color(0.08, 0.0, 0.0, 0.45), true, -1.0, true)
+	_laser_dot.draw_circle(Vector2.ZERO, 3.4, LASER_DOT_COLOR, true, -1.0, true)
+	_laser_dot.draw_circle(Vector2.ZERO, 1.5, Color(1.0, 0.8, 0.72, 1.0), true, -1.0, true)
 
 
 func _build_laser_trajectory(world_start: Vector2, direction: Vector2) -> PackedVector2Array:
 	var points: PackedVector2Array = PackedVector2Array([Vector2.ZERO])
+	_laser_hit_point = Vector2.INF
 	var speed: float = _get_modified_float(&"projectile_speed", projectile_speed, 1.0)
 	var gravity_value: float = (projectile_gravity + _get_extension_attribute(&"projectile_gravity")) * WorldConditions.projectile_gravity_scale
 	var extension_tags: Array[String] = _get_extension_tags()
@@ -137,6 +165,7 @@ func _build_laser_trajectory(world_start: Vector2, direction: Vector2) -> Packed
 					break
 				continue
 			points.append(hit_position - world_start)
+			_laser_hit_point = hit_position - world_start
 			break
 		distance_travelled += (next_position - local_position).length()
 		points.append(next_position)

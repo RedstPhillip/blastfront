@@ -10,7 +10,6 @@ signal menu_pressed
 var _dim: ColorRect = null
 var _panel: VBoxContainer = null
 var _band: Control = null
-var _kicker: Label = null
 var _title: Label = null
 var _score: Label = null
 var _stats_row: HBoxContainer = null
@@ -63,8 +62,6 @@ func _ready() -> void:
 	_panel.add_theme_constant_override("separation", 10)
 	center.add_child(_panel)
 	var box: VBoxContainer = _panel
-	_kicker = _label(UiStyle.FONT_BOLD, 13, UiStyle.TEXT_DIM, "MATCH COMPLETE")
-	box.add_child(_kicker)
 	_title = _label(UiStyle.FONT_DISPLAY, 86, UiStyle.TEXT, "VICTORY")
 	_title.add_theme_constant_override("outline_size", 10)
 	_title.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
@@ -123,7 +120,6 @@ func show_result(won: bool, headline_color: Color, score_text: String, stats: Ar
 	visible = true
 	_title.text = "VICTORY" if won else "DEFEAT"
 	_title.add_theme_color_override("font_color", UiStyle.ACCENT if won else UiStyle.DANGER)
-	_kicker.text = "MATCH COMPLETE"
 	_score.text = score_text
 	_rematch_button.disabled = not can_rematch
 	_rematch_button.text = rematch_text

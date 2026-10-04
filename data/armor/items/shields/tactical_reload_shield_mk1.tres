@@ -15,7 +15,7 @@ attributes = {
 "block_strength": 3.0,
 "instant_reload_on_block": 1.0
 }
-description = "Blocking instantly reloads your weapon."
+description = "Blocking reloads instantly."
 metadata = {
 "mark": 1
 }

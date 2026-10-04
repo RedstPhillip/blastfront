@@ -1,14 +1,13 @@
 class_name ResearchHoldButton
 extends Control
 
-## The research action: a primary button you hold instead of click. While held an amber fill sweeps across
+## The research action: a primary button you hold instead of click. While held a lighter fill sweeps across
 ## it and the label stays readable on top; letting go early drains it. When it cannot be used it turns
-## into a plain dark plate that says why ("Need 4 more RP", "Research Maintenance first").
+## into a plain dark plate that says why in a word or two ("NEED 4 RP", "LOCKED").
 
 signal completed
 
 const HOLD_SECONDS: float = 0.42
-const SKEW: float = 0.18
 
 var enabled: bool = false
 var label_text: String = ""
@@ -83,26 +82,15 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	var rect: Rect2 = Rect2(Vector2.ZERO, size)
-	var slant: float = size.y * SKEW
 	if not enabled:
-		var plate: StyleBoxFlat = UiStyle.panel(Color(0.05, 0.075, 0.078, 0.9), Color(1, 1, 1, 0.08), 3, 1, SKEW)
-		draw_style_box(plate, rect)
-		var font_size: int = 14
-		while font_size > 10 and UiStyle.FONT_BOLD.get_string_size(label_text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x > size.x - slant * 2.0 - 16.0:
-			font_size -= 1
-		draw_string(UiStyle.FONT_BOLD, Vector2(0.0, size.y * 0.5 + 5.0), label_text, HORIZONTAL_ALIGNMENT_CENTER, size.x, font_size, LoadoutStyle.TEXT_MUTED)
+		draw_style_box(UiStyle.panel(UiStyle.FILL_IDLE), rect)
+		draw_string(UiStyle.FONT_BOLD, Vector2(0.0, size.y * 0.5 + 5.0), label_text, HORIZONTAL_ALIGNMENT_CENTER, size.x, 14, LoadoutStyle.TEXT_MUTED)
 		return
-	var base: Color = UiStyle.ACCENT.lerp(UiStyle.ACCENT_HOT, 0.25 if _hover else 0.0)
-	draw_style_box(UiStyle.panel(base, UiStyle.ACCENT_HOT, 3, 1, SKEW), rect)
+	draw_style_box(UiStyle.panel(UiStyle.ACCENT_HOT if _hover else UiStyle.ACCENT), rect)
 	if _hold > 0.0:
-		var fill_width: float = size.x * _hold
-		var fill: PackedVector2Array = PackedVector2Array([
-			Vector2(slant, 0.0), Vector2(minf(slant + fill_width, size.x), 0.0),
-			Vector2(maxf(fill_width, 0.0), size.y), Vector2(0.0, size.y),
-		])
-		draw_colored_polygon(fill, Color(1.0, 0.95, 0.8, 0.85))
+		draw_rect(Rect2(Vector2.ZERO, Vector2(size.x * _hold, size.y)), Color(1.0, 0.95, 0.82, 0.8))
 	if _flash > 0.0:
-		draw_style_box(UiStyle.panel(Color(1, 1, 1, _flash * 0.6), Color(1, 1, 1, 0), 3, 0, SKEW), rect)
+		draw_rect(rect, Color(1.0, 1.0, 1.0, _flash * 0.5))
 	var ink: Color = UiStyle.INK
 	var text_width: float = UiStyle.FONT_BOLD.get_string_size(label_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x
 	var cost_text: String = str(cost) if cost >= 0 else ""

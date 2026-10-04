@@ -76,7 +76,6 @@ func _add_button(text: String, _primary: bool, callback: Callable) -> Button:
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	button.custom_minimum_size = Vector2(300.0, 48.0)
 	button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	button.set_meta("juice_rotation_multiplier", 0.0)
 	UiStyle.style_button(button, false, 20)
 	var lit: StyleBoxFlat = UiStyle.with_margins(UiStyle.panel(UiStyle.ACCENT), 26, 10)
 	button.add_theme_stylebox_override("normal", UiStyle.with_margins(UiStyle.panel(Color(0, 0, 0, 0)), 26, 10))
@@ -109,7 +108,6 @@ func _build_world_row() -> void:
 		var button: Button = Button.new()
 		button.text = WorldCatalog.display_name(world_id).to_upper()
 		button.custom_minimum_size = Vector2(110.0, 44.0)
-		button.set_meta("juice_rotation_multiplier", 0.0)
 		button.pressed.connect(_on_world_pressed.bind(world_id))
 		_world_row.add_child(button)
 		_world_buttons[world_id] = button
@@ -215,7 +213,7 @@ func _animate_out() -> void:
 
 func _mode_label() -> String:
 	if NetworkSession.is_steam_match_active():
-		return "ONLINE MATCH  ·  THE MATCH CONTINUES WHILE PAUSED"
+		return "ONLINE  ·  MATCH KEEPS RUNNING"
 	if NetworkSession.is_bot_duel():
 		var shop_note: String = "  ·  PHASE SHOP" if NetworkSession.is_bot_shop_duel() else ""
 		return "VERSUS BOT  ·  %s%s" % [UiStyle.difficulty_name(UserSettings.get_int(UserSettings.BOT_DIFFICULTY)), shop_note]

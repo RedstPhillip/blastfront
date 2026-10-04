@@ -322,7 +322,7 @@ func _build_inventory_panel(columns: int, kind: StringName) -> Dictionary:
 	drop.page = self
 	drop.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	panel.add_child(drop)
-	var empty_label: Label = LoadoutStyle.label("Nothing here yet" + ("  ·  buy parts in the shop" if _shop_enabled else ""), UiStyle.FONT_BODY, 13, LoadoutStyle.TEXT_MUTED)
+	var empty_label: Label = LoadoutStyle.label("Empty", UiStyle.FONT_BODY, 13, LoadoutStyle.TEXT_MUTED)
 	empty_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	empty_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	empty_label.grow_vertical = Control.GROW_DIRECTION_BOTH
@@ -1028,11 +1028,11 @@ func _on_reward_claimed(source_kind: StringName, source_index: int) -> void:
 	var price: int = RoundRewardInventory.get_reward_price(source_kind, source_index)
 	if not RoundRewardInventory.can_afford_reward(source_kind, source_index):
 		AudioDirector.play(&"shop_denied")
-		_inspector.show_message("Not enough coins", "SHOP  ·  %d COINS NEEDED" % price, "Earn coins with damage, survival, blocks and the first hit of a set.", LoadoutStyle.DANGER)
+		_inspector.show_message("Not enough coins", "SHOP  ·  %d COINS NEEDED" % price, "", LoadoutStyle.DANGER)
 		return
 	if RoundRewardInventory.claim_reward(source_kind, source_index):
 		AudioDirector.play(&"shop_purchase")
-		_inspector.show_message("Purchased", "INVENTORY  ·  -%d COINS" % price, "Added to your inventory. Drag it onto your build to use it.", UiStyle.SUCCESS)
+		_inspector.show_message("Purchased", "INVENTORY  ·  -%d COINS" % price, "", UiStyle.SUCCESS)
 
 
 func _on_weapon_reward_dropped(payload: Dictionary, target_slot: StringName) -> void:
@@ -1044,7 +1044,7 @@ func _on_weapon_reward_dropped(payload: Dictionary, target_slot: StringName) -> 
 	var price: int = RoundRewardInventory.get_reward_price(source_kind, source_index)
 	if not RoundRewardInventory.can_afford_reward(source_kind, source_index):
 		AudioDirector.play(&"shop_denied")
-		_inspector.show_message("Not enough coins", "SHOP  ·  %d COINS NEEDED" % price, "Earn coins with damage, survival, blocks and the first hit of a set.", LoadoutStyle.DANGER)
+		_inspector.show_message("Not enough coins", "SHOP  ·  %d COINS NEEDED" % price, "", LoadoutStyle.DANGER)
 		return
 	if not RoundRewardInventory.claim_reward(source_kind, source_index):
 		return
@@ -1061,7 +1061,7 @@ func _on_armor_reward_dropped(payload: Dictionary) -> void:
 	var price: int = RoundRewardInventory.get_reward_price(source_kind, source_index)
 	if not RoundRewardInventory.can_afford_reward(source_kind, source_index):
 		AudioDirector.play(&"shop_denied")
-		_inspector.show_message("Not enough coins", "SHOP  ·  %d COINS NEEDED" % price, "Earn coins with damage, survival, blocks and the first hit of a set.", LoadoutStyle.DANGER)
+		_inspector.show_message("Not enough coins", "SHOP  ·  %d COINS NEEDED" % price, "", LoadoutStyle.DANGER)
 		return
 	if not RoundRewardInventory.claim_reward(source_kind, source_index):
 		return
@@ -1098,7 +1098,7 @@ func _on_merge_requested(source: Variant, target: Variant) -> void:
 
 func _request_extension_merge(source_item: WeaponExtensionItem, target_item: WeaponExtensionItem) -> void:
 	if not ExtensionInventory.can_merge_items(source_item, target_item):
-		_show_merge_error("Invalid merge", "Only two copies of the same extension and MK can be merged.")
+		_show_merge_error("Invalid merge", "Needs two of the same part and MK.")
 		return
 	var next_mark: int = source_item.mark + 1
 	var cost: int = ExtensionInventory.get_merge_cost_for_items(source_item, target_item)
@@ -1116,7 +1116,7 @@ func _request_extension_merge(source_item: WeaponExtensionItem, target_item: Wea
 
 func _request_armor_merge(source_item: ArmorItemData, target_item: ArmorItemData) -> void:
 	if not ArmorInventory.can_merge_items(source_item, target_item):
-		_show_merge_error("Invalid merge", "Only two copies of the same armor and MK can be merged.")
+		_show_merge_error("Invalid merge", "Needs two of the same armor and MK.")
 		return
 	var next_mark: int = source_item.get_mark() + 1
 	var cost: int = ArmorInventory.get_merge_cost_for_items(source_item, target_item)
@@ -1141,7 +1141,7 @@ func _confirm_pending_merge() -> void:
 		var armor_cost: int = ArmorInventory.get_merge_cost_for_items(armor_source, armor_target)
 		var merged_armor: ArmorItemData = ArmorInventory.try_merge_items_for_local(armor_source, armor_target)
 		if merged_armor == null:
-			_show_merge_error("Merge failed", "The merge could not be completed. Check coins and matching MK tiers.")
+			_show_merge_error("Merge failed", "Check coins and MK.")
 			return
 		AudioDirector.play(&"merge")
 		_refresh_coins()
@@ -1158,7 +1158,7 @@ func _confirm_pending_merge() -> void:
 	var cost: int = ExtensionInventory.get_merge_cost_for_items(source, target)
 	var merged: WeaponExtensionItem = ExtensionInventory.try_merge_items_for_local(source, target)
 	if merged == null:
-		_show_merge_error("Merge failed", "The merge could not be completed. Check coins and matching MK tiers.")
+		_show_merge_error("Merge failed", "Check coins and MK.")
 		return
 	AudioDirector.play(&"merge")
 	_refresh_coins()
@@ -1180,7 +1180,7 @@ func _show_merge_error(title: String, body: String) -> void:
 
 
 func _show_not_enough_merge_coins(next_mark: int, cost: int, label: String) -> void:
-	var body: String = "Merging into MK%d costs %d coins. You have %d." % [next_mark, cost, OnlineMatch.get_local_coin_balance()]
+	var body: String = "MK%d costs %d. You have %d." % [next_mark, cost, OnlineMatch.get_local_coin_balance()]
 	_show_merge_error("Not enough coins", body)
 	_merge_dialog.show_coin_warning(body, label)
 
@@ -1302,7 +1302,7 @@ func _is_inspectable(control: Control) -> bool:
 
 func _short_description(description: String) -> String:
 	if description.is_empty():
-		return "No description available."
+		return ""
 	var sentences: PackedStringArray = description.split(". ")
 	return sentences[0] + ("" if sentences[0].ends_with(".") else ".")
 

@@ -14,4 +14,4 @@ visual_scene = ExtResource("2_visual")
 attributes = {
 "move_speed": 24.0
 }
-description = "Leichte Boots fuer etwas mehr Bewegungsspielraum."
+description = "Light, quick boots."

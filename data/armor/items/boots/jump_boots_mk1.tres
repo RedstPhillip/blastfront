@@ -15,7 +15,7 @@ attributes = {
 "jump_velocity": 50.0,
 "move_speed": -4.0
 }
-description = "Jump higher with a small movement tradeoff."
+description = "Higher jumps."
 metadata = {
 "mark": 1
 }

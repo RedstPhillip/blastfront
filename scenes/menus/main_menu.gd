@@ -13,11 +13,7 @@ const SETTINGS_MENU_SCENE: PackedScene = preload("res://scenes/menus/settings_me
 const FOG_SHADER: Shader = preload("res://scenes/maps/environment/fog.gdshader")
 const NOISE_TEXTURE: Texture2D = preload("res://assets/fx/noise_fbm.png")
 const PARALLAX_STRENGTH: Vector2 = Vector2(22.0, 12.0)
-const DIFFICULTY_INFO: Array[Dictionary] = [
-	{"name": "EASY", "text": "Slow reactions and loose aim. Learn the arena and the arc of your shots."},
-	{"name": "NORMAL", "text": "Leads its shots, blocks some of yours and lobs over cover."},
-	{"name": "HARD", "text": "Fast, precise and patient. Blocks often and punishes every mistake."},
-]
+const DIFFICULTY_NAMES: Array[String] = ["EASY", "NORMAL", "HARD"]
 
 @onready var _background: TextureRect = $Background
 @onready var _menu_root: Control = $MenuRoot
@@ -25,14 +21,12 @@ const DIFFICULTY_INFO: Array[Dictionary] = [
 var _buttons: Array[Button] = []
 var _bot_panel: PanelContainer = null
 var _difficulty_buttons: Array[Button] = []
-var _difficulty_text: Label = null
 var _selected_difficulty: int = 1
 var _online_button: Button = null
 var _bot_start_button: Button = null
 var _bot_caption: Label = null
 var _shop_buttons: Array[Button] = []
 var _world_buttons: Array[Button] = []
-var _shop_text: Label = null
 var _steam_label: Label = null
 var _steam_dot: ColorRect = null
 var _heroes: Array[MenuHero] = []
@@ -216,12 +210,8 @@ func _build_menu() -> void:
 	_logo.text = "BLASTFRONT"
 	logo_holder.add_child(_logo)
 
-	var tagline: Label = Label.new()
-	UiStyle.style_label(tagline, UiStyle.FONT_BOLD, 15, UiStyle.TEXT_MUTED)
-	tagline.text = "ARTILLERY  ·  PARKOUR  ·  DUELS"
-	column.add_child(tagline)
 	var spacer: Control = Control.new()
-	spacer.custom_minimum_size = Vector2(0.0, 46.0)
+	spacer.custom_minimum_size = Vector2(0.0, 52.0)
 	column.add_child(spacer)
 
 	var buttons: VBoxContainer = VBoxContainer.new()
@@ -250,9 +240,9 @@ func _add_menu_button(parent: Container, text: String, _primary: bool, callback:
 	button.add_theme_stylebox_override("hover", lit)
 	button.add_theme_stylebox_override("focus", lit)
 	button.add_theme_stylebox_override("pressed", pressed)
+	button.add_theme_stylebox_override("disabled", idle)
 	for color_name in ["font_hover_color", "font_focus_color", "font_pressed_color", "font_hover_pressed_color"]:
 		button.add_theme_color_override(color_name, UiStyle.INK)
-	button.set_meta("juice_rotation_multiplier", 0.0)
 	button.pressed.connect(callback)
 	button.mouse_entered.connect(func() -> void:
 		if not button.disabled:
@@ -264,7 +254,6 @@ func _add_menu_button(parent: Container, text: String, _primary: bool, callback:
 	return button
 
 
-## Phase shop on/off for bot duels, styled like the difficulty picker and remembered between sessions.
 ## Which world the duel is fought on: the green ridge, or Mars with its low gravity and dust storms.
 func _build_world_choice(box: VBoxContainer) -> void:
 	var row: HBoxContainer = HBoxContainer.new()
@@ -296,6 +285,7 @@ func _on_world_toggled(pressed: bool, world_id: StringName) -> void:
 		UserSettings.set_value(UserSettings.BOT_WORLD, str(world_id))
 
 
+## Shop on/off for bot duels, styled like the difficulty picker and remembered between sessions.
 func _build_shop_toggle(box: VBoxContainer) -> void:
 	var divider: ColorRect = ColorRect.new()
 	divider.color = UiStyle.LINE
@@ -306,7 +296,7 @@ func _build_shop_toggle(box: VBoxContainer) -> void:
 	box.add_child(row)
 	var label: Label = Label.new()
 	UiStyle.style_label(label, UiStyle.FONT_BOLD, 16, UiStyle.TEXT)
-	label.text = "PHASE SHOP"
+	label.text = "SHOP"
 	label.custom_minimum_size = Vector2(130.0, 0.0)
 	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(label)
@@ -321,30 +311,23 @@ func _build_shop_toggle(box: VBoxContainer) -> void:
 		option.toggled.connect(_on_shop_toggled.bind(index == 1))
 		row.add_child(option)
 		_shop_buttons.append(option)
-	_shop_text = Label.new()
-	UiStyle.style_label(_shop_text, UiStyle.FONT_BODY, 14, UiStyle.TEXT_DIM)
-	_shop_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_shop_text.custom_minimum_size = Vector2(370.0, 40.0)
-	box.add_child(_shop_text)
 	var enabled: bool = UserSettings.get_bool(UserSettings.BOT_PHASE_SHOP)
 	_shop_buttons[1 if enabled else 0].set_pressed_no_signal(true)
-	_update_shop_text(enabled)
+	_update_caption(enabled)
 
 
 func _on_shop_toggled(pressed: bool, enabled: bool) -> void:
 	if not pressed:
 		return
 	UserSettings.set_value(UserSettings.BOT_PHASE_SHOP, enabled)
-	_update_shop_text(enabled)
+	_update_caption(enabled)
 
 
-func _update_shop_text(enabled: bool) -> void:
-	if enabled:
+func _update_caption(shop: bool) -> void:
+	if shop:
 		_bot_caption.text = "SETS OF %d KILLS  ·  FIRST TO %d SETS" % [GameSettings.ONLINE_SET_KILLS_TO_WIN, GameSettings.ONLINE_MATCH_SET_WINS_TO_WIN]
-		_shop_text.text = "Earn coins each set and shop, equip and research between sets. The bot shops too."
 	else:
-		_bot_caption.text = "FIRST TO %d ROUNDS  ·  PURE SKILL" % GameSettings.BOT_MATCH_WINS_NEEDED
-		_shop_text.text = "No shop: both fighters keep the standard weapon for the whole match."
+		_bot_caption.text = "FIRST TO %d ROUNDS" % GameSettings.BOT_MATCH_WINS_NEEDED
 
 
 func _slide_button(button: Button, hovered: bool) -> void:
@@ -378,9 +361,9 @@ func _build_bot_panel() -> void:
 	row.add_theme_constant_override("separation", 10)
 	box.add_child(row)
 	var group: ButtonGroup = ButtonGroup.new()
-	for index in range(DIFFICULTY_INFO.size()):
+	for index in range(DIFFICULTY_NAMES.size()):
 		var option: Button = Button.new()
-		option.text = str(DIFFICULTY_INFO[index]["name"])
+		option.text = DIFFICULTY_NAMES[index]
 		option.toggle_mode = true
 		option.button_group = group
 		option.custom_minimum_size = Vector2(118.0, 46.0)
@@ -388,11 +371,6 @@ func _build_bot_panel() -> void:
 		option.toggled.connect(_on_difficulty_toggled.bind(index))
 		row.add_child(option)
 		_difficulty_buttons.append(option)
-	_difficulty_text = Label.new()
-	UiStyle.style_label(_difficulty_text, UiStyle.FONT_BODY, 16, UiStyle.TEXT_DIM)
-	_difficulty_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_difficulty_text.custom_minimum_size = Vector2(370.0, 48.0)
-	box.add_child(_difficulty_text)
 	_build_world_choice(box)
 	_build_shop_toggle(box)
 	var actions: HBoxContainer = HBoxContainer.new()
@@ -412,7 +390,6 @@ func _build_bot_panel() -> void:
 	back.pressed.connect(_close_bot_panel)
 	actions.add_child(back)
 	_difficulty_buttons[clampi(_selected_difficulty, 0, 2)].button_pressed = true
-	_update_difficulty_text()
 
 
 func _build_footer() -> void:
@@ -486,7 +463,7 @@ func _on_hero_landed(hero: MenuHero) -> void:
 func _refresh_steam(_message: String) -> void:
 	var enabled: bool = SteamService.steam_enabled
 	_online_button.disabled = not enabled
-	_online_button.tooltip_text = "" if enabled else "Steam must be running to play online."
+	_online_button.tooltip_text = "" if enabled else "Steam offline"
 	_steam_dot.color = UiStyle.SUCCESS if enabled else UiStyle.TEXT_MUTED
 	_steam_label.text = ("STEAM ONLINE  ·  %s" % SteamService.steam_name.to_upper()) if enabled else "STEAM OFFLINE"
 
@@ -517,11 +494,6 @@ func _on_difficulty_toggled(pressed: bool, index: int) -> void:
 	if not pressed:
 		return
 	_selected_difficulty = index
-	_update_difficulty_text()
-
-
-func _update_difficulty_text() -> void:
-	_difficulty_text.text = str(DIFFICULTY_INFO[clampi(_selected_difficulty, 0, 2)]["text"])
 
 
 func _on_bot_start_pressed() -> void:

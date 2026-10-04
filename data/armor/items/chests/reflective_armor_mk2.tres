@@ -16,7 +16,7 @@ attributes = {
 "move_speed": -14.0,
 "reflect_chance": 0.12
 }
-description = "Moderate chance to reflect incoming bullets with a movement penalty."
+description = "Can reflect bullets."
 metadata = {
 "mark": 2
 }

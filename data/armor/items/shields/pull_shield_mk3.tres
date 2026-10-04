@@ -16,7 +16,7 @@ attributes = {
 "pull_radius": 165.0,
 "pull_strength": 940.0
 }
-description = "Blocking aggressively pulls nearby enemies towards you."
+description = "Blocking pulls enemies in."
 metadata = {
 "mark": 3
 }

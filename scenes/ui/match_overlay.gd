@@ -267,10 +267,10 @@ func _announce_round_award(winner: Player) -> void:
 	var detail: String = ""
 	if ratio >= 0.999:
 		title = "PERFECT ROUND"
-		detail = "Won without taking a single hit"
+		detail = "No damage taken"
 	elif ratio <= 0.25:
 		title = "CLUTCH"
-		detail = "Survived on the last sliver of health"
+		detail = "Won on low health"
 	if title == "":
 		return
 	await get_tree().create_timer(0.7, true, false, true).timeout
@@ -289,11 +289,10 @@ func _on_match_finished(winner_slot: int) -> void:
 	var local_won: bool = winner_slot == GameSettings.PLAYER_ONE_SLOT
 	var left: int = _game.get_score_for_slot(GameSettings.PLAYER_ONE_SLOT)
 	var right: int = _game.get_score_for_slot(GameSettings.PLAYER_TWO_SLOT)
-	var winner_name: String = UiStyle.player_name(winner_slot)
 	_victory.show_result(
 		local_won,
 		UiStyle.player_color(winner_slot).lightened(0.2),
-		"%s WIN%s   %d — %d" % [winner_name, "" if winner_name == "YOU" else "S", left, right],
+		"%d — %d" % [left, right],
 		_build_stats(GameSettings.PLAYER_ONE_SLOT),
 		true,
 		"REMATCH"
@@ -306,11 +305,10 @@ func _show_online_results() -> void:
 	var left: int = int(OnlineMatch.match_points.get(GameSettings.PLAYER_ONE_SLOT, 0))
 	var right: int = int(OnlineMatch.match_points.get(GameSettings.PLAYER_TWO_SLOT, 0))
 	if NetworkSession.is_bot_shop_duel():
-		var winner_name: String = UiStyle.player_name(winner)
 		_victory.show_result(
 			local_won,
 			UiStyle.player_color(winner).lightened(0.2),
-			"%s WIN%s   SETS %d — %d" % [winner_name, "" if winner_name == "YOU" else "S", left, right],
+			"SETS  %d — %d" % [left, right],
 			_build_stats(GameSettings.PLAYER_ONE_SLOT),
 			true,
 			"REMATCH"
@@ -321,7 +319,7 @@ func _show_online_results() -> void:
 	_victory.show_result(
 		local_won,
 		OnlineMatch.get_player_color(winner).lightened(0.2),
-		"%s HOLDS THE FRONT   %d — %d" % [OnlineMatch.get_player_color_name(winner).to_upper(), left, right],
+		"%d — %d" % [left, right],
 		no_stats,
 		can_rematch,
 		"PLAY AGAIN" if can_rematch else "HOST DECIDES"

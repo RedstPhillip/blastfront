@@ -2,17 +2,19 @@ extends Control
 class_name ResearchConnectionLayer
 
 ## The links between projects, drawn under the badges. A link is faint until its requirement is met, then
-## in the intel colour ("powered"). Links into a project you can research right now carry a slow travelling light, so the
-## eye finds the next step without reading. Where a project needs more than MK I of its parent the link
-## carries a small mark tag. Researching a project sends a pulse down its links; the projects it opens
-## wake up when the pulse arrives.
+## in the intel colour ("powered"). Where a project needs more than MK I of its parent the link carries a
+## small mark tag. Researching a project sends one pulse down its links; the projects it opens fade in when
+## the pulse arrives. Nothing moves otherwise.
 
 const LINE_WIDTH: float = 2.0
 
 var _nodes: Dictionary = {}
 var _links: Array[Dictionary] = []
 var _pulses: Array[Dictionary] = []
-var _time: float = 0.0
+
+
+func _ready() -> void:
+	set_process(false)
 
 
 func setup(nodes: Dictionary) -> void:
@@ -42,7 +44,6 @@ func pulse_from(source_id: StringName, newly_open: Array) -> void:
 
 
 func _process(delta: float) -> void:
-	_time += delta
 	for index in range(_pulses.size() - 1, -1, -1):
 		var pulse: Dictionary = _pulses[index]
 		pulse["t"] = float(pulse["t"]) + delta / 0.5
@@ -51,6 +52,8 @@ func _process(delta: float) -> void:
 				(pulse["link"]["target"] as ResearchNodeButton).play_wake()
 			_pulses.remove_at(index)
 	queue_redraw()
+	if _pulses.is_empty():
+		set_process(false)
 
 
 func _path(link: Dictionary) -> PackedVector2Array:
@@ -93,8 +96,6 @@ func _draw() -> void:
 		if planned:
 			color = Color(1, 1, 1, 0.04)
 		draw_polyline(points, color, LINE_WIDTH, true)
-		if powered and target.is_actionable():
-			_draw_runner(points, fmod(_time * 0.45 + float(target.get_instance_id() % 7) * 0.13, 1.0), LoadoutStyle.with_alpha(UiStyle.ACCENT, 0.85))
 		if int(link["mark"]) > 1:
 			_draw_mark_tag(points, int(link["mark"]), powered)
 	for pulse in _pulses:
@@ -131,7 +132,7 @@ func _draw_mark_tag(points: PackedVector2Array, mark: int, powered: bool) -> voi
 	var text: String = "MK " + LoadoutStyle.roman(mark)
 	var width: float = UiStyle.FONT_BOLD.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 9).x + 10.0
 	var rect: Rect2 = Rect2(center - Vector2(width * 0.5, 7.0), Vector2(width, 14.0))
-	var style: StyleBoxFlat = LoadoutStyle.flat(Color(0.03, 0.05, 0.055, 1.0), 2)
+	var style: StyleBoxFlat = LoadoutStyle.flat(Color(0.05, 0.05, 0.047, 1.0), 2)
 	style.border_color = LoadoutStyle.with_alpha(UiStyle.INTEL, 0.5) if powered else Color(1, 1, 1, 0.14)
 	style.set_border_width_all(1)
 	draw_style_box(style, rect)

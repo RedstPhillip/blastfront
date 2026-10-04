@@ -16,7 +16,7 @@ attributes = {
 "adrenaline_speed_bonus": 75.0,
 "move_speed": 8.0
 }
-description = "Gain a strong movement burst after dealing damage."
+description = "Speed burst after you land a hit."
 metadata = {
 "mark": 2
 }

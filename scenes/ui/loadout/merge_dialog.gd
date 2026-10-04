@@ -92,7 +92,7 @@ func show_merge(
 	_cost_label.text = "COST\n%d" % merge_cost
 	_balance_label.text = "BALANCE\n%d" % balance
 	_balance_label.add_theme_color_override("font_color", LoadoutStyle.TEXT if balance >= merge_cost else LoadoutStyle.NEGATIVE)
-	_hint_label.text = "The two matching MK%d items are consumed." % source_mark
+	_hint_label.text = "Uses both MK%d items" % source_mark
 	_confirm_button.text = "FORGE MK %s" % LoadoutStyle.roman(next_mark)
 	_cancel_button.text = "CANCEL"
 	UiStyle.style_button(_confirm_button, true, 16)
@@ -101,9 +101,9 @@ func show_merge(
 	_cancel_button.custom_minimum_size = Vector2(120, 40)
 
 
-func show_coin_warning(body: String, item_label: String) -> void:
+func show_coin_warning(body: String, _item_label: String) -> void:
 	_warning_dialog.title = "Not Enough Coins"
-	_warning_dialog.dialog_text = "%s\n\nEarn more coins before merging these %s." % [body, item_label]
+	_warning_dialog.dialog_text = body
 	_warning_dialog.popup_centered()
 
 

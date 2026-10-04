@@ -2,14 +2,12 @@ extends Control
 class_name ResearchNodeButton
 
 ## One research project on the tree: an icon badge whose ring is split into one segment per mark (filled
-## in the intel colour as they are researched), the name underneath and the next price. The next segment glows amber when
-## the project can be researched right now. Click selects; press and hold researches (the amber arc fills
-## around the badge first, so nothing is ever bought by accident). Unlocking flashes the badge, charges
-## the new segment and throws a ring of sparks; projects that become reachable "wake up".
+## in the intel colour as they are researched), the name underneath and the next price. The next segment is
+## amber when the project can be researched right now. Click (or pad focus) selects; press and hold
+## researches (the amber arc fills around the badge first, so nothing is ever bought by accident).
+## Researching flashes the badge and charges the new segment; projects that become reachable fade in.
 
 signal research_selected(research_id: StringName)
-signal research_hovered(research_id: StringName)
-signal research_unhovered
 signal research_requested(research_id: StringName)
 
 const NODE_SIZE: Vector2 = Vector2(122.0, 102.0)
@@ -43,9 +41,6 @@ var _flash: float = 0.0
 var _charge: float = 1.0
 var _wake: float = 1.0
 var _wake_waiting: bool = false
-var _punch: float = 0.0
-var _time: float = 0.0
-var _sparks: Array[Dictionary] = []
 var _name_lines: PackedStringArray = PackedStringArray()
 
 
@@ -59,9 +54,8 @@ func _init() -> void:
 func _ready() -> void:
 	mouse_entered.connect(func() -> void: _set_hovered(true))
 	mouse_exited.connect(func() -> void: _set_hovered(false); _cancel_hold())
-	focus_entered.connect(func() -> void: research_hovered.emit(research_id); queue_redraw())
+	focus_entered.connect(func() -> void: research_selected.emit(research_id); set_process(true))
 	focus_exited.connect(func() -> void: _cancel_hold(); queue_redraw())
-	_time = randf() * 10.0
 
 
 func setup(next_definition: Dictionary) -> void:
@@ -118,11 +112,6 @@ func _requirements_met() -> bool:
 func play_unlock() -> void:
 	_flash = 1.0
 	_charge = 0.0
-	_punch = 1.0
-	for index in range(14):
-		var angle: float = TAU * float(index) / 14.0 + randf_range(-0.15, 0.15)
-		var direction: Vector2 = Vector2.from_angle(angle)
-		_sparks.append({"p": CENTER + direction * RING_RADIUS, "v": direction * randf_range(90.0, 170.0), "life": randf_range(0.35, 0.55), "max": 0.55})
 	set_process(true)
 
 
@@ -145,10 +134,7 @@ func _set_hovered(value: bool) -> void:
 	_hovered = value
 	set_process(true)
 	if value:
-		research_hovered.emit(research_id)
 		AudioDirector.play(&"ui_hover", -8.0, 1.05)
-	else:
-		research_unhovered.emit()
 
 
 # --- Input -----------------------------------------------------------------------------------------------
@@ -193,7 +179,6 @@ func _cancel_hold() -> void:
 # --- Animation & drawing ---------------------------------------------------------------------------------
 
 func _process(delta: float) -> void:
-	_time += delta
 	_hover = move_toward(_hover, 1.0 if (_hovered or has_focus()) else 0.0, delta * 10.0)
 	if _holding:
 		_hold = minf(_hold + delta / HOLD_SECONDS, 1.0)
@@ -207,17 +192,8 @@ func _process(delta: float) -> void:
 	_charge = move_toward(_charge, 1.0, delta / 0.35)
 	if not _wake_waiting:
 		_wake = move_toward(_wake, 1.0, delta / 0.6)
-	_punch = move_toward(_punch, 0.0, delta * 3.0)
-	for index in range(_sparks.size() - 1, -1, -1):
-		var spark: Dictionary = _sparks[index]
-		spark["life"] = float(spark["life"]) - delta
-		if float(spark["life"]) <= 0.0:
-			_sparks.remove_at(index)
-			continue
-		spark["v"] = (spark["v"] as Vector2) * exp(-5.0 * delta)
-		spark["p"] = (spark["p"] as Vector2) + (spark["v"] as Vector2) * delta
 	queue_redraw()
-	var idle: bool = not _holding and _hold <= 0.0 and _flash <= 0.0 and _charge >= 1.0 and _wake >= 1.0 and _punch <= 0.0 and _sparks.is_empty() and (_hover == 0.0 or _hover == 1.0)
+	var idle: bool = not _holding and _hold <= 0.0 and _flash <= 0.0 and _charge >= 1.0 and _wake >= 1.0 and (_hover == 0.0 or _hover == 1.0)
 	if idle and not (_hovered or has_focus()):
 		set_process(false)
 
@@ -226,19 +202,18 @@ func _draw() -> void:
 	var intel: Color = UiStyle.INTEL
 	var amber: Color = UiStyle.ACCENT
 	var hover: float = _hover * _hover * (3.0 - 2.0 * _hover)
-	var scale_factor: float = 1.0 + hover * 0.05 + sin(_punch * PI) * 0.12
-	draw_set_transform(CENTER, 0.0, Vector2.ONE * scale_factor)
+	draw_set_transform(CENTER)
 
-	var disc: Color = Color(0.058, 0.082, 0.086, 1.0)
+	var disc: Color = Color(0.075, 0.075, 0.07, 1.0)
 	var edge: Color = Color(1, 1, 1, 0.12)
 	var icon_alpha: float = 0.9
 	match _state:
 		PLANNED:
-			disc = Color(0.04, 0.055, 0.058, 0.7)
+			disc = Color(0.05, 0.05, 0.047, 0.7)
 			edge = Color(1, 1, 1, 0.07)
 			icon_alpha = 0.16
 		LOCKED:
-			disc = Color(0.045, 0.062, 0.066, 1.0)
+			disc = Color(0.055, 0.055, 0.052, 1.0)
 			edge = Color(1, 1, 1, 0.06)
 			icon_alpha = 0.3
 		AVAILABLE:
@@ -251,11 +226,6 @@ func _draw() -> void:
 	if _wake < 1.0:
 		icon_alpha = lerpf(0.3, icon_alpha, _wake)
 		edge = edge.lerp(Color(1, 1, 1, 0.06), 1.0 - _wake)
-	if _wake < 1.0 and not _wake_waiting:
-		var wave: float = _wake
-		draw_arc(Vector2.ZERO, RING_RADIUS + wave * 16.0, 0.0, TAU, 40, LoadoutStyle.with_alpha(amber, (1.0 - wave) * 0.6), 2.0, true)
-	if _state == MAXED:
-		LoadoutStyle.draw_glow(self, Vector2.ZERO, Vector2(44.0, 44.0), LoadoutStyle.with_alpha(intel, 0.1), 24)
 	disc = disc.lerp(disc.lightened(0.12), hover)
 	draw_circle(Vector2.ZERO, RADIUS, disc, true, -1.0, true)
 	if _state == PLANNED:
@@ -263,7 +233,7 @@ func _draw() -> void:
 	else:
 		draw_arc(Vector2.ZERO, RADIUS, 0.0, TAU, 48, edge.lerp(Color(1, 1, 1, 0.5), hover * 0.4), 1.2, true)
 	if _flash > 0.0:
-		draw_circle(Vector2.ZERO, RADIUS, Color(0.75, 1.0, 0.95, _flash * 0.55), true, -1.0, true)
+		draw_circle(Vector2.ZERO, RADIUS, Color(1.0, 1.0, 1.0, _flash * 0.4), true, -1.0, true)
 
 	if _icon != null:
 		var icon_color: Color = Color(1, 1, 1, icon_alpha)
@@ -276,11 +246,6 @@ func _draw() -> void:
 		draw_arc(Vector2.ZERO, RING_RADIUS + 6.0, -PI * 0.5, -PI * 0.5 + TAU * _hold, 48, amber, 3.0, true)
 	if selected or has_focus():
 		draw_arc(Vector2.ZERO, RING_RADIUS + 6.0, 0.0, TAU, 48, Color(1, 1, 1, 0.22 if _hold <= 0.0 else 0.0), 1.0, true)
-	for spark in _sparks:
-		var life: float = float(spark["life"]) / float(spark["max"])
-		var p: Vector2 = (spark["p"] as Vector2) - CENTER
-		var v: Vector2 = spark["v"]
-		draw_line(p, p - v * 0.05, LoadoutStyle.with_alpha(intel.lerp(Color.WHITE, 0.4), life), 1.6, true)
 	draw_set_transform(Vector2.ZERO)
 	_draw_labels(intel)
 
@@ -303,9 +268,7 @@ func _draw_ring(intel: Color, amber: Color) -> void:
 				to = lerpf(from, to, _charge * _charge * (3.0 - 2.0 * _charge))
 				color = intel.lerp(Color.WHITE, 1.0 - _charge)
 		elif index == _mark and _can_buy:
-			# Static amber says "ready"; only the badge under the pointer breathes, so a full purse does not
-			# set the whole tree pulsing.
-			color = LoadoutStyle.with_alpha(amber, 0.75 + (0.25 * sin(_time * 4.0) if _hover > 0.5 else 0.0))
+			color = LoadoutStyle.with_alpha(amber, 0.8 + 0.2 * _hover)
 		elif index == _mark and _state == AVAILABLE:
 			color = Color(1, 1, 1, 0.22)
 		draw_arc(Vector2.ZERO, RING_RADIUS, from, to, 24, color, width, true)

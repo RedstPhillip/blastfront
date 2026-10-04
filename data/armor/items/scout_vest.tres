@@ -14,4 +14,4 @@ visual_scene = ExtResource("2_visual")
 attributes = {
 "max_health": 18.0
 }
-description = "Eine leichte Weste, die Treffer etwas besser abfedert."
+description = "Light vest."

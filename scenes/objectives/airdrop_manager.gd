@@ -276,10 +276,10 @@ func _set_phase(next_phase: StringName) -> void:
 func _announce_phase(next_phase: StringName) -> void:
 	match next_phase:
 		PHASE_WARNING:
-			HudToasts.notify("SUPPLY DROP INBOUND", "Stand in its ring to open it for research", UiStyle.ACCENT, &"")
+			HudToasts.notify("SUPPLY DROP INBOUND", "Hold the ring for RP", UiStyle.ACCENT, &"")
 		PHASE_CAPTURED:
 			if _capturing_slot != NetworkSession.local_player_slot and _capturing_slot != 0:
-				HudToasts.notify("SUPPLY DROP LOST", "Your opponent opened it", UiStyle.DANGER, &"ui_error")
+				HudToasts.notify("SUPPLY DROP LOST", "", UiStyle.DANGER, &"ui_error")
 
 
 ## Anticipation: a short radio double-chirp, then a transport passing high overhead while the flare

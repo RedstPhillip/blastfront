@@ -15,7 +15,7 @@ attributes = {
 "escape_speed_bonus": 100.0,
 "move_speed": 10.0
 }
-description = "Gain major movement speed as health gets lower."
+description = "Faster at low health."
 metadata = {
 "mark": 3
 }

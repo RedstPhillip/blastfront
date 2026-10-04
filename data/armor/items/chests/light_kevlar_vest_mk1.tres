@@ -16,7 +16,7 @@ attributes = {
 "max_health": 10.0,
 "move_speed": -6.0
 }
-description = "Small flat protection with a very light movement penalty."
+description = "Flat damage reduction."
 metadata = {
 "mark": 1
 }

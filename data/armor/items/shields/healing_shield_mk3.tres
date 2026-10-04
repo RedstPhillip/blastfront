@@ -16,7 +16,7 @@ attributes = {
 "healing_radius": 128.0,
 "healing_rate": 18.0
 }
-description = "Blocking creates a strong healing field."
+description = "Blocking opens a healing field."
 metadata = {
 "mark": 3
 }

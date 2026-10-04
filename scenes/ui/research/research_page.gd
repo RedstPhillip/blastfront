@@ -1,11 +1,12 @@
 extends Control
 class_name ResearchPage
 
-## Research between sets. The tree fills the left: three lanes (economy, field, movement) read left to
-## right from first project to last, every project named, its marks shown as ring segments, links light up in the intel colour once
-## powered. The panel docked on the right (same place as the loadout's locker) holds the research points
-## and the selected project: what it does, what each mark is worth, what it needs and the hold-to-research
-## action. Hovering previews a project, clicking pins it, holding on a badge or the button researches it.
+## Research between sets. The tree fills the left: two lanes (economy, field) read left to right from first
+## project to last, every project named, its marks shown as ring segments, links light up in the intel
+## colour once powered. Only projects that exist in the game are shown. The panel docked on the right holds
+## the research points and the selected project in a fixed layout (name, a few words, what each mark is
+## worth, the hold-to-research action), so nothing jumps around. Clicking or pad focus selects; holding on a
+## badge or the button researches.
 
 const DOCK_WIDTH: float = 392.0
 const DOCK_PAD: float = 24.0
@@ -14,7 +15,6 @@ const COLUMN_STEP: float = 116.0
 const LANES: Array[Dictionary] = [
 	{"branch": &"economy", "name": "ECONOMY", "rows": 2},
 	{"branch": &"miscellaneous", "name": "FIELD", "rows": 2},
-	{"branch": &"movement", "name": "MOVEMENT", "rows": 1},
 ]
 ## Grid position of every project: column and row inside its lane.
 const LAYOUT: Dictionary = {
@@ -25,8 +25,8 @@ const LAYOUT: Dictionary = {
 	&"time_control": Vector2i(5, 0), &"faster_capture": Vector2i(2, 1), &"capture_bonus": Vector2i(3, 1), &"capture_radius": Vector2i(4, 1),
 	&"dashing": Vector2i(0, 0), &"sliding": Vector2i(1, 0),
 }
-const ROW_STEP: float = 92.0
-const LANE_GAP: float = 30.0
+const ROW_STEP: float = 100.0
+const LANE_GAP: float = 64.0
 
 var _top_inset: float = 0.0
 var _nodes_by_id: Dictionary = {}
@@ -37,7 +37,6 @@ var _dock: Control = null
 var _hold_button: ResearchHoldButton = null
 var _prompt_bar: UiPromptBar = null
 var _selected_id: StringName = &""
-var _hover_id: StringName = &""
 var _shown_points: float = 0.0
 var _points_pop: float = 0.0
 
@@ -79,13 +78,11 @@ func _build() -> void:
 	_tree.add_child(_connections)
 	for definition in ResearchManager.get_all_definitions():
 		var id: StringName = StringName(str(definition["id"]))
-		if not LAYOUT.has(id):
+		if not LAYOUT.has(id) or definition["available"] != true:
 			continue
 		var node: ResearchNodeButton = ResearchNodeButton.new()
 		node.setup(definition)
 		node.research_selected.connect(_on_node_selected)
-		node.research_hovered.connect(_on_node_hovered)
-		node.research_unhovered.connect(_on_node_unhovered)
 		node.research_requested.connect(_research)
 		_tree.add_child(node)
 		_nodes_by_id[str(id)] = node
@@ -111,7 +108,7 @@ func _layout() -> void:
 	_tree.position = Vector2.ZERO
 	_tree.size = size
 	_connections.size = size
-	var y: float = top + 74.0
+	var y: float = top + 92.0
 	_lane_labels.clear()
 	for lane in LANES:
 		var lane_top: float = y
@@ -226,48 +223,24 @@ func _select(research_id: StringName) -> void:
 	_dock.queue_redraw()
 
 
-func _on_node_hovered(research_id: StringName) -> void:
-	_hover_id = research_id
-	_update_action()
-	_dock.queue_redraw()
-
-
-func _on_node_unhovered() -> void:
-	_hover_id = &""
-	_update_action()
-	_dock.queue_redraw()
-
-
-## What the panel is showing: the hovered project, else the pinned one.
-func _shown_id() -> StringName:
-	return _hover_id if _hover_id != &"" else _selected_id
-
-
-## The button always speaks about the project the panel shows. While the pointer only previews a
-## project (it is not pinned), the button points at the badge instead: holding there researches it.
+## The button always speaks about the selected project.
 func _update_action() -> void:
-	var id: StringName = _shown_id()
+	var id: StringName = _selected_id
 	var definition: Dictionary = ResearchManager.get_definition(id)
 	if definition.is_empty():
-		_hold_button.configure(false, "PICK A PROJECT")
-		return
-	if id != _selected_id and ResearchManager.can_purchase(id):
-		_hold_button.configure(false, "HOLD ON THE BADGE TO RESEARCH")
+		_hold_button.configure(false, "SELECT A PROJECT")
 		return
 	var mark: int = ResearchManager.get_mark(id)
 	var max_mark: int = int(definition["max_mark"])
 	var cost: int = ResearchManager.get_next_cost(id)
-	if definition["available"] != true:
-		_hold_button.configure(false, "COMING IN A LATER UPDATE")
-	elif mark >= max_mark:
-		_hold_button.configure(false, "FULLY RESEARCHED")
+	if mark >= max_mark:
+		_hold_button.configure(false, "MAXED")
 	elif mark == 0 and not _requirements_met(definition):
 		_hold_button.configure(false, "LOCKED")
 	elif ResearchManager.research_points < cost:
-		_hold_button.configure(false, "NEED %d MORE RP" % (cost - ResearchManager.research_points))
+		_hold_button.configure(false, "NEED %d RP" % cost)
 	else:
-		var verb: String = "HOLD TO RESEARCH" if mark == 0 else "HOLD TO UPGRADE TO MK %s" % LoadoutStyle.roman(mark + 1)
-		_hold_button.configure(true, verb, cost)
+		_hold_button.configure(true, "HOLD TO RESEARCH" if mark == 0 else "HOLD TO UPGRADE", cost)
 
 
 func _requirements_met(definition: Dictionary) -> bool:
@@ -313,8 +286,7 @@ func _research(research_id: StringName) -> void:
 	_hold_button.flash()
 	AudioDirector.play(&"research_unlock")
 	var mark: int = ResearchManager.get_mark(research_id)
-	var tail: String = "  ·  %d NEW" % opened.size() if not opened.is_empty() else ""
-	_prompt_bar.notify("%s MK %s RESEARCHED%s" % [name.to_upper(), LoadoutStyle.roman(mark), tail], UiStyle.INTEL)
+	_prompt_bar.notify("%s MK %s" % [name.to_upper(), LoadoutStyle.roman(mark)], UiStyle.INTEL)
 	_select(research_id)
 
 
@@ -349,7 +321,6 @@ func _draw_tree() -> void:
 		var y: float = float(entry["y"])
 		var total: int = 0
 		var researched: int = 0
-		var open: bool = false
 		for node in _nodes_by_id.values():
 			var button: ResearchNodeButton = node
 			if StringName(str(button.definition["branch"])) != lane["branch"]:
@@ -357,14 +328,9 @@ func _draw_tree() -> void:
 			total += 1
 			if ResearchManager.get_mark(button.research_id) > 0:
 				researched += 1
-			if button.definition["available"] == true:
-				open = true
-		var color: Color = LoadoutStyle.TEXT_SECONDARY if open else LoadoutStyle.with_alpha(LoadoutStyle.TEXT_MUTED, 0.3)
-		_tree.draw_string(UiStyle.FONT_BOLD, Vector2(48.0, y - 2.0), str(lane["name"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, color)
-		var progress: String = "%d / %d" % [researched, total] if open else "LATER"
-		_tree.draw_string(UiStyle.FONT_BOLD, Vector2(48.0, y + 14.0), progress, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, LoadoutStyle.TEXT_MUTED if open else LoadoutStyle.with_alpha(LoadoutStyle.TEXT_MUTED, 0.2))
-		# A short lead-in from the lane name to its first project.
-		_tree.draw_line(Vector2(122.0, y), Vector2(TREE_LEFT - 34.0, y), Color(1, 1, 1, 0.07) if not open else LoadoutStyle.with_alpha(UiStyle.INTEL, 0.25), 2.0)
+		_tree.draw_string(UiStyle.FONT_BOLD, Vector2(48.0, y - 2.0), str(lane["name"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, LoadoutStyle.TEXT_SECONDARY)
+		_tree.draw_string(UiStyle.FONT_BOLD, Vector2(48.0, y + 14.0), "%d / %d" % [researched, total], HORIZONTAL_ALIGNMENT_LEFT, -1, 10, LoadoutStyle.TEXT_MUTED)
+		_tree.draw_line(Vector2(122.0, y), Vector2(TREE_LEFT - 34.0, y), LoadoutStyle.with_alpha(UiStyle.INTEL, 0.25), 2.0)
 
 
 func _draw_dock() -> void:
@@ -374,63 +340,43 @@ func _draw_dock() -> void:
 	_dock.draw_rect(Rect2(Vector2.ZERO, _dock.size), LoadoutStyle.DOCK)
 	_dock.draw_line(Vector2(0.5, 0.0), Vector2(0.5, _dock.size.y), LoadoutStyle.HAIRLINE, 1.0)
 
-	var y: float = 30.0
-	_section(x, y, inner, "RESEARCH POINTS")
-	y += 40.0
+	_section(x, 30.0, inner, "RESEARCH POINTS")
 	var pop: float = sin(_points_pop * PI) * 0.12
 	var points_text: String = str(int(roundf(_shown_points)))
-	ResearchNodeButton.draw_rp_glyph(_dock, Vector2(x + 10.0, y - 12.0), 10.0 * (1.0 + pop), UiStyle.INTEL)
-	_dock.draw_string(UiStyle.FONT_DISPLAY, Vector2(x + 28.0, y), points_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 34, UiStyle.INTEL.lerp(Color.WHITE, _points_pop * 0.5))
-	var number_width: float = UiStyle.FONT_DISPLAY.get_string_size(points_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 34).x
-	_dock.draw_string(UiStyle.FONT_BODY, Vector2(x + 40.0 + number_width, y - 15.0), "Earned from orders and supply drops.", HORIZONTAL_ALIGNMENT_LEFT, inner - number_width - 40.0, 12, LoadoutStyle.TEXT_SECONDARY)
-	_dock.draw_string(UiStyle.FONT_BODY, Vector2(x + 40.0 + number_width, y + 1.0), "Unspent points expire next set.", HORIZONTAL_ALIGNMENT_LEFT, inner - number_width - 40.0, 12, LoadoutStyle.TEXT_MUTED)
+	ResearchNodeButton.draw_rp_glyph(_dock, Vector2(x + 10.0, 58.0), 10.0 * (1.0 + pop), UiStyle.INTEL)
+	_dock.draw_string(UiStyle.FONT_DISPLAY, Vector2(x + 28.0, 70.0), points_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 34, UiStyle.INTEL.lerp(Color.WHITE, _points_pop * 0.5))
+	_dock.draw_string(UiStyle.FONT_BOLD, Vector2(x, 66.0), "RESETS TO %d NEXT SET" % ResearchManager.DEFAULT_RESEARCH_POINTS, HORIZONTAL_ALIGNMENT_RIGHT, inner, 10, LoadoutStyle.TEXT_MUTED)
+	_dock.draw_line(Vector2(x, 100.0), Vector2(x + inner, 100.0), LoadoutStyle.HAIRLINE, 1.0)
 
-	var id: StringName = _shown_id()
+	var id: StringName = _selected_id
 	var definition: Dictionary = ResearchManager.get_definition(id)
-	y += 44.0
-	_section(x, y, inner, "PROJECT")
 	if definition.is_empty():
 		return
 	var mark: int = ResearchManager.get_mark(id)
 	var max_mark: int = int(definition["max_mark"])
-	var available: bool = definition["available"] == true
 	var unlocked: bool = mark > 0 or _requirements_met(definition)
-	y += 34.0
-	var lane_name: String = "FIELD" if StringName(str(definition["branch"])) == &"miscellaneous" else str(definition["branch"]).to_upper()
-	_dock.draw_string(UiStyle.FONT_BOLD, Vector2(x, y), lane_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, LoadoutStyle.TEXT_MUTED)
 	var state_text: String = ""
 	var state_color: Color = LoadoutStyle.TEXT_MUTED
-	if not available:
-		state_text = "LATER UPDATE"
-	elif mark >= max_mark:
-		state_text = "COMPLETE"
+	if mark >= max_mark:
+		state_text = "MAXED"
 		state_color = UiStyle.INTEL
 	elif mark > 0:
-		state_text = "MK %s OF %s" % [LoadoutStyle.roman(mark), LoadoutStyle.roman(max_mark)]
+		state_text = "MK %s / %s" % [LoadoutStyle.roman(mark), LoadoutStyle.roman(max_mark)]
 		state_color = UiStyle.INTEL
 	elif not unlocked:
 		state_text = "LOCKED"
-	else:
-		state_text = "AVAILABLE"
-		state_color = UiStyle.ACCENT if ResearchManager.can_purchase(id) else LoadoutStyle.TEXT_SECONDARY
-	_dock.draw_string(UiStyle.FONT_BOLD, Vector2(x, y), state_text, HORIZONTAL_ALIGNMENT_RIGHT, inner, 11, state_color)
-	y += 32.0
-	_dock.draw_string(UiStyle.FONT_DISPLAY, Vector2(x, y), str(definition["name"]).to_upper(), HORIZONTAL_ALIGNMENT_LEFT, inner, 24, LoadoutStyle.TEXT if available else LoadoutStyle.TEXT_SECONDARY)
-	y += 26.0
-	y = _draw_wrapped(str(definition.get("summary", definition["description"])), x, y, inner, 14, LoadoutStyle.TEXT_SECONDARY, 2)
+	_dock.draw_string(UiStyle.FONT_DISPLAY, Vector2(x, 140.0), str(definition["name"]).to_upper(), HORIZONTAL_ALIGNMENT_LEFT, inner - 80.0, 24, LoadoutStyle.TEXT)
+	_dock.draw_string(UiStyle.FONT_BOLD, Vector2(x, 136.0), state_text, HORIZONTAL_ALIGNMENT_RIGHT, inner, 11, state_color)
+	_draw_wrapped(str(definition.get("summary", "")), x, 166.0, inner, 14, LoadoutStyle.TEXT_SECONDARY, 2)
 
 	var levels: Array = definition.get("levels", [])
-	y += 18.0
-	var ladder_label: String = str(definition.get("level_label", ""))
-	if ladder_label != "":
-		_dock.draw_string(UiStyle.FONT_BOLD, Vector2(x, y), ladder_label, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, LoadoutStyle.TEXT_MUTED)
-		y += 10.0
 	var costs: Array = definition.get("costs", [])
+	_dock.draw_string(UiStyle.FONT_BOLD, Vector2(x, 222.0), str(definition.get("level_label", "")), HORIZONTAL_ALIGNMENT_LEFT, -1, 10, LoadoutStyle.TEXT_MUTED)
 	for index in range(max_mark):
-		y += 28.0
+		var y: float = 250.0 + float(index) * 30.0
 		var row_mark: int = index + 1
 		var done: bool = row_mark <= mark
-		var next: bool = row_mark == mark + 1 and available and unlocked
+		var next: bool = row_mark == mark + 1 and unlocked
 		var row_color: Color = UiStyle.INTEL if done else (LoadoutStyle.TEXT if next else LoadoutStyle.TEXT_MUTED)
 		if next:
 			_dock.draw_rect(Rect2(x - 10.0, y - 19.0, inner + 20.0, 27.0), Color(1, 1, 1, 0.07 if ResearchManager.can_purchase(id) else 0.035))
@@ -448,27 +394,9 @@ func _draw_dock() -> void:
 			ResearchNodeButton.draw_rp_glyph(_dock, Vector2(x + inner - cost_width - 9.0, y - 4.5), 4.5, cost_color)
 			_dock.draw_string(UiStyle.FONT_BOLD, Vector2(x + inner - cost_width, y), cost_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, cost_color)
 	var missing: String = _missing_requirement(definition) if mark == 0 else ""
-	if missing != "" and available:
-		y += 36.0
-		_dock.draw_string(UiStyle.FONT_BOLD, Vector2(x, y), "REQUIRES", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, LoadoutStyle.TEXT_MUTED)
-		_dock.draw_string(UiStyle.FONT_UI, Vector2(x + 70.0, y + 1.0), missing, HORIZONTAL_ALIGNMENT_LEFT, inner - 70.0, 13, LoadoutStyle.TEXT)
-	var opens: Array = _dependents(id)
-	if not opens.is_empty():
-		y += 40.0
-		_section(x, y - 4.0, inner, "OPENS")
-		for entry in opens:
-			y += 24.0
-			var child: Dictionary = entry["definition"]
-			var child_id: StringName = StringName(str(child["id"]))
-			var child_mark: int = ResearchManager.get_mark(child_id)
-			var child_color: Color = UiStyle.INTEL if child_mark > 0 else (LoadoutStyle.TEXT if _requirements_met(child) else LoadoutStyle.TEXT_SECONDARY)
-			if child["available"] != true:
-				child_color = LoadoutStyle.TEXT_MUTED
-			_dock.draw_string(UiStyle.FONT_UI, Vector2(x, y), str(child["name"]), HORIZONTAL_ALIGNMENT_LEFT, inner - 70.0, 14, child_color)
-			var needs: String = "AT MK %s" % LoadoutStyle.roman(int(entry["mark"])) if int(entry["mark"]) > 1 else ""
-			if child["available"] != true:
-				needs = "LATER"
-			_dock.draw_string(UiStyle.FONT_BOLD, Vector2(x, y), needs, HORIZONTAL_ALIGNMENT_RIGHT, inner, 10, LoadoutStyle.TEXT_MUTED)
+	if missing != "":
+		_dock.draw_string(UiStyle.FONT_BOLD, Vector2(x, 362.0), "NEEDS", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, LoadoutStyle.TEXT_MUTED)
+		_dock.draw_string(UiStyle.FONT_UI, Vector2(x + 56.0, 363.0), missing, HORIZONTAL_ALIGNMENT_LEFT, inner - 56.0, 14, LoadoutStyle.TEXT)
 
 
 func _section(x: float, y: float, width: float, text: String) -> void:
@@ -497,13 +425,3 @@ func _draw_wrapped(text: String, x: float, y: float, width: float, font_size: in
 		baseline = y + float(index) * (font_size + 6.0)
 		_dock.draw_string(font, Vector2(x, baseline), lines[index], HORIZONTAL_ALIGNMENT_LEFT, width, font_size, color)
 	return baseline
-
-
-## Projects that list this one as a requirement, with the mark they need.
-func _dependents(research_id: StringName) -> Array:
-	var result: Array = []
-	for definition in ResearchManager.get_all_definitions():
-		for requirement in definition.get("requires", []):
-			if requirement is Dictionary and StringName(str(requirement["id"])) == research_id:
-				result.append({"definition": definition, "mark": int(requirement["mark"])})
-	return result

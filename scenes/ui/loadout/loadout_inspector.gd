@@ -120,7 +120,7 @@ func flash(color: Color) -> void:
 func show_overview(subtitle: String, config: Dictionary, rows: Array) -> void:
 	_set_preview(&"weapon", &"", 0, config)
 	_subtitle.text = subtitle
-	_title.text = "Your build"
+	_title.text = "Build"
 	_grade.text = ""
 	_set_condition(-1.0, Color.WHITE)
 	_description.text = ""

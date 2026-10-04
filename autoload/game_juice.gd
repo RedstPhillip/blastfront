@@ -40,7 +40,6 @@ var _slowmo_until_usec: int = 0
 var _slowmo_scale: float = 1.0
 var _slowmo_recover: float = 0.0
 var _time_scale_current: float = 1.0
-var _button_tweens: Dictionary = {}
 var _damage_numbers: Dictionary = {}
 var _damage_label_settings: Dictionary = {}
 
@@ -400,6 +399,9 @@ func _animate_damage_label(label: Label, is_merge: bool) -> void:
 
 # --- UI feedback ------------------------------------------------------------------------
 
+var _last_hover_msec: int = -1000
+
+
 func attach_button_feedback(root: Node) -> void:
 	if root == null:
 		return
@@ -409,29 +411,19 @@ func attach_button_feedback(root: Node) -> void:
 		if button == null or button.has_meta("juice_feedback_connected"):
 			continue
 		button.set_meta("juice_feedback_connected", true)
-		button.set_meta("juice_base_scale", button.scale)
-		button.set_meta("juice_base_rotation", button.rotation)
 		button.mouse_entered.connect(_on_juice_button_hovered.bind(button))
 		button.focus_entered.connect(_on_juice_button_hovered.bind(button))
-		button.mouse_exited.connect(_on_juice_button_released.bind(button))
-		button.focus_exited.connect(_on_juice_button_released.bind(button))
 		button.button_down.connect(_on_juice_button_down.bind(button))
-		button.button_up.connect(_on_juice_button_released.bind(button))
-		if not button.resized.is_connected(_center_button_pivot.bind(button)):
-			button.resized.connect(_center_button_pivot.bind(button))
-		_center_button_pivot(button)
 
 
-func _center_button_pivot(button: Control) -> void:
-	if button != null and is_instance_valid(button):
-		button.pivot_offset = button.size * 0.5
-
-
+## Buttons answer with sound and their own hover/pressed colours only: no growing or tilting.
 func _on_juice_button_hovered(button: BaseButton) -> void:
-	if button.disabled:
+	# Menus move focus to the hovered entry, so one hover arrives twice; it should tick once.
+	var now: int = Time.get_ticks_msec()
+	if button.disabled or now - _last_hover_msec < 40:
 		return
+	_last_hover_msec = now
 	AudioDirector.play(&"ui_hover")
-	_tween_juice_button(button, 1.035, 0.008 * _get_button_rotation_multiplier(button), 0.12)
 
 
 func _on_juice_button_down(button: BaseButton) -> void:
@@ -439,42 +431,6 @@ func _on_juice_button_down(button: BaseButton) -> void:
 		AudioDirector.play(&"ui_error")
 		return
 	AudioDirector.play(&"ui_click")
-	_tween_juice_button(button, 0.96, -0.005 * _get_button_rotation_multiplier(button), 0.05)
-
-
-func _on_juice_button_released(button: BaseButton) -> void:
-	var hovered: bool = button.is_hovered() and not button.disabled
-	_tween_juice_button(button, 1.035 if hovered else 1.0, 0.0, 0.16)
-
-
-func _tween_juice_button(button: Control, scale_factor: float, rotation_offset: float, duration: float) -> void:
-	if button == null or not is_instance_valid(button) or not button.is_inside_tree():
-		return
-	var old_tween: Tween = _button_tweens.get(button, null) as Tween
-	if old_tween != null and old_tween.is_valid():
-		old_tween.kill()
-	var base_scale: Vector2 = _get_button_base_scale(button)
-	var base_rotation: float = _get_button_base_rotation(button)
-	var tween: Tween = button.create_tween()
-	tween.set_parallel(true)
-	tween.tween_property(button, "scale", base_scale * scale_factor, duration).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tween.tween_property(button, "rotation", base_rotation + rotation_offset, duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	_button_tweens[button] = tween
-
-
-func _get_button_base_scale(button: Control) -> Vector2:
-	var value: Variant = button.get_meta("juice_base_scale", Vector2.ONE)
-	return value if value is Vector2 else Vector2.ONE
-
-
-func _get_button_base_rotation(button: Control) -> float:
-	var value: Variant = button.get_meta("juice_base_rotation", 0.0)
-	return float(value) if (value is float or value is int) else 0.0
-
-
-func _get_button_rotation_multiplier(button: Control) -> float:
-	var value: Variant = button.get_meta("juice_rotation_multiplier", 1.0)
-	return maxf(0.0, float(value)) if (value is float or value is int) else 1.0
 
 
 # --- Helpers -----------------------------------------------------------------------------

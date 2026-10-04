@@ -17,7 +17,7 @@ attributes = {
 "frosty_radius": 120.0,
 "frosty_speed_multiplier": 0.68
 }
-description = "Blocking strongly slows nearby enemies."
+description = "Blocking slows nearby enemies."
 metadata = {
 "mark": 2
 }

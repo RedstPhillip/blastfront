@@ -451,24 +451,24 @@ func _build_definitions() -> Dictionary:
 	return definitions
 
 
-## How each project reads on the research screen: one plain sentence, and what every mark is worth.
+## How each project reads on the research screen: a few words, and what every mark is worth.
 const PRESENTATION: Dictionary = {
-	RECYCLING: {"summary": "Recycle shop blueprints for part of their price.", "label": "REFUND", "levels": ["50%", "75%", "100%"]},
-	BLUEPRINT_STORAGE: {"summary": "Keep blueprints for later sets in storage slots.", "label": "SLOTS", "levels": ["1", "2", "4"]},
-	COIN_INTEREST: {"summary": "Earn more coins from every completed set.", "label": "COIN BONUS", "levels": ["+5%", "+10%", "+15%"]},
-	CONDITION_WEAR: {"summary": "Your gear wears down slower in battle.", "label": "WEAR", "levels": ["70%", "35%", "None"]},
-	UPGRADE_DISCOUNT: {"summary": "Merging parts into a higher mark costs fewer coins.", "label": "MERGE COST", "levels": ["−10%", "−22%", "−35%"]},
-	RESEARCH_YIELD: {"summary": "Orders award more research points.", "label": "RP BONUS", "levels": ["+20%", "+40%", "+65%"]},
-	BONUS_MARK: {"summary": "Bought weapon blueprints can arrive one mark higher.", "label": "MK II CHANCE", "levels": ["6%", "14%", "26%"]},
-	LUCK: {"summary": "Shop blueprints roll in better condition.", "label": "EXTRA ROLLS", "levels": ["1", "2", "3"]},
-	DASHING: {"summary": "A quick dash; later a shorter cooldown and a protective shockwave.", "label": "DASH", "levels": ["Unlock", "Cooldown", "Shockwave"]},
-	SLIDING: {"summary": "A ground slide; later faster and easier to steer.", "label": "SLIDE", "levels": ["Unlock", "Speed", "Control"]},
-	LIFE_STEAL: {"summary": "Heal for part of the damage you deal.", "label": "HEAL", "levels": ["5%", "10%", "16%"]},
-	RAGE: {"summary": "Below 20% health your shots hit harder.", "label": "DAMAGE", "levels": ["+15%", "+30%", "+50%"]},
-	PASSIVE_HEALING: {"summary": "Stand still to heal slowly.", "label": "HEALS UP TO", "levels": ["50%", "75%", "100%"]},
-	PHOENIX: {"summary": "Once per set, survive a lethal hit and return with 40% health.", "label": "", "levels": ["Revive"]},
-	TIME_CONTROL: {"summary": "Slow the world down, then briefly freeze time.", "label": "", "levels": ["Slow", "Longer", "Freeze"]},
+	RECYCLING: {"summary": "Better sell prices. Recycle blueprints.", "label": "SELL VALUE", "levels": ["50%", "75%", "100%"]},
+	BLUEPRINT_STORAGE: {"summary": "Keep blueprints for later sets.", "label": "SLOTS", "levels": ["1", "2", "4"]},
+	COIN_INTEREST: {"summary": "More coins per set.", "label": "COIN BONUS", "levels": ["+5%", "+10%", "+15%"]},
+	CONDITION_WEAR: {"summary": "Gear wears slower.", "label": "WEAR", "levels": ["70%", "35%", "None"]},
+	UPGRADE_DISCOUNT: {"summary": "Cheaper merges.", "label": "MERGE COST", "levels": ["−10%", "−22%", "−35%"]},
+	RESEARCH_YIELD: {"summary": "More RP from orders.", "label": "RP BONUS", "levels": ["+20%", "+40%", "+65%"]},
+	BONUS_MARK: {"summary": "Bought blueprints may arrive as MK II.", "label": "CHANCE", "levels": ["6%", "14%", "26%"]},
+	LUCK: {"summary": "Shop blueprints roll better condition.", "label": "EXTRA ROLLS", "levels": ["1", "2", "3"]},
+	DASHING: {"summary": "Dash.", "label": "", "levels": ["Unlock", "Cooldown", "Shockwave"]},
+	SLIDING: {"summary": "Slide.", "label": "", "levels": ["Unlock", "Speed", "Control"]},
+	LIFE_STEAL: {"summary": "Heal from damage dealt.", "label": "HEAL", "levels": ["5%", "10%", "16%"]},
+	RAGE: {"summary": "More damage below 20% health.", "label": "DAMAGE", "levels": ["+15%", "+30%", "+50%"]},
+	PASSIVE_HEALING: {"summary": "Heal while standing still.", "label": "HEALS UP TO", "levels": ["50%", "75%", "100%"]},
+	PHOENIX: {"summary": "Survive one lethal hit per set.", "label": "COME BACK WITH", "levels": ["40% HP"]},
+	TIME_CONTROL: {"summary": "Slow time.", "label": "", "levels": ["Slow", "Longer", "Freeze"]},
 	FASTER_CAPTURE: {"summary": "Capture supply drops faster.", "label": "CAPTURE TIME", "levels": ["−15%", "−30%", "−45%"]},
-	CAPTURE_BONUS: {"summary": "Captured supply drops award more research points.", "label": "RP PER DROP", "levels": ["6", "7", "8"]},
-	CAPTURE_RADIUS: {"summary": "A wider capture ring around supply drops.", "label": "RADIUS", "levels": ["+20", "+42", "+68"]},
+	CAPTURE_BONUS: {"summary": "More RP per supply drop.", "label": "RP PER DROP", "levels": ["6", "7", "8"]},
+	CAPTURE_RADIUS: {"summary": "Wider capture ring.", "label": "RADIUS", "levels": ["+20", "+42", "+68"]},
 }

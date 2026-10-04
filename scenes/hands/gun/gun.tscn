@@ -5,7 +5,6 @@
 [ext_resource type="Script" path="res://scenes/weapons/extensions/weapon_extension_visuals.gd" id="3_visuals"]
 
 [sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_laser_add"]
-blend_mode = 1
 light_mode = 1
 
 [node name="Gun" type="Node2D" unique_id=926933887]
@@ -40,8 +39,8 @@ position = Vector2(-63, -40)
 visible = false
 z_index = 20
 material = SubResource("CanvasItemMaterial_laser_add")
-width = 6.5
-default_color = Color(0.72, 0.025, 0.015, 0.09)
+width = 4.0
+default_color = Color(0.08, 0.0, 0.0, 0.4)
 joint_mode = 2
 begin_cap_mode = 2
 end_cap_mode = 2
@@ -50,8 +49,8 @@ antialiased = true
 [node name="LaserBeam" type="Line2D" parent="LaserSight"]
 z_index = 1
 material = SubResource("CanvasItemMaterial_laser_add")
-width = 2.25
-default_color = Color(0.86, 0.045, 0.025, 0.42)
+width = 2.2
+default_color = Color(1, 0.13, 0.08, 0.92)
 joint_mode = 2
 begin_cap_mode = 2
 end_cap_mode = 2
@@ -60,8 +59,8 @@ antialiased = true
 [node name="LaserCore" type="Line2D" parent="LaserSight"]
 z_index = 2
 material = SubResource("CanvasItemMaterial_laser_add")
-width = 0.8
-default_color = Color(0.95, 0.52, 0.38, 0.78)
+width = 0.9
+default_color = Color(1, 0.68, 0.58, 1)
 joint_mode = 2
 begin_cap_mode = 2
 end_cap_mode = 2

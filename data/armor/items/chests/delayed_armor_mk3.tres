@@ -16,7 +16,7 @@ attributes = {
 "max_health": 22.0,
 "move_speed": -34.0
 }
-description = "Incoming damage is paid out over 7 seconds with a very heavy movement penalty."
+description = "Damage taken spreads over 7 s."
 metadata = {
 "mark": 3
 }

@@ -16,7 +16,7 @@ attributes = {
 "move_speed": -20.0,
 "stationary_damage_reduction": 4.0
 }
-description = "Gain strong extra protection while standing still."
+description = "Extra protection while standing still."
 metadata = {
 "mark": 2
 }

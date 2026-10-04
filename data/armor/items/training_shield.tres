@@ -14,4 +14,4 @@ visual_scene = ExtResource("2_visual")
 attributes = {
 "block_strength": 16.0
 }
-description = "Ein verlaesslicher Schild fuer die Loadout-Auswahl."
+description = "Basic shield."

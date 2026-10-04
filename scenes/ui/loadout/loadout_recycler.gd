@@ -22,10 +22,6 @@ func _init() -> void:
 
 
 func refresh() -> void:
-	var ratio: int = int(roundf(RoundRewardInventory.get_sell_ratio() * 100.0))
-	tooltip_text = "Drop a part or armor piece here to sell it for %d%% of its value." % ratio
-	if ResearchManager.get_recycling_refund_ratio() > 0.0:
-		tooltip_text += " Shop blueprints can be recycled too."
 	queue_redraw()
 
 
