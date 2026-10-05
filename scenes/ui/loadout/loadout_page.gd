@@ -795,7 +795,9 @@ func _inspect_extension(item: WeaponExtensionItem, equipped: bool, price: int = 
 	var caption: String = "IF INSTALLED"
 	if equipped:
 		caption = "INSTALLED"
-		rows = _stat_rows(_ordered_changed_keys({}, item.build_effective_stats().get("attributes", {}), WEAPON_STAT_PRIORITY), {}, item.build_effective_stats().get("attributes", {}), true)
+		var without: Dictionary = current.duplicate()
+		_apply_numeric_modifiers(without, item.build_effective_stats().get("attributes", {}), -1.0)
+		rows = _stat_rows(_ordered_changed_keys(without, current, WEAPON_STAT_PRIORITY), without, current, true, true)
 	else:
 		var preview: Dictionary = _build_weapon_preview_modifiers(item, current)
 		rows = _stat_rows(_ordered_changed_keys(current, preview, WEAPON_STAT_PRIORITY), current, preview, true)
@@ -820,7 +822,9 @@ func _inspect_armor(item: ArmorItemData, equipped: bool, price: int = -1) -> voi
 	var caption: String = "IF EQUIPPED"
 	if equipped:
 		caption = "EQUIPPED"
-		rows = _stat_rows(_ordered_changed_keys({}, item.get_scaled_attributes(), ARMOR_STAT_PRIORITY), {}, item.get_scaled_attributes(), false)
+		var without: Dictionary = current.duplicate()
+		_apply_numeric_modifiers(without, item.get_scaled_attributes(), -1.0)
+		rows = _stat_rows(_ordered_changed_keys(without, current, ARMOR_STAT_PRIORITY), without, current, false, true)
 	else:
 		var preview: Dictionary = _build_armor_preview_modifiers(item, current)
 		rows = _stat_rows(_ordered_changed_keys(current, preview, ARMOR_STAT_PRIORITY), current, preview, false)
@@ -881,7 +885,10 @@ func _on_reward_inspected(tile: LoadoutItemTile) -> void:
 		_inspect_armor(reward_tile.item, false, price)
 
 
-func _stat_rows(keys: Array[StringName], before: Dictionary, after: Dictionary, weapon: bool) -> Array:
+## Stat rows for the inspector. A change you could make reads "before › after"; for something already
+## installed (as_contribution) it reads what that part adds right now, e.g. "+0.43/s", so it never looks
+## like it would be applied a second time.
+func _stat_rows(keys: Array[StringName], before: Dictionary, after: Dictionary, weapon: bool, as_contribution: bool = false) -> Array:
 	var rows: Array = []
 	for key in keys:
 		var before_value: float = _weapon_display_value(key, before) if weapon else _armor_display_value(key, before)
@@ -893,15 +900,21 @@ func _stat_rows(keys: Array[StringName], before: Dictionary, after: Dictionary, 
 		var suffix: String = str((WEAPON_ATTRIBUTE_SUFFIXES if weapon else ARMOR_ATTRIBUTE_SUFFIXES).get(key, ""))
 		var decimals: int = int((WEAPON_ATTRIBUTE_DECIMALS if weapon else ARMOR_ATTRIBUTE_DECIMALS).get(key, 0))
 		var name: String = str((WEAPON_ATTRIBUTE_NAMES if weapon else ARMOR_ATTRIBUTE_NAMES).get(key, str(key).replace("_", " ").capitalize()))
+		var value_text: String = "%s  ›  %s" % [_format_value(before_value, suffix, decimals), _format_value(after_value, suffix, decimals)]
+		if as_contribution:
+			var difference: float = after_value - before_value
+			if _format_value(absf(difference), "", decimals) in ["0", "0.0", "0.00"]:
+				continue
+			value_text = ("+" if difference > 0.0 else "−") + _format_value(absf(difference), suffix, decimals)
 		rows.append({
 			"name": name,
-			"value": "%s  ›  %s" % [_format_value(before_value, suffix, decimals), _format_value(after_value, suffix, decimals)],
+			"value": value_text,
 			"color": LoadoutStyle.POSITIVE if better else LoadoutStyle.NEGATIVE,
 		})
 		if rows.size() >= LoadoutInspector.ROW_COUNT:
 			break
 	if rows.is_empty():
-		rows.append({"name": "No stat changes", "value": "", "color": LoadoutStyle.TEXT_MUTED, "name_color": LoadoutStyle.TEXT_MUTED})
+		rows.append({"name": "No stat effect" if as_contribution else "No stat changes", "value": "", "color": LoadoutStyle.TEXT_MUTED, "name_color": LoadoutStyle.TEXT_MUTED})
 	return rows
 
 
