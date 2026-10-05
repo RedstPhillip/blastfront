@@ -233,6 +233,14 @@ func has_merge_partner_for_local(item: ArmorItemData) -> bool:
 	return false
 
 
+## The piece a merge of these two would produce, without spending or consuming anything (null if they
+## cannot merge). The merge itself builds its result here, so a preview always matches the outcome.
+func preview_merged_item(first_item: ArmorItemData, second_item: ArmorItemData) -> ArmorItemData:
+	if not can_merge_items(first_item, second_item):
+		return null
+	return _create_merged_item(first_item, second_item)
+
+
 func try_merge_items_for_local(first_item: ArmorItemData, second_item: ArmorItemData) -> ArmorItemData:
 	if not can_merge_items(first_item, second_item):
 		return null
@@ -242,7 +250,7 @@ func try_merge_items_for_local(first_item: ArmorItemData, second_item: ArmorItem
 	if first_index < 0 or second_index < 0:
 		return null
 
-	var merged_item: ArmorItemData = _create_merged_item(first_item, second_item)
+	var merged_item: ArmorItemData = preview_merged_item(first_item, second_item)
 	if merged_item == null:
 		return null
 

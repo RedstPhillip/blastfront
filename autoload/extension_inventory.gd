@@ -286,6 +286,17 @@ func has_merge_partner_for_player(player_slot: int, item: WeaponExtensionItem) -
 	return false
 
 
+## The part a merge of these two would produce, without spending or consuming anything (null if they
+## cannot merge). The merge itself builds its result here, so a preview always matches the outcome.
+func preview_merged_item(first_item: WeaponExtensionItem, second_item: WeaponExtensionItem) -> WeaponExtensionItem:
+	if not can_merge_items(first_item, second_item):
+		return null
+	var average_condition: float = (first_item.condition + second_item.condition) * 0.5
+	var better_condition: float = maxf(first_item.condition, second_item.condition)
+	var merged_condition: float = ItemCondition.clamp_value(average_condition + (better_condition - average_condition) * 0.35 + 6.0)
+	return WeaponExtensionItem.create(first_item.definition, merged_condition, first_item.mark + 1)
+
+
 func try_merge_items_for_local(first_item: WeaponExtensionItem, second_item: WeaponExtensionItem) -> WeaponExtensionItem:
 	return try_merge_items_for_player(get_local_player_slot(), first_item, second_item)
 
@@ -305,10 +316,7 @@ func try_merge_items_for_player(player_slot: int, first_item: WeaponExtensionIte
 	if merge_cost <= 0 or not OnlineMatch.try_spend_local_coins(merge_cost):
 		return null
 
-	var average_condition: float = (first_item.condition + second_item.condition) * 0.5
-	var better_condition: float = maxf(first_item.condition, second_item.condition)
-	var merged_condition: float = ItemCondition.clamp_value(average_condition + (better_condition - average_condition) * 0.35 + 6.0)
-	var merged_item: WeaponExtensionItem = WeaponExtensionItem.create(first_item.definition, merged_condition, first_item.mark + 1)
+	var merged_item: WeaponExtensionItem = preview_merged_item(first_item, second_item)
 	inventory.remove_at(maxi(first_index, second_index))
 	inventory.remove_at(mini(first_index, second_index))
 	inventory.append(merged_item)

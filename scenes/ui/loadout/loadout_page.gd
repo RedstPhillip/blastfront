@@ -7,7 +7,6 @@ class_name LoadoutPage
 ## and plays a matching sound. Works in the sandbox pause menu (everything unlocked, no shop) and in the
 ## set intermission (shop, blueprints, recycler, merges).
 
-const MERGE_DIALOG_SCENE: PackedScene = preload("res://scenes/ui/loadout/merge_dialog.tscn")
 const BASE_RELOAD_TIME: float = 1.2
 const BASE_AMMO: float = 3.0
 const COLUMN_GAP: int = 12
@@ -16,8 +15,6 @@ const CENTER_COLUMN_WIDTH: float = 280.0
 const WEAPON_GRID_COLUMNS: int = 7
 const ARMOR_GRID_COLUMNS: int = 6
 const MIN_GRID_ROWS: int = 5
-const MERGE_ACCENT_EXTENSION: Color = Color8(200, 196, 187, 255)
-const MERGE_ACCENT_ARMOR: Color = Color8(255, 194, 92, 255)
 const WEAPON_STAT_PRIORITY: Array[StringName] = [
 	&"damage", &"fire_interval", &"reload_time", &"ammo_max", &"projectile_speed", &"projectile_max_distance",
 	&"shots_per_fire", &"shot_spread_degrees", &"shot_random_spread_degrees", &"projectile_gravity",
@@ -87,10 +84,7 @@ var _saved_caption: Label = null
 var _saved_row: Control = null
 var _empty_labels: Dictionary = {}
 var _merge_dialog: LoadoutMergeDialog = null
-var _pending_merge_source: WeaponExtensionItem = null
-var _pending_merge_target: WeaponExtensionItem = null
-var _pending_armor_merge_source: ArmorItemData = null
-var _pending_armor_merge_target: ArmorItemData = null
+var _pending_merge: Array = []
 var _inspecting: bool = false
 var _hover_clear_timer: float = 0.0
 var _animate_changes: bool = false
@@ -105,7 +99,7 @@ func _ready() -> void:
 	add_to_group(&"modal_ui")
 	_shop_enabled = NetworkSession.uses_set_flow()
 	_build_layout()
-	_merge_dialog = MERGE_DIALOG_SCENE.instantiate() as LoadoutMergeDialog
+	_merge_dialog = LoadoutMergeDialog.new()
 	add_child(_merge_dialog)
 	_merge_dialog.confirmed.connect(_confirm_pending_merge)
 	_merge_dialog.cancelled.connect(_cancel_pending_merge)
@@ -146,7 +140,7 @@ func _connect_inventory_signals() -> void:
 ## Leaves room above the columns, e.g. for the intermission tab bar.
 ## True while the merge dialog is up, so the intermission does not switch pages underneath it.
 func is_modal_open() -> bool:
-	return _merge_dialog != null and _merge_dialog.visible
+	return _merge_dialog != null and _merge_dialog.is_open()
 
 
 func set_top_inset(pixels: float) -> void:
@@ -1089,100 +1083,87 @@ func _on_item_sold(refund: int, title: String) -> void:
 
 # --- Merging ---------------------------------------------------------------------------------------------
 
+## Dropping a part on its twin opens the merge band; it shows the real result (mark, condition, stat gain)
+## and only opens when the merge is possible and affordable. Otherwise the inspector says why.
 func _on_merge_requested(source: Variant, target: Variant) -> void:
-	if source is WeaponExtensionItem and target is WeaponExtensionItem:
-		_request_extension_merge(source, target)
-	elif source is ArmorItemData and target is ArmorItemData:
-		_request_armor_merge(source, target)
-
-
-func _request_extension_merge(source_item: WeaponExtensionItem, target_item: WeaponExtensionItem) -> void:
-	if not ExtensionInventory.can_merge_items(source_item, target_item):
-		_show_merge_error("Invalid merge", "Needs two of the same part and MK.")
+	var result: Variant = _merged_preview(source, target)
+	if result == null:
+		_show_merge_error("Can't merge", "Needs two of the same part at the same MK.")
 		return
-	var next_mark: int = source_item.mark + 1
-	var cost: int = ExtensionInventory.get_merge_cost_for_items(source_item, target_item)
-	if OnlineMatch.get_local_coin_balance() < cost:
-		_show_not_enough_merge_coins(next_mark, cost, "extensions")
+	var cost: int = _merge_cost(source, target)
+	var balance: int = OnlineMatch.get_local_coin_balance()
+	if balance < cost:
+		_show_merge_error("Not enough coins", "MK %s costs %d. You have %d." % [LoadoutStyle.roman(_mark_of(result)), cost, balance])
 		return
-	_pending_armor_merge_source = null
-	_pending_armor_merge_target = null
-	_pending_merge_source = source_item
-	_pending_merge_target = target_item
-	_merge_dialog.show_merge("WEAPON FUSION", "Merge Extensions", source_item.get_display_name(), target_item.get_display_name(),
-		source_item.mark, target_item.mark, next_mark, source_item.condition, target_item.condition, cost,
-		OnlineMatch.get_local_coin_balance(), MERGE_ACCENT_EXTENSION)
-
-
-func _request_armor_merge(source_item: ArmorItemData, target_item: ArmorItemData) -> void:
-	if not ArmorInventory.can_merge_items(source_item, target_item):
-		_show_merge_error("Invalid merge", "Needs two of the same armor and MK.")
-		return
-	var next_mark: int = source_item.get_mark() + 1
-	var cost: int = ArmorInventory.get_merge_cost_for_items(source_item, target_item)
-	if OnlineMatch.get_local_coin_balance() < cost:
-		_show_not_enough_merge_coins(next_mark, cost, "armor")
-		return
-	_pending_merge_source = null
-	_pending_merge_target = null
-	_pending_armor_merge_source = source_item
-	_pending_armor_merge_target = target_item
-	_merge_dialog.show_merge("ARMOR FUSION", "Merge Armor", source_item.get_hover_title(), target_item.get_hover_title(),
-		source_item.get_mark(), target_item.get_mark(), next_mark, source_item.condition, target_item.condition, cost,
-		OnlineMatch.get_local_coin_balance(), MERGE_ACCENT_ARMOR)
+	_pending_merge = [source, target]
+	var better: Variant = source if float(LoadoutStyle.item_info(source).get("condition", 0.0)) >= float(LoadoutStyle.item_info(target).get("condition", 0.0)) else target
+	_merge_dialog.open(source, target, result, _merge_rows(better, result), cost, balance)
 
 
 func _confirm_pending_merge() -> void:
-	if _pending_armor_merge_source != null:
-		var armor_source: ArmorItemData = _pending_armor_merge_source
-		var armor_target: ArmorItemData = _pending_armor_merge_target
-		_pending_armor_merge_source = null
-		_pending_armor_merge_target = null
-		var armor_cost: int = ArmorInventory.get_merge_cost_for_items(armor_source, armor_target)
-		var merged_armor: ArmorItemData = ArmorInventory.try_merge_items_for_local(armor_source, armor_target)
-		if merged_armor == null:
-			_show_merge_error("Merge failed", "Check coins and MK.")
-			return
-		AudioDirector.play(&"merge")
-		_refresh_coins()
-		_pop_tile_for(_armor_tiles, merged_armor)
-		_inspect_armor(merged_armor, false)
-		_inspector.show_message("Armor merged", "MK %s  ·  -%d COINS" % [LoadoutStyle.roman(merged_armor.get_mark()), armor_cost], merged_armor.get_hover_title(), MERGE_ACCENT_ARMOR)
+	if _pending_merge.size() != 2:
 		return
-	var source: WeaponExtensionItem = _pending_merge_source
-	var target: WeaponExtensionItem = _pending_merge_target
-	_pending_merge_source = null
-	_pending_merge_target = null
-	if source == null or target == null:
-		return
-	var cost: int = ExtensionInventory.get_merge_cost_for_items(source, target)
-	var merged: WeaponExtensionItem = ExtensionInventory.try_merge_items_for_local(source, target)
+	var source: Variant = _pending_merge[0]
+	var target: Variant = _pending_merge[1]
+	_pending_merge = []
+	var cost: int = _merge_cost(source, target)
+	var merged: Variant = null
+	if source is WeaponExtensionItem:
+		merged = ExtensionInventory.try_merge_items_for_local(source, target)
+	else:
+		merged = ArmorInventory.try_merge_items_for_local(source, target)
 	if merged == null:
 		_show_merge_error("Merge failed", "Check coins and MK.")
 		return
 	AudioDirector.play(&"merge")
 	_refresh_coins()
-	_pop_tile_for(_weapon_tiles, merged)
-	_inspector.show_message("Extension merged", "MK %s  ·  -%d COINS" % [LoadoutStyle.roman(merged.mark), cost], merged.get_display_name(), MERGE_ACCENT_EXTENSION)
+	if merged is WeaponExtensionItem:
+		_pop_tile_for(_weapon_tiles, merged)
+		_inspect_extension(merged, _is_weapon_extension_equipped(merged))
+	else:
+		_pop_tile_for(_armor_tiles, merged)
+		_inspect_armor(merged, ArmorInventory.get_equipped_item((merged as ArmorItemData).category) == merged)
+	_inspector.flash(LoadoutStyle.ACCENT)
 
 
 func _cancel_pending_merge() -> void:
-	_pending_merge_source = null
-	_pending_merge_target = null
-	_pending_armor_merge_source = null
-	_pending_armor_merge_target = null
-	_merge_dialog.hide_dialog()
+	_pending_merge = []
+
+
+func _merged_preview(source: Variant, target: Variant) -> Variant:
+	if source is WeaponExtensionItem and target is WeaponExtensionItem:
+		return ExtensionInventory.preview_merged_item(source, target)
+	if source is ArmorItemData and target is ArmorItemData:
+		return ArmorInventory.preview_merged_item(source, target)
+	return null
+
+
+func _merge_cost(source: Variant, target: Variant) -> int:
+	if source is WeaponExtensionItem:
+		return ExtensionInventory.get_merge_cost_for_items(source, target)
+	return ArmorInventory.get_merge_cost_for_items(source, target)
+
+
+func _mark_of(item: Variant) -> int:
+	return int(LoadoutStyle.item_info(item).get("mark", 0))
+
+
+## Stat changes from running the merged result instead of the better of the two copies.
+func _merge_rows(before_item: Variant, result: Variant) -> Array:
+	if result is WeaponExtensionItem:
+		var current: Dictionary = _get_current_weapon_modifiers()
+		var before: Dictionary = _build_weapon_preview_modifiers(before_item, current)
+		var after: Dictionary = _build_weapon_preview_modifiers(result, current)
+		return _stat_rows(_ordered_changed_keys(before, after, WEAPON_STAT_PRIORITY), before, after, true)
+	var current_armor: Dictionary = ArmorInventory.get_scaled_attributes()
+	var before_armor: Dictionary = _build_armor_preview_modifiers(before_item, current_armor)
+	var after_armor: Dictionary = _build_armor_preview_modifiers(result, current_armor)
+	return _stat_rows(_ordered_changed_keys(before_armor, after_armor, ARMOR_STAT_PRIORITY), before_armor, after_armor, false)
 
 
 func _show_merge_error(title: String, body: String) -> void:
 	AudioDirector.play(&"shop_denied")
 	_inspector.show_message(title, "MERGE", body, LoadoutStyle.DANGER)
-
-
-func _show_not_enough_merge_coins(next_mark: int, cost: int, label: String) -> void:
-	var body: String = "MK%d costs %d. You have %d." % [next_mark, cost, OnlineMatch.get_local_coin_balance()]
-	_show_merge_error("Not enough coins", body)
-	_merge_dialog.show_coin_warning(body, label)
 
 
 # --- Stat helpers ----------------------------------------------------------------------------------------
