@@ -124,7 +124,7 @@ func _build_payload() -> Dictionary:
 
 
 func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
-	if item == null or equipped or not (data is Dictionary):
+	if item == null or not (data is Dictionary):
 		return false
 	var payload: Dictionary = data
 	if payload.get("source", &"") != &"inventory" or payload.get("item", null) == item:
@@ -205,9 +205,9 @@ func _draw() -> void:
 
 	_style.bg_color = LoadoutStyle.CARD.lerp(LoadoutStyle.CARD_HOVER, ease_hover)
 	_style.set_border_width_all(0)
+	var armed: bool = drop_highlight and _drop_armed()
 	if drop_highlight:
-		var pulse: float = 0.55 + 0.45 * sin(_pulse_time * 7.0)
-		_style.border_color = Color(LoadoutStyle.ACCENT.r, LoadoutStyle.ACCENT.g, LoadoutStyle.ACCENT.b, pulse)
+		_style.border_color = LoadoutStyle.drop_color(armed, _pulse_time)
 		_style.set_border_width_all(2)
 	elif ease_hover > 0.0:
 		_style.border_color = Color(1, 1, 1, 0.4 * ease_hover)
@@ -234,19 +234,23 @@ func _draw() -> void:
 		draw_set_transform_matrix(base)
 
 	LoadoutStyle.draw_pips(self, rect.position + Vector2(6.0, 6.0), get_mark(), 3, 1.4, 1.4)
-	if equipped:
-		LoadoutStyle.draw_check(self, Vector2(rect.end.x - 9.5, rect.position.y + 9.5), 6.0, LoadoutStyle.TEXT, LoadoutStyle.BG_BOTTOM)
+	var corner: Vector2 = Vector2(rect.end.x - 9.5, rect.position.y + 9.5)
+	if drop_highlight:
+		# Every tile that accepts this drop is a merge target, installed or not.
+		LoadoutStyle.draw_merge_badge(self, corner, 6.5 if armed else 5.5, LoadoutStyle.drop_color(armed, _pulse_time))
+	elif equipped:
+		LoadoutStyle.draw_check(self, corner, 6.0, LoadoutStyle.TEXT, LoadoutStyle.BG_BOTTOM)
 	elif merge_ready:
-		var glow: float = 0.6 + 0.4 * sin(_pulse_time * 4.0)
-		var c: Vector2 = Vector2(rect.end.x - 9.5, rect.position.y + 9.5)
-		draw_circle(c, 5.5, Color(LoadoutStyle.ACCENT.r, LoadoutStyle.ACCENT.g, LoadoutStyle.ACCENT.b, glow), true, -1.0, true)
-		draw_line(c + Vector2(-2.8, 0.0), c + Vector2(2.8, 0.0), LoadoutStyle.BG_BOTTOM, 1.5)
-		draw_line(c + Vector2(0.0, -2.8), c + Vector2(0.0, 2.8), LoadoutStyle.BG_BOTTOM, 1.5)
+		LoadoutStyle.draw_merge_badge(self, corner, 5.5, LoadoutStyle.with_alpha(LoadoutStyle.ACCENT, 0.6 + 0.4 * sin(_pulse_time * 4.0)))
 	if price >= 0:
 		_draw_price(rect)
 	if _drag_source:
 		LoadoutStyle.draw_dashed_rect(self, rect.grow(-1.0), Color(1, 1, 1, 0.35), 4.0)
 	draw_set_transform_matrix(Transform2D.IDENTITY)
+
+
+func _drop_armed() -> bool:
+	return is_inside_tree() and get_viewport().gui_is_dragging() and get_global_rect().has_point(get_global_mouse_position())
 
 
 func _draw_price(rect: Rect2) -> void:

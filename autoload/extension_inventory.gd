@@ -283,7 +283,7 @@ func has_merge_partner_for_player(player_slot: int, item: WeaponExtensionItem) -
 	for candidate in get_inventory_for_player(player_slot):
 		if can_merge_items(item, candidate):
 			return true
-	return false
+	return can_merge_items(item, get_equipped_item_for_player(player_slot, item.get_slot()))
 
 
 ## The part a merge of these two would produce, without spending or consuming anything (null if they
@@ -306,23 +306,25 @@ func try_merge_items_for_player(player_slot: int, first_item: WeaponExtensionIte
 		return null
 	_ensure_player_state(player_slot)
 
+	# An installed part lives in the loadout, not the inventory list; merging into it keeps the result installed.
 	var inventory: Array = _inventory_by_player.get(player_slot, [])
-	var first_index: int = inventory.find(first_item)
-	var second_index: int = inventory.find(second_item)
-	if first_index < 0 or second_index < 0:
-		return null
+	var installed: WeaponExtensionItem = _get_loadout_for_player(player_slot).get(first_item.get_slot(), null) as WeaponExtensionItem
+	for item in [first_item, second_item]:
+		if item != installed and not inventory.has(item):
+			return null
 
 	var merge_cost: int = get_merge_cost_for_items(first_item, second_item)
 	if merge_cost <= 0 or not OnlineMatch.try_spend_local_coins(merge_cost):
 		return null
 
 	var merged_item: WeaponExtensionItem = preview_merged_item(first_item, second_item)
-	inventory.remove_at(maxi(first_index, second_index))
-	inventory.remove_at(mini(first_index, second_index))
-	inventory.append(merged_item)
+	inventory.erase(first_item)
+	inventory.erase(second_item)
+	var loadout_changed_for_merge: bool = _replace_consumed_equipped_items(player_slot, first_item, second_item, merged_item)
+	if not loadout_changed_for_merge:
+		inventory.append(merged_item)
 	_inventory_by_player[player_slot] = inventory
 
-	var loadout_changed_for_merge: bool = _replace_consumed_equipped_items(player_slot, first_item, second_item, merged_item)
 	inventory_changed.emit(player_slot)
 	if loadout_changed_for_merge:
 		loadout_changed.emit(player_slot)

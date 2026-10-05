@@ -189,6 +189,38 @@ static func draw_coin(canvas: CanvasItem, center: Vector2, radius: float, color:
 	canvas.draw_arc(center, radius * 0.58, 0.0, TAU, 16, Color(0.0, 0.0, 0.0, 0.32 * color.a), maxf(radius * 0.22, 1.0), true)
 
 
+## Drop targets speak one language on tiles, sockets and stages: while a drag is on, every place the item
+## can go pulses amber; the one under the cursor (armed: releasing does it) holds a steady amber.
+static func drop_color(armed: bool, time: float) -> Color:
+	if armed:
+		return ACCENT
+	return with_alpha(ACCENT, 0.5 + 0.4 * sin(time * 7.0))
+
+
+## The merge mark: an amber disc with a plus (merge-ready tiles, merge drop targets).
+static func draw_merge_badge(canvas: CanvasItem, center: Vector2, radius: float, color: Color) -> void:
+	canvas.draw_circle(center, radius, color, true, -1.0, true)
+	var arm: float = radius * 0.5
+	canvas.draw_line(center + Vector2(-arm, 0.0), center + Vector2(arm, 0.0), with_alpha(BG_BOTTOM, color.a), 1.5)
+	canvas.draw_line(center + Vector2(0.0, -arm), center + Vector2(0.0, arm), with_alpha(BG_BOTTOM, color.a), 1.5)
+
+
+## Where a dragged part lands on a stage (end of the socket's callout line): a pulsing point that settles
+## into a ring when armed, or the merge badge when dropping there merges with the installed twin.
+static func draw_drop_point(canvas: CanvasItem, at: Vector2, armed: bool, merge: bool, time: float) -> void:
+	var color: Color = drop_color(armed, time)
+	if merge:
+		draw_merge_badge(canvas, at, 7.0 if armed else 6.0, color)
+		return
+	if armed:
+		canvas.draw_arc(at, 9.0, 0.0, TAU, 28, color, 1.5, true)
+		canvas.draw_circle(at, 4.0, color, true, -1.0, true)
+		return
+	var radius: float = 4.0 + 1.5 * sin(time * 7.0)
+	canvas.draw_arc(at, radius + 5.0, 0.0, TAU, 24, with_alpha(color, color.a * 0.4), 1.2, true)
+	canvas.draw_circle(at, radius, color, true, -1.0, true)
+
+
 static func draw_dashed_rect(canvas: CanvasItem, rect: Rect2, color: Color, dash: float = 3.0) -> void:
 	var corners: Array[Vector2] = [rect.position, Vector2(rect.end.x, rect.position.y), rect.end, Vector2(rect.position.x, rect.end.y)]
 	for index in range(4):

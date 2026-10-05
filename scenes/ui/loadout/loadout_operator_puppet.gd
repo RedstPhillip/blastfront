@@ -101,10 +101,14 @@ func set_armor(category: StringName, item: ArmorItemData, animate: bool) -> void
 			_face.set_expression(PlayerFace.Mood.HAPPY, 1.1)
 
 
-## Hologram of an armor piece being dragged over the stage.
+## Preview of an armor piece dragged over the stage: the operator wears it, in its real colours, in place
+## of whatever is in that slot now (null puts the worn piece back).
 func set_ghost(category: StringName, item: ArmorItemData) -> void:
 	for child in _ghost_anchor.get_children():
 		child.queue_free()
+	for slot in [ArmorItemData.CATEGORY_VEST, ArmorItemData.CATEGORY_BOOTS, ArmorItemData.CATEGORY_SHIELD]:
+		for anchor in _anchors_for(slot):
+			anchor.visible = item == null or slot != category
 	if item == null:
 		return
 	var targets: Array[Node2D] = _anchors_for(category)
@@ -112,7 +116,6 @@ func set_ghost(category: StringName, item: ArmorItemData) -> void:
 		var holder: Node2D = Node2D.new()
 		holder.set_meta("follow", target)
 		holder.scale = target.scale
-		holder.modulate = Color(1.0, 0.86, 0.62, 0.6)
 		holder.add_child(ArmorArtView.create(item, _limb_color, ARMOR_OUTLINE))
 		_ghost_anchor.add_child(holder)
 	_sync_ghosts()
@@ -193,7 +196,6 @@ func _materialize_scale(category: StringName) -> float:
 func _sync_ghosts() -> void:
 	if _ghost_anchor == null:
 		return
-	var pulse: float = 0.45 + 0.2 * sin(_time * 6.0)
 	for holder in _ghost_anchor.get_children():
 		var follow: Node2D = holder.get_meta("follow", null) as Node2D
 		if follow == null:
@@ -202,7 +204,6 @@ func _sync_ghosts() -> void:
 		node.position = follow.position
 		node.rotation = follow.rotation
 		node.scale = follow.scale
-		node.modulate = Color(1.0, 0.86, 0.62, pulse)
 
 
 func _draw_gun() -> void:

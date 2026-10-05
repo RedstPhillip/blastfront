@@ -230,7 +230,7 @@ func has_merge_partner_for_local(item: ArmorItemData) -> bool:
 	for candidate in inventory:
 		if can_merge_items(item, candidate):
 			return true
-	return false
+	return can_merge_items(item, loadout.get_equipped_item(item.category))
 
 
 ## The piece a merge of these two would produce, without spending or consuming anything (null if they
@@ -245,10 +245,12 @@ func try_merge_items_for_local(first_item: ArmorItemData, second_item: ArmorItem
 	if not can_merge_items(first_item, second_item):
 		return null
 
-	var first_index: int = inventory.find(first_item)
-	var second_index: int = inventory.find(second_item)
-	if first_index < 0 or second_index < 0:
-		return null
+	# A worn piece lives in the loadout, not the inventory list; merging into it keeps the result worn.
+	var worn: ArmorItemData = loadout.get_equipped_item(first_item.category)
+	var consumes_worn: bool = worn == first_item or worn == second_item
+	for item in [first_item, second_item]:
+		if item != worn and not inventory.has(item):
+			return null
 
 	var merged_item: ArmorItemData = preview_merged_item(first_item, second_item)
 	if merged_item == null:
@@ -258,9 +260,12 @@ func try_merge_items_for_local(first_item: ArmorItemData, second_item: ArmorItem
 	if merge_cost <= 0 or not OnlineMatch.try_spend_local_coins(merge_cost):
 		return null
 
-	inventory.remove_at(maxi(first_index, second_index))
-	inventory.remove_at(mini(first_index, second_index))
-	inventory.append(merged_item)
+	inventory.erase(first_item)
+	inventory.erase(second_item)
+	if consumes_worn:
+		loadout.equip_item(merged_item)
+	else:
+		inventory.append(merged_item)
 	inventory_changed.emit()
 	return merged_item
 

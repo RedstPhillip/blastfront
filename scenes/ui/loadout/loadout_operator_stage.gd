@@ -3,9 +3,11 @@ extends Control
 
 ## The operator on a lit pedestal: spotlight, a soft warm backlight, slow dust in the light and the three
 ## armor sockets along the bottom with callouts to the body. Armor can be dropped anywhere on the stage;
-## while dragging, the matching socket lights up and a hologram of the piece appears on the character.
+## while dragging, the matching socket pulses (LoadoutStyle.drop_color), and with the cursor over the stage
+## it holds steady and the operator wears the piece. Dropping the twin of the worn piece merges them.
 
 signal armor_dropped(item: ArmorItemData)
+signal merge_requested(source: ArmorItemData, target: ArmorItemData)
 signal reward_dropped(payload: Dictionary)
 signal armor_removed(category: StringName)
 signal slot_selected(category: StringName)
@@ -23,6 +25,7 @@ var _equipped: Dictionary = {}
 var _time: float = 0.0
 var _drag_category: StringName = &""
 var _drag_item: ArmorItemData = null
+var _drag_merge_target: ArmorItemData = null
 var _drag_over: bool = false
 var _motes: Array[Dictionary] = []
 var _sparks: Array[Dictionary] = []
@@ -134,7 +137,9 @@ func _drop_data(_at_position: Vector2, data: Variant) -> void:
 		reward_dropped.emit(payload)
 		return
 	var item: ArmorItemData = payload.get("item", null) as ArmorItemData
-	if item != null:
+	if item != null and _drag_merge_target != null:
+		merge_requested.emit(item, _drag_merge_target)
+	elif item != null:
 		armor_dropped.emit(item)
 
 
@@ -154,20 +159,30 @@ func _set_drag_over(over: bool) -> void:
 	if _drag_over == over:
 		return
 	_drag_over = over
-	_puppet.set_ghost(_drag_category, _drag_item if over else null)
+	_puppet.set_ghost(_drag_category, _drag_item if over and _drag_merge_target == null else null)
+	if _chips.has(_drag_category):
+		(_chips[_drag_category] as LoadoutSocketChip).set_armed(over)
 	if over:
 		AudioDirector.play(&"ui_hover", -6.0, 0.8)
 
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_DRAG_BEGIN:
-		_drag_item = _drag_item_of(get_viewport().gui_get_drag_data())
+		var data: Variant = get_viewport().gui_get_drag_data()
+		_drag_item = _drag_item_of(data)
 		_drag_category = _drag_item.category if _drag_item != null else &""
+		_drag_merge_target = null
+		var worn: ArmorItemData = _equipped.get(_drag_category, null) as ArmorItemData
+		if _drag_item != null and StringName(str((data as Dictionary).get("type", ""))) == &"armor_item" \
+				and StringName(str((data as Dictionary).get("source", ""))) != &"slot" and ArmorInventory.can_merge_items(_drag_item, worn):
+			_drag_merge_target = worn
+		var merge_mark: int = _drag_item.get_mark() + 1 if _drag_merge_target != null else 0
 		for category in SLOTS:
-			(_chips[category] as LoadoutSocketChip).set_drag_state(_drag_item != null, category == _drag_category)
+			(_chips[category] as LoadoutSocketChip).set_drag_state(_drag_item != null, category == _drag_category, merge_mark)
 	elif what == NOTIFICATION_DRAG_END:
 		_set_drag_over(false)
 		_drag_item = null
+		_drag_merge_target = null
 		_drag_category = &""
 		for category in SLOTS:
 			(_chips[category] as LoadoutSocketChip).set_drag_state(false, false)
@@ -251,11 +266,14 @@ func _draw_overlay() -> void:
 		var active: bool = _drag_category == category
 		var color: Color = Color(1, 1, 1, 0.1)
 		if active:
-			color = Color(LoadoutStyle.ACCENT.r, LoadoutStyle.ACCENT.g, LoadoutStyle.ACCENT.b, 0.55 + 0.35 * sin(_time * 7.0))
+			color = LoadoutStyle.drop_color(_drag_over, _time)
 		var elbow: Vector2 = Vector2(anchor.x, lerpf(anchor.y, target.y, 0.5))
 		_overlay.draw_polyline(PackedVector2Array([anchor, elbow, target]), color, 1.0, true)
+		if active:
+			LoadoutStyle.draw_drop_point(_overlay, target, _drag_over, _drag_merge_target != null, _time)
+			continue
 		var installed: bool = _equipped.get(category, null) != null
-		_overlay.draw_circle(target, 3.0 if not active else 4.5 + sin(_time * 7.0), color if (not installed or active) else Color(1, 1, 1, 0.55), true, -1.0, true)
+		_overlay.draw_circle(target, 3.0, color if not installed else Color(1, 1, 1, 0.55), true, -1.0, true)
 	for spark in _sparks:
 		var life: float = float(spark["life"]) / float(spark["max"])
 		var p: Vector2 = spark["p"]

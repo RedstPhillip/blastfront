@@ -117,11 +117,10 @@ static func weapon_bounds(config: Dictionary) -> Rect2:
 
 ## Draws the full carbine. style keys (all optional):
 ##   accent: Color, offsets: {slot: Vector2}, alphas: {slot: float}, flashes: {slot: float},
-##   ghost: {slot: StringName} (hologram preview of a part), highlight: StringName slot, desaturate: float
+##   highlight: StringName slot, desaturate: float
 static func draw_weapon(canvas: CanvasItem, xform: Transform2D, config: Dictionary, style: Dictionary = {}) -> void:
 	_accent = style.get("accent", Color(0.32, 0.67, 1.0))
 	_outline_width = float(style.get("outline", OUTLINE_WIDTH))
-	var ghosts: Dictionary = style.get("ghost", {})
 	var offsets: Dictionary = style.get("offsets", {})
 	var alphas: Dictionary = style.get("alphas", {})
 	var flashes: Dictionary = style.get("flashes", {})
@@ -143,8 +142,6 @@ static func draw_weapon(canvas: CanvasItem, xform: Transform2D, config: Dictiona
 	_draw_part_at(canvas, xform, Vector2.ZERO, _grip_part())
 	if part_id(config, SLOT_TOP) != &"":
 		_draw_slot_part(canvas, xform, SLOT_TOP, part_id(config, SLOT_TOP), config, offsets, alphas, flashes, base_alpha, base_desat)
-	for slot in ghosts.keys():
-		_draw_ghost(canvas, xform, StringName(str(slot)), StringName(str(ghosts[slot])))
 	canvas.draw_set_transform_matrix(Transform2D.IDENTITY)
 	_begin(1.0, 0.0, 0.0)
 	_outline_width = OUTLINE_WIDTH
@@ -287,17 +284,6 @@ static func _draw_slot_part(canvas: CanvasItem, xform: Transform2D, slot: String
 	if definition_id != &"":
 		canvas.draw_set_transform_matrix(xform * Transform2D(0.0, SOCKET_POSITIONS[slot] + offset))
 		_draw_mark_pips_local(canvas, slot, definition_id, part_mark(config, slot))
-
-
-static func _draw_ghost(canvas: CanvasItem, xform: Transform2D, slot: StringName, definition_id: StringName) -> void:
-	if not SOCKET_POSITIONS.has(slot):
-		return
-	_tint = Color(1.0, 0.86, 0.62, 0.66)
-	_flash = 0.4
-	_desaturate = 1.0
-	if definition_id == &"grenades_mk1":
-		_draw_part_at(canvas, xform, SOCKET_POSITIONS[SLOT_AMMO] + _relative_launcher_origin(), _part(SLOT_AMMO, &"grenade_launcher"))
-	_draw_part_at(canvas, xform, SOCKET_POSITIONS[slot], _part(slot, definition_id))
 
 
 static func _draw_part_at(canvas: CanvasItem, xform: Transform2D, origin: Vector2, part: Array) -> void:

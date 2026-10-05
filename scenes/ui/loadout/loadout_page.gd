@@ -206,6 +206,7 @@ func _build_weapon_column() -> Control:
 	_weapon_bay = LoadoutWeaponBay.new()
 	_weapon_bay.custom_minimum_size = Vector2(0.0, 236.0)
 	_weapon_bay.part_dropped.connect(_equip_extension)
+	_weapon_bay.merge_requested.connect(_on_merge_requested)
 	_weapon_bay.reward_dropped.connect(_on_weapon_reward_dropped)
 	_weapon_bay.part_removed.connect(_unequip_extension_slot)
 	_weapon_bay.slot_selected.connect(func(slot: StringName) -> void: _set_weapon_filter(slot))
@@ -248,6 +249,7 @@ func _build_armor_column() -> Control:
 	_operator = LoadoutOperatorStage.new()
 	_operator.custom_minimum_size = Vector2(0.0, 236.0)
 	_operator.armor_dropped.connect(_equip_armor)
+	_operator.merge_requested.connect(_on_merge_requested)
 	_operator.reward_dropped.connect(_on_armor_reward_dropped)
 	_operator.armor_removed.connect(_unequip_armor_category)
 	_operator.slot_selected.connect(func(category: StringName) -> void: _set_armor_filter(category))
@@ -758,7 +760,8 @@ func _default_hint() -> String:
 	return ""
 
 
-## While something is being dragged the details stay on the dragged item.
+## While something is being dragged the details stay on the dragged item. A copy of an installed part
+## merges when dropped on the stage, so its details then show the merge instead of a swap.
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_DRAG_BEGIN:
 		var data: Variant = get_viewport().gui_get_drag_data()
@@ -767,10 +770,36 @@ func _notification(what: int) -> void:
 			var price: int = -1
 			if StringName(str((data as Dictionary).get("type", ""))) == &"round_reward":
 				price = RoundRewardInventory.get_reward_price(StringName(str(data.get("source_kind", ""))), int(data.get("source_index", -1)))
-			if dragged is WeaponExtensionItem:
+			var installed: Variant = _installed_in_slot_of(dragged)
+			if price < 0 and StringName(str((data as Dictionary).get("source", ""))) == &"inventory" and _merged_preview(dragged, installed) != null:
+				_inspect_merge_drag(dragged, installed)
+			elif dragged is WeaponExtensionItem:
 				_inspect_extension(dragged, _is_weapon_extension_equipped(dragged), price)
 			elif dragged is ArmorItemData:
 				_inspect_armor(dragged, ArmorInventory.get_equipped_item((dragged as ArmorItemData).category) == dragged, price)
+
+
+func _installed_in_slot_of(item: Variant) -> Variant:
+	if item is WeaponExtensionItem:
+		return ExtensionInventory.get_equipped_item_for_local((item as WeaponExtensionItem).get_slot())
+	if item is ArmorItemData:
+		return ArmorInventory.get_equipped_item((item as ArmorItemData).category)
+	return null
+
+
+func _inspect_merge_drag(dragged: Variant, installed: Variant) -> void:
+	var result: Variant = _merged_preview(dragged, installed)
+	var caption: String = "IF MERGED  ·  MK %s" % LoadoutStyle.roman(_mark_of(result))
+	var rows: Array = _merge_rows(installed, result)
+	var hint: String = "DROP ON ITS TWIN TO MERGE  ·  %d" % _merge_cost(dragged, installed)
+	_inspecting = true
+	_hover_clear_timer = HOVER_CLEAR_DELAY
+	_weapon_stats.set_preview({})
+	_armor_stats.set_preview({})
+	if dragged is WeaponExtensionItem:
+		_inspector.show_extension(dragged, _short_description((dragged as WeaponExtensionItem).definition.description), caption, rows, hint)
+	else:
+		_inspector.show_armor(dragged, _short_description((dragged as ArmorItemData).description), caption, rows, hint)
 
 
 func _dragging() -> bool:

@@ -2,11 +2,13 @@ class_name LoadoutWeaponBay
 extends Control
 
 ## The workbench: the configured carbine at a fixed size and position, three labelled sockets around it
-## and drag & drop straight onto the gun. While a part is dragged its socket lights up and a hologram of
-## the part appears on the gun; dropping snaps the part in with a flash, sparks and a small recoil of the
-## whole weapon, and the replaced part flies off.
+## and drag & drop straight onto the gun. While a part is dragged its socket pulses (the shared drop-target
+## language, see LoadoutStyle.drop_color); with the cursor over the gun it holds steady and the gun shows the
+## part installed, in its real colours. Dropping snaps the part in with a flash, sparks and a small recoil of
+## the whole weapon, and the replaced part flies off. Dropping the twin of the installed part merges them.
 
 signal part_dropped(item: WeaponExtensionItem)
+signal merge_requested(source: WeaponExtensionItem, target: WeaponExtensionItem)
 signal reward_dropped(payload: Dictionary, slot: StringName)
 signal part_removed(slot: StringName)
 signal slot_selected(slot: StringName)
@@ -37,6 +39,8 @@ var _kick: Vector2 = Vector2.ZERO
 var _kick_spin: float = 0.0
 var _drag_slot: StringName = &""
 var _drag_id: StringName = &""
+var _drag_mark: int = 1
+var _drag_merge_target: WeaponExtensionItem = null
 var _drag_over: bool = false
 var _hover_slot: StringName = &""
 var _parallax: Vector2 = Vector2.ZERO
@@ -165,8 +169,10 @@ func _drop_data(_at_position: Vector2, data: Variant) -> void:
 		return
 	if StringName(str(payload.get("type", ""))) == &"round_reward":
 		reward_dropped.emit(payload, info["slot"])
+	elif _drag_merge_target != null:
+		merge_requested.emit(info["item"], _drag_merge_target)
 	else:
-		part_dropped.emit(payload.get("item", null) as WeaponExtensionItem)
+		part_dropped.emit(info["item"])
 
 
 func _drag_info(data: Variant) -> Dictionary:
@@ -181,13 +187,15 @@ func _drag_info(data: Variant) -> Dictionary:
 		return {}
 	if type != &"round_reward" and type != &"weapon_extension_item":
 		return {}
-	return {"slot": item.get_slot(), "id": item.get_definition_id()}
+	return {"slot": item.get_slot(), "id": item.get_definition_id(), "mark": item.mark, "item": item, "type": type}
 
 
 func _set_drag_over(over: bool) -> void:
 	if _drag_over == over:
 		return
 	_drag_over = over
+	if _drag_slot != &"":
+		(_chips[_drag_slot] as LoadoutSocketChip).set_armed(over)
 	if over:
 		AudioDirector.play(&"ui_hover", -6.0, 0.8)
 	_gun_canvas.queue_redraw()
@@ -195,15 +203,23 @@ func _set_drag_over(over: bool) -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_DRAG_BEGIN:
-		var info: Dictionary = _drag_info(get_viewport().gui_get_drag_data())
+		var data: Variant = get_viewport().gui_get_drag_data()
+		var info: Dictionary = _drag_info(data)
 		_drag_slot = info.get("slot", &"")
 		_drag_id = info.get("id", &"")
+		_drag_mark = int(info.get("mark", 1))
+		_drag_merge_target = null
+		var installed: WeaponExtensionItem = _equipped.get(_drag_slot, null) as WeaponExtensionItem
+		if info.get("type", &"") == &"weapon_extension_item" and StringName(str((data as Dictionary).get("source", ""))) != &"slot" \
+				and ExtensionInventory.can_merge_items(info.get("item", null), installed):
+			_drag_merge_target = installed
 		for slot in SLOTS:
-			(_chips[slot] as LoadoutSocketChip).set_drag_state(_drag_slot != &"", slot == _drag_slot)
+			(_chips[slot] as LoadoutSocketChip).set_drag_state(_drag_slot != &"", slot == _drag_slot, _drag_mark + 1 if _drag_merge_target != null else 0)
 		set_process(true)
 	elif what == NOTIFICATION_DRAG_END:
 		_drag_slot = &""
 		_drag_id = &""
+		_drag_merge_target = null
 		_drag_over = false
 		for slot in SLOTS:
 			(_chips[slot] as LoadoutSocketChip).set_drag_state(false, false)
@@ -307,16 +323,16 @@ func _draw_gun() -> void:
 		flashes[slot] = (1.0 - t) * 0.85
 	if _hover_slot != &"" and not flashes.has(_hover_slot):
 		flashes[_hover_slot] = 0.16
-	var ghosts: Dictionary = {}
-	if _drag_over and _drag_slot != &"":
-		ghosts[_drag_slot] = _drag_id
-		alphas[_drag_slot] = 0.22
-	WeaponArt.draw_weapon(_gun_canvas, _gun_xform(), _config, {
+	# Armed equip: show the gun as it will be, the dragged part installed in its real colours.
+	var config: Dictionary = _config
+	if _drag_over and _drag_slot != &"" and _drag_merge_target == null:
+		config = _config.duplicate()
+		config[_drag_slot] = {"id": _drag_id, "mark": _drag_mark}
+	WeaponArt.draw_weapon(_gun_canvas, _gun_xform(), config, {
 		"accent": _accent,
 		"offsets": offsets,
 		"alphas": alphas,
 		"flashes": flashes,
-		"ghost": ghosts,
 	})
 	for eject in _ejects:
 		var t: float = float(eject["t"])
@@ -338,17 +354,16 @@ func _draw_overlay() -> void:
 		var hovered: bool = _hover_slot == slot
 		var color: Color = Color(1, 1, 1, 0.1)
 		if active:
-			color = Color(LoadoutStyle.ACCENT.r, LoadoutStyle.ACCENT.g, LoadoutStyle.ACCENT.b, 0.55 + 0.35 * sin(_time * 7.0))
+			color = LoadoutStyle.drop_color(_drag_over, _time)
 		elif hovered:
 			color = Color(1, 1, 1, 0.35)
 		var elbow: Vector2 = Vector2(anchor.x, lerpf(anchor.y, target.y, 0.55))
 		_overlay.draw_polyline(PackedVector2Array([anchor, elbow, target]), color, 1.0, true)
-		var empty: bool = WeaponArt.part_id(_config, slot) == &""
-		var radius: float = 3.0
 		if active:
-			radius = 5.0 + 2.0 * sin(_time * 7.0)
-			_overlay.draw_arc(target, radius + 6.0, 0.0, TAU, 24, Color(color.r, color.g, color.b, 0.35), 1.2, true)
-		_overlay.draw_circle(target, radius, color if (empty or active) else Color(1, 1, 1, 0.55), true, -1.0, true)
+			LoadoutStyle.draw_drop_point(_overlay, target, _drag_over, _drag_merge_target != null, _time)
+			continue
+		var empty: bool = WeaponArt.part_id(_config, slot) == &""
+		_overlay.draw_circle(target, 3.0, color if empty else Color(1, 1, 1, 0.55), true, -1.0, true)
 	for spark in _sparks:
 		var life: float = float(spark["life"]) / float(spark["max"])
 		var p: Vector2 = spark["p"]

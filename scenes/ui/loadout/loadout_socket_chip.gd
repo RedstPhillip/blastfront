@@ -18,6 +18,8 @@ var drop_owner: Control = null
 var highlight: float = 0.0
 var target_active: bool = false
 var compatible_drag: bool = false
+var drop_armed: bool = false
+var merge_mark: int = 0
 
 var _hover: float = 0.0
 var _hovered: bool = false
@@ -55,10 +57,20 @@ func set_item(next_item: Variant, animate: bool = false) -> void:
 	queue_redraw()
 
 
-func set_drag_state(active: bool, compatible: bool) -> void:
+## active: a drag is on; compatible: it can land in this socket; next_merge_mark: when it is the twin of
+## the installed part, the mark that dropping it here merges into (0 = it would be installed instead).
+func set_drag_state(active: bool, compatible: bool, next_merge_mark: int = 0) -> void:
 	target_active = active
 	compatible_drag = compatible
+	merge_mark = next_merge_mark if compatible else 0
+	drop_armed = false
 	set_process(true)
+
+
+## The cursor is over this socket's stage with a compatible part: releasing now drops it here.
+func set_armed(armed: bool) -> void:
+	drop_armed = armed and target_active and compatible_drag
+	queue_redraw()
 
 
 func get_anchor_global() -> Vector2:
@@ -139,13 +151,13 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
-	var pulse: float = 0.5 + 0.5 * sin(_time * 6.5)
 	var drop_ready: bool = target_active and compatible_drag
+	var drop_color: Color = LoadoutStyle.drop_color(drop_armed, _time)
 	var fill: Color = Color(0.13, 0.14, 0.158, 0.92).lerp(LoadoutStyle.CARD_HOVER, _hover)
 	_style.set_border_width_all(0)
 	if drop_ready:
-		fill = fill.lerp(Color(0.24, 0.18, 0.08, 0.95), 0.4 + pulse * 0.25)
-		_style.border_color = Color(LoadoutStyle.ACCENT.r, LoadoutStyle.ACCENT.g, LoadoutStyle.ACCENT.b, 0.6 + pulse * 0.4)
+		fill = fill.lerp(Color(0.24, 0.18, 0.08, 0.95), 0.65 if drop_armed else 0.4)
+		_style.border_color = drop_color
 		_style.set_border_width_all(2)
 	elif target_active:
 		fill = Color(fill.r, fill.g, fill.b, fill.a * 0.5)
@@ -164,7 +176,7 @@ func _draw() -> void:
 	if item == null:
 		var dash_color: Color = Color(1, 1, 1, 0.18)
 		if drop_ready:
-			dash_color = Color(LoadoutStyle.ACCENT.r, LoadoutStyle.ACCENT.g, LoadoutStyle.ACCENT.b, 0.6 + pulse * 0.4)
+			dash_color = drop_color
 		var c: Vector2 = box.get_center()
 		draw_line(c + Vector2(-5, 0), c + Vector2(5, 0), dash_color, 1.5)
 		draw_line(c + Vector2(0, -5), c + Vector2(0, 5), dash_color, 1.5)
@@ -179,13 +191,24 @@ func _draw() -> void:
 		draw_rect(Rect2(box.position.x, box.end.y - 2.0, box.size.x, 2.0), grade)
 
 	var text_x: float = box.end.x + 7.0
+	var merging: bool = drop_ready and merge_mark > 0 and item != null
 	var caption_color: Color = LoadoutStyle.ACCENT if drop_ready else LoadoutStyle.TEXT_MUTED
-	draw_string(UiStyle.FONT_BOLD, Vector2(text_x, 18.0), LoadoutStyle.slot_label(slot), HORIZONTAL_ALIGNMENT_LEFT, -1, 10, caption_color)
+	var caption_text: String = "MERGE" if merging else LoadoutStyle.slot_label(slot)
+	draw_string(UiStyle.FONT_BOLD, Vector2(text_x, 18.0), caption_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, caption_color)
 	var name_width: float = size.x - text_x - 8.0
+	var name_size: int = 12 if size.x > 160.0 else 11
 	if item == null:
 		draw_string(UiStyle.FONT_BOLD, Vector2(text_x, 35.0), "—", HORIZONTAL_ALIGNMENT_LEFT, name_width, 13, LoadoutStyle.TEXT_MUTED)
 		return
-	draw_string(UiStyle.FONT_BOLD, Vector2(text_x, 35.0), _item_name(), HORIZONTAL_ALIGNMENT_LEFT, name_width, 12 if size.x > 160.0 else 11, LoadoutStyle.TEXT)
+	if merging:
+		# Dropping the twin here merges: say so in place of the label and name, with the tiles' badge.
+		LoadoutStyle.draw_merge_badge(self, Vector2(box.end.x - 5.0, box.position.y + 5.0), 5.0, drop_color)
+		var marks: String = "MK %s  ›  MK %s" % [LoadoutStyle.roman(merge_mark - 1), LoadoutStyle.roman(merge_mark)]
+		if UiStyle.FONT_BOLD.get_string_size(marks, HORIZONTAL_ALIGNMENT_LEFT, -1, name_size).x > name_width:
+			marks = "›  MK %s" % LoadoutStyle.roman(merge_mark)
+		draw_string(UiStyle.FONT_BOLD, Vector2(text_x, 35.0), marks, HORIZONTAL_ALIGNMENT_LEFT, name_width, name_size, drop_color)
+		return
+	draw_string(UiStyle.FONT_BOLD, Vector2(text_x, 35.0), _item_name(), HORIZONTAL_ALIGNMENT_LEFT, name_width, name_size, LoadoutStyle.TEXT)
 	var label_width: float = UiStyle.FONT_BOLD.get_string_size(LoadoutStyle.slot_label(slot), HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
 	LoadoutStyle.draw_pips(self, Vector2(text_x + label_width + 7.0, 11.0), _item_mark(), 3, 1.4, 1.4)
 	if _hover <= 0.01:
