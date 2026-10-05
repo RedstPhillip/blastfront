@@ -726,15 +726,17 @@ func _show_overview() -> void:
 	for slot in [&"front", &"middle", &"ammo"]:
 		var item: WeaponExtensionItem = equipped.get(slot, null) as WeaponExtensionItem
 		rows.append(_overview_row(LoadoutStyle.slot_label(slot), _base_name(item.get_display_name()) if item != null else fallback[slot], item != null))
-	var armor_names: PackedStringArray = PackedStringArray()
+	# With six rows each armor slot gets its own; with four (intermission) one row says which slots are
+	# filled — the names are on the operator's sockets right next to it.
+	var worn_slots: PackedStringArray = PackedStringArray()
 	for category in [&"shield", &"vest", &"boots"]:
 		var armor: ArmorItemData = ArmorInventory.get_equipped_item(category)
 		if _inspector.row_count >= 6:
 			rows.append(_overview_row(LoadoutStyle.slot_label(category), _base_name(armor.get_hover_title()) if armor != null else "—", armor != null))
 		elif armor != null:
-			armor_names.append(_base_name(armor.get_hover_title()))
+			worn_slots.append(LoadoutStyle.slot_label(category).capitalize())
 	if _inspector.row_count < 6:
-		rows.append(_overview_row("ARMOR", ", ".join(armor_names) if not armor_names.is_empty() else "—", not armor_names.is_empty()))
+		rows.append(_overview_row("ARMOR", "  ·  ".join(worn_slots) if not worn_slots.is_empty() else "—", not worn_slots.is_empty()))
 	var completed: int = int(OnlineMatch.match_points.get(GameSettings.PLAYER_ONE_SLOT, 0)) + int(OnlineMatch.match_points.get(GameSettings.PLAYER_TWO_SLOT, 0))
 	var subtitle: String = "SANDBOX" if not _shop_enabled else "BEFORE SET %d" % (completed + 1)
 	var mods: int = 0

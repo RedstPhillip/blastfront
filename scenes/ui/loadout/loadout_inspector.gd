@@ -6,6 +6,8 @@ extends PanelContainer
 ## across the inventory never makes anything jump.
 
 const ROW_COUNT: int = 6
+## Widest a row's name may get before it trims, leaving the value at least the rest of the row.
+const NAME_MAX_WIDTH: float = 140.0
 
 var preview_height: float = 112.0
 var row_count: int = ROW_COUNT
@@ -81,10 +83,10 @@ func _ready() -> void:
 		var row: HBoxContainer = HBoxContainer.new()
 		row.custom_minimum_size = Vector2(0.0, 21.0)
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		# The name keeps its natural width (capped in _set_rows); the value takes the rest and trims.
 		var name_label: Label = _label(UiStyle.FONT_BODY, 13, LoadoutStyle.TEXT_SECONDARY)
-		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		var value_label: Label = _label(UiStyle.FONT_BOLD, 13, LoadoutStyle.TEXT)
+		value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		row.add_child(name_label)
 		row.add_child(value_label)
@@ -189,6 +191,8 @@ func _set_rows(caption: String, rows: Array) -> void:
 			var entry: Dictionary = rows[index]
 			name_label.text = str(entry.get("name", ""))
 			value_label.text = str(entry.get("value", ""))
+			var name_width: float = UiStyle.FONT_BODY.get_string_size(name_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
+			name_label.custom_minimum_size.x = minf(ceilf(name_width) + 2.0, NAME_MAX_WIDTH)
 			value_label.add_theme_color_override("font_color", entry.get("color", LoadoutStyle.TEXT))
 			name_label.add_theme_color_override("font_color", entry.get("name_color", LoadoutStyle.TEXT_SECONDARY))
 		else:
@@ -275,10 +279,13 @@ func _panel_style() -> StyleBoxFlat:
 	return style
 
 
+## Every label here trims with an ellipsis, so no text can ever widen the panel (and the column it sits in).
 func _label(font: Font, font_size: int, color: Color) -> Label:
 	var label: Label = Label.new()
 	UiStyle.style_label(label, font, font_size, color)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	label.clip_text = true
 	return label
 
 

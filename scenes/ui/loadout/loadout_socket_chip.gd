@@ -208,7 +208,7 @@ func _draw() -> void:
 			marks = "›  MK %s" % LoadoutStyle.roman(merge_mark)
 		draw_string(UiStyle.FONT_BOLD, Vector2(text_x, 35.0), marks, HORIZONTAL_ALIGNMENT_LEFT, name_width, name_size, drop_color)
 		return
-	draw_string(UiStyle.FONT_BOLD, Vector2(text_x, 35.0), _item_name(), HORIZONTAL_ALIGNMENT_LEFT, name_width, name_size, LoadoutStyle.TEXT)
+	draw_string(UiStyle.FONT_BOLD, Vector2(text_x, 35.0), LoadoutStyle.fit_text(_item_name(), UiStyle.FONT_BOLD, name_size, name_width), HORIZONTAL_ALIGNMENT_LEFT, name_width, name_size, LoadoutStyle.TEXT)
 	var label_width: float = UiStyle.FONT_BOLD.get_string_size(LoadoutStyle.slot_label(slot), HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
 	LoadoutStyle.draw_pips(self, Vector2(text_x + label_width + 7.0, 11.0), _item_mark(), 3, 1.4, 1.4)
 	if _hover <= 0.01:

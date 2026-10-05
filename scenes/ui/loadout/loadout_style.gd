@@ -101,6 +101,16 @@ static func caption(text: String, color: Color = TEXT_MUTED, size: int = 11) -> 
 	return label(text, UiStyle.FONT_BOLD, size, color)
 
 
+## Text shortened with an ellipsis to fit a width, for strings drawn straight onto a canvas.
+static func fit_text(text: String, font: Font, font_size: int, width: float) -> String:
+	if font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x <= width:
+		return text
+	var trimmed: String = text
+	while trimmed.length() > 1 and font.get_string_size(trimmed.strip_edges() + "…", HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x > width:
+		trimmed = trimmed.left(-1)
+	return trimmed.strip_edges() + "…"
+
+
 ## Item name without its "MK n" suffix.
 static func base_name(text: String) -> String:
 	var index: int = text.rfind(" MK")
