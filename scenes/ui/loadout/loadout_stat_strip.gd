@@ -35,7 +35,9 @@ func set_stats(entries: Array, animate: bool) -> void:
 		if previous.has(key):
 			var old: Dictionary = previous[key]
 			cell["shown"] = float(old["shown"])
-			if animate and not is_equal_approx(float(old["value"]), float(entry["value"])):
+			var formatter: Callable = entry["text"]
+			var visible_change: bool = formatter.call(float(old["value"])) != formatter.call(float(entry["value"]))
+			if animate and visible_change:
 				var diff: float = float(entry["value"]) - float(old["value"])
 				var better: bool = diff < 0.0 if entry.get("lower_is_better", false) else diff > 0.0
 				cell["flash"] = 1.0
@@ -89,9 +91,12 @@ func _draw() -> void:
 		var formatter: Callable = cell["text"]
 		var shown: float = float(cell["shown"])
 		var preview: Variant = cell["preview"]
+		# A preview that would read the same as now (a near-identical copy) is no change: no colour, no bar.
+		if preview != null and formatter.call(float(preview)) == formatter.call(float(cell["value"])):
+			preview = null
 		var value_text: String = formatter.call(shown)
 		var value_color: Color = LoadoutStyle.TEXT.lerp(flash_color, flash)
-		if preview != null and not is_equal_approx(float(preview), float(cell["value"])):
+		if preview != null:
 			var diff: float = float(preview) - float(cell["value"])
 			var preview_better: bool = diff < 0.0 if cell.get("lower_is_better", false) else diff > 0.0
 			value_text = formatter.call(float(preview))

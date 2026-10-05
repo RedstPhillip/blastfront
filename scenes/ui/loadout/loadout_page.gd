@@ -689,6 +689,7 @@ func _armor_stat_entries(modifiers: Dictionary) -> Array:
 
 
 func _preview_weapon(item: WeaponExtensionItem) -> void:
+	_armor_stats.set_preview({})
 	if item == null or _is_weapon_extension_equipped(item):
 		_weapon_stats.set_preview({})
 		return
@@ -700,6 +701,7 @@ func _preview_weapon(item: WeaponExtensionItem) -> void:
 
 
 func _preview_armor(item: ArmorItemData) -> void:
+	_weapon_stats.set_preview({})
 	if item == null or ArmorInventory.get_equipped_item(item.category) == item:
 		_armor_stats.set_preview({})
 		return
@@ -900,7 +902,12 @@ func _stat_rows(keys: Array[StringName], before: Dictionary, after: Dictionary, 
 		var suffix: String = str((WEAPON_ATTRIBUTE_SUFFIXES if weapon else ARMOR_ATTRIBUTE_SUFFIXES).get(key, ""))
 		var decimals: int = int((WEAPON_ATTRIBUTE_DECIMALS if weapon else ARMOR_ATTRIBUTE_DECIMALS).get(key, 0))
 		var name: String = str((WEAPON_ATTRIBUTE_NAMES if weapon else ARMOR_ATTRIBUTE_NAMES).get(key, str(key).replace("_", " ").capitalize()))
-		var value_text: String = "%s  ›  %s" % [_format_value(before_value, suffix, decimals), _format_value(after_value, suffix, decimals)]
+		var before_text: String = _format_value(before_value, suffix, decimals)
+		var after_text: String = _format_value(after_value, suffix, decimals)
+		# A difference too small to show (e.g. a copy in slightly different condition) is no change.
+		if before_text == after_text:
+			continue
+		var value_text: String = "%s  ›  %s" % [before_text, after_text]
 		if as_contribution:
 			var difference: float = after_value - before_value
 			if _format_value(absf(difference), "", decimals) in ["0", "0.0", "0.00"]:
