@@ -220,12 +220,6 @@ func _draw() -> void:
 	draw_line(cc + Vector2(3.2, -3.2), cc + Vector2(-3.2, 3.2), cross_color, 1.5, true)
 
 
-func _draw_dashed_rect(rect: Rect2, color: Color) -> void:
-	var corners: Array[Vector2] = [rect.position, Vector2(rect.end.x, rect.position.y), rect.end, Vector2(rect.position.x, rect.end.y)]
-	for index in range(4):
-		draw_dashed_line(corners[index], corners[(index + 1) % 4], color, 1.0, 3.0, true)
-
-
 func _item_name() -> String:
 	if item is WeaponExtensionItem:
 		var full: String = (item as WeaponExtensionItem).get_display_name()

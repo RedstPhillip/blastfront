@@ -39,6 +39,7 @@ var _guard_elbow: Vector2 = Vector2.ZERO
 var _guard_side: float = -1.0
 var _guard_hand_world_current: Vector2 = Vector2.ZERO
 var _has_guard_hand_pose: bool = false
+var _drawn_pose: PackedVector2Array = PackedVector2Array()
 
 
 func _ready() -> void:
@@ -85,7 +86,11 @@ func clear_shield_item() -> void:
 
 func _process(delta: float) -> void:
 	_update_pose(delta)
-	queue_redraw()
+	# The arms are retained draw commands: only rebuild them when the pose actually moved.
+	var pose: PackedVector2Array = PackedVector2Array([_gun_shoulder, _gun_elbow, _gun_hand, _guard_shoulder, _guard_elbow, _guard_hand])
+	if pose != _drawn_pose:
+		_drawn_pose = pose
+		queue_redraw()
 
 
 func _draw() -> void:

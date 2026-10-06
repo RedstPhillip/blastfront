@@ -174,47 +174,19 @@ static func _begin(alpha: float, flash: float, desat: float) -> void:
 
 
 static func _c(color: Color) -> Color:
-	var result: Color = color
-	if _desaturate > 0.0:
-		var luma: float = color.r * 0.3 + color.g * 0.55 + color.b * 0.15
-		result = Color(luma, luma, luma, color.a).lerp(result, 1.0 - _desaturate)
-	if _flash > 0.0:
-		result = result.lerp(Color(1.0, 0.97, 0.88, result.a), _flash)
-	return Color(result.r * _tint.r, result.g * _tint.g, result.b * _tint.b, result.a * _tint.a)
+	return VectorArt.shade(color, _tint.a, _flash, _desaturate)
 
 
 static func _draw_layers(canvas: CanvasItem, layers: Array) -> void:
+	var palette: Dictionary = {
+		"outline": OUTLINE,
+		"roles": {&"accent": _accent, &"accent_dark": _accent.darkened(0.5), &"accent_light": _accent.lightened(0.5), &"team": _team},
+		"alpha": _tint.a,
+		"flash": _flash,
+		"desaturate": _desaturate,
+	}
 	for layer in layers:
-		for op in layer:
-			if op.get("o", false):
-				if op["t"] == "poly":
-					for outline in op["outline"]:
-						canvas.draw_colored_polygon(outline, _c(OUTLINE))
-				elif op["t"] == "circle":
-					canvas.draw_circle(op["p"], float(op["r"]) + float(op["ow"]), _c(OUTLINE), true, -1.0, true)
-		for op in layer:
-			match op["t"]:
-				"poly":
-					canvas.draw_colored_polygon(op["pts"], _c(_role_color(op)))
-				"circle":
-					canvas.draw_circle(op["p"], op["r"], _c(_role_color(op)), true, -1.0, true)
-				"ring":
-					canvas.draw_arc(op["p"], op["r"], 0.0, TAU, 24, _c(_role_color(op)), op["w"], true)
-				"line":
-					canvas.draw_polyline(op["pts"], _c(_role_color(op)), op["w"], true)
-
-
-static func _role_color(op: Dictionary) -> Color:
-	match op.get("role", &""):
-		&"accent":
-			return _accent
-		&"accent_dark":
-			return _accent.darkened(0.5)
-		&"accent_light":
-			return _accent.lightened(0.5)
-		&"team":
-			return _team
-	return op["c"]
+		VectorArt.draw_ops(canvas, layer, palette)
 
 
 static func _draw_mark_pips(canvas: CanvasItem, art_id: StringName, mark: int) -> void:

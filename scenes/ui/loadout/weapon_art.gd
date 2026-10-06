@@ -262,13 +262,7 @@ static func _begin(alpha: float, flash: float, desat: float) -> void:
 
 
 static func _c(color: Color) -> Color:
-	var result: Color = color
-	if _desaturate > 0.0:
-		var luma: float = color.r * 0.3 + color.g * 0.55 + color.b * 0.15
-		result = Color(luma, luma, luma, color.a).lerp(result, 1.0 - _desaturate)
-	if _flash > 0.0:
-		result = result.lerp(Color(1.0, 0.97, 0.88, result.a), _flash)
-	return Color(result.r * _tint.r, result.g * _tint.g, result.b * _tint.b, result.a * _tint.a)
+	return VectorArt.shade(color, _tint.a, _flash, _desaturate)
 
 
 static func _draw_slot_part(canvas: CanvasItem, xform: Transform2D, slot: StringName, definition_id: StringName, config: Dictionary, offsets: Dictionary, alphas: Dictionary, flashes: Dictionary, base_alpha: float, base_desat: float, is_launcher: bool = false) -> void:
@@ -288,36 +282,13 @@ static func _draw_slot_part(canvas: CanvasItem, xform: Transform2D, slot: String
 
 static func _draw_part_at(canvas: CanvasItem, xform: Transform2D, origin: Vector2, part: Array) -> void:
 	canvas.draw_set_transform_matrix(xform * Transform2D(0.0, origin))
-	for op in part:
-		if op.get("o", false):
-			if op["t"] == "poly":
-				for outline in op["outline"]:
-					canvas.draw_colored_polygon(outline, _c(OUTLINE))
-			elif op["t"] == "circle":
-				canvas.draw_circle(op["p"], float(op["r"]) + float(op.get("ow", OUTLINE_WIDTH)), _c(OUTLINE), true, -1.0, true)
-	for op in part:
-		match op["t"]:
-			"poly":
-				canvas.draw_colored_polygon(op["pts"], _c(_role_color(op)))
-			"circle":
-				canvas.draw_circle(op["p"], op["r"], _c(_role_color(op)), true, -1.0, true)
-			"ring":
-				canvas.draw_arc(op["p"], op["r"], 0.0, TAU, 20, _c(_role_color(op)), op["w"], true)
-			"line":
-				canvas.draw_polyline(op["pts"], _c(_role_color(op)), op["w"], true)
-
-
-static func _role_color(op: Dictionary) -> Color:
-	match op.get("role", &""):
-		&"accent":
-			return _accent
-		&"ammo":
-			return _ammo_color
-		&"ammo_dark":
-			return _ammo_color.darkened(0.55)
-		&"ammo_light":
-			return _ammo_color.lightened(0.45)
-	return op["c"]
+	VectorArt.draw_ops(canvas, part, {
+		"outline": OUTLINE,
+		"roles": {&"accent": _accent, &"ammo": _ammo_color, &"ammo_dark": _ammo_color.darkened(0.55), &"ammo_light": _ammo_color.lightened(0.45)},
+		"alpha": _tint.a,
+		"flash": _flash,
+		"desaturate": _desaturate,
+	})
 
 
 static func _draw_mark_pips(canvas: CanvasItem, xform: Transform2D, slot: StringName, definition_id: StringName, mark: int) -> void:
@@ -389,10 +360,6 @@ static func _part_bounds(slot: StringName, definition_id: StringName) -> Rect2:
 				rect = Rect2(point, Vector2.ZERO)
 				has = true
 	return rect.grow(OUTLINE_WIDTH)
-
-
-static func _ammo_accent_line() -> PackedVector2Array:
-	return PackedVector2Array([Vector2(48.0, -1.2), Vector2(70.0, -1.2)])
 
 
 ## Ammo leaves a mark on the gun itself: glowing vents on the handguard and an accent stripe.

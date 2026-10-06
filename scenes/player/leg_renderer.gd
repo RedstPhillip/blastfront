@@ -20,6 +20,7 @@ var _knee_dir_smoothed: float = 1.0
 var _last_knee_source_dir: float = 0.0
 var _rendered_foot_l: Vector2 = Vector2.ZERO
 var _rendered_foot_r: Vector2 = Vector2.ZERO
+var _drawn_pose: PackedVector2Array = PackedVector2Array()
 
 
 func _ready() -> void:
@@ -30,16 +31,21 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	queue_redraw()
+	if _p == null:
+		return
+	# The legs are retained draw commands: only rebuild them when the pose actually moved.
+	var points: Dictionary = get_rendered_leg_points()
+	var pose: PackedVector2Array = PackedVector2Array([points["hip_l"], points["foot_l"], points["hip_r"], points["foot_r"], Vector2(_knee_dir_smoothed, 0.0)])
+	if pose != _drawn_pose:
+		_drawn_pose = pose
+		queue_redraw()
 
 
 func _draw() -> void:
-	if _p == null:
+	if _p == null or _drawn_pose.size() < 5:
 		return
-
-	var points: Dictionary = get_rendered_leg_points()
-	var leg_l: PackedVector2Array = _leg_points(points["hip_l"] as Vector2, points["foot_l"] as Vector2, _knee_dir_smoothed)
-	var leg_r: PackedVector2Array = _leg_points(points["hip_r"] as Vector2, points["foot_r"] as Vector2, _knee_dir_smoothed)
+	var leg_l: PackedVector2Array = _leg_points(_drawn_pose[0], _drawn_pose[1], _drawn_pose[4].x)
+	var leg_r: PackedVector2Array = _leg_points(_drawn_pose[2], _drawn_pose[3], _drawn_pose[4].x)
 	var outline: Color = col_leg.darkened(0.62)
 	for leg in [leg_l, leg_r]:
 		draw_polyline(leg, outline, line_w + 2.2, true)

@@ -2,12 +2,26 @@ extends Node
 class_name Main
 
 ## App root: owns the active top-level scene, stylised wipe transitions and per-scene music.
+##
+## Only the main menu is loaded at start-up. The heavy scenes (the match, the between-sets menu, the online
+## lobby, the loadout and settings pages) load one after another on a worker thread while the menu is up,
+## so the menu appears seconds sooner and starting a match still swaps instantly. The worker only runs
+## while the menu is the active scene, and every scene swap first waits for the load in flight: the main
+## thread never loads resources while the worker does (concurrent loads of shared scripts can fail).
 
 const DISPLAY_FONT_FILE: FontFile = preload("res://assets/fonts/russo_one/RussoOne-Regular.ttf")
-const GAME_SCENE: PackedScene = preload("res://scenes/game.tscn")
 const MAIN_MENU_SCENE: PackedScene = preload("res://scenes/menus/main_menu.tscn")
-const ONLINE_LOCKER_ROOM_SCENE: PackedScene = preload("res://scenes/menus/online_locker_room.tscn")
-const INTERMISSION_MENU_SCENE: PackedScene = preload("res://scenes/menus/intermission_menu.tscn")
+const GAME_SCENE_PATH: String = "res://scenes/game.tscn"
+const INTERMISSION_MENU_SCENE_PATH: String = "res://scenes/menus/intermission_menu.tscn"
+const ONLINE_LOCKER_ROOM_SCENE_PATH: String = "res://scenes/menus/online_locker_room.tscn"
+const LOADOUT_PAGE_SCENE_PATH: String = "res://scenes/ui/loadout/loadout_page.tscn"
+const SETTINGS_MENU_SCENE_PATH: String = "res://scenes/menus/settings_menu.tscn"
+## Background load order: the small settings page first (so opening it right away never waits on the
+## match), then the match and the other world's map, then everything reached from a match.
+const BACKGROUND_SCENES: Array[String] = [
+	SETTINGS_MENU_SCENE_PATH, GAME_SCENE_PATH, "res://scenes/maps/mars/mars_arena.tscn", LOADOUT_PAGE_SCENE_PATH,
+	INTERMISSION_MENU_SCENE_PATH, ONLINE_LOCKER_ROOM_SCENE_PATH,
+]
 const TRANSITION_SHADER: Shader = preload("res://scenes/app/transition.gdshader")
 const COVER_SECONDS: float = 0.32
 const REVEAL_SECONDS: float = 0.42
@@ -24,6 +38,9 @@ var _screen_covered: bool = false
 var _transition_tween: Tween = null
 var _transition_material: ShaderMaterial = null
 var _transitioning: bool = false
+var _scenes: Dictionary = {}
+var _background_queue: Array[String] = []
+var _background_loading: String = ""
 
 
 func _enter_tree() -> void:
@@ -31,6 +48,8 @@ func _enter_tree() -> void:
 
 
 func _exit_tree() -> void:
+	# Quitting while a scene still loads on the worker would tear the loader down under it.
+	_finish_background_load()
 	if instance == self:
 		instance = null
 
@@ -50,6 +69,56 @@ func _ready() -> void:
 		_show_locker_room()
 	else:
 		show_menu()
+	_background_queue = BACKGROUND_SCENES.duplicate()
+
+
+## A scene by path: instant once the background load has it, otherwise loaded (or waited for) now.
+static func get_scene(path: String) -> PackedScene:
+	if instance == null:
+		return load(path) as PackedScene
+	return instance._get_scene(path)
+
+
+## True once every background scene is loaded.
+func is_warm() -> bool:
+	return _background_queue.is_empty() and _background_loading == ""
+
+
+func _get_scene(path: String) -> PackedScene:
+	_finish_background_load()
+	var scene: PackedScene = _scenes.get(path, null)
+	if scene == null:
+		_background_queue.erase(path)
+		scene = load(path) as PackedScene
+		_scenes[path] = scene
+	return scene
+
+
+## Blocks until the scene loading on the worker (if any) is done and keeps it.
+func _finish_background_load() -> void:
+	if _background_loading == "":
+		return
+	var scene: PackedScene = ResourceLoader.load_threaded_get(_background_loading) as PackedScene
+	if scene != null:
+		_scenes[_background_loading] = scene
+	_background_loading = ""
+
+
+func _process(_delta: float) -> void:
+	if _background_loading != "":
+		if ResourceLoader.load_threaded_get_status(_background_loading) == ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+			return
+		_finish_background_load()
+	if _current_scene == null or _current_scene.name != "MainMenu":
+		return
+	while not _background_queue.is_empty():
+		var path: String = _background_queue.pop_front()
+		if _scenes.has(path):
+			continue
+		if ResourceLoader.load_threaded_request(path) == OK:
+			_background_loading = path
+			return
+	set_process(false)
 
 
 ## Generates the display font's distance-field glyphs up front; otherwise the first banner or damage
@@ -91,6 +160,7 @@ func show_menu() -> void:
 
 ## Swaps the active scene immediately and plays the reveal half of the wipe.
 func change_scene(scene: PackedScene) -> Node:
+	_finish_background_load()
 	get_tree().paused = false
 	GameJuice.reset_time_scale()
 	AudioDirector.set_muffled(false, 0.2)
@@ -103,7 +173,7 @@ func change_scene(scene: PackedScene) -> Node:
 
 
 func start_game() -> void:
-	change_scene(GAME_SCENE)
+	change_scene(get_scene(GAME_SCENE_PATH))
 
 
 func _on_sandbox_requested() -> void:
@@ -174,7 +244,7 @@ func _on_online_phase_changed(next_phase: StringName) -> void:
 			_cover_then(start_game)
 	elif next_phase == GameSettings.MATCH_PHASE_INTERMISSION:
 		_cover_then(func() -> void:
-			change_scene(INTERMISSION_MENU_SCENE)
+			change_scene(get_scene(INTERMISSION_MENU_SCENE_PATH))
 			AudioDirector.play_music(&"locker")
 		)
 
@@ -190,7 +260,7 @@ func _cover_then(action: Callable) -> void:
 func _show_locker_room() -> void:
 	if _current_scene != null and _current_scene.name == "OnlineLockerRoom":
 		return
-	change_scene(ONLINE_LOCKER_ROOM_SCENE)
+	change_scene(get_scene(ONLINE_LOCKER_ROOM_SCENE_PATH))
 	AudioDirector.play_music(&"locker")
 	AudioDirector.stop_ambience()
 

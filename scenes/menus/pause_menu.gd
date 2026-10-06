@@ -3,13 +3,13 @@ extends Control
 ## In-match pause overlay: frosted-glass backdrop, muffled audio and the resume/loadout/settings/quit actions.
 ## Online matches keep simulating; only local controls are suspended.
 
-const SETTINGS_MENU_SCENE: PackedScene = preload("res://scenes/menus/settings_menu.tscn")
-const LOADOUT_PAGE_SCENE: PackedScene = preload("res://scenes/ui/loadout/loadout_page.tscn")
 const BLUR_SHADER: Shader = preload("res://scenes/menus/pause_blur.gdshader")
 
 var _is_paused: bool = false
-var _settings_instance: SettingsMenu = null
-var _loadout_instance: LoadoutPage = null
+# Untyped on purpose: the settings and loadout pages compile only when first opened (or when Main warms
+# them in the background), not as part of every match load.
+var _settings_instance: Control = null
+var _loadout_instance: Control = null
 var _blur: ColorRect = null
 var _blur_material: ShaderMaterial = null
 var _menu_container: Control = null
@@ -229,12 +229,12 @@ func _is_match_over() -> bool:
 
 func _on_settings_pressed() -> void:
 	_menu_container.hide()
-	_settings_instance = SETTINGS_MENU_SCENE.instantiate() as SettingsMenu
+	_settings_instance = Main.get_scene(Main.SETTINGS_MENU_SCENE_PATH).instantiate() as Control
 	if _settings_instance == null:
 		_menu_container.show()
 		return
 	add_child(_settings_instance)
-	_settings_instance.back_pressed.connect(_on_settings_back)
+	_settings_instance.connect(&"back_pressed", _on_settings_back)
 
 
 func _on_settings_back() -> void:
@@ -248,7 +248,7 @@ func _on_loadout_pressed() -> void:
 	if _loadout_instance != null and is_instance_valid(_loadout_instance):
 		return
 	_menu_container.hide()
-	_loadout_instance = LOADOUT_PAGE_SCENE.instantiate() as LoadoutPage
+	_loadout_instance = Main.get_scene(Main.LOADOUT_PAGE_SCENE_PATH).instantiate() as Control
 	if _loadout_instance == null:
 		_menu_container.show()
 		return

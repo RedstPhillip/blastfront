@@ -317,6 +317,8 @@ func has_phoenix(player_slot: int = 0) -> bool:
 	return is_unlocked(PHOENIX, player_slot)
 
 
+# Players are handled untyped in this autoload on purpose: naming the Player class here would compile the
+# whole player (and everything it uses) at start-up, before the menu can appear.
 func apply_local_life_steal(source_slot: int, applied_damage: int) -> int:
 	if applied_damage <= 0:
 		return 0
@@ -326,7 +328,7 @@ func apply_local_life_steal(source_slot: int, applied_damage: int) -> int:
 	var world: Variant = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)
 	if world == null:
 		return 0
-	var source_player: Player = world.get_player_by_slot(source_slot)
+	var source_player: Variant = world.get_player_by_slot(source_slot)
 	if source_player == null or source_player.health_component == null or source_player.is_eliminated():
 		return 0
 	var old_health: int = source_player.health_component.health
@@ -340,7 +342,7 @@ func apply_rage_to_damage(source_slot: int, base_damage: int) -> int:
 	var world: Variant = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)
 	if world == null:
 		return base_damage
-	var source_player: Player = world.get_player_by_slot(source_slot)
+	var source_player: Variant = world.get_player_by_slot(source_slot)
 	if source_player == null or source_player.health_component == null:
 		return base_damage
 	var health_ratio: float = float(source_player.health_component.health) / maxf(float(source_player.health_component.max_health), 1.0)

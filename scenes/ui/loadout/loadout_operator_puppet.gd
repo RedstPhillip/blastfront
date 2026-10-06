@@ -19,6 +19,9 @@ var facing: float = 1.0
 var _body: Sprite2D = null
 var _face: PlayerFace = null
 var _gun_holder: Node2D = null
+## Animated weapon effects live on their own canvas so the (expensive) weapon art itself only redraws when
+## the build changes or the equip flash runs; the holder's transform carries the idle sway for free.
+var _gun_fx: Node2D = null
 var _back_limbs: Node2D = null
 var _front_arm: Node2D = null
 var _vest_anchor: Node2D = null
@@ -47,6 +50,9 @@ func _ready() -> void:
 	_gun_holder = Node2D.new()
 	_gun_holder.draw.connect(_draw_gun)
 	add_child(_gun_holder)
+	_gun_fx = Node2D.new()
+	_gun_fx.draw.connect(_draw_gun_fx)
+	_gun_holder.add_child(_gun_fx)
 	_front_arm = Node2D.new()
 	_front_arm.draw.connect(_draw_front_arm)
 	add_child(_front_arm)
@@ -146,11 +152,13 @@ func _anchors_for(category: StringName) -> Array[Node2D]:
 func _process(delta: float) -> void:
 	_time += delta
 	_hop = maxf(_hop - delta * 2.6, 0.0)
-	_check = maxf(_check - delta * 2.2, 0.0)
+	if _check > 0.0:
+		_check = maxf(_check - delta * 2.2, 0.0)
+		_gun_holder.queue_redraw()
 	for key in _materialize.keys():
 		_materialize[key] = maxf(float(_materialize[key]) - delta * 2.4, 0.0)
 	_update_pose(delta)
-	_gun_holder.queue_redraw()
+	_gun_fx.queue_redraw()
 	_back_limbs.queue_redraw()
 	_front_arm.queue_redraw()
 
@@ -209,7 +217,10 @@ func _sync_ghosts() -> void:
 func _draw_gun() -> void:
 	var xform: Transform2D = Transform2D(0.0, Vector2.ONE * GUN_SCALE, 0.0, Vector2.ZERO)
 	WeaponArt.draw_weapon(_gun_holder, xform, _config, {"accent": _accent, "flashes": {&"front": _check * 0.4, &"middle": _check * 0.4, &"ammo": _check * 0.4}})
-	WeaponArt.draw_fx(_gun_holder, xform, _config, _time, 0.85)
+
+
+func _draw_gun_fx() -> void:
+	WeaponArt.draw_fx(_gun_fx, Transform2D(0.0, Vector2.ONE * GUN_SCALE, 0.0, Vector2.ZERO), _config, _time, 0.85)
 
 
 func _limb_points() -> Dictionary:

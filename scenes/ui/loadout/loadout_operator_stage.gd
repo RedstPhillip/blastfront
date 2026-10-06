@@ -1,8 +1,8 @@
 class_name LoadoutOperatorStage
 extends Control
 
-## The operator on a lit pedestal: spotlight, a soft warm backlight, slow dust in the light and the three
-## armor sockets along the bottom with callouts to the body. Armor can be dropped anywhere on the stage;
+## The operator on a lit pedestal: spotlight, a soft warm backlight and the three armor sockets along the
+## bottom with callouts to the body. Armor can be dropped anywhere on the stage;
 ## while dragging, the matching socket pulses (LoadoutStyle.drop_color), and with the cursor over the stage
 ## it holds steady and the operator wears the piece. Dropping the twin of the worn piece merges them.
 
@@ -19,7 +19,6 @@ const PUPPET_SCALE: float = 0.7
 
 var _puppet: LoadoutOperatorPuppet = null
 var _overlay: Control = null
-var _under: Control = null
 var _chips: Dictionary = {}
 var _equipped: Dictionary = {}
 var _time: float = 0.0
@@ -27,7 +26,6 @@ var _drag_category: StringName = &""
 var _drag_item: ArmorItemData = null
 var _drag_merge_target: ArmorItemData = null
 var _drag_over: bool = false
-var _motes: Array[Dictionary] = []
 var _sparks: Array[Dictionary] = []
 var _name_label: Label = null
 var _caption: Label = null
@@ -36,10 +34,6 @@ var _caption: Label = null
 func _ready() -> void:
 	clip_contents = true
 	mouse_filter = Control.MOUSE_FILTER_PASS
-	_under = Control.new()
-	_under.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_under.draw.connect(_draw_under)
-	add_child(_under)
 	_puppet = LoadoutOperatorPuppet.new()
 	_puppet.scale = Vector2.ONE * PUPPET_SCALE
 	add_child(_puppet)
@@ -62,10 +56,6 @@ func _ready() -> void:
 		chip.selected.connect(func(picked: StringName) -> void: slot_selected.emit(picked))
 		add_child(chip)
 		_chips[category] = chip
-	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
-	rng.seed = 77
-	for index in range(14):
-		_motes.append({"x": rng.randf(), "y": rng.randf(), "speed": rng.randf_range(0.015, 0.04), "phase": rng.randf() * TAU, "size": rng.randf_range(0.8, 1.8)})
 	resized.connect(_layout)
 	_layout()
 
@@ -102,7 +92,6 @@ func _layout() -> void:
 	if _puppet == null:
 		return
 	_overlay.size = size
-	_under.size = size
 	var chip_y: float = size.y - LoadoutSocketChip.CHIP_SIZE.y - 10.0
 	var gap: float = 8.0
 	var chip_width: float = floorf((size.x - 20.0 - gap * 2.0) / 3.0)
@@ -203,7 +192,6 @@ func _process(delta: float) -> void:
 		spark["v"] = (spark["v"] as Vector2) * exp(-3.5 * delta) + Vector2(0.0, 200.0 * delta)
 		spark["p"] = (spark["p"] as Vector2) + (spark["v"] as Vector2) * delta
 	_overlay.queue_redraw()
-	_under.queue_redraw()
 
 
 func _burst(category: StringName, count: int) -> void:
@@ -243,22 +231,7 @@ func _draw() -> void:
 	draw_polyline(_ellipse_arc(pedestal, Vector2(88.0, 14.0), PI * 0.04, PI * 0.96, 30), Color(1.0, 1.0, 1.0, 0.16), 1.0, true)
 
 
-func _draw_under() -> void:
-	var pedestal: Vector2 = _pedestal_center()
-	var pulse: float = fmod(_time * 0.35, 1.0)
-	_under.draw_polyline(_ellipse(pedestal, Vector2(66.0, 10.0) * (0.35 + pulse * 0.65), 40), Color(1, 1, 1, (1.0 - pulse) * 0.18), 1.0, true)
-
-
 func _draw_overlay() -> void:
-	var pedestal: Vector2 = _pedestal_center()
-	for mote in _motes:
-		var t: float = fmod(float(mote["y"]) - _time * float(mote["speed"]), 1.0)
-		if t < 0.0:
-			t += 1.0
-		var x: float = pedestal.x + (float(mote["x"]) - 0.5) * 150.0 * (1.0 - t * 0.6) + sin(_time * 0.7 + float(mote["phase"])) * 6.0
-		var y: float = pedestal.y - t * pedestal.y
-		var alpha: float = sin(t * PI) * 0.22
-		_overlay.draw_circle(Vector2(x, y), float(mote["size"]), Color(1.0, 0.97, 0.9, alpha), true, -1.0, true)
 	for category in SLOTS:
 		var chip: LoadoutSocketChip = _chips[category]
 		var anchor: Vector2 = chip.position + Vector2(chip.size.x * 0.5, 0.0)

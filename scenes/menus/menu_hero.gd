@@ -81,14 +81,20 @@ func _draw() -> void:
 	var guard_shoulder: Vector2 = Vector2(-facing * 34.0, 8.0 + body_y)
 	var guard_hand: Vector2 = Vector2(-facing * 92.0, 34.0 + body_y)
 	var guard_elbow: Vector2 = (guard_shoulder + guard_hand) * 0.5 + Vector2(0.0, 24.0)
-	for limb in [[hip_l, (hip_l + foot_l) * 0.5 + Vector2(-facing * 12.0, 0.0), foot_l], [hip_r, (hip_r + foot_r) * 0.5 + Vector2(-facing * 12.0, 0.0), foot_r], [shoulder, elbow, hand], [guard_shoulder, guard_elbow, guard_hand]]:
-		var points: PackedVector2Array = _bezier(limb[0], limb[1], limb[2])
+	var limbs: Array[PackedVector2Array] = [
+		_bezier(hip_l, (hip_l + foot_l) * 0.5 + Vector2(-facing * 12.0, 0.0), foot_l),
+		_bezier(hip_r, (hip_r + foot_r) * 0.5 + Vector2(-facing * 12.0, 0.0), foot_r),
+		_bezier(shoulder, elbow, hand),
+		_bezier(guard_shoulder, guard_elbow, guard_hand),
+	]
+	# All outlines first, then all fills, so the limbs read as one shape where they overlap.
+	for points in limbs:
 		draw_polyline(points, outline, 15.0, true)
-		draw_circle(limb[2], 13.0, outline, true, -1.0, true)
-	for limb in [[hip_l, (hip_l + foot_l) * 0.5 + Vector2(-facing * 12.0, 0.0), foot_l], [hip_r, (hip_r + foot_r) * 0.5 + Vector2(-facing * 12.0, 0.0), foot_r], [shoulder, elbow, hand], [guard_shoulder, guard_elbow, guard_hand]]:
-		var points: PackedVector2Array = _bezier(limb[0], limb[1], limb[2])
+		draw_circle(points[points.size() - 1], 13.0, outline, true, -1.0, true)
+	var hand_color: Color = _limb_color.lightened(0.08)
+	for points in limbs:
 		draw_polyline(points, _limb_color, 9.0, true)
-		draw_circle(limb[2], 9.0, _limb_color.lightened(0.08), true, -1.0, true)
+		draw_circle(points[points.size() - 1], 9.0, hand_color, true, -1.0, true)
 
 
 func _bezier(a: Vector2, b: Vector2, c: Vector2) -> PackedVector2Array:

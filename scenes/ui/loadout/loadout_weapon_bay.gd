@@ -26,8 +26,12 @@ const SLOT_DIRECTIONS: Dictionary = {
 
 var _config: Dictionary = {}
 var _equipped: Dictionary = {}
-var _gun_canvas: Control = null
-var _fx_canvas: Control = null
+## The gun and its effects live on Node2D canvases: the idle sway moves them every frame, and moving a Node2D
+## (unlike a Control) does not redraw it, so the vector art is only rebuilt when the build changes.
+var _gun_canvas: Node2D = null
+var _fx_canvas: Node2D = null
+## Centre of the bay; the gun canvas sways and turns around it.
+var _pivot: Vector2 = Vector2.ZERO
 var _overlay: Control = null
 var _chips: Dictionary = {}
 var _gun_origin: Vector2 = Vector2.ZERO
@@ -53,12 +57,10 @@ func _ready() -> void:
 	clip_contents = true
 	mouse_filter = Control.MOUSE_FILTER_PASS
 	_accent = LoadoutStyle.local_accent()
-	_gun_canvas = Control.new()
-	_gun_canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_gun_canvas = Node2D.new()
 	_gun_canvas.draw.connect(_draw_gun)
 	add_child(_gun_canvas)
-	_fx_canvas = Control.new()
-	_fx_canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_fx_canvas = Node2D.new()
 	_fx_canvas.draw.connect(_draw_fx)
 	_gun_canvas.add_child(_fx_canvas)
 	_overlay = Control.new()
@@ -127,9 +129,9 @@ func _update_title() -> void:
 func _layout() -> void:
 	if _gun_canvas == null:
 		return
-	_gun_canvas.size = size
-	_gun_canvas.pivot_offset = size * 0.5
-	_fx_canvas.size = size
+	_pivot = size * 0.5
+	_gun_canvas.position = _pivot
+	_gun_canvas.queue_redraw()
 	_overlay.size = size
 	_gun_origin = Vector2(size.x * 0.5 - 26.0 * GUN_SCALE, size.y * 0.5 + 2.0)
 	(_chips[&"middle"] as Control).position = Vector2(12.0, 12.0)
@@ -140,8 +142,14 @@ func _layout() -> void:
 	queue_redraw()
 
 
+## Gun space to bay space (before the sway).
 func _gun_xform() -> Transform2D:
 	return Transform2D(0.0, Vector2.ONE * GUN_SCALE, 0.0, _gun_origin)
+
+
+## Gun space to the swaying canvas' own space.
+func _canvas_gun_xform() -> Transform2D:
+	return Transform2D(0.0, -_pivot) * _gun_xform()
 
 
 func _slot_screen_position(slot: StringName) -> Vector2:
@@ -149,7 +157,7 @@ func _slot_screen_position(slot: StringName) -> Vector2:
 	if slot == &"front":
 		var muzzle: Vector2 = WeaponArt.muzzle_position(_config)
 		local = _gun_xform() * Vector2(lerpf(WeaponArt.SOCKET_POSITIONS[&"front"].x, muzzle.x, 0.45), -5.0)
-	return _gun_canvas.get_transform() * local
+	return _gun_canvas.get_transform() * (local - _pivot)
 
 
 # --- Drag & drop -----------------------------------------------------------------------------------------
@@ -259,7 +267,7 @@ func _process(delta: float) -> void:
 	_parallax = _parallax.lerp(target_parallax, 1.0 - exp(-4.0 * delta))
 	_kick = _kick.lerp(Vector2.ZERO, 1.0 - exp(-9.0 * delta))
 	_kick_spin = lerpf(_kick_spin, 0.0, 1.0 - exp(-8.0 * delta))
-	_gun_canvas.position = Vector2(0.0, sin(_time * 1.3) * 2.0) + _parallax + _kick
+	_gun_canvas.position = _pivot + Vector2(0.0, sin(_time * 1.3) * 2.0) + _parallax + _kick
 	_gun_canvas.rotation = sin(_time * 0.9) * 0.006 + _parallax.x * 0.002 + _kick_spin
 	_update_hover_slot(mouse, inside)
 	if animating:
@@ -328,7 +336,7 @@ func _draw_gun() -> void:
 	if _drag_over and _drag_slot != &"" and _drag_merge_target == null:
 		config = _config.duplicate()
 		config[_drag_slot] = {"id": _drag_id, "mark": _drag_mark}
-	WeaponArt.draw_weapon(_gun_canvas, _gun_xform(), config, {
+	WeaponArt.draw_weapon(_gun_canvas, _canvas_gun_xform(), config, {
 		"accent": _accent,
 		"offsets": offsets,
 		"alphas": alphas,
@@ -338,11 +346,11 @@ func _draw_gun() -> void:
 		var t: float = float(eject["t"])
 		var slot: StringName = eject["slot"]
 		var travel: Vector2 = (SLOT_DIRECTIONS[slot] as Vector2) * (t * t * 34.0) + Vector2(0.0, t * t * 18.0)
-		WeaponArt.draw_socket_part(_gun_canvas, _gun_xform(), slot, eject["id"], int(eject["mark"]), travel, 1.0 - t, 0.0, _accent)
+		WeaponArt.draw_socket_part(_gun_canvas, _canvas_gun_xform(), slot, eject["id"], int(eject["mark"]), travel, 1.0 - t, 0.0, _accent)
 
 
 func _draw_fx() -> void:
-	WeaponArt.draw_fx(_fx_canvas, _gun_xform(), _config, _time, 1.0)
+	WeaponArt.draw_fx(_fx_canvas, _canvas_gun_xform(), _config, _time, 1.0)
 
 
 func _draw_overlay() -> void:

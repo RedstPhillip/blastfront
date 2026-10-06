@@ -34,10 +34,13 @@ void fragment() {
 		col += vec3(0.8, 0.95, 0.9) * twinkle * fade * (0.35 + fract(h * 7919.0) * 0.65);
 	}
 
-	float band = texture(noise_tex, vec2(px.x * 0.0016 + TIME * 0.015, px.y * 0.004) / TILE_UNITS).r;
-	float curtain = texture(noise_tex, vec2(px.x * 0.008 - TIME * 0.03, 3.0) / TILE_UNITS).g;
-	float aurora = smoothstep(0.42, 0.8, band) * (0.5 + 0.5 * curtain) * smoothstep(0.15, 0.45, UV.y) * (1.0 - smoothstep(0.55, 0.85, UV.y));
-	col += aurora_color.rgb * aurora * aurora_strength;
+	// The aurora only lives in a band of the sky; skip its texture reads everywhere else (coherent per row).
+	if (UV.y > 0.15 && UV.y < 0.85) {
+		float band = texture(noise_tex, vec2(px.x * 0.0016 + TIME * 0.015, px.y * 0.004) / TILE_UNITS).r;
+		float curtain = texture(noise_tex, vec2(px.x * 0.008 - TIME * 0.03, 3.0) / TILE_UNITS).g;
+		float aurora = smoothstep(0.42, 0.8, band) * (0.5 + 0.5 * curtain) * smoothstep(0.15, 0.45, UV.y) * (1.0 - smoothstep(0.55, 0.85, UV.y));
+		col += aurora_color.rgb * aurora * aurora_strength;
+	}
 
 	COLOR = vec4(col, 1.0);
 }

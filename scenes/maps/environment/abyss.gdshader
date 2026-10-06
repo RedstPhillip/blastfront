@@ -19,10 +19,14 @@ void vertex() {
 void fragment() {
 	float depth = UV.y;
 	float body = smoothstep(0.06, 0.3, depth);
-	vec2 p = local_px * vec2(0.006, 0.012) / TILE_UNITS;
-	float mist = texture(noise_tex, p + vec2(TIME * 0.06 / TILE_UNITS, 0.0)).r * 0.6
-		+ texture(noise_tex, p * 2.3 - vec2(TIME * 0.09, TIME * 0.02) / TILE_UNITS).b * 0.4;
 	float mist_band = exp(-pow((depth - 0.16) * 6.0, 2.0));
+	// The mist band fades out within half a unit of depth; deeper down only the body colour remains.
+	float mist = 0.0;
+	if (mist_band > 0.002) {
+		vec2 p = local_px * vec2(0.006, 0.012) / TILE_UNITS;
+		mist = texture(noise_tex, p + vec2(TIME * 0.06 / TILE_UNITS, 0.0)).r * 0.6
+			+ texture(noise_tex, p * 2.3 - vec2(TIME * 0.09, TIME * 0.02) / TILE_UNITS).b * 0.4;
+	}
 	vec3 col = mix(abyss_color.rgb, mist_color.rgb, mist * mist_band * mist_strength);
 	float alpha = clamp(body + mist * mist_band * 0.55, 0.0, 1.0);
 	COLOR = vec4(col, alpha);

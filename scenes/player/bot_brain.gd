@@ -36,6 +36,9 @@ const THREAT_RADIUS: float = 28.0
 const CANDIDATES_PER_FRAME: int = 5
 const SEARCH_BUDGET_USEC: int = 1200
 const SOLUTION_BONUS: float = 3.0
+## Shortest gap between two goal searches. Replans can be requested every frame (blocked line of fire,
+## getting stuck); the ranked search finishes in a frame or two, so without this it would rerun constantly.
+const MIN_SEARCH_INTERVAL: float = 0.35
 const TRAJECTORY_STEPS: int = 90
 const TRAJECTORY_RAY_STRIDE: int = 2
 const TARGET_HIT_RADIUS: float = 20.0
@@ -62,9 +65,12 @@ var _path: PackedInt64Array = PackedInt64Array()
 var _path_index: int = 0
 var _goal_point: int = -1
 var _replan_timer: float = 0.0
+var _search_cooldown: float = 0.0
 var _air_target_x: float = INF
 var _stuck_timer: float = 0.0
+## Candidate goal points for the running search with their cheap (raycast-free) scores, best last.
 var _search_queue: Array[int] = []
+var _search_scores: PackedFloat32Array = PackedFloat32Array()
 var _search_best: int = -1
 var _search_best_score: float = -INF
 var _bad_goals: Dictionary = {}
@@ -175,8 +181,10 @@ func _update_movement(delta: float) -> void:
 	var grounded: bool = _player.is_grounded()
 
 	_replan_timer -= delta
-	if _replan_timer <= 0.0 and _search_queue.is_empty():
+	_search_cooldown -= delta
+	if _replan_timer <= 0.0 and _search_queue.is_empty() and _search_cooldown <= 0.0:
 		_replan_timer = randf_range(0.7, 1.2)
+		_search_cooldown = MIN_SEARCH_INTERVAL
 		_begin_goal_search()
 	_continue_goal_search(feet, grounded)
 	if grounded:
@@ -267,12 +275,20 @@ func _begin_goal_search() -> void:
 		_search_speed = float(ballistics.get("speed", _search_speed))
 		_search_gravity = float(ballistics.get("gravity", _search_gravity))
 	var reach: float = _search_range * 1.6
+	var feet: Vector2 = _player.global_position + Vector2(0.0, _player.hover_dist)
+	# (cheap score, point index) pairs; Vector2 sorts by x first, natively.
+	var ranked: Array[Vector2] = []
 	for index in range(_nav.points.size()):
-		if _target == null or absf(_nav.points[index].x - _target.global_position.x) < reach:
-			_search_queue.append(index)
-	_search_queue.shuffle()
-	if _goal_point >= 0 and not _search_queue.has(_goal_point):
-		_search_queue.append(_goal_point)
+		if _target == null or absf(_nav.points[index].x - _target.global_position.x) < reach or index == _goal_point:
+			ranked.append(Vector2(_cheap_score(index, feet), float(index)))
+	# Worst first, so pop_back() hands out the most promising candidate. Only the ballistic check is
+	# expensive and it can only add SOLUTION_BONUS, so the search can stop as soon as no remaining candidate
+	# could beat the best one even with that bonus: same winner as checking everything, far fewer raycasts.
+	ranked.sort()
+	_search_scores.resize(ranked.size())
+	for index in range(ranked.size()):
+		_search_queue.append(int(ranked[index].y))
+		_search_scores[index] = ranked[index].x
 
 
 func _continue_goal_search(feet: Vector2, grounded: bool) -> void:
@@ -282,8 +298,12 @@ func _continue_goal_search(feet: Vector2, grounded: bool) -> void:
 	for _step in range(CANDIDATES_PER_FRAME):
 		if _search_queue.is_empty() or Time.get_ticks_usec() - started_usec > SEARCH_BUDGET_USEC:
 			break
+		var cheap: float = _search_scores[_search_queue.size() - 1]
+		if cheap + SOLUTION_BONUS <= _search_best_score:
+			_search_queue.clear()
+			break
 		var candidate: int = _search_queue.pop_back()
-		var score: float = _score_candidate(candidate, feet)
+		var score: float = cheap + _shot_bonus(candidate)
 		if score > _search_best_score:
 			_search_best_score = score
 			_search_best = candidate
@@ -294,7 +314,20 @@ func _continue_goal_search(feet: Vector2, grounded: bool) -> void:
 			_plan_path(feet)
 
 
-func _score_candidate(candidate: int, feet: Vector2) -> float:
+## SOLUTION_BONUS when a round fired from this goal point would reach the target, else 0.
+func _shot_bonus(candidate: int) -> float:
+	if _target == null:
+		return 0.0
+	var target_center: Vector2 = _target.global_position
+	var from: Vector2 = _nav.points[candidate] - Vector2(0.0, _player.hover_dist)
+	if from.distance_to(target_center) <= _search_range * 1.15 and _find_clear_shot(from, target_center, _search_speed, _search_gravity) != Vector2.ZERO:
+		return SOLUTION_BONUS
+	return 0.0
+
+
+## Everything about a goal point that needs no raycast: distance to the preferred range, height, edges,
+## travel, stickiness to the current goal, remembered bad spots and supply-drop pull.
+func _cheap_score(candidate: int, feet: Vector2) -> float:
 	var point: Vector2 = _nav.points[candidate]
 	if _target == null:
 		return -absf(point.x - _home_x) / 200.0
@@ -316,11 +349,6 @@ func _score_candidate(candidate: int, feet: Vector2) -> float:
 		score -= 3.0
 	score += _capture_bonus(point)
 	score += randf() * 0.15
-	# The ballistic check is by far the most expensive term, so skip it when it could not change the winner.
-	if score + SOLUTION_BONUS > _search_best_score:
-		var from: Vector2 = point - Vector2(0.0, _player.hover_dist)
-		if from.distance_to(target_center) <= _search_range * 1.15 and _find_clear_shot(from, target_center, _search_speed, _search_gravity) != Vector2.ZERO:
-			score += SOLUTION_BONUS
 	return score
 
 
@@ -534,13 +562,17 @@ func _refine_aim(from: Vector2, to: Vector2, direction: Vector2, speed: float, g
 
 
 ## Conservative line-of-fire test: a thick swept path (three parallel rays) must reach the target.
-## Integrates like the projectile does, but casts rays along chords spanning a few steps.
+## Integrates like the projectile does, but casts rays along chords spanning a few steps. The centre ray
+## goes first along the whole arc (most arcs are rejected there, at a third of the cost); only an arc that
+## is clear down the middle gets its two side rays checked.
 func _trajectory_reaches(start: Vector2, velocity: Vector2, gravity: float, target_point: Vector2) -> bool:
 	var position: Vector2 = start
 	var current_velocity: Vector2 = velocity
 	var step: float = 1.0 / 60.0
 	var chord_start: Vector2 = start
 	var heading: float = signf(target_point.x - start.x)
+	var chords: PackedVector2Array = PackedVector2Array([start])
+	var reached: bool = false
 	for index in range(TRAJECTORY_STEPS):
 		current_velocity.y += gravity * step
 		current_velocity.x += _wind_accel * step
@@ -551,23 +583,28 @@ func _trajectory_reaches(start: Vector2, velocity: Vector2, gravity: float, targ
 		var closest: Vector2 = Geometry2D.get_closest_point_to_segment(target_point, chord_start, position)
 		var reaches: bool = closest.distance_to(target_point) < TARGET_HIT_RADIUS
 		var chord_end: Vector2 = closest if reaches else position
-		if _swept_ray_blocked(chord_start, chord_end):
+		if chord_start.distance_squared_to(chord_end) >= 0.01 and _ray_blocked(chord_start, chord_end):
 			return false
+		chords.append(chord_end)
 		if reaches:
-			return true
+			reached = true
+			break
 		if heading != 0.0 and (position.x - target_point.x) * heading > TARGET_HIT_RADIUS * 2.0:
 			return false
 		if current_velocity.y > 0.0 and position.y > target_point.y + 260.0:
 			return false
 		chord_start = position
-	return false
+	if not reached:
+		return false
+	for index in range(chords.size() - 1):
+		if _side_rays_blocked(chords[index], chords[index + 1]):
+			return false
+	return true
 
 
-func _swept_ray_blocked(from: Vector2, to: Vector2) -> bool:
+func _side_rays_blocked(from: Vector2, to: Vector2) -> bool:
 	if from.distance_squared_to(to) < 0.01:
 		return false
-	if _ray_blocked(from, to):
-		return true
 	var side: Vector2 = (to - from).orthogonal().normalized() * 6.0
 	return _ray_blocked(from + side, to + side) or _ray_blocked(from - side, to - side)
 

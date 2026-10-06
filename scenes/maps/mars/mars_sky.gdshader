@@ -46,19 +46,24 @@ void fragment() {
 	col += vec3(1.0, 0.95, 0.88) * exp(-dist * 22.0) * 0.35;
 	col = mix(col, vec3(1.0, 0.98, 0.94), smoothstep(sun_size, sun_size * 0.6, dist));
 
-	// Dust veils drifting across the lower sky.
-	vec2 p = local_px * vec2(0.0012, 0.004) / TILE_UNITS;
-	float veil = texture(noise_tex, p + vec2(TIME * 0.004, 0.0)).r;
-	float veil2 = texture(noise_tex, p * 2.1 - vec2(TIME * 0.007, 0.0)).g;
-	float veils = smoothstep(0.45, 0.85, veil * 0.6 + veil2 * 0.5) * smoothstep(0.3, 0.75, uv.y);
-	col = mix(col, horizon_color.rgb * 1.08, veils * 0.28);
+	// Dust veils drifting across the lower sky. Each band only samples its noise where it can show (the
+	// branches are coherent across whole screen rows, so most pixels skip the texture reads).
+	if (uv.y > 0.3) {
+		vec2 p = local_px * vec2(0.0012, 0.004) / TILE_UNITS;
+		float veil = texture(noise_tex, p + vec2(TIME * 0.004, 0.0)).r;
+		float veil2 = texture(noise_tex, p * 2.1 - vec2(TIME * 0.007, 0.0)).g;
+		float veils = smoothstep(0.45, 0.85, veil * 0.6 + veil2 * 0.5) * smoothstep(0.3, 0.75, uv.y);
+		col = mix(col, horizon_color.rgb * 1.08, veils * 0.28);
+	}
 
 	// High CO2-ice cirrus: thin bluish-white wisps stretched by the upper winds.
-	vec2 cp = local_px * vec2(0.0007, 0.006) / TILE_UNITS;
-	float wisp = texture(noise_tex, cp + vec2(TIME * 0.003, 0.0)).b;
-	float wisp_detail = texture(noise_tex, cp * vec2(3.0, 1.5) - vec2(TIME * 0.005, 0.0)).r;
-	float cirrus = smoothstep(0.55, 0.8, wisp * 0.7 + wisp_detail * 0.45) * smoothstep(0.28, 0.4, uv.y) * (1.0 - smoothstep(0.5, 0.66, uv.y));
-	col = mix(col, cloud_color.rgb * mix(0.75, 1.0, halo), cirrus * 0.2);
+	if (uv.y > 0.28 && uv.y < 0.66) {
+		vec2 cp = local_px * vec2(0.0007, 0.006) / TILE_UNITS;
+		float wisp = texture(noise_tex, cp + vec2(TIME * 0.003, 0.0)).b;
+		float wisp_detail = texture(noise_tex, cp * vec2(3.0, 1.5) - vec2(TIME * 0.005, 0.0)).r;
+		float cirrus = smoothstep(0.55, 0.8, wisp * 0.7 + wisp_detail * 0.45) * smoothstep(0.28, 0.4, uv.y) * (1.0 - smoothstep(0.5, 0.66, uv.y));
+		col = mix(col, cloud_color.rgb * mix(0.75, 1.0, halo), cirrus * 0.2);
+	}
 
 	// Faint stars near the zenith.
 	vec2 cell = floor(local_px / 3.0);
@@ -70,9 +75,11 @@ void fragment() {
 
 	// Phobos (lumpy, larger) and Deimos (a bright point).
 	vec2 pd = (uv - phobos_uv) * vec2(aspect, 1.0);
-	float phobos = smoothstep(0.012, 0.009, length(pd * vec2(1.0, 1.35)) + texture(noise_tex, uv * 4.0).r * 0.004);
-	float phobos_shade = smoothstep(-0.01, 0.012, pd.x + pd.y * 0.5);
-	col = mix(col, mix(vec3(0.42, 0.36, 0.33), vec3(0.78, 0.7, 0.62), phobos_shade), phobos);
+	if (length(pd) < 0.02) {
+		float phobos = smoothstep(0.012, 0.009, length(pd * vec2(1.0, 1.35)) + texture(noise_tex, uv * 4.0).r * 0.004);
+		float phobos_shade = smoothstep(-0.01, 0.012, pd.x + pd.y * 0.5);
+		col = mix(col, mix(vec3(0.42, 0.36, 0.33), vec3(0.78, 0.7, 0.62), phobos_shade), phobos);
+	}
 	vec2 dd = (uv - deimos_uv) * vec2(aspect, 1.0);
 	col += vec3(0.95, 0.9, 0.85) * smoothstep(0.005, 0.0, length(dd)) * 0.9;
 

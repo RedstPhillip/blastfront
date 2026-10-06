@@ -48,6 +48,7 @@ static func display_name(id: StringName) -> String:
 	return str((WORLDS.get(id, WORLDS[DEFAULT_WORLD]) as Dictionary)["name"])
 
 
+## The world's map scene; Main warms the maps in the background while the menu is up.
 static func scene_for(id: StringName) -> PackedScene:
 	var entry: Dictionary = WORLDS.get(id, WORLDS[DEFAULT_WORLD])
-	return load(str(entry["scene"])) as PackedScene
+	return Main.get_scene(str(entry["scene"]))

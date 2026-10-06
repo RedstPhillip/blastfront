@@ -9,7 +9,6 @@ signal online_requested
 signal bot_requested(difficulty: int)
 signal exit_requested
 
-const SETTINGS_MENU_SCENE: PackedScene = preload("res://scenes/menus/settings_menu.tscn")
 const FOG_SHADER: Shader = preload("res://scenes/maps/environment/fog.gdshader")
 const NOISE_TEXTURE: Texture2D = preload("res://assets/fx/noise_fbm.png")
 const PARALLAX_STRENGTH: Vector2 = Vector2(22.0, 12.0)
@@ -30,7 +29,7 @@ var _world_buttons: Array[Button] = []
 var _steam_label: Label = null
 var _steam_dot: ColorRect = null
 var _heroes: Array[MenuHero] = []
-var _settings_instance: SettingsMenu = null
+var _settings_instance: Control = null
 var _time: float = 0.0
 var _hero_fire_timer: float = 5.0
 var _logo: Label = null
@@ -534,13 +533,13 @@ func _on_settings_pressed() -> void:
 	_close_bot_panel()
 	AudioDirector.play(&"ui_open")
 	_menu_root.hide()
-	_settings_instance = SETTINGS_MENU_SCENE.instantiate() as SettingsMenu
+	_settings_instance = Main.get_scene(Main.SETTINGS_MENU_SCENE_PATH).instantiate() as Control
 	if _settings_instance == null:
 		_menu_root.show()
 		return
 	_settings_instance.z_index = 3
 	add_child(_settings_instance)
-	_settings_instance.back_pressed.connect(_on_settings_back)
+	_settings_instance.connect(&"back_pressed", _on_settings_back)
 
 
 func _on_settings_back() -> void:

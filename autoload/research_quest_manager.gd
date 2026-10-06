@@ -52,7 +52,7 @@ func _process(delta: float) -> void:
 	var survival_delta: float = _survival_tick_timer
 	_survival_tick_timer = 0.0
 	for slot in GameSettings.player_slots():
-		var player: Player = _get_player(slot)
+		var player: Variant = _get_player(slot)
 		if player == null or player.is_eliminated():
 			continue
 		_apply_progress(slot, &"survive_seconds", survival_delta)
@@ -196,7 +196,7 @@ func _finalize_set_quests() -> void:
 	for slot in GameSettings.player_slots():
 		if OnlineMatch.last_winner_slot == slot:
 			_apply_progress(slot, &"win_set", 1.0)
-		var player: Player = _get_player(slot)
+		var player: Variant = _get_player(slot)
 		if player != null and player.health_component != null:
 			var health_ratio: float = float(player.health_component.health) / maxf(float(player.health_component.max_health), 1.0)
 			if health_ratio >= 0.6:
@@ -441,7 +441,9 @@ func _has_authority() -> bool:
 	return not NetworkSession.is_steam_match_active() or NetworkSession.is_host()
 
 
-func _get_player(slot: int) -> Player:
+## Untyped on purpose: naming the Player class in an autoload would compile the whole player (and everything
+## it uses) at start-up, before the menu can appear.
+func _get_player(slot: int) -> Variant:
 	var world: Variant = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)
 	if world == null:
 		return null

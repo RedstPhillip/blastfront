@@ -152,6 +152,11 @@ var ai_brain: BotBrain = null
 @onready var _healing_area_fill: Polygon2D = $HealingArea/Fill
 @onready var _healing_area_ring: Line2D = $HealingArea/Ring
 @onready var _body_sprite: Sprite2D = $Sprite2D
+## Colour the body sprite currently shows (texture + base modulate are only swapped when it changes) and
+## the last values pushed to the body shader, so idle frames do not re-set unchanged uniforms.
+var _body_color_id: StringName = &""
+var _shader_flash: float = -1.0
+var _shader_status: float = -1.0
 @onready var _shield: Sprite2D = $ArmRenderer/Shield
 @onready var _armor_visual_root: ArmorVisualRoot = $ArmorVisualRoot
 @onready var _leg_renderer: Node = $LegRenderer
@@ -1452,12 +1457,17 @@ func _update_body_sprite_direction() -> void:
 	var facing_dir: float = signf(last_dir)
 	if facing_dir == 0.0:
 		facing_dir = 1.0
-	var effective_color_id: StringName = _get_effective_color_id()
-	var next_texture: Texture2D = _get_body_texture(effective_color_id)
-	if _body_sprite.texture != next_texture:
-		_body_sprite.texture = next_texture
-	_body_sprite.modulate = _get_body_sprite_base_modulate(effective_color_id)
+	_refresh_body_color()
 	_body_sprite.flip_h = facing_dir < 0.0
+
+
+func _refresh_body_color() -> void:
+	var color_id: StringName = _get_effective_color_id()
+	if color_id == _body_color_id:
+		return
+	_body_color_id = color_id
+	_body_sprite.texture = _get_body_texture(color_id)
+	_body_sprite.modulate = _get_body_sprite_base_modulate(color_id)
 
 
 func _setup_visual_extras() -> void:
@@ -1613,18 +1623,21 @@ func _update_feedback_visuals(delta: float) -> void:
 		_body_base_scale.y * combined_scale.y
 	)
 
-	var color_id: StringName = _get_effective_color_id()
-	_body_sprite.modulate = _get_body_sprite_base_modulate(color_id)
+	_refresh_body_color()
 	if _body_material != null:
 		var hit_ratio: float = clampf(_hit_flash_timer / GameSettings.PLAYER_HIT_FLASH_TIME, 0.0, 1.0)
-		_body_material.set_shader_parameter(&"flash", hit_ratio * hit_ratio)
+		if hit_ratio * hit_ratio != _shader_flash:
+			_shader_flash = hit_ratio * hit_ratio
+			_body_material.set_shader_parameter(&"flash", _shader_flash)
 		var status_amount: float = 0.0
 		if status_effect_manager != null and status_effect_manager.get_active_count() > 0:
 			var tint: Color = status_effect_manager.get_tint_color()
 			if tint != Color.WHITE:
 				status_amount = 0.38 + sin(Time.get_ticks_msec() * 0.008) * 0.12
 				_body_material.set_shader_parameter(&"status_tint", tint)
-		_body_material.set_shader_parameter(&"status_amount", status_amount)
+		if status_amount != _shader_status:
+			_shader_status = status_amount
+			_body_material.set_shader_parameter(&"status_amount", status_amount)
 	_update_face()
 
 
