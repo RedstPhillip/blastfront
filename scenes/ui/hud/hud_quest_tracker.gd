@@ -3,8 +3,8 @@ extends Control
 
 ## Orders and research points, top left. In a match it stays one line: the research counter and a small
 ## progress bar per order in its tier colour. It opens into the full list only when there is something to
-## read - when a set starts, when an order is completed or failed, and while TAB / Back is held - then
-## folds away again, so it never sits on the arena. Completed orders send their points hopping into the
+## read - when a set starts and when an order is completed or failed - then folds away again, so it never
+## sits on the arena. TAB / Back pins it open (and folds it again); the pin outlasts the match. Completed orders send their points hopping into the
 ## counter. Outside a match (the intermission) it is always open.
 
 const WIDTH: float = 284.0
@@ -16,6 +16,9 @@ const OPEN_ON_RESULT: float = 3.2
 const COMPLETE_COLOR: Color = UiStyle.SUCCESS
 const FAILED_COLOR: Color = UiStyle.DANGER
 
+## Shared by every tracker, so a list pinned open stays open into the next match.
+static var pinned: bool = false
+
 var always_open: bool = false
 
 var _quests: Array[Dictionary] = []
@@ -24,7 +27,6 @@ var _fills: Dictionary = {}
 var _flashes: Dictionary = {}
 var _open: float = 0.0
 var _open_timer: float = 0.0
-var _held: bool = false
 var _time: float = 0.0
 var _reserved_points: int = 0
 var _shown_points: int = 0
@@ -45,7 +47,7 @@ func _ready() -> void:
 	ResearchQuestManager.research_reward_awarded.connect(_on_reward_awarded)
 	ResearchManager.research_points_changed.connect(_on_points_changed)
 	_shown_points = ResearchManager.research_points
-	_open = 1.0 if always_open else 0.0
+	_open = 1.0 if (always_open or pinned) else 0.0
 	_refresh()
 	if not always_open and not _quests.is_empty():
 		_open_timer = OPEN_ON_SET_START
@@ -61,14 +63,18 @@ func _exit_tree() -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if always_open:
+	if always_open or not is_visible_in_tree() or not event.is_pressed() or event.is_echo():
 		return
 	var key: InputEventKey = event as InputEventKey
-	if key != null and key.keycode == KEY_TAB and not key.echo:
-		_held = key.pressed
 	var pad: InputEventJoypadButton = event as InputEventJoypadButton
-	if pad != null and pad.button_index == JOY_BUTTON_BACK:
-		_held = pad.pressed
+	if (key != null and key.keycode == KEY_TAB) or (pad != null and pad.button_index == JOY_BUTTON_BACK):
+		pinned = not pinned
+		# Folding by hand also drops a pending auto-open, otherwise the list would stay up.
+		if not pinned:
+			_open_timer = 0.0
+		AudioDirector.play(&"ui_toggle", -10.0)
+		get_viewport().set_input_as_handled()
+		set_process(true)
 
 
 func _refresh() -> void:
@@ -127,7 +133,7 @@ func _process(delta: float) -> void:
 	_time += delta
 	if not always_open:
 		_open_timer = maxf(_open_timer - delta, 0.0)
-		var target: float = 1.0 if (_open_timer > 0.0 or _held) else 0.0
+		var target: float = 1.0 if (_open_timer > 0.0 or pinned) else 0.0
 		_open = move_toward(_open, target, delta * (6.0 if target > 0.0 else 3.5))
 	var busy: bool = _open > 0.0 and _open < 1.0
 	for quest in _quests:
@@ -142,7 +148,7 @@ func _process(delta: float) -> void:
 			busy = true
 	_points_pop = move_toward(_points_pop, 0.0, delta * 3.0)
 	_canvas.queue_redraw()
-	if not busy and _points_pop <= 0.0 and _open_timer <= 0.0 and not _held and (_open == 0.0 or _open == 1.0):
+	if not busy and _points_pop <= 0.0 and _open_timer <= 0.0 and (_open == 0.0 or _open == 1.0):
 		set_process(false)
 
 
