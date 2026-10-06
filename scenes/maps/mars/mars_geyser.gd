@@ -26,11 +26,16 @@ var _idle: CPUParticles2D = null
 var _hiss: CPUParticles2D = null
 var _glow: Sprite2D = null
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
+var _step: int = 0
+## Online client: erupts when the host's vent does (see WorldSync), so both players see the same launch.
+var _follow_host: bool = false
 
 
 func _ready() -> void:
 	_rng.seed = int(global_position.x)
 	_timer = 2.0 + phase_offset
+	_follow_host = NetworkSession.is_client()
+	add_to_group(WorldSync.GROUP)
 	z_index = 2
 	_idle = _make_particles(5, 2.6, Vector2(0.0, -30.0), 0.1, 0.2, Color(0.95, 0.92, 0.9, 0.16))
 	_idle.initial_velocity_min = 12.0
@@ -91,30 +96,49 @@ func _physics_process(delta: float) -> void:
 	_hiss.gravity.x = WorldConditions.wind.x * 0.7
 	_timer -= delta
 	match _phase:
-		Phase.REST:
-			if _timer <= 0.0:
-				_phase = Phase.RUMBLE
-				_timer = RUMBLE_TIME
-				_hiss.emitting = true
-				AudioDirector.play_at(&"geyser_rumble", global_position)
 		Phase.RUMBLE:
-			_glow.modulate.a = (1.0 - _timer / RUMBLE_TIME) * 0.35
-			if _timer <= 0.0:
-				_phase = Phase.ERUPT
-				_timer = ERUPT_TIME
-				_hiss.emitting = false
-				_plume.emitting = true
-				_launched.clear()
-				AudioDirector.play_at(&"geyser_blast", global_position)
-				GameJuice.add_trauma(0.18)
+			_glow.modulate.a = clampf(1.0 - _timer / RUMBLE_TIME, 0.0, 1.0) * 0.35
 		Phase.ERUPT:
-			_glow.modulate.a = 0.5 * (_timer / ERUPT_TIME)
+			_glow.modulate.a = 0.5 * clampf(_timer / ERUPT_TIME, 0.0, 1.0)
 			_launch_players()
-			if _timer <= 0.0:
-				_phase = Phase.REST
-				_timer = _rng.randf_range(REST_TIME.x, REST_TIME.y)
-				_plume.emitting = false
-				_glow.modulate.a = 0.0
+	if _timer <= 0.0 and not _follow_host:
+		match _phase:
+			Phase.REST:
+				_enter_phase(Phase.RUMBLE, RUMBLE_TIME)
+			Phase.RUMBLE:
+				_enter_phase(Phase.ERUPT, ERUPT_TIME)
+			Phase.ERUPT:
+				_enter_phase(Phase.REST, _rng.randf_range(REST_TIME.x, REST_TIME.y))
+
+
+func _enter_phase(next_phase: Phase, length: float) -> void:
+	_phase = next_phase
+	_timer = length
+	_step += 1
+	_hiss.emitting = next_phase == Phase.RUMBLE
+	_plume.emitting = next_phase == Phase.ERUPT
+	match next_phase:
+		Phase.REST:
+			_glow.modulate.a = 0.0
+		Phase.RUMBLE:
+			AudioDirector.play_at(&"geyser_rumble", global_position)
+		Phase.ERUPT:
+			_launched.clear()
+			AudioDirector.play_at(&"geyser_blast", global_position)
+			GameJuice.add_trauma(0.18)
+
+
+func net_state() -> Dictionary:
+	return {"step": _step, "phase": int(_phase), "timer": _timer}
+
+
+func apply_net_state(state: Dictionary) -> void:
+	var step: int = int(state.get("step", _step))
+	var next_phase: Phase = int(state.get("phase", _phase)) as Phase
+	if step != _step and next_phase != _phase:
+		_enter_phase(next_phase, 0.0)
+	_step = step
+	_timer = float(state.get("timer", _timer))
 
 
 func _launch_players() -> void:

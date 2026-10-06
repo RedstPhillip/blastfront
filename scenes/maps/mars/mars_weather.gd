@@ -45,6 +45,10 @@ var _storm: float = 0.0
 var _severity: float = 0.0
 var _gust: FastNoiseLite = FastNoiseLite.new()
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
+## Counts phase changes so the online client can tell new weather from a late copy of the old.
+var _step: int = 0
+## Online client: the host's weather drives this one (see WorldSync), so both players feel the same wind.
+var _follow_host: bool = false
 
 var _storm_wall: CanvasItem = null
 var _storm_wall_x: float = 0.0
@@ -74,6 +78,8 @@ func _ready() -> void:
 	_gust.frequency = 0.35
 	_gust.seed = _rng.randi()
 	_direction = 1.0 if _rng.randf() < 0.5 else -1.0
+	_follow_host = NetworkSession.is_client()
+	add_to_group(WorldSync.GROUP)
 	z_index = 14
 	_bind_environment()
 	_build_world_fx()
@@ -279,25 +285,8 @@ func _crest_points() -> PackedVector2Array:
 func _process(delta: float) -> void:
 	_time += delta
 	_timer -= delta
-	match _phase:
-		Phase.CALM:
-			if _timer <= 0.0:
-				_begin_buildup()
-		Phase.BUILDUP:
-			if _timer <= 0.0:
-				_phase = Phase.STORM
-				_phase_length = _rng.randf_range(SEVERE_TIME.x, SEVERE_TIME.y) if _severe else _rng.randf_range(STORM_TIME.x, STORM_TIME.y)
-				_timer = _phase_length
-		Phase.STORM:
-			if _timer <= 0.0:
-				_phase = Phase.EASE
-				_phase_length = EASE_TIME
-				_timer = EASE_TIME
-		Phase.EASE:
-			if _timer <= 0.0:
-				_phase = Phase.CALM
-				_phase_length = _rng.randf_range(CALM_TIME.x, CALM_TIME.y)
-				_timer = _phase_length
+	if _timer <= 0.0 and not _follow_host:
+		_advance_phase()
 	_update_wind(delta)
 	WorldConditions.wind = Vector2(_wind, 0.0)
 	WorldConditions.storm = _storm
@@ -307,10 +296,27 @@ func _process(delta: float) -> void:
 	_update_audio()
 
 
+func _advance_phase() -> void:
+	match _phase:
+		Phase.CALM:
+			_begin_buildup()
+		Phase.BUILDUP:
+			_enter_phase(Phase.STORM, _rng.randf_range(SEVERE_TIME.x, SEVERE_TIME.y) if _severe else _rng.randf_range(STORM_TIME.x, STORM_TIME.y))
+		Phase.STORM:
+			_enter_phase(Phase.EASE, EASE_TIME)
+		Phase.EASE:
+			_enter_phase(Phase.CALM, _rng.randf_range(CALM_TIME.x, CALM_TIME.y))
+
+
+func _enter_phase(next_phase: Phase, length: float) -> void:
+	_phase = next_phase
+	_phase_length = length
+	_timer = length
+	_step += 1
+
+
 func _begin_buildup(forced_direction: float = 0.0, forced_severe: int = -1) -> void:
-	_phase = Phase.BUILDUP
-	_phase_length = BUILDUP_TIME
-	_timer = BUILDUP_TIME
+	_enter_phase(Phase.BUILDUP, BUILDUP_TIME)
 	_storm_count += 1
 	# Mostly random sides, but never the same side three storms running.
 	_direction = 1.0 if _rng.randf() < 0.5 else -1.0
@@ -324,6 +330,10 @@ func _begin_buildup(forced_direction: float = 0.0, forced_severe: int = -1) -> v
 	_severe = _storm_count % 3 == 0 or _rng.randf() < 0.15
 	if forced_severe >= 0:
 		_severe = forced_severe == 1
+	_announce_storm()
+
+
+func _announce_storm() -> void:
 	AudioDirector.play(&"storm_warning")
 	var arrow: String = "▶" if _direction > 0.0 else "◀"
 	if _severe:
@@ -474,6 +484,39 @@ func _local_player() -> Player:
 	if player == null or not is_instance_valid(player) or player.is_eliminated():
 		return null
 	return player
+
+
+func net_state() -> Dictionary:
+	return {
+		"step": _step,
+		"phase": int(_phase),
+		"timer": _timer,
+		"length": _phase_length,
+		"direction": _direction,
+		"severe": _severe,
+		"count": _storm_count,
+		"time": _time,
+		"seed": _gust.seed,
+	}
+
+
+func apply_net_state(state: Dictionary) -> void:
+	var step: int = int(state.get("step", _step))
+	var next_phase: Phase = int(state.get("phase", _phase)) as Phase
+	var announce: bool = step != _step and next_phase == Phase.BUILDUP
+	_step = step
+	_phase = next_phase
+	_timer = float(state.get("timer", _timer))
+	_phase_length = float(state.get("length", _phase_length))
+	_direction = float(state.get("direction", _direction))
+	_severe = state.get("severe", _severe) == true
+	_storm_count = int(state.get("count", _storm_count))
+	_time = float(state.get("time", _time))
+	var gust_seed: int = int(state.get("seed", _gust.seed))
+	if gust_seed != _gust.seed:
+		_gust.seed = gust_seed
+	if announce:
+		_announce_storm()
 
 
 ## Tests: start a storm now (with or without its warning phase).

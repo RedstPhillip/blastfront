@@ -16,6 +16,8 @@ const PLAYER_ONE_COLOR_RING_CENTER: Vector2 = Vector2(320.0, 426.5)
 const PLAYER_TWO_COLOR_RING_CENTER: Vector2 = Vector2(960.0, 426.5)
 const COLOR_RING_RADIUS: float = 183.0
 const LEAVE_CONFIRM_MSEC: int = 2600
+## Top of the world reveal, relative to the screen centre (just under the countdown number).
+const WORLD_REVEAL_TOP: float = 62.0
 
 @onready var _player_one: Player = %PlayerOne
 @onready var _player_two: Player = %PlayerTwo
@@ -35,6 +37,7 @@ var _local_slot: int = GameSettings.PLAYER_ONE_SLOT
 var _remote_slot: int = GameSettings.PLAYER_TWO_SLOT
 var _leave_armed_until: int = 0
 var _leave_prompt: Label = null
+var _world_reveal: LockerWorldReveal = null
 var _leaving: bool = false
 var _local_player: Player = null
 var _remote_player: Player = null
@@ -57,6 +60,7 @@ func _ready() -> void:
 	_build_leave_hints()
 	_help_popup.add_to_group(&"modal_ui")
 	_show_help_for_newcomers()
+	_build_world_reveal()
 	var crosshair: HudCrosshair = HudCrosshair.new()
 	_help_popup.get_parent().add_child(crosshair)
 	_help_popup.get_parent().move_child(crosshair, _help_popup.get_index())
@@ -130,6 +134,19 @@ func _build_leave_hints() -> void:
 	_leave_prompt.modulate.a = 0.0
 	_leave_prompt.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(_leave_prompt)
+
+
+## The match's world stays a surprise until both are ready; the countdown rolls it in under the number.
+func _build_world_reveal() -> void:
+	var root: Control = _help_popup.get_parent() as Control
+	_world_reveal = LockerWorldReveal.new()
+	_world_reveal.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	_world_reveal.offset_left = -280.0
+	_world_reveal.offset_right = 280.0
+	_world_reveal.offset_top = WORLD_REVEAL_TOP
+	_world_reveal.offset_bottom = WORLD_REVEAL_TOP + 130.0
+	root.add_child(_world_reveal)
+	root.move_child(_world_reveal, _countdown_label.get_index())
 
 
 func _show_help_for_newcomers() -> void:
@@ -650,12 +667,15 @@ func _closed_circle_points_at(center: Vector2, radius: float, point_count: int) 
 func _update_countdown_label() -> void:
 	if OnlineMatch.locker_countdown_remaining < 0.0:
 		_countdown_label.hide()
+		_world_reveal.stop()
 		_last_locker_countdown_sound_second = -1
 		return
 
 	var seconds_left: int = int(ceil(OnlineMatch.locker_countdown_remaining))
 	_countdown_label.text = "%d" % seconds_left
 	_countdown_label.show()
+	if not _world_reveal.is_playing():
+		_world_reveal.play(OnlineMatch.world_id)
 	if seconds_left > 0 and seconds_left != _last_locker_countdown_sound_second:
 		_last_locker_countdown_sound_second = seconds_left
 		GameJuice.play_sound(&"ui_click", -9.0, 0.025)

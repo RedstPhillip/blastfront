@@ -20,6 +20,9 @@ var final_winner_slot: int = 0
 var intermission_remaining: float = GameSettings.ONLINE_INTERMISSION_SECONDS
 var locker_countdown_remaining: float = -1.0
 var match_generation: int = 0
+## The world this match is fought on: rolled when the lobby opens, kept for every set, revealed in the
+## locker countdown. The host's roll is the one both sides load.
+var world_id: StringName = WorldCatalog.DEFAULT_WORLD
 var airdrop_deployed: bool = false
 var small_round_number: int = 1
 
@@ -75,6 +78,7 @@ func _process(delta: float) -> void:
 func enter_locker(reset_scores: bool = true) -> void:
 	if reset_scores:
 		match_generation += 1
+		world_id = WorldCatalog.random_id()
 		_reset_match_scores()
 		_reset_match_economy()
 		RoundRewardInventory.reset_match()
@@ -491,6 +495,7 @@ func build_state() -> Dictionary:
 		"intermission_remaining": intermission_remaining,
 		"locker_countdown_remaining": locker_countdown_remaining,
 		"match_generation": match_generation,
+		"world_id": str(world_id),
 		"airdrop_deployed": airdrop_deployed,
 		"small_round_number": small_round_number,
 	}
@@ -667,6 +672,10 @@ func _apply_state(state: Dictionary) -> void:
 	final_winner_slot = int(state.get("final_winner_slot", final_winner_slot))
 	intermission_remaining = float(state.get("intermission_remaining", intermission_remaining))
 	locker_countdown_remaining = float(state.get("locker_countdown_remaining", locker_countdown_remaining))
+	# Before the phase: a set starting loads its world from this.
+	var incoming_world: StringName = StringName(str(state.get("world_id", str(world_id))))
+	if WorldCatalog.WORLDS.has(incoming_world):
+		world_id = incoming_world
 	airdrop_deployed = state.get("airdrop_deployed", airdrop_deployed) == true
 	small_round_number = maxi(1, int(state.get("small_round_number", small_round_number)))
 
