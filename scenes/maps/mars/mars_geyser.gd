@@ -3,7 +3,7 @@ extends Node2D
 
 ## CO2 vent in the crater floor. It rests, rumbles (a hiss and a few frost puffs give it away) and then
 ## erupts, throwing anyone standing over it high into the air: a way up to the floating slabs and the
-## spire. Place the node on the ground, centred on the vent.
+## spire. Jumping into the beam mid-air catches too, and throws you to the same top. Place the node on the ground, centred on the vent.
 
 const SOFT_TEXTURE: Texture2D = preload("res://assets/fx/soft_circle.png")
 const GLOW_TEXTURE: Texture2D = preload("res://assets/fx/glow.png")
@@ -13,6 +13,10 @@ const ERUPT_TIME: float = 1.1
 const LAUNCH_SPEED: float = 1020.0
 const TRIGGER_HALF_WIDTH: float = 26.0
 const TRIGGER_HEIGHT: float = 70.0
+## The beam spreads as it rises: extra trigger half width per pixel of height.
+const BEAM_WIDENING: float = 0.06
+## Even at the very top of the beam the throw is a real kick, not a nudge.
+const BEAM_MIN_SPEED: float = 420.0
 
 enum Phase { REST, RUMBLE, ERUPT }
 
@@ -146,11 +150,17 @@ func _launch_players() -> void:
 		var player: Player = node as Player
 		if player == null or _launched.has(player) or player.is_eliminated():
 			continue
+		# The whole beam catches, up to where a launch from the vent tops out; it widens with the plume.
+		var gravity: float = maxf(player.gravity * WorldConditions.gravity_scale, 1.0)
+		var top: float = player.hover_dist + LAUNCH_SPEED * LAUNCH_SPEED / (2.0 * gravity)
 		var offset: Vector2 = player.global_position - global_position
-		if absf(offset.x) > TRIGGER_HALF_WIDTH or offset.y > 8.0 or offset.y < -TRIGGER_HEIGHT:
+		var height: float = maxf(-offset.y, 0.0)
+		if offset.y > 8.0 or height > top or absf(offset.x) > TRIGGER_HALF_WIDTH + height * BEAM_WIDENING:
 			continue
 		_launched.append(player)
-		player.launch(Vector2(player.velocity.x * 0.4, -LAUNCH_SPEED))
+		# Caught higher up, the throw is just strong enough to reach the same top as standing on the vent.
+		var speed: float = clampf(sqrt(2.0 * gravity * maxf(top - height, 0.0)), BEAM_MIN_SPEED, LAUNCH_SPEED)
+		player.launch(Vector2(player.velocity.x * 0.4, minf(player.velocity.y, -speed)))
 		AudioDirector.play_at(&"jump", player.global_position)
 
 
