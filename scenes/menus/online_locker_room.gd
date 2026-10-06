@@ -23,6 +23,7 @@ const HEADER_CAPTION_Y: float = 34.0
 const HEADER_NAME_Y: float = 70.0
 const HEADER_STATUS_Y: float = 96.0
 const NAME_MAX_WIDTH: float = 380.0
+const INVITE_BUTTON_SIZE: Vector2 = Vector2(240.0, 52.0)
 
 @onready var _player_one: Player = %PlayerOne
 @onready var _player_two: Player = %PlayerTwo
@@ -45,6 +46,7 @@ var _last_locker_countdown_sound_second: int = -1
 var _world_reveal: LockerWorldReveal = null
 var _overlay: Control = null
 var _prompt_bar: UiPromptBar = null
+var _invite_button: Button = null
 var _stage: Node2D = null
 ## Target art nodes by their target, and the one the local aim rests on.
 var _art: Dictionary = {}
@@ -62,6 +64,7 @@ func _ready() -> void:
 	_build_stage()
 	_build_target_art()
 	_build_overlay()
+	_build_invite_button()
 	_build_world_reveal()
 	_build_prompt_bar()
 	UiStyle.style_label(_countdown_label, UiStyle.FONT_DISPLAY, 132, UiStyle.ACCENT, 14)
@@ -78,12 +81,8 @@ func _ready() -> void:
 
 
 ## ESC / B / Start leaves the lobby; with a friend connected the first press only arms the exit, so nobody
-## drops out by accident. I / Y opens the Steam invite while hosting.
+## drops out by accident.
 func _unhandled_input(event: InputEvent) -> void:
-	if _is_invite_event(event):
-		get_viewport().set_input_as_handled()
-		_invite()
-		return
 	if not (event.is_action_pressed(&"ui_cancel") or event.is_action_pressed(GameSettings.INPUT_PAUSE)):
 		return
 	get_viewport().set_input_as_handled()
@@ -100,20 +99,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		Main.instance.leave_to_menu()
 
 
-func _is_invite_event(event: InputEvent) -> bool:
-	if event is InputEventKey:
-		var key: InputEventKey = event as InputEventKey
-		return key.pressed and not key.echo and key.physical_keycode == KEY_I
-	if event is InputEventJoypadButton:
-		var button: InputEventJoypadButton = event as InputEventJoypadButton
-		return button.pressed and button.button_index == JOY_BUTTON_Y
-	return false
-
-
-func _invite() -> void:
+func _on_invite_pressed() -> void:
 	if not _can_invite():
 		return
-	AudioDirector.play(&"ui_open")
 	NetworkSession.open_invite_overlay()
 
 
@@ -127,6 +115,15 @@ func _has_opponent() -> bool:
 
 func _process(_delta: float) -> void:
 	_update_hover()
+	# Clicking the invite button must not also pull the trigger (no flash, no casing, no shot).
+	if _local_player != null:
+		_local_player.shooting_enabled = not _pointer_on_invite()
+
+
+func _pointer_on_invite() -> bool:
+	if not _invite_button.visible or InputDevice.using_gamepad:
+		return false
+	return _invite_button.get_global_rect().has_point(_invite_button.get_global_mouse_position())
 
 
 func _exit_tree() -> void:
@@ -221,23 +218,26 @@ func _refresh(_message: String = "") -> void:
 	_stage.queue_redraw()
 	_overlay.queue_redraw()
 	_prompt_bar.set_prompts(_prompts())
+	_update_invite_button()
 	_update_countdown_label()
 
 
 func _on_device_changed(_gamepad: bool) -> void:
 	_prompt_bar.set_prompts(_prompts())
-	_overlay.queue_redraw()
+	_update_invite_button()
 
 
 func _prompts() -> Array:
-	var prompts: Array = [[InputDevice.prompt(&"ui_cancel"), "LEAVE LOBBY"]]
-	if _can_invite():
-		prompts.append([_invite_key(), "INVITE FRIEND"])
-	return prompts
+	return [[InputDevice.prompt(&"ui_cancel"), "LEAVE LOBBY"]]
 
 
-func _invite_key() -> String:
-	return "Y" if InputDevice.using_gamepad else "I"
+## The invite sits where the friend will stand and only while that spot is empty. With a gamepad it holds
+## focus, so A sends the invite.
+func _update_invite_button() -> void:
+	var show: bool = not _has_opponent() and _can_invite()
+	_invite_button.visible = show
+	if show and InputDevice.using_gamepad and not _invite_button.has_focus():
+		_invite_button.grab_focus.call_deferred()
 
 
 # --- Build ---------------------------------------------------------------------------------------------
@@ -311,6 +311,21 @@ func _build_overlay() -> void:
 	_overlay.draw.connect(_draw_overlay)
 	_ui_root.add_child(_overlay)
 	_ui_root.move_child(_overlay, 0)
+
+
+## A real button under WAITING FOR A FRIEND on the empty half; the trigger is held while the pointer is on it.
+func _build_invite_button() -> void:
+	_invite_button = Button.new()
+	_invite_button.text = "INVITE FRIEND"
+	_invite_button.custom_minimum_size = INVITE_BUTTON_SIZE
+	_invite_button.size = INVITE_BUTTON_SIZE
+	UiStyle.style_button(_invite_button, true, 20)
+	var center: Vector2 = Vector2(_station(_remote_slot).x, WHEEL_CENTER_Y)
+	_invite_button.position = Vector2(center.x - INVITE_BUTTON_SIZE.x * 0.5, center.y + 22.0)
+	_invite_button.pressed.connect(_on_invite_pressed)
+	_invite_button.visible = false
+	_ui_root.add_child(_invite_button)
+	GameJuice.attach_button_feedback(self)
 
 
 ## The match's world stays a surprise until both are ready; the countdown rolls it in under the number.
@@ -440,23 +455,14 @@ func _status_for(slot: int) -> Array:
 	return ["SHOOT A COLOUR, THEN SHOOT READY", UiStyle.TEXT_DIM]
 
 
-## Nobody there yet: a quiet wheel and an invitation where the opponent will stand.
+## Nobody there yet: a quiet wheel and, under the line, the invite button where the opponent will stand.
 func _draw_empty_side(slot: int) -> void:
 	var center: Vector2 = Vector2(_station(slot).x, WHEEL_CENTER_Y)
 	LoadoutStyle.draw_glow(_overlay, center + Vector2(0.0, -8.0), Vector2(240.0, 90.0), Color(0.0, 0.0, 0.0, 0.45))
-	_draw_text(UiStyle.FONT_DISPLAY, "WAITING FOR A FRIEND", center.x, center.y - 4.0, 24, Color(UiStyle.TEXT, 0.72), 6)
+	_draw_text(UiStyle.FONT_DISPLAY, "WAITING FOR A FRIEND", center.x, center.y - 10.0, 24, Color(UiStyle.TEXT, 0.72), 6)
 	if not _can_invite():
 		var reason: String = "STEAM OFFLINE" if not SteamService.steam_enabled else "CONNECTING"
 		_draw_text(UiStyle.FONT_BOLD, reason, center.x, center.y + 28.0, 13, UiStyle.TEXT_MUTED, 4)
-		return
-	var key: String = _invite_key()
-	var label: String = "INVITE FRIEND"
-	var chip_height: float = 22.0
-	var label_width: float = UiStyle.FONT_BOLD.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
-	var key_width: float = maxf(UiStyle.FONT_BOLD.get_string_size(key, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x + 10.0, chip_height)
-	var left: float = center.x - (key_width + 8.0 + label_width) * 0.5
-	LoadoutStyle.draw_key_chip(_overlay, Vector2(left, center.y + 16.0), key, chip_height, UiStyle.TEXT)
-	_overlay.draw_string(UiStyle.FONT_BOLD, Vector2(left + key_width + 8.0, center.y + 32.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, UiStyle.ACCENT)
 
 
 func _draw_text(font: Font, text: String, center_x: float, baseline: float, font_size: int, color: Color, outline: int) -> void:

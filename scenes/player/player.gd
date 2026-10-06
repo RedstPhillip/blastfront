@@ -1435,10 +1435,13 @@ func _arc(a: Vector2, b: Vector2, t: float, h: float) -> Vector2:
 func _apply_player_palette() -> void:
 	var effective_color_id: StringName = _get_effective_color_id()
 	var limb_color: Color = GameSettings.player_color_value(effective_color_id)
+	# The limbs only redraw when their pose moves, so a new colour has to ask for it.
 	if _leg_renderer != null:
 		_leg_renderer.col_leg = limb_color
+		_leg_renderer.queue_redraw()
 	if _arm_renderer != null:
 		_arm_renderer.col_arm = limb_color
+		_arm_renderer.queue_redraw()
 	if _shield != null:
 		_shield.self_modulate = limb_color
 	if _halo != null:
