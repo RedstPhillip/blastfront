@@ -1,52 +1,56 @@
-﻿extends Node2D
+extends Node2D
+
+## The online lobby. Each player stands in their own spotlight inside a wheel of colour discs: shoot a
+## colour to wear it, shoot READY when set. Same language as the rest of the game: flat discs with an ink
+## rim, amber for "selected / do this now", team colour only for identity, text on soft shadow pools and the
+## shared prompt bar along the bottom. While no friend has joined, their half asks for one.
 
 const PROJECTILE_SCENE: PackedScene = preload("res://scenes/projectiles/projectile.tscn")
+const BACKDROP_SHADER: Shader = preload("res://scenes/menus/desaturate.gdshader")
 const LOCKER_PROJECTILE_COLLISION_MASK: int = 1
 const PLAYER_ONE_LOCKER_STATION: Vector2 = Vector2(320.0, 430.0)
 const PLAYER_TWO_LOCKER_STATION: Vector2 = Vector2(960.0, 430.0)
-const COLOR_TARGET_POINTS: int = 96
-const READY_TARGET_POINTS: int = 128
-const COLOR_RING_POINTS: int = 160
-const COLOR_TARGET_RADIUS: float = 24.0
-const COLOR_HALO_RADIUS: float = 38.0
-const COLOR_SELECTED_RADIUS: float = 34.0
-const READY_OUTER_RADIUS: float = 58.0
-const READY_HALO_RADIUS: float = 72.0
-const PLAYER_ONE_COLOR_RING_CENTER: Vector2 = Vector2(320.0, 426.5)
-const PLAYER_TWO_COLOR_RING_CENTER: Vector2 = Vector2(960.0, 426.5)
-const COLOR_RING_RADIUS: float = 183.0
+const WHEEL_RADIUS: float = 183.0
+const WHEEL_CENTER_Y: float = 426.5
+const COLOR_RADIUS: float = 22.0
+const READY_RADIUS: float = 46.0
+## Where the feet are, relative to the player's origin; the ground shadow sits there.
+const FEET_OFFSET: float = 34.0
 const LEAVE_CONFIRM_MSEC: int = 2600
 ## Top of the world reveal, relative to the screen centre (just under the countdown number).
 const WORLD_REVEAL_TOP: float = 62.0
+const HEADER_CAPTION_Y: float = 34.0
+const HEADER_NAME_Y: float = 70.0
+const HEADER_STATUS_Y: float = 96.0
+const NAME_MAX_WIDTH: float = 380.0
 
 @onready var _player_one: Player = %PlayerOne
 @onready var _player_two: Player = %PlayerTwo
 @onready var _player_one_color_targets: Node2D = $LockerWorld/PlayerOneColorTargets
 @onready var _player_two_color_targets: Node2D = $LockerWorld/PlayerTwoColorTargets
 @onready var _projectiles: Node2D = %Projectiles
-@onready var _player_one_name_label: Label = %PlayerOneNameLabel
-@onready var _player_two_name_label: Label = %PlayerTwoNameLabel
 @onready var _countdown_label: Label = %CountdownLabel
-@onready var _invite_button: Button = %InviteButton
-@onready var _help_popup: Control = %HelpPopup
-@onready var _help_dismiss_button: Button = %HelpDismissButton
 @onready var _player_one_ready_target: StaticBody2D = %PlayerOneReadyTarget
 @onready var _player_two_ready_target: StaticBody2D = %PlayerTwoReadyTarget
+@onready var _ui_root: Control = $UILayer/Root
 
 var _local_slot: int = GameSettings.PLAYER_ONE_SLOT
 var _remote_slot: int = GameSettings.PLAYER_TWO_SLOT
 var _leave_armed_until: int = 0
-var _leave_prompt: Label = null
-var _world_reveal: LockerWorldReveal = null
 var _leaving: bool = false
 var _local_player: Player = null
 var _remote_player: Player = null
 var _send_timer: float = 0.0
 var _last_locker_countdown_sound_second: int = -1
-var _visual_time: float = 0.0
-
-
-const BACKDROP_SHADER: Shader = preload("res://scenes/menus/desaturate.gdshader")
+var _world_reveal: LockerWorldReveal = null
+var _overlay: Control = null
+var _prompt_bar: UiPromptBar = null
+var _stage: Node2D = null
+## Target art nodes by their target, and the one the local aim rests on.
+var _art: Dictionary = {}
+var _hovered: StaticBody2D = null
+## Last drawn state per target, so a change of selection can pop the disc.
+var _drawn_state: Dictionary = {}
 
 
 func _ready() -> void:
@@ -55,41 +59,39 @@ func _ready() -> void:
 	_local_slot = NetworkSession.local_player_slot
 	_remote_slot = NetworkSession.get_remote_slot()
 	_configure_players()
-	_style_locker_selection_visuals()
-	_apply_ui_style()
-	_build_leave_hints()
-	_help_popup.add_to_group(&"modal_ui")
-	_show_help_for_newcomers()
+	_build_stage()
+	_build_target_art()
+	_build_overlay()
 	_build_world_reveal()
+	_build_prompt_bar()
+	UiStyle.style_label(_countdown_label, UiStyle.FONT_DISPLAY, 132, UiStyle.ACCENT, 14)
 	var crosshair: HudCrosshair = HudCrosshair.new()
-	_help_popup.get_parent().add_child(crosshair)
-	_help_popup.get_parent().move_child(crosshair, _help_popup.get_index())
+	_ui_root.add_child(crosshair)
+	_ui_root.move_child(crosshair, _prompt_bar.get_index())
 
-	_invite_button.pressed.connect(_on_invite_pressed)
-	_help_dismiss_button.pressed.connect(_on_help_dismiss_pressed)
-	GameJuice.attach_button_feedback(self)
 	OnlineMatch.state_changed.connect(_refresh)
 	NetworkSession.status_changed.connect(_refresh)
 	NetworkSession.peer_changed.connect(_refresh)
 	NetworkSession.packet_received.connect(_on_packet_received)
+	InputDevice.device_changed.connect(_on_device_changed)
 	_refresh()
 
-## The how-to card only greets the first couple of visits; regulars go straight to picking a colour.
-## ESC / B / Start: close the how-to card first, then leave the lobby. With a friend connected the first
-## press only arms the exit, so nobody drops out of a lobby by accident.
+
+## ESC / B / Start leaves the lobby; with a friend connected the first press only arms the exit, so nobody
+## drops out by accident. I / Y opens the Steam invite while hosting.
 func _unhandled_input(event: InputEvent) -> void:
+	if _is_invite_event(event):
+		get_viewport().set_input_as_handled()
+		_invite()
+		return
 	if not (event.is_action_pressed(&"ui_cancel") or event.is_action_pressed(GameSettings.INPUT_PAUSE)):
 		return
 	get_viewport().set_input_as_handled()
 	if _leaving:
 		return
-	if _help_popup.visible:
-		_help_popup.hide()
-		AudioDirector.play(&"ui_close")
-		return
-	if NetworkSession.remote_steam_id != 0 and Time.get_ticks_msec() > _leave_armed_until:
+	if _has_opponent() and Time.get_ticks_msec() > _leave_armed_until:
 		_leave_armed_until = Time.get_ticks_msec() + LEAVE_CONFIRM_MSEC
-		_show_leave_prompt()
+		_prompt_bar.notify("PRESS %s AGAIN TO LEAVE" % InputDevice.prompt(&"ui_cancel"), UiStyle.ACCENT)
 		AudioDirector.play(&"ui_toggle")
 		return
 	AudioDirector.play(&"ui_back")
@@ -98,89 +100,33 @@ func _unhandled_input(event: InputEvent) -> void:
 		Main.instance.leave_to_menu()
 
 
-func _show_leave_prompt() -> void:
-	_leave_prompt.text = "PRESS %s AGAIN TO LEAVE THE LOBBY" % InputDevice.prompt(&"ui_cancel")
-	_leave_prompt.modulate.a = 1.0
-	_leave_prompt.scale = Vector2(1.1, 1.1)
-	var tween: Tween = _leave_prompt.create_tween()
-	tween.tween_property(_leave_prompt, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tween.tween_interval(float(LEAVE_CONFIRM_MSEC) / 1000.0 - 0.6)
-	tween.tween_property(_leave_prompt, "modulate:a", 0.0, 0.4)
+func _is_invite_event(event: InputEvent) -> bool:
+	if event is InputEventKey:
+		var key: InputEventKey = event as InputEventKey
+		return key.pressed and not key.echo and key.physical_keycode == KEY_I
+	if event is InputEventJoypadButton:
+		var button: InputEventJoypadButton = event as InputEventJoypadButton
+		return button.pressed and button.button_index == JOY_BUTTON_Y
+	return false
 
 
-func _build_leave_hints() -> void:
-	var root: Control = _help_popup.get_parent() as Control
-	var hint: PanelContainer = PanelContainer.new()
-	hint.add_theme_stylebox_override("panel", UiStyle.with_margins(UiStyle.panel(Color(UiStyle.PANEL.r, UiStyle.PANEL.g, UiStyle.PANEL.b, 0.8), UiStyle.LINE, 4, 1), 12, 6))
-	hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
-	hint.offset_left = 18.0
-	hint.offset_top = -52.0
-	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var label: Label = Label.new()
-	UiStyle.style_label(label, UiStyle.FONT_BOLD, 14, UiStyle.TEXT_DIM)
-	label.text = "%s   LEAVE LOBBY" % InputDevice.prompt(&"ui_cancel")
-	hint.add_child(label)
-	root.add_child(hint)
-	root.move_child(hint, _help_popup.get_index())
-	_leave_prompt = Label.new()
-	UiStyle.style_label(_leave_prompt, UiStyle.FONT_DISPLAY, 20, UiStyle.ACCENT_HOT, 6)
-	_leave_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_leave_prompt.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
-	_leave_prompt.offset_left = -320.0
-	_leave_prompt.offset_right = 320.0
-	_leave_prompt.offset_top = -120.0
-	_leave_prompt.offset_bottom = -90.0
-	_leave_prompt.pivot_offset = Vector2(320.0, 15.0)
-	_leave_prompt.modulate.a = 0.0
-	_leave_prompt.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(_leave_prompt)
-
-
-## The match's world stays a surprise until both are ready; the countdown rolls it in under the number.
-func _build_world_reveal() -> void:
-	var root: Control = _help_popup.get_parent() as Control
-	_world_reveal = LockerWorldReveal.new()
-	_world_reveal.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	_world_reveal.offset_left = -280.0
-	_world_reveal.offset_right = 280.0
-	_world_reveal.offset_top = WORLD_REVEAL_TOP
-	_world_reveal.offset_bottom = WORLD_REVEAL_TOP + 130.0
-	root.add_child(_world_reveal)
-	root.move_child(_world_reveal, _countdown_label.get_index())
-
-
-func _show_help_for_newcomers() -> void:
-	var seen: int = UserSettings.get_int(UserSettings.LOCKER_HELP_SEEN)
-	if seen >= 2:
-		_help_popup.hide()
+func _invite() -> void:
+	if not _can_invite():
 		return
-	UserSettings.set_value(UserSettings.LOCKER_HELP_SEEN, seen + 1)
-	_help_dismiss_button.grab_focus.call_deferred()
+	AudioDirector.play(&"ui_open")
+	NetworkSession.open_invite_overlay()
 
 
-func _apply_ui_style() -> void:
-	for label in [_player_one_name_label, _player_two_name_label]:
-		UiStyle.style_label(label, UiStyle.FONT_DISPLAY, 34, UiStyle.TEXT, 8)
-	UiStyle.style_label(_countdown_label, UiStyle.FONT_DISPLAY, 132, UiStyle.ACCENT, 14)
-	UiStyle.style_button(_invite_button, true, 22)
-	UiStyle.style_button(_help_dismiss_button, true, 20)
-	var help_panel: PanelContainer = _help_popup.get_node_or_null(^"Center/Panel") as PanelContainer
-	if help_panel != null:
-		help_panel.add_theme_stylebox_override("panel", UiStyle.with_shadow(UiStyle.with_margins(UiStyle.panel(UiStyle.PANEL_SOLID, UiStyle.LINE_STRONG, 6, 1), 34, 28), 24))
-		var title: Label = help_panel.get_node_or_null(^"VBox/TitleLabel") as Label
-		if title != null:
-			UiStyle.style_label(title, UiStyle.FONT_DISPLAY, 34, UiStyle.ACCENT)
-		var body: Label = help_panel.get_node_or_null(^"VBox/BodyLabel") as Label
-		if body != null:
-			UiStyle.style_label(body, UiStyle.FONT_BODY, 20, UiStyle.TEXT_DIM)
-	var dim: ColorRect = _help_popup.get_node_or_null(^"Dim") as ColorRect
-	if dim != null:
-		dim.color = Color(0.0, 0.0, 0.0, 0.6)
+func _can_invite() -> bool:
+	return NetworkSession.mode == GameSettings.NETWORK_MODE_HOST and SteamService.steam_enabled
 
 
-func _process(delta: float) -> void:
-	_visual_time += delta
-	_update_locker_selection_motion()
+func _has_opponent() -> bool:
+	return NetworkSession.remote_steam_id != 0
+
+
+func _process(_delta: float) -> void:
+	_update_hover()
 
 
 func _exit_tree() -> void:
@@ -192,10 +138,12 @@ func _exit_tree() -> void:
 		NetworkSession.peer_changed.disconnect(_refresh)
 	if NetworkSession.packet_received.is_connected(_on_packet_received):
 		NetworkSession.packet_received.disconnect(_on_packet_received)
+	if InputDevice.device_changed.is_connected(_on_device_changed):
+		InputDevice.device_changed.disconnect(_on_device_changed)
 
 
 func _physics_process(delta: float) -> void:
-	if not NetworkSession.is_steam_match_active() or NetworkSession.remote_steam_id == 0:
+	if not NetworkSession.is_steam_match_active() or not _has_opponent():
 		return
 
 	_send_timer -= delta
@@ -205,6 +153,8 @@ func _physics_process(delta: float) -> void:
 	_send_timer = 1.0 / GameSettings.NETWORK_PLAYER_STATE_RATE
 	_send_locker_snapshot()
 
+
+# --- Players -------------------------------------------------------------------------------------------
 
 func _configure_players() -> void:
 	_player_one.player_slot = GameSettings.PLAYER_ONE_SLOT
@@ -253,34 +203,324 @@ func _configure_locker_station(player: Player, station_position: Vector2, allow_
 
 
 func _refresh(_message: String = "") -> void:
-	var player_one_color_id: StringName = OnlineMatch.get_player_color_id(GameSettings.PLAYER_ONE_SLOT)
-	var player_two_color_id: StringName = OnlineMatch.get_player_color_id(GameSettings.PLAYER_TWO_SLOT)
-	_player_one.set_player_color(player_one_color_id)
-	_player_two.set_player_color(player_two_color_id)
-
-	_player_one_name_label.text = _get_slot_name(GameSettings.PLAYER_ONE_SLOT)
-	_player_two_name_label.text = _get_slot_name(GameSettings.PLAYER_TWO_SLOT)
-
-	var player_one_ready: bool = OnlineMatch.locker_ready.get(GameSettings.PLAYER_ONE_SLOT, false) == true
-	var player_two_ready: bool = OnlineMatch.locker_ready.get(GameSettings.PLAYER_TWO_SLOT, false) == true
-	_invite_button.visible = NetworkSession.mode == GameSettings.NETWORK_MODE_HOST
-	_invite_button.disabled = not SteamService.steam_enabled
-	_update_ready_target_visual(_player_one_ready_target, player_one_ready)
-	_update_ready_target_visual(_player_two_ready_target, player_two_ready)
-	_update_color_target_visuals(_player_one_color_targets, GameSettings.PLAYER_ONE_SLOT)
-	_update_color_target_visuals(_player_two_color_targets, GameSettings.PLAYER_TWO_SLOT)
+	_player_one.set_player_color(OnlineMatch.get_player_color_id(GameSettings.PLAYER_ONE_SLOT))
+	_player_two.set_player_color(OnlineMatch.get_player_color_id(GameSettings.PLAYER_TWO_SLOT))
+	# Nobody has joined yet: their half of the room stays empty and asks for a friend instead.
+	var present: bool = _has_opponent()
+	_remote_player.visible = present
+	_color_root(_remote_slot).visible = present
+	_ready_target(_remote_slot).visible = present
+	for target in _art.keys():
+		var art: Node2D = _art[target]
+		var state: String = _target_state(target)
+		if _drawn_state.get(target, "") != state:
+			if _drawn_state.has(target) and (state.begins_with("selected") or state == "ready"):
+				_pop(art)
+			_drawn_state[target] = state
+			art.queue_redraw()
+	_stage.queue_redraw()
+	_overlay.queue_redraw()
+	_prompt_bar.set_prompts(_prompts())
 	_update_countdown_label()
 
 
-func _on_invite_pressed() -> void:
-	NetworkSession.open_invite_overlay()
+func _on_device_changed(_gamepad: bool) -> void:
+	_prompt_bar.set_prompts(_prompts())
+	_overlay.queue_redraw()
 
 
-func _on_help_dismiss_pressed() -> void:
-	_help_popup.hide()
-	if NetworkSession.mode == GameSettings.NETWORK_MODE_HOST and NetworkSession.remote_steam_id == 0:
-		NetworkSession.open_invite_overlay()
+func _prompts() -> Array:
+	var prompts: Array = [[InputDevice.prompt(&"ui_cancel"), "LEAVE LOBBY"]]
+	if _can_invite():
+		prompts.append([_invite_key(), "INVITE FRIEND"])
+	return prompts
 
+
+func _invite_key() -> String:
+	return "Y" if InputDevice.using_gamepad else "I"
+
+
+# --- Build ---------------------------------------------------------------------------------------------
+
+## The painted room is lit teal; pull it towards the game's neutral charcoal and settle it into the dark
+## like the title screen, so the discs and type carry the light. The benches give way to ground shadows.
+func _neutralize_backdrop() -> void:
+	var root: Control = get_node_or_null(^"BackgroundLayer/BackgroundRoot") as Control
+	if root == null:
+		return
+	var material: ShaderMaterial = ShaderMaterial.new()
+	material.shader = BACKDROP_SHADER
+	for child in root.get_children():
+		if child is TextureRect:
+			(child as TextureRect).material = material
+			(child as TextureRect).self_modulate = Color(0.92, 0.92, 0.92)
+	var vignette: TextureRect = TextureRect.new()
+	vignette.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var gradient: Gradient = Gradient.new()
+	gradient.offsets = PackedFloat32Array([0.0, 0.55, 1.0])
+	gradient.colors = PackedColorArray([Color(0, 0, 0, 0.0), Color(0, 0, 0, 0.16), Color(0.0, 0.004, 0.004, 0.66)])
+	var texture: GradientTexture2D = GradientTexture2D.new()
+	texture.gradient = gradient
+	texture.fill = GradientTexture2D.FILL_RADIAL
+	texture.fill_from = Vector2(0.5, 0.48)
+	texture.fill_to = Vector2(1.08, 1.08)
+	vignette.texture = texture
+	vignette.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	vignette.stretch_mode = TextureRect.STRETCH_SCALE
+	root.add_child(vignette)
+
+
+## Behind targets and players: each wheel as a hairline track and a ground shadow under each player.
+func _build_stage() -> void:
+	for line_path in [^"LockerWorld/PlayerOneTargetRing", ^"LockerWorld/PlayerTwoTargetRing"]:
+		var line: CanvasItem = get_node_or_null(line_path) as CanvasItem
+		if line != null:
+			line.hide()
+	_stage = Node2D.new()
+	_stage.name = "Stage"
+	_stage.z_index = -1
+	_stage.draw.connect(_draw_stage)
+	var world: Node = get_node(^"LockerWorld")
+	world.add_child(_stage)
+	world.move_child(_stage, 0)
+
+
+## Every target draws itself flat; the scene's old polygons stay only as collision owners.
+func _build_target_art() -> void:
+	var targets: Array[StaticBody2D] = [_player_one_ready_target, _player_two_ready_target]
+	for root in [_player_one_color_targets, _player_two_color_targets]:
+		for child in root.get_children():
+			if child is StaticBody2D:
+				targets.append(child as StaticBody2D)
+	for target in targets:
+		for child in target.get_children():
+			if child is CanvasItem:
+				(child as CanvasItem).hide()
+		var art: Node2D = Node2D.new()
+		art.name = "Art"
+		art.draw.connect(_draw_target.bind(target, art))
+		target.add_child(art)
+		_art[target] = art
+
+
+func _build_overlay() -> void:
+	_overlay = Control.new()
+	_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_overlay.draw.connect(_draw_overlay)
+	_ui_root.add_child(_overlay)
+	_ui_root.move_child(_overlay, 0)
+
+
+## The match's world stays a surprise until both are ready; the countdown rolls it in under the number.
+func _build_world_reveal() -> void:
+	_world_reveal = LockerWorldReveal.new()
+	_world_reveal.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	_world_reveal.offset_left = -280.0
+	_world_reveal.offset_right = 280.0
+	_world_reveal.offset_top = WORLD_REVEAL_TOP
+	_world_reveal.offset_bottom = WORLD_REVEAL_TOP + 130.0
+	_ui_root.add_child(_world_reveal)
+	_ui_root.move_child(_world_reveal, _countdown_label.get_index())
+
+
+func _build_prompt_bar() -> void:
+	_prompt_bar = UiPromptBar.new()
+	_prompt_bar.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	_prompt_bar.offset_left = 24.0
+	_prompt_bar.offset_right = -24.0
+	_prompt_bar.offset_top = -40.0
+	_prompt_bar.offset_bottom = -18.0
+	_ui_root.add_child(_prompt_bar)
+
+
+# --- Drawing -------------------------------------------------------------------------------------------
+
+func _draw_stage() -> void:
+	for slot in GameSettings.player_slots():
+		var station: Vector2 = _station(slot)
+		var present: bool = slot == _local_slot or _has_opponent()
+		var track: Color = Color(1.0, 1.0, 1.0, 0.07 if present else 0.035)
+		_stage.draw_arc(Vector2(station.x, WHEEL_CENTER_Y), WHEEL_RADIUS, 0.0, TAU, 160, track, 1.5, true)
+		if present:
+			var feet: Vector2 = station + Vector2(0.0, FEET_OFFSET)
+			LoadoutStyle.draw_glow(_stage, feet, Vector2(58.0, 9.0), Color(0.0, 0.0, 0.0, 0.6))
+
+
+func _draw_target(target: StaticBody2D, art: Node2D) -> void:
+	var slot: int = int(target.get_meta("slot", 0))
+	var local: bool = slot == _local_slot
+	var hovered: bool = target == _hovered
+	if str(target.get_meta("locker_target_type", "")) == "ready":
+		_draw_ready_disc(art, slot, local, hovered)
+		return
+	var color_id: StringName = StringName(str(target.get_meta("color_id", "")))
+	var fill: Color = GameSettings.player_color_value(color_id)
+	var taken: bool = OnlineMatch.is_color_taken_by_other(slot, color_id)
+	var selected: bool = OnlineMatch.get_player_color_id(slot) == color_id
+	if taken:
+		fill = Color(fill.lerp(UiStyle.INK, 0.55), 0.55)
+	art.draw_circle(Vector2.ZERO, COLOR_RADIUS + 3.0, Color(UiStyle.INK, 0.9 if not taken else 0.5), true, -1.0, true)
+	art.draw_circle(Vector2.ZERO, COLOR_RADIUS, fill, true, -1.0, true)
+	if selected:
+		art.draw_arc(Vector2.ZERO, COLOR_RADIUS + 8.0, 0.0, TAU, 48, UiStyle.ACCENT, 3.0, true)
+	elif hovered and not taken:
+		art.draw_arc(Vector2.ZERO, COLOR_RADIUS + 7.0, 0.0, TAU, 48, Color(UiStyle.TEXT, 0.6), 1.5, true)
+
+
+## READY: an ink disc with a hairline while choosing; once a friend is there your own ring turns amber (the
+## next thing to do). Ready fills it amber with an ink check.
+func _draw_ready_disc(art: Node2D, slot: int, local: bool, hovered: bool) -> void:
+	var is_ready: bool = OnlineMatch.locker_ready.get(slot, false) == true
+	if is_ready:
+		art.draw_circle(Vector2.ZERO, READY_RADIUS + 3.0, Color(UiStyle.INK, 0.9), true, -1.0, true)
+		art.draw_circle(Vector2.ZERO, READY_RADIUS, UiStyle.ACCENT, true, -1.0, true)
+		art.draw_polyline(PackedVector2Array([Vector2(-15.0, 1.0), Vector2(-4.0, 12.0), Vector2(17.0, -12.0)]), UiStyle.INK, 6.0, true)
+		return
+	var call_to_action: bool = local and _has_opponent()
+	var ring: Color = UiStyle.ACCENT if call_to_action else Color(UiStyle.TEXT, 0.32 if local else 0.18)
+	if hovered:
+		ring = UiStyle.ACCENT_HOT if call_to_action else Color(UiStyle.TEXT, 0.7)
+	art.draw_circle(Vector2.ZERO, READY_RADIUS, Color(UiStyle.INK, 0.86), true, -1.0, true)
+	if hovered:
+		art.draw_circle(Vector2.ZERO, READY_RADIUS, UiStyle.FILL_HOVER, true, -1.0, true)
+	art.draw_arc(Vector2.ZERO, READY_RADIUS, 0.0, TAU, 72, ring, 3.0, true)
+	var label: Color = UiStyle.TEXT if local else UiStyle.TEXT_MUTED
+	if call_to_action:
+		label = UiStyle.ACCENT_HOT if hovered else UiStyle.ACCENT
+	art.draw_string(UiStyle.FONT_DISPLAY, Vector2(-READY_RADIUS, 6.0), "READY", HORIZONTAL_ALIGNMENT_CENTER, READY_RADIUS * 2.0, 16, label)
+
+
+func _draw_overlay() -> void:
+	var size: Vector2 = _overlay.size
+	# A hairline down the middle that fades out at both ends, in place of the grey bar.
+	var mid: float = size.x * 0.5
+	var clear: Color = Color(1.0, 1.0, 1.0, 0.0)
+	var line: Color = Color(1.0, 1.0, 1.0, 0.1)
+	LoadoutStyle.draw_gradient_rect(_overlay, Rect2(mid - 0.5, 0.0, 1.0, size.y * 0.5), clear, line)
+	LoadoutStyle.draw_gradient_rect(_overlay, Rect2(mid - 0.5, size.y * 0.5, 1.0, size.y * 0.5), line, clear)
+	for slot in GameSettings.player_slots():
+		if slot == _local_slot or _has_opponent():
+			_draw_header(slot)
+		else:
+			_draw_empty_side(slot)
+
+
+## Caption, name with a team-colour dot, and a status line that also says what to do next.
+func _draw_header(slot: int) -> void:
+	var center_x: float = _station(slot).x
+	var local: bool = slot == _local_slot
+	LoadoutStyle.draw_glow(_overlay, Vector2(center_x, 66.0), Vector2(260.0, 70.0), Color(0.0, 0.0, 0.0, 0.5))
+	_draw_text(UiStyle.FONT_BOLD, "YOU" if local else "OPPONENT", center_x, HEADER_CAPTION_Y, 12, UiStyle.TEXT_MUTED, 0)
+
+	var name: String = _get_slot_name(slot).to_upper()
+	var font_size: int = 30
+	while font_size > 18 and UiStyle.FONT_DISPLAY.get_string_size(name, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x > NAME_MAX_WIDTH:
+		font_size -= 2
+	var name_width: float = minf(UiStyle.FONT_DISPLAY.get_string_size(name, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x, NAME_MAX_WIDTH)
+	var dot_gap: float = 16.0
+	var left: float = center_x - (name_width + dot_gap) * 0.5
+	_overlay.draw_circle(Vector2(left + 5.0, HEADER_NAME_Y - font_size * 0.36), 5.0, OnlineMatch.get_player_color(slot), true, -1.0, true)
+	_overlay.draw_string_outline(UiStyle.FONT_DISPLAY, Vector2(left + dot_gap, HEADER_NAME_Y), name, HORIZONTAL_ALIGNMENT_LEFT, NAME_MAX_WIDTH, font_size, 6, Color(UiStyle.INK, 0.8))
+	_overlay.draw_string(UiStyle.FONT_DISPLAY, Vector2(left + dot_gap, HEADER_NAME_Y), name, HORIZONTAL_ALIGNMENT_LEFT, NAME_MAX_WIDTH, font_size, UiStyle.TEXT)
+
+	var status: Array = _status_for(slot)
+	_draw_text(UiStyle.FONT_BOLD, str(status[0]), center_x, HEADER_STATUS_Y, 13, status[1], 4)
+
+
+func _status_for(slot: int) -> Array:
+	var is_ready: bool = OnlineMatch.locker_ready.get(slot, false) == true
+	if is_ready:
+		return ["READY", UiStyle.ACCENT]
+	if slot != _local_slot:
+		return ["CHOOSING", UiStyle.TEXT_MUTED]
+	if not _has_opponent():
+		return ["PICK A COLOUR WHILE YOU WAIT", UiStyle.TEXT_DIM]
+	return ["SHOOT A COLOUR, THEN SHOOT READY", UiStyle.TEXT_DIM]
+
+
+## Nobody there yet: a quiet wheel and an invitation where the opponent will stand.
+func _draw_empty_side(slot: int) -> void:
+	var center: Vector2 = Vector2(_station(slot).x, WHEEL_CENTER_Y)
+	LoadoutStyle.draw_glow(_overlay, center + Vector2(0.0, -8.0), Vector2(240.0, 90.0), Color(0.0, 0.0, 0.0, 0.45))
+	_draw_text(UiStyle.FONT_DISPLAY, "WAITING FOR A FRIEND", center.x, center.y - 4.0, 24, Color(UiStyle.TEXT, 0.72), 6)
+	if not _can_invite():
+		var reason: String = "STEAM OFFLINE" if not SteamService.steam_enabled else "CONNECTING"
+		_draw_text(UiStyle.FONT_BOLD, reason, center.x, center.y + 28.0, 13, UiStyle.TEXT_MUTED, 4)
+		return
+	var key: String = _invite_key()
+	var label: String = "INVITE FRIEND"
+	var chip_height: float = 22.0
+	var label_width: float = UiStyle.FONT_BOLD.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
+	var key_width: float = maxf(UiStyle.FONT_BOLD.get_string_size(key, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x + 10.0, chip_height)
+	var left: float = center.x - (key_width + 8.0 + label_width) * 0.5
+	LoadoutStyle.draw_key_chip(_overlay, Vector2(left, center.y + 16.0), key, chip_height, UiStyle.TEXT)
+	_overlay.draw_string(UiStyle.FONT_BOLD, Vector2(left + key_width + 8.0, center.y + 32.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, UiStyle.ACCENT)
+
+
+func _draw_text(font: Font, text: String, center_x: float, baseline: float, font_size: int, color: Color, outline: int) -> void:
+	var origin: Vector2 = Vector2(center_x - 300.0, baseline)
+	if outline > 0:
+		_overlay.draw_string_outline(font, origin, text, HORIZONTAL_ALIGNMENT_CENTER, 600.0, font_size, outline, Color(UiStyle.INK, 0.8 * color.a))
+	_overlay.draw_string(font, origin, text, HORIZONTAL_ALIGNMENT_CENTER, 600.0, font_size, color)
+
+
+# --- State ---------------------------------------------------------------------------------------------
+
+## What a target shows right now, as a short key (so a change can be noticed and animated).
+func _target_state(target: StaticBody2D) -> String:
+	var slot: int = int(target.get_meta("slot", 0))
+	if str(target.get_meta("locker_target_type", "")) == "ready":
+		var is_ready: bool = OnlineMatch.locker_ready.get(slot, false) == true
+		return "ready" if is_ready else ("call" if slot == _local_slot and _has_opponent() else "idle")
+	var color_id: StringName = StringName(str(target.get_meta("color_id", "")))
+	if OnlineMatch.get_player_color_id(slot) == color_id:
+		return "selected:%s" % OnlineMatch.get_player_color_id(slot)
+	return "taken" if OnlineMatch.is_color_taken_by_other(slot, color_id) else "free"
+
+
+func _pop(art: Node2D) -> void:
+	art.scale = Vector2.ONE * 1.18
+	art.create_tween().tween_property(art, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+## The disc your aim rests on gets a hairline, so you know what a shot will pick.
+func _update_hover() -> void:
+	if _local_player == null:
+		return
+	var aim: Vector2 = _local_player.get_aim_world_position()
+	var best: StaticBody2D = null
+	for target in _art.keys():
+		var body: StaticBody2D = target
+		if int(body.get_meta("slot", 0)) != _local_slot:
+			continue
+		var radius: float = READY_RADIUS if str(body.get_meta("locker_target_type", "")) == "ready" else COLOR_RADIUS + 6.0
+		if body.global_position.distance_to(aim) <= radius:
+			best = body
+			break
+	if best == _hovered:
+		return
+	var previous: StaticBody2D = _hovered
+	_hovered = best
+	for body in [previous, best]:
+		if body != null and _art.has(body):
+			(_art[body] as Node2D).queue_redraw()
+
+
+func _station(slot: int) -> Vector2:
+	return PLAYER_ONE_LOCKER_STATION if slot == GameSettings.PLAYER_ONE_SLOT else PLAYER_TWO_LOCKER_STATION
+
+
+func _color_root(slot: int) -> Node2D:
+	return _player_one_color_targets if slot == GameSettings.PLAYER_ONE_SLOT else _player_two_color_targets
+
+
+func _ready_target(slot: int) -> StaticBody2D:
+	return _player_one_ready_target if slot == GameSettings.PLAYER_ONE_SLOT else _player_two_ready_target
+
+
+# --- Shooting ------------------------------------------------------------------------------------------
 
 func spawn_projectile(projectile: Node2D, spawn_position: Vector2) -> void:
 	_projectiles.add_child(projectile)
@@ -312,26 +552,11 @@ func request_block_state(_owner: Node, _active: bool, _direction: Vector2, _cool
 
 
 func request_shot(owner: Player, spawn_position: Vector2, direction: Vector2, projectile_data: Dictionary) -> void:
-	if _help_popup.visible:
-		return
-	if _is_pointer_over_invite_button():
-		return
-
 	var projectile: Projectile = PROJECTILE_SCENE.instantiate() as Projectile
-	var owner_slot = owner.player_slot
-
-	projectile.configure_from_data(0, owner_slot, direction, projectile_data)
+	projectile.configure_from_data(0, owner.player_slot, direction, projectile_data)
 	projectile.collision_mask = LOCKER_PROJECTILE_COLLISION_MASK
 	projectile.despawn_requested.connect(_on_locker_projectile_despawn_requested)
 	spawn_projectile(projectile, spawn_position)
-
-
-func _is_pointer_over_invite_button() -> bool:
-	if _invite_button == null or not _invite_button.visible:
-		return false
-
-	var mouse_position: Vector2 = get_viewport().get_mouse_position()
-	return _invite_button.get_global_rect().has_point(mouse_position)
 
 
 func _on_locker_projectile_despawn_requested(_projectile: Node, reason: StringName, collider) -> void:
@@ -350,12 +575,15 @@ func _on_locker_projectile_despawn_requested(_projectile: Node, reason: StringNa
 	if target_type == "color":
 		var color_id: StringName = StringName(str(target.get_meta("color_id", "")))
 		if OnlineMatch.is_color_taken_by_other(_local_slot, color_id):
+			AudioDirector.play(&"ui_error")
 			return
 		OnlineMatch.set_local_color(color_id)
 	elif target_type == "ready":
 		var is_ready: bool = OnlineMatch.locker_ready.get(_local_slot, false) == true
 		OnlineMatch.set_local_locker_ready(not is_ready)
 
+
+# --- Network -------------------------------------------------------------------------------------------
 
 func _send_locker_snapshot() -> void:
 	if _local_player == null:
@@ -416,253 +644,7 @@ func _get_player_by_slot(slot: int) -> Player:
 	return null
 
 
-func _update_ready_target_visual(target: StaticBody2D, is_ready: bool) -> void:
-	var fill: CanvasItem = target.get_node_or_null("Fill") as CanvasItem
-	var check: CanvasItem = target.get_node_or_null("Check") as CanvasItem
-	var play: CanvasItem = target.get_node_or_null("PlayIcon") as CanvasItem
-	var halo: CanvasItem = target.get_node_or_null("ReadyHalo") as CanvasItem
-	var rim: CanvasItem = target.get_node_or_null("ReadyRim") as CanvasItem
-	if fill != null:
-		fill.visible = is_ready
-	if check != null:
-		check.visible = is_ready
-	if play != null:
-		play.visible = not is_ready
-	if halo != null:
-		halo.modulate.a = 0.18 if is_ready else 0.1
-	if rim != null:
-		rim.modulate = Color(1.0, 1.0, 1.0, 0.9) if is_ready else Color(1.0, 1.0, 1.0, 0.45)
-
-
-func _update_color_target_visuals(targets_root: Node2D, owner_slot: int) -> void:
-	for child in targets_root.get_children():
-		var target: StaticBody2D = child as StaticBody2D
-		if target == null:
-			continue
-
-		var color_id: StringName = StringName(str(target.get_meta("color_id", "")))
-		var is_unavailable: bool = OnlineMatch.is_color_taken_by_other(owner_slot, color_id)
-		var is_selected: bool = OnlineMatch.get_player_color_id(owner_slot) == color_id
-		_update_color_target_visual(target, is_unavailable, is_selected)
-
-
-func _update_color_target_visual(target: StaticBody2D, is_unavailable: bool, is_selected: bool) -> void:
-	var circle: Polygon2D = target.get_node_or_null("Circle") as Polygon2D
-	var blocked_ring: CanvasItem = target.get_node_or_null("BlockedRing") as CanvasItem
-	var halo: Polygon2D = target.get_node_or_null("Halo") as Polygon2D
-	var selected_ring: CanvasItem = target.get_node_or_null("SelectedRing") as CanvasItem
-	var edge: Line2D = target.get_node_or_null("Edge") as Line2D
-	if circle != null:
-		circle.modulate = Color(0.42, 0.42, 0.42, 0.72) if is_unavailable else Color.WHITE
-	if halo != null and circle != null:
-		halo.color = Color(circle.color.r, circle.color.g, circle.color.b, 0.18 if is_selected else 0.08)
-	if selected_ring != null:
-		selected_ring.visible = is_selected
-	if edge != null and circle != null:
-		edge.default_color = Color(1.0, 1.0, 1.0, 0.95) if is_selected else Color(1.0, 1.0, 1.0, 0.35)
-		edge.width = 3.5 if is_selected else 2.0
-	if blocked_ring != null:
-		blocked_ring.visible = false
-
-
-func _style_locker_selection_visuals() -> void:
-	_style_color_ring($LockerWorld/PlayerOneTargetRing as Line2D, PLAYER_ONE_COLOR_RING_CENTER)
-	_style_color_ring($LockerWorld/PlayerTwoTargetRing as Line2D, PLAYER_TWO_COLOR_RING_CENTER)
-	_style_color_targets(_player_one_color_targets)
-	_style_color_targets(_player_two_color_targets)
-	_style_ready_target(_player_one_ready_target)
-	_style_ready_target(_player_two_ready_target)
-
-
-func _style_color_ring(ring: Line2D, center: Vector2) -> void:
-	if ring == null:
-		return
-	ring.points = _closed_circle_points_at(center, COLOR_RING_RADIUS, COLOR_RING_POINTS)
-	ring.width = 5.0
-	ring.default_color = Color(1.0, 1.0, 1.0, 0.12)
-	ring.antialiased = true
-
-
-func _style_color_targets(targets_root: Node2D) -> void:
-	for child in targets_root.get_children():
-		var target: StaticBody2D = child as StaticBody2D
-		if target == null:
-			continue
-		_style_color_target(target)
-
-
-func _style_color_target(target: StaticBody2D) -> void:
-	var circle: Polygon2D = target.get_node_or_null("Circle") as Polygon2D
-	var contrast_border: Polygon2D = target.get_node_or_null("ContrastBorder") as Polygon2D
-	var blocked_ring: Line2D = target.get_node_or_null("BlockedRing") as Line2D
-	if circle == null:
-		return
-
-	circle.polygon = _circle_points(COLOR_TARGET_RADIUS, COLOR_TARGET_POINTS)
-	circle.z_index = 1
-	if contrast_border != null:
-		contrast_border.polygon = _circle_points(COLOR_TARGET_RADIUS + 3.0, COLOR_TARGET_POINTS)
-		contrast_border.color = Color(0.03, 0.04, 0.05, 0.9)
-		contrast_border.z_index = 0
-
-	var halo: Polygon2D = _ensure_polygon(target, "Halo")
-	halo.polygon = _circle_points(COLOR_HALO_RADIUS, COLOR_TARGET_POINTS)
-	halo.color = Color(circle.color.r, circle.color.g, circle.color.b, 0.09)
-	halo.z_index = -3
-
-	var inner_shadow: Polygon2D = _ensure_polygon(target, "InnerShadow")
-	inner_shadow.polygon = _circle_points(COLOR_TARGET_RADIUS - 6.0, COLOR_TARGET_POINTS)
-	inner_shadow.color = Color(0.02, 0.025, 0.03, 0.2)
-	inner_shadow.z_index = 2
-
-	var shine: Polygon2D = _ensure_polygon(target, "Shine")
-	shine.polygon = PackedVector2Array([
-		Vector2(-9.0, -14.0),
-		Vector2(4.0, -18.0),
-		Vector2(17.0, -6.0),
-		Vector2(7.0, -1.0),
-		Vector2(-8.0, -5.0),
-	])
-	shine.color = Color(1.0, 1.0, 1.0, 0.16)
-	shine.z_index = 3
-
-	var edge: Line2D = _ensure_line(target, "Edge")
-	edge.points = _closed_circle_points(COLOR_TARGET_RADIUS + 4.0, COLOR_TARGET_POINTS)
-	edge.width = 2.0
-	edge.default_color = Color(0.966, 0.947, 0.899, 0.62)
-	edge.antialiased = true
-	edge.z_index = 4
-
-	var selected_ring: Line2D = _ensure_line(target, "SelectedRing")
-	selected_ring.points = _closed_circle_points(COLOR_SELECTED_RADIUS, COLOR_TARGET_POINTS)
-	selected_ring.width = 5.0
-	selected_ring.default_color = Color(1.0, 1.0, 1.0, 0.92)
-	selected_ring.antialiased = true
-	selected_ring.visible = false
-	selected_ring.z_index = 5
-
-	if blocked_ring != null:
-		blocked_ring.points = _closed_circle_points(COLOR_SELECTED_RADIUS + 3.0, COLOR_TARGET_POINTS)
-		blocked_ring.width = 4.0
-		blocked_ring.default_color = Color(1.0, 0.18, 0.14, 0.95)
-		blocked_ring.antialiased = true
-		blocked_ring.visible = false
-		blocked_ring.z_index = 6
-
-
-func _style_ready_target(target: StaticBody2D) -> void:
-	var outline: Polygon2D = target.get_node_or_null("Outline") as Polygon2D
-	var empty: Polygon2D = target.get_node_or_null("Empty") as Polygon2D
-	var fill: Polygon2D = target.get_node_or_null("Fill") as Polygon2D
-	var check: Line2D = target.get_node_or_null("Check") as Line2D
-	if outline != null:
-		outline.polygon = _circle_points(READY_OUTER_RADIUS, READY_TARGET_POINTS)
-		outline.color = Color(0.86, 0.85, 0.8, 0.9)
-		outline.z_index = 1
-	if empty != null:
-		empty.polygon = _circle_points(READY_OUTER_RADIUS - 11.0, READY_TARGET_POINTS)
-		empty.color = Color(0.06, 0.06, 0.055, 0.86)
-		empty.z_index = 2
-	if fill != null:
-		fill.polygon = _circle_points(READY_OUTER_RADIUS - 11.0, READY_TARGET_POINTS)
-		fill.color = UiStyle.ACCENT
-		fill.z_index = 3
-	if check != null:
-		check.default_color = UiStyle.INK
-		check.width = 7.0
-		check.antialiased = true
-		check.z_index = 5
-
-	var halo: Polygon2D = _ensure_polygon(target, "ReadyHalo")
-	halo.polygon = _circle_points(READY_HALO_RADIUS, READY_TARGET_POINTS)
-	halo.color = Color(1.0, 1.0, 1.0, 0.05)
-	halo.z_index = -3
-
-	var rim: Line2D = _ensure_line(target, "ReadyRim")
-	rim.points = _closed_circle_points(READY_OUTER_RADIUS + 5.0, READY_TARGET_POINTS)
-	rim.width = 4.0
-	rim.default_color = Color(1.0, 1.0, 1.0, 0.45)
-	rim.antialiased = true
-	rim.z_index = 4
-
-	var play_icon: Polygon2D = _ensure_polygon(target, "PlayIcon")
-	play_icon.polygon = PackedVector2Array([
-		Vector2(-13.0, -19.0),
-		Vector2(-13.0, 19.0),
-		Vector2(22.0, 0.0),
-	])
-	play_icon.color = Color(0.93, 0.92, 0.88, 0.95)
-	play_icon.z_index = 5
-
-
-func _update_locker_selection_motion() -> void:
-	var selected_scale: float = 1.0 + sin(_visual_time * 4.2) * 0.055
-	var halo_scale: float = 1.0 + sin(_visual_time * 2.4) * 0.045
-	for targets_root in [_player_one_color_targets, _player_two_color_targets]:
-		for child in targets_root.get_children():
-			var target: Node2D = child as Node2D
-			if target == null:
-				continue
-			var selected_ring: Node2D = target.get_node_or_null("SelectedRing") as Node2D
-			var halo: Node2D = target.get_node_or_null("Halo") as Node2D
-			if selected_ring != null and selected_ring.visible:
-				selected_ring.scale = Vector2.ONE * selected_scale
-			if halo != null:
-				halo.scale = Vector2.ONE * halo_scale
-
-	for target in [_player_one_ready_target, _player_two_ready_target]:
-		var ready_halo: Node2D = target.get_node_or_null("ReadyHalo") as Node2D
-		var ready_rim: Node2D = target.get_node_or_null("ReadyRim") as Node2D
-		if ready_halo != null:
-			ready_halo.scale = Vector2.ONE * (1.0 + sin(_visual_time * 2.0) * 0.035)
-		if ready_rim != null:
-			ready_rim.rotation = 0.0
-
-
-func _ensure_polygon(parent: Node, node_name: String) -> Polygon2D:
-	var existing: Polygon2D = parent.get_node_or_null(node_name) as Polygon2D
-	if existing != null:
-		return existing
-	var polygon: Polygon2D = Polygon2D.new()
-	polygon.name = node_name
-	parent.add_child(polygon)
-	return polygon
-
-
-func _ensure_line(parent: Node, node_name: String) -> Line2D:
-	var existing: Line2D = parent.get_node_or_null(node_name) as Line2D
-	if existing != null:
-		return existing
-	var line: Line2D = Line2D.new()
-	line.name = node_name
-	parent.add_child(line)
-	return line
-
-
-func _circle_points(radius: float, point_count: int) -> PackedVector2Array:
-	var points: PackedVector2Array = PackedVector2Array()
-	for index in range(point_count):
-		var angle: float = TAU * float(index) / float(point_count)
-		points.append(Vector2(cos(angle), sin(angle)) * radius)
-	return points
-
-
-func _closed_circle_points(radius: float, point_count: int) -> PackedVector2Array:
-	var points: PackedVector2Array = _circle_points(radius, point_count)
-	if not points.is_empty():
-		points.append(points[0])
-	return points
-
-
-func _closed_circle_points_at(center: Vector2, radius: float, point_count: int) -> PackedVector2Array:
-	var points: PackedVector2Array = PackedVector2Array()
-	for index in range(point_count):
-		var angle: float = TAU * float(index) / float(point_count)
-		points.append(center + Vector2(cos(angle), sin(angle)) * radius)
-	if not points.is_empty():
-		points.append(points[0])
-	return points
-
+# --- Countdown -----------------------------------------------------------------------------------------
 
 func _update_countdown_label() -> void:
 	if OnlineMatch.locker_countdown_remaining < 0.0:
@@ -688,22 +670,10 @@ func _get_slot_name(slot: int) -> String:
 	if slot == _local_slot:
 		if SteamService.steam_enabled:
 			return SteamService.steam_name
-		return "Local player"
+		return "Player %d" % slot
 
-	if NetworkSession.remote_steam_id == 0:
+	if not _has_opponent():
 		return "Waiting"
 	if SteamService.steam_enabled:
 		return Steam.getFriendPersonaName(NetworkSession.remote_steam_id)
-	return "Remote player"
-
-
-## The painted locker room is lit teal; pull it towards the game's neutral charcoal palette.
-func _neutralize_backdrop() -> void:
-	var root: Node = get_node_or_null(^"BackgroundLayer/BackgroundRoot")
-	if root == null:
-		return
-	var material: ShaderMaterial = ShaderMaterial.new()
-	material.shader = BACKDROP_SHADER
-	for child in root.get_children():
-		if child is TextureRect:
-			(child as TextureRect).material = material
+	return "Player %d" % slot

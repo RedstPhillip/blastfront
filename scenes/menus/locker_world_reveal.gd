@@ -93,7 +93,7 @@ func _draw() -> void:
 	if _elapsed < 0.0:
 		return
 	var center_x: float = size.x * 0.5
-	LoadoutStyle.draw_glow(self, Vector2(center_x, WINDOW_TOP + 20.0), Vector2(250.0, 92.0), Color(0.0, 0.0, 0.0, 0.7))
+	LoadoutStyle.draw_glow(self, Vector2(center_x, WINDOW_TOP + 20.0), Vector2(160.0, 80.0), Color(0.0, 0.0, 0.0, 0.7))
 	_draw_centered(self, UiStyle.FONT_BOLD, "WORLD", CAPTION_BASELINE, CAPTION_SIZE, UiStyle.TEXT_MUTED, 4)
 	if _rule > 0.0:
 		var half: float = 70.0 * _rule
