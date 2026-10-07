@@ -1,10 +1,12 @@
 shader_type canvas_item;
 render_mode unshaded, blend_add;
 
-// Energy barrier along a map edge. `across` runs from the playable side (0) to the outside (1);
+// Energy barrier along a map edge, tinted per world (MapProfile.border_color). `across` runs from the playable side (0) to the outside (1);
 // the boundary sits at `edge`. Glows up near characters and ripples when something hits it.
 
-uniform vec4 color : source_color = vec4(1.0, 0.32, 0.22, 1.0);
+uniform vec4 color : source_color = vec4(0.62, 1.0, 0.72, 1.0);
+// Hit ripples flash towards this warm white whatever the tint, so a hit still reads as one.
+uniform vec4 hit_color : source_color = vec4(1.0, 0.9, 0.74, 1.0);
 uniform float base_intensity = 0.09;
 uniform float edge = 0.333;
 uniform int axis = 0;
@@ -49,7 +51,9 @@ void fragment() {
 	float ripple = exp(-pow((hit_dist - hit_front) / 22.0, 2.0)) * hit.w * max(0.0, 1.0 - hit.z * 1.8);
 	float hit_core = exp(-pow(hit_dist / 60.0, 2.0)) * hit.w * max(0.0, 1.0 - hit.z * 4.0);
 
-	float a = (line * 1.3 + inner_glow + pattern * 0.55) * intensity + (ripple + hit_core) * (line + outer + 0.2);
-	a = clamp(a, 0.0, 1.5);
-	COLOR = vec4(color.rgb * a, a);
+	float glow = (line * 1.3 + inner_glow + pattern * 0.55) * intensity;
+	float flash = (ripple + hit_core) * (line + outer + 0.2);
+	float a = clamp(glow + flash, 0.0, 1.5);
+	vec3 rgb = color.rgb * glow + mix(color.rgb, hit_color.rgb, 0.75) * flash;
+	COLOR = vec4(rgb * (a / max(glow + flash, 0.0001)), a);
 }

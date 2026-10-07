@@ -8,7 +8,6 @@ extends Camera2D
 const LOOK_AHEAD_DISTANCE: float = 70.0
 const LOOK_AHEAD_SPEED: float = 3.5
 const VERTICAL_SLACK_TOP: float = GameSettings.CAMERA_BOARD_MARGIN_Y
-const VERTICAL_SLACK_BOTTOM: float = GameSettings.CAMERA_BOARD_MARGIN_Y
 ## Dead zone around the framed point: small hops and dodges leave the view still (easier aiming); the
 ## camera only moves once the focus leaves this box, and then just enough to keep it at the edge.
 const DEAD_ZONE: Vector2 = Vector2(56.0, 28.0)
@@ -99,10 +98,12 @@ func _clamp_to_bounds(point: Vector2, at_zoom: float) -> Vector2:
 		result.x = bounds.get_center().x
 	else:
 		result.x = clampf(point.x, bounds.position.x + half.x, bounds.end.x - half.x)
+	# The view never reaches below the bottom border, where the terrain has faded into the abyss; a view
+	# taller than the board (zoomed out) sits on that line and shows more sky instead.
 	var top: float = bounds.position.y - VERTICAL_SLACK_TOP
-	var bottom: float = bounds.end.y + VERTICAL_SLACK_BOTTOM
+	var bottom: float = bounds.end.y
 	if half.y * 2.0 >= bottom - top:
-		result.y = (top + bottom) * 0.5
+		result.y = bottom - half.y
 	else:
 		result.y = clampf(point.y, top + half.y, bottom - half.y)
 	return result

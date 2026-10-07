@@ -4,7 +4,6 @@ class_name MapBorder
 @export var warn_distance: float = GameSettings.MAP_BORDER_WARN_DISTANCE
 @export var line_length: float = GameSettings.MAP_BORDER_LINE_LENGTH
 @export var line_thickness: float = GameSettings.MAP_BORDER_LINE_THICKNESS
-@export var line_color: Color = GameSettings.MAP_BORDER_LINE_COLOR
 @export var border_thickness: float = GameSettings.MAP_BORDER_THICKNESS
 @export var knockback_speed: float = GameSettings.MAP_BORDER_KNOCKBACK_SPEED
 @export var knockback_lift: float = GameSettings.MAP_BORDER_KNOCKBACK_LIFT
@@ -19,6 +18,8 @@ var _last_hit_time: Dictionary = {}
 var _disabled_until_time: float = 0.0
 var _game_sync: GameSync = null
 var _barrier: BarrierField = null
+var _color: Color = GameSettings.MAP_BORDER_COLOR
+var _hit_color: Color = GameSettings.MAP_BORDER_HIT_COLOR
 
 @onready var _borders: Dictionary = {
 	GameSettings.MAP_BORDER_SIDE_LEFT: $Left,
@@ -30,6 +31,9 @@ var _barrier: BarrierField = null
 
 func _ready() -> void:
 	_bounds = _get_map_bounds()
+	var profile: MapProfile = MapProfile.current(get_tree())
+	if profile != null:
+		_color = profile.border_color
 	_game_sync = _get_game_sync()
 	if not OnlineMatch.phase_changed.is_connected(_on_online_phase_changed):
 		OnlineMatch.phase_changed.connect(_on_online_phase_changed)
@@ -37,14 +41,14 @@ func _ready() -> void:
 		var border: MapBorderSide = _get_border(side)
 		if border == null:
 			continue
-		border.configure(line_color, GameSettings.MAP_BORDER_COLLISION_MASK)
+		border.configure(_color, _hit_color, GameSettings.MAP_BORDER_COLLISION_MASK)
 		border.body_entered.connect(_on_border_body_entered.bind(side))
 
 	_update_border_areas()
 	_barrier = BarrierField.new()
 	_barrier.name = "BarrierField"
 	add_child(_barrier)
-	_barrier.build(_bounds)
+	_barrier.build(_bounds, _color, _hit_color)
 
 
 func _exit_tree() -> void:
@@ -247,7 +251,7 @@ func _play_border_hit_feedback(player: Player, side: StringName) -> void:
 			inward = Vector2.UP
 	if _barrier != null:
 		_barrier.notify_hit(side, contact)
-	GameJuice.spawn_burst(&"border", contact, inward, Color(1.0, 0.3, 0.25, 1.0))
+	GameJuice.spawn_burst(&"border", contact, inward, _color.lerp(_hit_color, 0.6))
 	AudioDirector.play_at(&"border_hit", contact)
 	GameJuice.add_trauma(0.25)
 	GameJuice.kick(inward, 6.0)

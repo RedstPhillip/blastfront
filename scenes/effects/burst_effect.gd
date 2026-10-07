@@ -113,9 +113,9 @@ func _build() -> void:
 		&"border":
 			_emit({"texture": FxLib.TEX_SPARK, "amount": 22, "lifetime": 0.35, "direction": _direction, "spread": 70.0,
 				"speed": Vector2(200.0, 460.0), "gravity": Vector2(0, 400), "size": Vector2(0.35, 0.7), "align": true,
-				"color": Color(1.0, 0.3, 0.3, 1.0), "additive": true})
-			FxLib.ring(self, Color(1.0, 0.25, 0.25, 0.75), 8.0, 120.0, 0.35)
-			FxLib.glow_flash(self, Color(1.0, 0.25, 0.2, 0.6), 140.0, 0.3)
+				"color": Color(_tint, 1.0), "additive": true})
+			FxLib.ring(self, Color(_tint, 0.75), 8.0, 120.0, 0.35)
+			FxLib.glow_flash(self, Color(_tint, 0.6), 140.0, 0.3)
 			_track(0.4)
 		_:
 			_emit({"amount": 10, "lifetime": 0.35, "direction": _direction, "spread": 60.0, "speed": Vector2(60.0, 150.0),

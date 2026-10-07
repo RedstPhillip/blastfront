@@ -22,7 +22,7 @@ shader_parameter/layer3 = Color(0.12, 0.18, 0.12, 1)
 shader_parameter/layer4 = Color(0.08, 0.12, 0.08, 1)
 
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_leycp"]
-polygon = PackedVector2Array(64, 720, 64, 536, 144, 536, 192, 560, 504, 560, 560, 608, 560, 719.2001)
+polygon = PackedVector2Array(64, 772, 64, 536, 144, 536, 192, 560, 504, 560, 560, 608, 560, 772)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_leycp"]
 shader = ExtResource("3_leycp")
@@ -36,7 +36,7 @@ shader_parameter/layer3 = Color(0.12, 0.18, 0.12, 1)
 shader_parameter/layer4 = Color(0.08, 0.12, 0.08, 1)
 
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_23d8d"]
-polygon = PackedVector2Array(656, 704, 656, 528, 576, 528, 528, 552, 216, 552, 160, 600, 160, 704)
+polygon = PackedVector2Array(656, 764, 656, 528, 576, 528, 528, 552, 216, 552, 160, 600, 160, 764)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_iok3r"]
 shader = ExtResource("3_leycp")
@@ -64,7 +64,7 @@ shader_parameter/layer3 = Color(0.12, 0.18, 0.12, 1)
 shader_parameter/layer4 = Color(0.08, 0.12, 0.08, 1)
 
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_farleft"]
-polygon = PackedVector2Array(-400, 720, -400, 536, -330, 536, -280, 560, -230, 560, -230, 608, -230, 720)
+polygon = PackedVector2Array(-400, 780, -400, 536, -330, 536, -280, 560, -230, 560, -230, 608, -230, 780)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_farright"]
 shader = ExtResource("3_leycp")
@@ -78,7 +78,7 @@ shader_parameter/layer3 = Color(0.12, 0.18, 0.12, 1)
 shader_parameter/layer4 = Color(0.08, 0.12, 0.08, 1)
 
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_farright"]
-polygon = PackedVector2Array(1680, 720, 1680, 536, 1610, 536, 1560, 560, 1510, 560, 1510, 608, 1510, 720)
+polygon = PackedVector2Array(1680, 780, 1680, 536, 1610, 536, 1560, 560, 1510, 560, 1510, 608, 1510, 780)
 
 [node name="Map03" type="Node2D" unique_id=865662757]
 
@@ -86,7 +86,7 @@ polygon = PackedVector2Array(1680, 720, 1680, 536, 1610, 536, 1560, 560, 1510, 5
 
 [node name="MapBounds" type="Node" parent="." unique_id=1628206641]
 script = ExtResource("1_mapbounds")
-bounds = Rect2(0, 0, 2280, 720)
+bounds = Rect2(0, -60, 2280, 780)
 
 [node name="Spawn1" type="Marker2D" parent="." unique_id=831908945]
 position = Vector2(200, 480)
@@ -119,26 +119,26 @@ position = Vector2(1516, 299)
 material = SubResource("ShaderMaterial_23d8d")
 position = Vector2(484, 24)
 scale = Vector2(1, 0.9677419)
-polygon = PackedVector2Array(64, 720, 64, 537.3334, 144, 537.3334, 192, 562.1334, 504, 562.1334, 560, 611.7334, 560, 719.2001)
+polygon = PackedVector2Array(64, 781.2, 64, 537.3334, 144, 537.3334, 192, 562.1334, 504, 562.1334, 560, 611.7334, 560, 781.2)
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="StaticBody2D" unique_id=1211360383]
 position = Vector2(484, 8)
-polygon = PackedVector2Array(64, 720, 64, 536, 144, 536, 192, 560, 504, 560, 560, 608, 560, 719.2001)
+polygon = PackedVector2Array(64, 772, 64, 536, 144, 536, 192, 560, 504, 560, 560, 608, 560, 772)
 
 [node name="LightOccluder2D" type="LightOccluder2D" parent="StaticBody2D" unique_id=1284494552]
 position = Vector2(484, 8)
 occluder = SubResource("OccluderPolygon2D_leycp")
 
 [node name="RectPlatform" parent="." unique_id=1842410348 instance=ExtResource("3_yugup")]
-position = Vector2(1140, 680)
-scale = Vector2(5, 5)
+position = Vector2(1140, 705)
+scale = Vector2(5, 7.5)
 
 [node name="StaticBody2D2" type="StaticBody2D" parent="." unique_id=664265493]
 
 [node name="Polygon2D" type="Polygon2D" parent="StaticBody2D2" unique_id=666638955]
 material = SubResource("ShaderMaterial_leycp")
 position = Vector2(1076, 16)
-polygon = PackedVector2Array(656, 704, 656, 528, 576, 528, 528, 552, 216, 552, 160, 600, 160, 704)
+polygon = PackedVector2Array(656, 764, 656, 528, 576, 528, 528, 552, 216, 552, 160, 600, 160, 764)
 
 [node name="LightOccluder2D" type="LightOccluder2D" parent="StaticBody2D2" unique_id=840037356]
 position = Vector2(1076, 16)
@@ -146,7 +146,7 @@ occluder = SubResource("OccluderPolygon2D_23d8d")
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="StaticBody2D2" unique_id=279067375]
 position = Vector2(1076, 16)
-polygon = PackedVector2Array(656, 704, 656, 528, 576, 528, 528, 552, 216, 552, 160, 600, 160, 704)
+polygon = PackedVector2Array(656, 764, 656, 528, 576, 528, 528, 552, 216, 552, 160, 600, 160, 764)
 
 [node name="OctagonalPlatform" parent="." unique_id=556789199 instance=ExtResource("4_kpb4k")]
 position = Vector2(1140, 488)
@@ -205,10 +205,10 @@ position = Vector2(500, 0)
 
 [node name="Polygon2D" type="Polygon2D" parent="StaticBody2D4" unique_id=742269769]
 material = SubResource("ShaderMaterial_farleft")
-polygon = PackedVector2Array(-400, 720, -400, 536, -330, 536, -280, 560, -230, 560, -230, 608, -230, 720)
+polygon = PackedVector2Array(-400, 780, -400, 536, -330, 536, -280, 560, -230, 560, -230, 608, -230, 780)
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="StaticBody2D4" unique_id=17666909]
-polygon = PackedVector2Array(-400, 720, -400, 536, -330, 536, -280, 560, -230, 560, -230, 608, -230, 720)
+polygon = PackedVector2Array(-400, 780, -400, 536, -330, 536, -280, 560, -230, 560, -230, 608, -230, 780)
 
 [node name="LightOccluder2D" type="LightOccluder2D" parent="StaticBody2D4" unique_id=1154846527]
 occluder = SubResource("OccluderPolygon2D_farleft")
@@ -218,10 +218,10 @@ position = Vector2(500, 0)
 
 [node name="Polygon2D" type="Polygon2D" parent="StaticBody2D5" unique_id=1202360068]
 material = SubResource("ShaderMaterial_farright")
-polygon = PackedVector2Array(1680, 720, 1680, 536, 1610, 536, 1560, 560, 1510, 560, 1510, 608, 1510, 720)
+polygon = PackedVector2Array(1680, 780, 1680, 536, 1610, 536, 1560, 560, 1510, 560, 1510, 608, 1510, 780)
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="StaticBody2D5" unique_id=740919343]
-polygon = PackedVector2Array(1680, 720, 1680, 536, 1610, 536, 1560, 560, 1510, 560, 1510, 608, 1510, 720)
+polygon = PackedVector2Array(1680, 780, 1680, 536, 1610, 536, 1560, 560, 1510, 560, 1510, 608, 1510, 780)
 
 [node name="LightOccluder2D" type="LightOccluder2D" parent="StaticBody2D5" unique_id=1510497244]
 occluder = SubResource("OccluderPolygon2D_farright")

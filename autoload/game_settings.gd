@@ -298,7 +298,10 @@ const PROJECTILE_IMPACT_SHAKE_TIME: float = 0.05
 const MAP_BORDER_WARN_DISTANCE: float = 50.0
 const MAP_BORDER_LINE_LENGTH: float = 60.0
 const MAP_BORDER_LINE_THICKNESS: float = 5.0
-const MAP_BORDER_LINE_COLOR: Color = Color(1.0, 0.0, 0.0, 0.85)
+## Default barrier tint (moonlit green of Verdant Ridge); worlds set their own in MapProfile.border_color.
+const MAP_BORDER_COLOR: Color = Color(0.62, 1.0, 0.72)
+## Hits flash towards this warm white whatever the world's tint, so they still read as a hit.
+const MAP_BORDER_HIT_COLOR: Color = Color(1.0, 0.9, 0.74)
 const MAP_BORDER_THICKNESS: float = 24.0
 const MAP_BORDER_KNOCKBACK_SPEED: float = 1250.0
 const MAP_BORDER_KNOCKBACK_LIFT: float = 380.0

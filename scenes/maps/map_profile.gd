@@ -13,6 +13,9 @@ const GROUP: StringName = &"map_profile"
 @export_range(0.3, 1.5, 0.01) var projectile_gravity_scale: float = 1.0
 ## Thin air lets rounds carry further before they fade out.
 @export_range(0.5, 2.0, 0.01) var projectile_range_scale: float = 1.0
+## The energy barrier around the arena, tinted to sit in this world's light (hits flash towards
+## GameSettings.MAP_BORDER_HIT_COLOR).
+@export var border_color: Color = GameSettings.MAP_BORDER_COLOR
 
 
 func _enter_tree() -> void:

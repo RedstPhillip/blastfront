@@ -13,9 +13,13 @@ func _ready() -> void:
 	_border_area.body_entered.connect(_on_body_entered)
 
 
-func configure(line_color: Color, collision_mask: int) -> void:
-	_warning_line.color = line_color
+func configure(color: Color, hot_color: Color, collision_mask: int) -> void:
+	_warning_line.color = Color(color, 0.85)
 	_border_area.collision_mask = collision_mask
+	# Sparks start hot and cool into the barrier's tint; a fresh gradient so the four sides don't share one.
+	var ramp: Gradient = Gradient.new()
+	ramp.colors = PackedColorArray([Color(hot_color, 0.95), Color(color, 0.55)])
+	_particles.color_initial_ramp = ramp
 
 
 func set_warning(rect: Rect2, particle_amount: int) -> void:

@@ -10,6 +10,10 @@ extends SceneTree
 const OUTPUT_PATH: String = "res://scenes/maps/mars/mars_arena.tscn"
 const WIDTH: float = 2160.0
 const HEIGHT: float = 800.0
+## The border sits this far above the top of the arena so big jumps and geyser throws have headroom.
+const TOP_HEADROOM: float = 60.0
+## The abyss fades in over this many px above HEIGHT and is opaque from HEIGHT down (see abyss.gdshader).
+const ABYSS_FADE: float = 48.0
 const NOISE: String = "res://assets/fx/noise_fbm.png"
 
 var _root: Node2D = null
@@ -77,10 +81,11 @@ func _build_profile() -> void:
 	profile.gravity_scale = 0.8
 	profile.projectile_gravity_scale = 0.72
 	profile.projectile_range_scale = 1.3
+	profile.border_color = Color(1.0, 0.68, 0.36)
 	_add(_root, profile, "MapProfile")
 	var bounds: Node = Node.new()
 	bounds.set_script(load("res://scenes/maps/map_bounds.gd"))
-	bounds.set(&"bounds", Rect2(0.0, 0.0, WIDTH, HEIGHT))
+	bounds.set(&"bounds", Rect2(0.0, -TOP_HEADROOM, WIDTH, HEIGHT + TOP_HEADROOM))
 	_add(_root, bounds, "MapBounds")
 
 
@@ -313,7 +318,7 @@ func _build_environment() -> void:
 	near_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_add(near, near_fill, "NearFill")
 
-	_shader_rect(environment, "Abyss", Rect2(-900.0, 690.0, WIDTH + 1800.0, 700.0), "res://scenes/maps/environment/abyss.gdshader", {
+	_shader_rect(environment, "Abyss", Rect2(-900.0, HEIGHT - ABYSS_FADE, WIDTH + 1800.0, 590.0 + ABYSS_FADE), "res://scenes/maps/environment/abyss.gdshader", {
 		&"noise_tex": noise, &"abyss_color": Color(0.09, 0.035, 0.025), &"mist_color": Color(0.78, 0.46, 0.3), &"mist_strength": 0.4,
 	}).z_index = 12
 

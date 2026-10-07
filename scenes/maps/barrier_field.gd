@@ -10,12 +10,16 @@ const OVERHANG: float = 120.0
 
 var _materials: Dictionary = {}
 var _hit_ages: Dictionary = {}
+var _color: Color = GameSettings.MAP_BORDER_COLOR
+var _hit_color: Color = GameSettings.MAP_BORDER_HIT_COLOR
 
 
-func build(bounds: Rect2) -> void:
+func build(bounds: Rect2, color: Color, hit_color: Color) -> void:
 	for child in get_children():
 		child.queue_free()
 	_materials.clear()
+	_color = color
+	_hit_color = hit_color
 	z_index = 3
 	var thickness: float = OUTSIDE + INSIDE
 	var edge: float = INSIDE / thickness
@@ -66,6 +70,8 @@ func _add_wall(side: StringName, rect: Rect2, axis: int, flip: bool, edge: float
 	material.set_shader_parameter(&"axis", axis)
 	material.set_shader_parameter(&"flip", flip)
 	material.set_shader_parameter(&"edge", edge)
+	material.set_shader_parameter(&"color", _color)
+	material.set_shader_parameter(&"hit_color", _hit_color)
 	material.set_shader_parameter(&"hit", Vector4(0.0, 0.0, 10.0, 0.0))
 	wall.material = material
 	add_child(wall)
