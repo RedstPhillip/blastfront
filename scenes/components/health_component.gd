@@ -32,7 +32,7 @@ var health: int = max_health:
 		return health
 
 
-func damage(amount: int, _bypass_armor: bool = false) -> void:
+func damage(amount: int) -> void:
 	if amount > 0:
 		health -= amount
 

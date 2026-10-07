@@ -57,11 +57,11 @@ static func emit(parent: Node, params: Dictionary) -> CPUParticles2D:
 		keyed.erase("direction")
 		keyed.erase("offset")
 		key = keyed.hash() ^ hash(multiplier)
-		particles = _take_configured(parent_2d, key)
+		particles = _take_configured(key)
 		if particles != null:
 			_place_pooled(particles, parent_2d, params)
 			return particles
-		particles = _take_emitter(parent_2d)
+		particles = _take_emitter()
 		particles.set_meta(&"fx_key", key)
 	else:
 		particles = CPUParticles2D.new()
@@ -155,7 +155,7 @@ static func _pool_available(near: Node2D) -> bool:
 	return false
 
 
-static func _take_configured(_near: Node2D, key: int) -> CPUParticles2D:
+static func _take_configured(key: int) -> CPUParticles2D:
 	var idle: Array = _idle_by_key.get(key, [])
 	while not idle.is_empty():
 		var particles: CPUParticles2D = idle.pop_back()
@@ -165,7 +165,7 @@ static func _take_configured(_near: Node2D, key: int) -> CPUParticles2D:
 	return null
 
 
-static func _take_emitter(_near: Node2D) -> CPUParticles2D:
+static func _take_emitter() -> CPUParticles2D:
 	if _idle_count > 0:
 		# No exact match: repurpose an idle emitter of another effect before allocating a new one.
 		for other_key in _idle_by_key.keys():

@@ -39,7 +39,7 @@ const FONT_BODY: Font = preload("res://assets/fonts/blastfront_body_font.tres")
 
 
 ## Flat panel. Borders default to none; pass a border colour and width only where a line separates things.
-static func panel(bg: Color = PANEL, border: Color = LINE, radius: int = 2, border_width: int = 0, _skew: float = 0.0) -> StyleBoxFlat:
+static func panel(bg: Color = PANEL, border: Color = LINE, radius: int = 2, border_width: int = 0) -> StyleBoxFlat:
 	var style: StyleBoxFlat = StyleBoxFlat.new()
 	style.bg_color = bg
 	style.border_color = border

@@ -883,7 +883,7 @@ func _inspect_weapon_slot(slot: StringName) -> void:
 	for owned in _sorted_extensions():
 		if owned.get_slot() == slot:
 			count += 1
-	_inspector.show_slot(slot, "%d compatible part%s owned." % [count, "" if count == 1 else "s"], [], "CLICK TO FILTER")
+	_inspector.show_slot(slot, "%d owned" % count, [], "CLICK TO FILTER")
 
 
 func _inspect_armor_slot(category: StringName) -> void:
@@ -899,7 +899,7 @@ func _inspect_armor_slot(category: StringName) -> void:
 	for owned in _sorted_armor():
 		if owned.category == category:
 			count += 1
-	_inspector.show_slot(category, "%d piece%s owned." % [count, "" if count == 1 else "s"], [], "CLICK TO FILTER")
+	_inspector.show_slot(category, "%d owned" % count, [], "CLICK TO FILTER")
 
 
 func _on_reward_inspected(tile: LoadoutItemTile) -> void:
@@ -1137,12 +1137,12 @@ func _on_item_sold(refund: int, title: String) -> void:
 func _on_merge_requested(source: Variant, target: Variant) -> void:
 	var result: Variant = _merged_preview(source, target)
 	if result == null:
-		_show_merge_error("Can't merge", "Needs two of the same part at the same MK.")
+		_show_merge_error("Can't merge", "Same part, same MK")
 		return
 	var cost: int = _merge_cost(source, target)
 	var balance: int = OnlineMatch.get_local_coin_balance()
 	if balance < cost:
-		_show_merge_error("Not enough coins", "MK %s costs %d. You have %d." % [LoadoutStyle.roman(_mark_of(result)), cost, balance])
+		_show_merge_error("Not enough coins", "MK %s  ·  %d / %d" % [LoadoutStyle.roman(_mark_of(result)), balance, cost])
 		return
 	_pending_merge = [source, target]
 	var better: Variant = source if float(LoadoutStyle.item_info(source).get("condition", 0.0)) >= float(LoadoutStyle.item_info(target).get("condition", 0.0)) else target
@@ -1162,7 +1162,7 @@ func _confirm_pending_merge() -> void:
 	else:
 		merged = ArmorInventory.try_merge_items_for_local(source, target)
 	if merged == null:
-		_show_merge_error("Merge failed", "Check coins and MK.")
+		_show_merge_error("Merge failed", "")
 		return
 	AudioDirector.play(&"merge")
 	_refresh_coins()

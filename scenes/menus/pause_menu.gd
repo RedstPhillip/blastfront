@@ -6,8 +6,8 @@ extends Control
 const BLUR_SHADER: Shader = preload("res://scenes/menus/pause_blur.gdshader")
 
 var _is_paused: bool = false
-# Untyped on purpose: the settings and loadout pages compile only when first opened (or when Main warms
-# them in the background), not as part of every match load.
+# Typed as plain Control on purpose: naming SettingsMenu / LoadoutPage here would compile both pages with
+# every match load; this way they compile when first opened (or when Main warms them in the background).
 var _settings_instance: Control = null
 var _loadout_instance: Control = null
 var _blur: ColorRect = null
@@ -60,17 +60,17 @@ func _build() -> void:
 	var spacer: Control = Control.new()
 	spacer.custom_minimum_size = Vector2(0.0, 26.0)
 	_panel.add_child(spacer)
-	_add_button("RESUME", true, resume_game)
-	_restart_button = _add_button("RESTART", false, _on_restart_pressed)
-	_loadout_button = _add_button("LOADOUT", false, _on_loadout_pressed)
+	_add_button("RESUME", resume_game)
+	_restart_button = _add_button("RESTART", _on_restart_pressed)
+	_loadout_button = _add_button("LOADOUT", _on_loadout_pressed)
 	_build_world_row()
-	_settings_button = _add_button("SETTINGS", false, _on_settings_pressed)
-	_add_button("MAIN MENU", false, _on_main_menu_pressed)
-	_add_button("QUIT GAME", false, _on_exit_pressed)
+	_settings_button = _add_button("SETTINGS", _on_settings_pressed)
+	_add_button("MAIN MENU", _on_main_menu_pressed)
+	_add_button("QUIT GAME", _on_exit_pressed)
 
 
 ## Same list look as the main menu: plain entries, the accent highlight follows focus (and the mouse).
-func _add_button(text: String, _primary: bool, callback: Callable) -> Button:
+func _add_button(text: String, callback: Callable) -> Button:
 	var button: Button = Button.new()
 	button.text = text
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT

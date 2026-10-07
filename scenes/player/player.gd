@@ -416,7 +416,7 @@ func get_visual_tint() -> Color:
 	return GameSettings.player_color_value(_get_effective_color_id())
 
 
-func note_damage_dealt(_amount: int = 0) -> void:
+func note_damage_dealt() -> void:
 	if ai_brain != null:
 		ai_brain.on_damage_dealt()
 	var duration: float = _get_armor_attribute(&"adrenaline_duration")
@@ -458,7 +458,7 @@ func apply_resolved_damage(amount: int, source_position: Vector2 = Vector2.ZERO)
 		return 0
 	var old_health: int = health_component.health
 	apply_hit_feedback(source_position, amount)
-	health_component.damage(amount, true)
+	health_component.damage(amount)
 	return mini(amount, old_health)
 
 
@@ -510,7 +510,7 @@ func try_reflect_projectile(projectile: Projectile) -> bool:
 	projectile.initial_velocity = projectile.velocity
 	projectile.global_position += reflect_direction.normalized() * maxf(8.0, projectile.projectile_scale * 8.0)
 	GameJuice.spawn_burst(&"reflect", projectile.global_position, reflect_direction, Color(0.96, 0.96, 1.0, 0.9))
-	GameJuice.play_sound_2d(&"reflect", projectile.global_position)
+	AudioDirector.play_at(&"reflect", projectile.global_position)
 	return true
 
 
@@ -704,7 +704,7 @@ func is_blocking_projectile(projectile_position: Vector2, projectile_velocity: V
 func apply_block_feedback(projectile_position: Vector2) -> void:
 	var block_direction: Vector2 = get_block_direction()
 	GameJuice.spawn_burst(&"block", projectile_position, block_direction, Color(0.72, 0.96, 1.0, 0.92))
-	GameJuice.play_sound_2d(&"block", projectile_position)
+	AudioDirector.play_at(&"block", projectile_position)
 	GameJuice.shake(GameSettings.PLAYER_BLOCK_FEEDBACK_SHAKE_STRENGTH * 2.0, GameSettings.PLAYER_BLOCK_FEEDBACK_SHAKE_TIME)
 	GameJuice.kick(-block_direction, 3.0)
 	_record_world_stat(player_slot, "blocks", 1.0)
@@ -1081,7 +1081,7 @@ func _update_wall_slide_feedback(delta: float, grounded: bool) -> void:
 	var wall_normal: Vector2 = get_wall_normal()
 	var contact: Vector2 = global_position - wall_normal * 14.0 + Vector2(0.0, 6.0)
 	GameJuice.spawn_burst(&"wall_dust", contact, wall_normal, Color.WHITE)
-	GameJuice.play_sound_2d(&"wall_slide", contact)
+	AudioDirector.play_at(&"wall_slide", contact)
 
 
 func _update_face() -> void:
@@ -1145,7 +1145,7 @@ func _flush_hit_feedback() -> void:
 		velocity.y -= GameSettings.PLAYER_HIT_KNOCKBACK_Y * damage_ratio
 
 	GameJuice.spawn_burst(&"hit_heavy" if heavy else &"hit", global_position, hit_direction, tint, 1.0 + 0.12 * float(hits - 1))
-	GameJuice.play_sound_2d(&"hit_heavy" if heavy else &"hit", global_position)
+	AudioDirector.play_at(&"hit_heavy" if heavy else &"hit", global_position)
 	GameJuice.shake(GameSettings.PLAYER_HIT_SHAKE_STRENGTH * damage_ratio, GameSettings.PLAYER_HIT_SHAKE_TIME)
 	GameJuice.kick(hit_direction, 4.0 * damage_ratio)
 	GameJuice.spawn_damage_number(global_position, damage, tint, get_instance_id())
@@ -1187,13 +1187,13 @@ func _spawn_status_feedback(effect_name: StringName, world_position: Vector2, di
 	match effect_name:
 		&"freeze":
 			GameJuice.spawn_burst(&"freeze", world_position, direction, Color(0.35, 0.78, 1.0, 0.86))
-			GameJuice.play_sound_2d(&"freeze", world_position)
+			AudioDirector.play_at(&"freeze", world_position)
 		&"shock":
 			GameJuice.spawn_burst(&"shock", world_position, direction, Color(1.0, 0.9, 0.22, 0.9))
-			GameJuice.play_sound_2d(&"shock", world_position)
+			AudioDirector.play_at(&"shock", world_position)
 		&"poison":
 			GameJuice.spawn_burst(&"poison", world_position, direction, Color(0.42, 1.0, 0.42, 0.72))
-			GameJuice.play_sound_2d(&"poison", world_position)
+			AudioDirector.play_at(&"poison", world_position)
 
 
 func _update_movement_timers(delta: float) -> void:
@@ -1241,7 +1241,7 @@ func _begin_block() -> void:
 	_healing_field_has_position = false
 	if control_mode == GameSettings.CONTROL_LOCAL:
 		ResearchQuestManager.record_local_action(ResearchQuestManager.EVENT_BLOCK_ATTEMPT)
-	GameJuice.play_sound_2d(&"block_raise", global_position)
+	AudioDirector.play_at(&"block_raise", global_position)
 	if _face != null:
 		_face.set_expression(PlayerFace.Mood.FOCUS, block_duration)
 	_apply_block_start_armor_effects()
@@ -1581,7 +1581,7 @@ func _get_body_sprite_base_modulate(color_id: StringName) -> Color:
 
 func _begin_step(is_left: bool, target: Vector2) -> void:
 	if absf(velocity.x) > GameSettings.PLAYER_VISUAL_SPEED_THRESHOLD:
-		GameJuice.play_sound_2d(&"step", target)
+		AudioDirector.play_at(&"step", target)
 	if is_left:
 		_step_from_l = foot_pos_l
 		_step_to_l = target
@@ -1602,7 +1602,7 @@ func _emit_jump_feedback(direction: Vector2) -> void:
 	if control_mode == GameSettings.CONTROL_LOCAL:
 		ResearchQuestManager.record_local_action(ResearchQuestManager.EVENT_JUMP)
 	GameJuice.spawn_burst(&"jump", dust_position, direction, Color(0.86, 0.78, 0.56, 0.65))
-	GameJuice.play_sound_2d(&"jump", global_position)
+	AudioDirector.play_at(&"jump", global_position)
 
 
 func _update_surface_feedback(delta: float, grounded: bool, speed_ratio: float) -> void:
@@ -1616,7 +1616,7 @@ func _update_surface_feedback(delta: float, grounded: bool, speed_ratio: float) 
 			)
 			_body_punch_scale = Vector2(1.16 + land_ratio * 0.1, 0.86 - land_ratio * 0.08)
 			GameJuice.spawn_burst(&"land", global_position + Vector2(0.0, hover_dist - 3.0), Vector2.UP, Color(0.78, 0.70, 0.54, 0.7), land_ratio)
-			GameJuice.play_sound_2d(&"land_heavy" if land_ratio > 1.0 else &"land", global_position)
+			AudioDirector.play_at(&"land_heavy" if land_ratio > 1.0 else &"land", global_position)
 			if _is_local_view_player():
 				GameJuice.shake(1.1 * land_ratio, 0.07)
 
@@ -1701,7 +1701,7 @@ func _on_health_depleted() -> void:
 		_body_punch_scale = Vector2(1.22, 0.78)
 		GameJuice.spawn_burst(&"spawn", global_position, Vector2.UP, Color(1.0, 0.55, 0.12, 0.95))
 		GameJuice.spawn_burst(&"explosion", global_position, Vector2.UP, Color(1.0, 0.55, 0.12, 0.95), 0.7)
-		GameJuice.play_sound_2d(&"phoenix", global_position)
+		AudioDirector.play_at(&"phoenix", global_position)
 		GameJuice.shake(3.4, 0.14)
 		GameJuice.flash(Color(1.0, 0.6, 0.2, 1.0), 0.25, 0.3)
 		if _face != null:
@@ -1711,7 +1711,7 @@ func _on_health_depleted() -> void:
 	_hit_flash_timer = GameSettings.PLAYER_HIT_FLASH_TIME
 	_body_punch_scale = Vector2(1.28, 0.72)
 	GameJuice.spawn_burst(&"death", global_position, Vector2.UP, tint)
-	GameJuice.play_sound_2d(&"death", global_position)
+	AudioDirector.play_at(&"death", global_position)
 	GameJuice.shake(GameSettings.PLAYER_DEATH_SHAKE_STRENGTH, GameSettings.PLAYER_DEATH_SHAKE_TIME)
 	GameJuice.add_trauma(0.55)
 	GameJuice.zoom_punch(0.06)
@@ -1761,7 +1761,7 @@ func _run_delayed_damage(amount: int, duration: float, source_slot: int, source_
 		_record_world_stat(source_slot, "damage", float(applied_damage))
 		if source_slot > 0 and applied_damage > 0:
 			ResearchManager.apply_local_life_steal(source_slot, applied_damage)
-			_notify_player_damage_dealt(source_slot, applied_damage)
+			_notify_player_damage_dealt(source_slot)
 		if tick_index < tick_count - 1:
 			await get_tree().create_timer(tick_interval, false).timeout
 
@@ -1774,9 +1774,9 @@ func _is_stationary_for_armor() -> bool:
 	return is_grounded() and absf(velocity.x) < 8.0 and absf(velocity.y) < 8.0
 
 
-func _notify_player_damage_dealt(source_slot: int, applied_damage: int) -> void:
+func _notify_player_damage_dealt(source_slot: int) -> void:
 	for node in get_tree().get_nodes_in_group(GameSettings.PLAYERS_GROUP):
 		var player_node: Player = node as Player
 		if player_node.player_slot == source_slot:
-			player_node.note_damage_dealt(applied_damage)
+			player_node.note_damage_dealt()
 			return

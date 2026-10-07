@@ -666,7 +666,7 @@ func _update_countdown_label() -> void:
 		_world_reveal.play(OnlineMatch.world_id)
 	if seconds_left > 0 and seconds_left != _last_locker_countdown_sound_second:
 		_last_locker_countdown_sound_second = seconds_left
-		GameJuice.play_sound(&"ui_click", -9.0, 0.025)
+		AudioDirector.play(&"ui_click", -2.25)
 		var tween: Tween = create_tween()
 		tween.tween_property(_countdown_label, "scale", Vector2(1.14, 1.14), 0.055).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		tween.tween_property(_countdown_label, "scale", Vector2.ONE, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)

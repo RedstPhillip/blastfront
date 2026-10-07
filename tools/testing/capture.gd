@@ -109,8 +109,7 @@ func _build_script() -> void:
 			_at(3.4, "press", "p1_block")
 			_at(3.45, "shot", "sandbox_block")
 			_at(3.5, "release", "p1_block")
-			_at(3.6, "press", "ui_cancel")
-			_at(3.62, "release", "ui_cancel")
+			_at(3.6, "action", "pause")
 			_at(3.9, "shot", "sandbox_pause")
 			_at(4.0, "quit")
 		"bot":
@@ -129,12 +128,7 @@ func _build_script() -> void:
 			_at(2.4, "shot", "inter_loadout")
 			_at(2.5, "call", func(): _main.get_node("SceneRoot").get_child(-1)._set_page(1))
 			_at(3.3, "shot", "inter_research")
-			_at(3.4, "call", func(): _main._on_sandbox_requested())
-			_at(5.5, "call", func():
-				var qp = get_first_node_in_group(&"game_world").find_child("QuestPanel", true, false)
-				if qp: qp.visible = true)
-			_at(6.2, "shot", "quest_panel")
-			_at(6.3, "quit")
+			_at(3.4, "quit")
 		"ui_quests":
 			_at(0.3, "call", func(): _main._on_sandbox_requested())
 			_at(2.0, "shot", "hint_sandbox")
@@ -228,6 +222,20 @@ func _build_script() -> void:
 				if sm.size() > 0:
 					sm[0].current_tab = 3)
 			_at(2.6, "shot", "controls_tab")
+			_at(2.7, "quit")
+		"settings_reset":
+			_at(1.5, "call", func(): _main.get_node("SceneRoot").get_child(0)._on_settings_pressed())
+			_at(2.0, "call", func():
+				var settings = _main.get_node("SceneRoot").get_child(0)._settings_instance
+				settings._tabs.current_tab = 3
+				settings._on_reset_pressed())
+			_at(2.4, "call", func():
+				var tabs: TabContainer = _main.get_node("SceneRoot").get_child(0)._settings_instance._tabs
+				var titles: PackedStringArray = PackedStringArray()
+				for i in range(tabs.get_tab_count()):
+					titles.append(tabs.get_tab_title(i))
+				print("TABS ", ",".join(titles), " current=", tabs.current_tab))
+			_at(2.6, "shot", "settings_after_reset")
 			_at(2.7, "quit")
 		"botshop":
 			_at(0.3, "call", func():
@@ -763,7 +771,7 @@ func _build_script() -> void:
 			_at(4.0, "quit")
 		"loadout":
 			_at(0.5, "call", func(): _main._on_sandbox_requested())
-			_at(2.0, "action", "ui_cancel")
+			_at(2.0, "action", "pause")
 			_at(2.4, "call", func(): get_first_node_in_group(&"game_world").get_node("HUD/PauseMenu")._on_loadout_pressed())
 			_at(3.2, "shot", "loadout")
 			_at(3.3, "quit")
@@ -772,7 +780,7 @@ func _build_script() -> void:
 			_at(1.5, "call", func(): _main.get_node("SceneRoot").get_child(0)._on_bot_start_pressed())
 			_at(1.62, "shot", "transition_cover")
 			_at(2.05, "shot", "transition_reveal")
-			_at(6.0, "action", "ui_cancel")
+			_at(6.0, "action", "pause")
 			_at(6.6, "shot", "pause")
 			_at(6.8, "call", func(): get_first_node_in_group(&"game_world").get_node("HUD/PauseMenu")._on_settings_pressed())
 			_at(7.3, "shot", "pause_settings")
@@ -781,15 +789,12 @@ func _build_script() -> void:
 			_at(1.0, "call", func(): _main.get_node("SceneRoot").get_child(0)._open_bot_panel())
 			_at(1.5, "call", func(): _main.get_node("SceneRoot").get_child(0)._on_bot_start_pressed())
 			_at(2.5, "call", func(): get_first_node_in_group(&"game_world").get_player_by_slot(1).configure_ai_control(1, 2))
-			_at(6.0, "press", "ui_cancel")
-			_at(6.05, "release", "ui_cancel")
+			_at(6.0, "action", "pause")
 			_at(6.5, "shot", "flow_pause")
 			_at(6.8, "call", func(): get_first_node_in_group(&"game_world").get_node("HUD/PauseMenu")._on_settings_pressed())
 			_at(7.3, "shot", "flow_pause_settings")
-			_at(7.5, "press", "ui_cancel")
-			_at(7.55, "release", "ui_cancel")
-			_at(7.8, "press", "ui_cancel")
-			_at(7.85, "release", "ui_cancel")
+			_at(7.5, "action", "ui_cancel")
+			_at(7.8, "action", "ui_cancel")
 			for i in range(30):
 				_at(8.0 + i * 3.0, "call", func(): _log_state())
 			_at(98.0, "shot", "flow_end")

@@ -1,8 +1,8 @@
 extends Control
 class_name MainMenu
 
-## Title screen: animated parallax backdrop, glowing logo, staggered menu, versus-bot setup panel,
-## living hero characters and a footer with version and Steam status.
+## Title screen: parallax backdrop, wordmark, menu column, versus-bot setup panel, the two hero characters
+## and a footer with version and Steam status.
 
 signal sandbox_requested
 signal online_requested
@@ -13,6 +13,9 @@ const FOG_SHADER: Shader = preload("res://scenes/maps/environment/fog.gdshader")
 const NOISE_TEXTURE: Texture2D = preload("res://assets/fx/noise_fbm.png")
 const PARALLAX_STRENGTH: Vector2 = Vector2(22.0, 12.0)
 const DIFFICULTY_NAMES: Array[String] = ["EASY", "NORMAL", "HARD"]
+const SHOP_NAMES: Array[String] = ["OFF", "ON"]
+const BOT_PANEL_X: float = 470.0
+const BOT_LABEL_WIDTH: float = 112.0
 
 @onready var _background: TextureRect = $Background
 @onready var _menu_root: Control = $MenuRoot
@@ -24,8 +27,6 @@ var _selected_difficulty: int = 1
 var _online_button: Button = null
 var _bot_start_button: Button = null
 var _bot_caption: Label = null
-var _shop_buttons: Array[Button] = []
-var _world_buttons: Array[Button] = []
 var _steam_label: Label = null
 var _steam_dot: ColorRect = null
 var _heroes: Array[MenuHero] = []
@@ -34,10 +35,11 @@ var _time: float = 0.0
 var _hero_fire_timer: float = 5.0
 var _logo: Label = null
 var _busy: bool = false
+var _bot_panel_tween: Tween = null
 
 
 func _ready() -> void:
-	_selected_difficulty = UserSettings.get_int(UserSettings.BOT_DIFFICULTY)
+	_selected_difficulty = clampi(UserSettings.get_int(UserSettings.BOT_DIFFICULTY), 0, DIFFICULTY_NAMES.size() - 1)
 	_build_atmosphere()
 	_build_heroes()
 	_build_menu()
@@ -76,7 +78,7 @@ func _unhandled_input(event: InputEvent) -> void:
 ## With START MATCH focused, left/right step the difficulty so keyboard and gamepad players never
 ## have to leave the button they are about to press.
 func _input(event: InputEvent) -> void:
-	if not _bot_panel.visible or _bot_start_button == null or not _bot_start_button.has_focus():
+	if not _bot_panel.visible or not _bot_start_button.has_focus():
 		return
 	var step: int = 0
 	if event.is_action_pressed(&"ui_left"):
@@ -216,16 +218,16 @@ func _build_menu() -> void:
 	var buttons: VBoxContainer = VBoxContainer.new()
 	buttons.add_theme_constant_override("separation", 12)
 	column.add_child(buttons)
-	_add_menu_button(buttons, "VERSUS BOT", true, _open_bot_panel)
-	_online_button = _add_menu_button(buttons, "ONLINE DUEL", false, _on_online_pressed)
-	_add_menu_button(buttons, "SANDBOX", false, _on_sandbox_pressed)
-	_add_menu_button(buttons, "SETTINGS", false, _on_settings_pressed)
-	_add_menu_button(buttons, "QUIT", false, _on_exit_pressed)
+	_add_menu_button(buttons, "VERSUS BOT", _open_bot_panel)
+	_online_button = _add_menu_button(buttons, "ONLINE DUEL", _on_online_pressed)
+	_add_menu_button(buttons, "SANDBOX", _on_sandbox_pressed)
+	_add_menu_button(buttons, "SETTINGS", _on_settings_pressed)
+	_add_menu_button(buttons, "QUIT", _on_exit_pressed)
 
 
 ## Menu entries are plain text; the highlight (solid accent) follows focus, and the mouse moves focus, so
 ## exactly one entry is ever highlighted.
-func _add_menu_button(parent: Container, text: String, _primary: bool, callback: Callable) -> Button:
+func _add_menu_button(parent: Container, text: String, callback: Callable) -> Button:
 	var button: Button = Button.new()
 	button.text = text
 	button.custom_minimum_size = Vector2(340.0, 52.0)
@@ -253,71 +255,44 @@ func _add_menu_button(parent: Container, text: String, _primary: bool, callback:
 	return button
 
 
-## Which world the duel is fought on: the green ridge, or Mars with its low gravity and dust storms.
-func _build_world_choice(box: VBoxContainer) -> void:
+## One labelled row of toggle options in the bot panel. Every row shares the label column and the right
+## edge, the options split the rest evenly.
+func _add_option_row(box: VBoxContainer, label_text: String, names: Array[String], selected: int, on_toggled: Callable) -> Array[Button]:
 	var row: HBoxContainer = HBoxContainer.new()
-	row.add_theme_constant_override("separation", 10)
+	row.add_theme_constant_override("separation", 8)
 	box.add_child(row)
 	var label: Label = Label.new()
-	UiStyle.style_label(label, UiStyle.FONT_BOLD, 16, UiStyle.TEXT)
-	label.text = "WORLD"
-	label.custom_minimum_size = Vector2(130.0, 0.0)
+	UiStyle.style_label(label, UiStyle.FONT_BOLD, 14, UiStyle.TEXT_DIM)
+	label.text = label_text
+	label.custom_minimum_size = Vector2(BOT_LABEL_WIDTH, 0.0)
 	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(label)
 	var group: ButtonGroup = ButtonGroup.new()
-	var current: StringName = WorldCatalog.bot_world_id()
-	for world_id in WorldCatalog.ids():
+	var buttons: Array[Button] = []
+	for index in range(names.size()):
 		var option: Button = Button.new()
-		option.text = WorldCatalog.display_name(world_id).to_upper()
+		option.text = names[index]
 		option.toggle_mode = true
 		option.button_group = group
-		option.custom_minimum_size = Vector2(110.0, 42.0)
-		UiStyle.style_option(option, 17)
-		option.toggled.connect(_on_world_toggled.bind(world_id))
-		option.set_pressed_no_signal(world_id == current)
+		option.custom_minimum_size = Vector2(0.0, 44.0)
+		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		UiStyle.style_option(option, 16)
+		option.set_pressed_no_signal(index == selected)
+		option.toggled.connect(on_toggled.bind(index))
 		row.add_child(option)
-		_world_buttons.append(option)
+		buttons.append(option)
+	return buttons
 
 
-func _on_world_toggled(pressed: bool, world_id: StringName) -> void:
+func _on_world_toggled(pressed: bool, index: int) -> void:
 	if pressed:
-		UserSettings.set_value(UserSettings.BOT_WORLD, str(world_id))
+		UserSettings.set_value(UserSettings.BOT_WORLD, str(WorldCatalog.ids()[index]))
 
 
-## Shop on/off for bot duels, styled like the difficulty picker and remembered between sessions.
-func _build_shop_toggle(box: VBoxContainer) -> void:
-	var divider: ColorRect = ColorRect.new()
-	divider.color = UiStyle.LINE
-	divider.custom_minimum_size = Vector2(0.0, 1.0)
-	box.add_child(divider)
-	var row: HBoxContainer = HBoxContainer.new()
-	row.add_theme_constant_override("separation", 10)
-	box.add_child(row)
-	var label: Label = Label.new()
-	UiStyle.style_label(label, UiStyle.FONT_BOLD, 16, UiStyle.TEXT)
-	label.text = "SHOP"
-	label.custom_minimum_size = Vector2(130.0, 0.0)
-	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(label)
-	var group: ButtonGroup = ButtonGroup.new()
-	for index in range(2):
-		var option: Button = Button.new()
-		option.text = "OFF" if index == 0 else "ON"
-		option.toggle_mode = true
-		option.button_group = group
-		option.custom_minimum_size = Vector2(110.0, 42.0)
-		UiStyle.style_option(option, 17)
-		option.toggled.connect(_on_shop_toggled.bind(index == 1))
-		row.add_child(option)
-		_shop_buttons.append(option)
-	var enabled: bool = UserSettings.get_bool(UserSettings.BOT_PHASE_SHOP)
-	_shop_buttons[1 if enabled else 0].set_pressed_no_signal(true)
-	_update_caption(enabled)
-
-
-func _on_shop_toggled(pressed: bool, enabled: bool) -> void:
+func _on_shop_toggled(pressed: bool, index: int) -> void:
 	if not pressed:
 		return
+	var enabled: bool = index == 1
 	UserSettings.set_value(UserSettings.BOT_PHASE_SHOP, enabled)
 	_update_caption(enabled)
 
@@ -340,14 +315,14 @@ func _slide_button(button: Button, hovered: bool) -> void:
 
 func _build_bot_panel() -> void:
 	_bot_panel = PanelContainer.new()
-	_bot_panel.add_theme_stylebox_override("panel", UiStyle.with_shadow(UiStyle.with_margins(UiStyle.panel(UiStyle.PANEL_SOLID), 28, 22), 18, Vector2(0, 8), Color(0, 0, 0, 0.35)))
-	_bot_panel.position = Vector2(470.0, 236.0)
-	_bot_panel.custom_minimum_size = Vector2(430.0, 0.0)
+	_bot_panel.add_theme_stylebox_override("panel", UiStyle.with_shadow(UiStyle.with_margins(UiStyle.panel(UiStyle.PANEL_SOLID), 28, 24), 18, Vector2(0, 8), Color(0, 0, 0, 0.35)))
+	_bot_panel.position = Vector2(BOT_PANEL_X, 236.0)
+	_bot_panel.custom_minimum_size = Vector2(470.0, 0.0)
 	_bot_panel.visible = false
 	_bot_panel.z_index = 2
 	_menu_root.add_child(_bot_panel)
 	var box: VBoxContainer = VBoxContainer.new()
-	box.add_theme_constant_override("separation", 14)
+	box.add_theme_constant_override("separation", 12)
 	_bot_panel.add_child(box)
 	var title: Label = Label.new()
 	UiStyle.style_label(title, UiStyle.FONT_DISPLAY, 28, UiStyle.TEXT)
@@ -356,39 +331,39 @@ func _build_bot_panel() -> void:
 	_bot_caption = Label.new()
 	UiStyle.style_label(_bot_caption, UiStyle.FONT_BOLD, 13, UiStyle.ACCENT)
 	box.add_child(_bot_caption)
-	var row: HBoxContainer = HBoxContainer.new()
-	row.add_theme_constant_override("separation", 10)
-	box.add_child(row)
-	var group: ButtonGroup = ButtonGroup.new()
-	for index in range(DIFFICULTY_NAMES.size()):
-		var option: Button = Button.new()
-		option.text = DIFFICULTY_NAMES[index]
-		option.toggle_mode = true
-		option.button_group = group
-		option.custom_minimum_size = Vector2(118.0, 46.0)
-		UiStyle.style_option(option, 18)
-		option.toggled.connect(_on_difficulty_toggled.bind(index))
-		row.add_child(option)
-		_difficulty_buttons.append(option)
-	_build_world_choice(box)
-	_build_shop_toggle(box)
+	var gap: Control = Control.new()
+	gap.custom_minimum_size = Vector2(0.0, 4.0)
+	box.add_child(gap)
+
+	_difficulty_buttons = _add_option_row(box, "DIFFICULTY", DIFFICULTY_NAMES, _selected_difficulty, _on_difficulty_toggled)
+	var world_names: Array[String] = []
+	for world_id in WorldCatalog.ids():
+		world_names.append(WorldCatalog.display_name(world_id).to_upper())
+	_add_option_row(box, "WORLD", world_names, maxi(WorldCatalog.ids().find(WorldCatalog.bot_world_id()), 0), _on_world_toggled)
+	var shop: bool = UserSettings.get_bool(UserSettings.BOT_PHASE_SHOP)
+	_add_option_row(box, "SHOP", SHOP_NAMES, 1 if shop else 0, _on_shop_toggled)
+	_update_caption(shop)
+
+	var divider: ColorRect = ColorRect.new()
+	divider.color = UiStyle.LINE
+	divider.custom_minimum_size = Vector2(0.0, 1.0)
+	box.add_child(divider)
 	var actions: HBoxContainer = HBoxContainer.new()
-	actions.add_theme_constant_override("separation", 12)
+	actions.add_theme_constant_override("separation", 8)
 	box.add_child(actions)
-	var start: Button = Button.new()
-	start.text = "START MATCH"
-	start.custom_minimum_size = Vector2(230.0, 52.0)
-	UiStyle.style_button(start, true, 20)
-	start.pressed.connect(_on_bot_start_pressed)
-	_bot_start_button = start
-	actions.add_child(start)
+	_bot_start_button = Button.new()
+	_bot_start_button.text = "START MATCH"
+	_bot_start_button.custom_minimum_size = Vector2(0.0, 52.0)
+	_bot_start_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	UiStyle.style_button(_bot_start_button, true, 20)
+	_bot_start_button.pressed.connect(_on_bot_start_pressed)
+	actions.add_child(_bot_start_button)
 	var back: Button = Button.new()
 	back.text = "BACK"
 	back.custom_minimum_size = Vector2(130.0, 52.0)
 	UiStyle.style_button(back, false, 18)
 	back.pressed.connect(_close_bot_panel)
 	actions.add_child(back)
-	_difficulty_buttons[clampi(_selected_difficulty, 0, 2)].button_pressed = true
 
 
 func _build_footer() -> void:
@@ -468,25 +443,32 @@ func _refresh_steam(_message: String) -> void:
 
 
 func _open_bot_panel() -> void:
+	_kill_bot_panel_tween()
 	_bot_panel.visible = true
 	_bot_panel.modulate.a = 0.0
-	_bot_panel.position.x = 440.0
+	_bot_panel.position.x = BOT_PANEL_X - 30.0
 	AudioDirector.play(&"ui_open")
-	var tween: Tween = create_tween().set_parallel(true)
-	tween.tween_property(_bot_panel, "modulate:a", 1.0, 0.18)
-	tween.tween_property(_bot_panel, "position:x", 470.0, 0.25).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	if _bot_start_button != null:
-		_bot_start_button.grab_focus()
+	_bot_panel_tween = create_tween().set_parallel(true)
+	_bot_panel_tween.tween_property(_bot_panel, "modulate:a", 1.0, 0.18)
+	_bot_panel_tween.tween_property(_bot_panel, "position:x", BOT_PANEL_X, 0.25).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_bot_start_button.grab_focus()
 
 
 func _close_bot_panel() -> void:
 	if not _bot_panel.visible:
 		return
+	_kill_bot_panel_tween()
 	AudioDirector.play(&"ui_close")
-	var tween: Tween = create_tween()
-	tween.tween_property(_bot_panel, "modulate:a", 0.0, 0.12)
-	tween.tween_callback(_bot_panel.hide)
+	_bot_panel_tween = create_tween()
+	_bot_panel_tween.tween_property(_bot_panel, "modulate:a", 0.0, 0.12)
+	_bot_panel_tween.tween_callback(_bot_panel.hide)
 	_buttons[0].grab_focus()
+
+
+## Opening right after closing must not let the old fade-out hide the panel again.
+func _kill_bot_panel_tween() -> void:
+	if _bot_panel_tween != null and _bot_panel_tween.is_valid():
+		_bot_panel_tween.kill()
 
 
 func _on_difficulty_toggled(pressed: bool, index: int) -> void:

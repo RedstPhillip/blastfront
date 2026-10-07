@@ -337,7 +337,7 @@ func _apply_authoritative_extension_effects(projectile: Projectile, direct_targe
 	var effects: Dictionary = projectile.extension_effects
 	var owner_slot: int = projectile.owner_slot
 	var source_extensions_variant: Variant = projectile.source_extensions
-	var origin: Vector2 = _get_projectile_position(projectile, direct_target.global_position if direct_target != null else Vector2.ZERO)
+	var origin: Vector2 = projectile.global_position
 	var combat_sync: Variant = game_sync.get_module(GameSettings.MODULE_COMBAT)
 	if combat_sync == null:
 		return
@@ -418,10 +418,6 @@ func _apply_area_damage(origin: Vector2, owner_slot: int, radius: float, damage:
 		var base_damage: int = maxi(1, int(roundf(float(damage) * falloff)))
 		var final_damage: int = ResearchManager.apply_rage_to_damage(owner_slot, base_damage)
 		combat_sync.apply_hit(target_slot, owner_slot, 0, final_damage)
-
-
-func _get_projectile_position(projectile: Projectile, _fallback: Vector2) -> Vector2:
-	return projectile.global_position
 
 
 func _get_player(slot: int) -> Player:

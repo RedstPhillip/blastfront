@@ -238,7 +238,7 @@ func _physics_process(delta: float) -> void:
 		if _current_ammo <= 0:
 			_start_reload()
 	elif pressed and _is_reloading:
-		GameJuice.play_sound_2d(&"dry_fire", get_muzzle_global_position())
+		AudioDirector.play_at(&"dry_fire", get_muzzle_global_position())
 
 func _shoot() -> void:
 	var base_direction: Vector2 = get_shot_direction()
@@ -516,7 +516,7 @@ func _build_fire_profile() -> Dictionary:
 func _start_reload() -> void:
 	_is_reloading = true
 	_reload_timer = _get_effective_reload_time()
-	GameJuice.play_sound_2d(&"reload_start", global_position)
+	AudioDirector.play_at(&"reload_start", global_position)
 
 
 func _finish_reload() -> void:
@@ -525,7 +525,7 @@ func _finish_reload() -> void:
 	_reload_timer = 0.0
 	_current_ammo = _get_effective_max_ammo()
 	if was_reloading and is_inside_tree():
-		GameJuice.play_sound_2d(&"reload_end", global_position)
+		AudioDirector.play_at(&"reload_end", global_position)
 		_recoil_rotation = deg_to_rad(-14.0) * (-1.0 if _aim_direction.x > 0.0 else 1.0)
 		if _player != null and _player.control_mode == GameSettings.CONTROL_LOCAL:
 			FxLib.glow_flash(self, Color(1.0, 0.86, 0.55, 0.7), 34.0, 0.16)
@@ -607,9 +607,9 @@ func play_remote_fire_feedback(direction: Vector2) -> void:
 func apply_remote_ammo_state(current_ammo: int, reloading: bool, reload_ratio: float) -> void:
 	_current_ammo = clampi(current_ammo, 0, _get_effective_max_ammo())
 	if reloading and not _is_reloading:
-		GameJuice.play_sound_2d(&"reload_start", global_position)
+		AudioDirector.play_at(&"reload_start", global_position)
 	elif not reloading and _is_reloading:
-		GameJuice.play_sound_2d(&"reload_end", global_position)
+		AudioDirector.play_at(&"reload_end", global_position)
 	_is_reloading = reloading
 	if _is_reloading:
 		_reload_timer = (1.0 - clampf(reload_ratio, 0.0, 1.0)) * _get_effective_reload_time()

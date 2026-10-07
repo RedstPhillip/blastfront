@@ -6,8 +6,6 @@ extends Control
 @onready var _status_page: SummaryPage = %StatusPage
 @onready var _loadout_page: Control = %LoadoutPage
 @onready var _research_page: Control = %ResearchPage
-@onready var _left_page_button: Button = %LeftPageButton
-@onready var _right_page_button: Button = %RightPageButton
 
 const TAB_NAMES: Array[String] = ["LOADOUT", "SUMMARY", "RESEARCH"]
 const TOP_INSET: float = 66.0
@@ -20,10 +18,7 @@ func _ready() -> void:
 	var completed_sets: int = int(OnlineMatch.match_points.get(GameSettings.PLAYER_ONE_SLOT, 0))
 	completed_sets += int(OnlineMatch.match_points.get(GameSettings.PLAYER_TWO_SLOT, 0))
 	RoundRewardInventory.prepare_for_round(completed_sets)
-	_left_page_button.pressed.connect(_on_previous_page_pressed)
-	_right_page_button.pressed.connect(_on_next_page_pressed)
 	_build_tab_bar()
-	_left_page_button.get_parent().visible = false
 	_status_page.spend_requested.connect(_set_page.bind(-1))
 	_status_page.set_top_inset(TOP_INSET)
 	if _loadout_page.has_method(&"set_top_inset"):
@@ -115,22 +110,12 @@ func _is_tab_event(event: InputEvent, key: Key, button: JoyButton) -> bool:
 	return joy_event != null and joy_event.pressed and joy_event.button_index == button
 
 
-func _on_previous_page_pressed() -> void:
-	_set_page(_page_index - 1)
-
-
-func _on_next_page_pressed() -> void:
-	_set_page(_page_index + 1)
-
-
 func _set_page(next_page: int) -> void:
 	var previous: int = _page_index
 	_page_index = clampi(next_page, -1, 1)
 	_loadout_page.visible = _page_index == -1
 	_status_page.visible = _page_index == 0
 	_research_page.visible = _page_index == 1
-	_left_page_button.visible = _page_index > -1
-	_right_page_button.visible = _page_index < 1
 	for index in range(_tab_buttons.size()):
 		_tab_buttons[index].set_pressed_no_signal(index - 1 == _page_index)
 	if previous == _page_index or not is_inside_tree():

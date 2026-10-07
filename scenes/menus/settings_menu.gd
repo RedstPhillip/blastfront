@@ -8,14 +8,17 @@ signal back_pressed
 const PARTICLE_LEVELS: Array[float] = [0.0, 0.33, 0.66, 1.0]
 const PARTICLE_NAMES: Array[String] = ["Off", "Low", "Medium", "High"]
 const WINDOW_MODE_NAMES: Array[String] = ["Windowed", "Borderless Fullscreen", "Exclusive Fullscreen"]
+const KEY_CHIP_WIDTH: float = 132.0
+## Action, keyboard & mouse, gamepad. Key names match the on-screen prompts (InputDevice.prompt).
 const CONTROL_ROWS: Array[Array] = [
-	["Move", "A / D", "Left stick"],
-	["Jump  ·  Wall jump", "Space / W", "A"],
-	["Aim", "Mouse", "Right stick"],
-	["Shoot", "Left mouse", "RT"],
-	["Block", "Right mouse", "LT"],
+	["Move", "A / D", "L STICK"],
+	["Jump  ·  Wall jump", "SPACE / W", "A"],
+	["Aim", "MOUSE", "R STICK"],
+	["Shoot", "LMB", "RT / RB"],
+	["Block", "RMB", "LT / LB"],
 	["Reload", "R", "X"],
-	["Pause", "Esc", "Start"],
+	["Orders", "TAB", "BACK"],
+	["Pause", "ESC", "START"],
 ]
 
 var _tabs: TabContainer = null
@@ -64,10 +67,7 @@ func _build() -> void:
 	_tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_tabs.tab_changed.connect(func(_tab: int) -> void: AudioDirector.play(&"ui_toggle"))
 	box.add_child(_tabs)
-	_build_audio_tab()
-	_build_video_tab()
-	_build_gameplay_tab()
-	_build_controls_tab()
+	_build_tabs()
 
 	var footer: HBoxContainer = HBoxContainer.new()
 	footer.add_theme_constant_override("separation", 14)
@@ -230,36 +230,52 @@ func _build_gameplay_tab() -> void:
 
 func _build_controls_tab() -> void:
 	var page: VBoxContainer = _make_page("CONTROLS")
-	page.add_theme_constant_override("separation", 5)
-	_section(page, "KEYBOARD & MOUSE  ·  GAMEPAD")
+	page.add_theme_constant_override("separation", 4)
+	# Column heads sit over the key columns, in the same section style as the other tabs.
+	var heads: HBoxContainer = _row(page, "")
+	heads.custom_minimum_size.y = 20.0
+	for text in ["KEYBOARD", "GAMEPAD"]:
+		var head: Label = Label.new()
+		UiStyle.style_label(head, UiStyle.FONT_BOLD, 13, UiStyle.ACCENT)
+		head.text = text
+		head.custom_minimum_size = Vector2(KEY_CHIP_WIDTH, 0.0)
+		head.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		heads.add_child(head)
 	for entry in CONTROL_ROWS:
 		var row: HBoxContainer = _row(page, str(entry[0]))
-		row.custom_minimum_size.y = 34.0
-		row.add_child(_key_chip(str(entry[1]), UiStyle.ACCENT_HOT))
-		row.add_child(_key_chip(str(entry[2]), UiStyle.SHIELD))
+		row.custom_minimum_size.y = 30.0
+		row.add_child(_key_chip(str(entry[1])))
+		row.add_child(_key_chip(str(entry[2])))
 
 
-func _key_chip(text: String, color: Color) -> PanelContainer:
+func _key_chip(text: String) -> PanelContainer:
 	var key: Label = Label.new()
-	UiStyle.style_label(key, UiStyle.FONT_BOLD, 14, color)
+	UiStyle.style_label(key, UiStyle.FONT_BOLD, 14, UiStyle.TEXT)
 	key.text = text
 	key.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var chip: PanelContainer = PanelContainer.new()
-	chip.add_theme_stylebox_override("panel", UiStyle.with_margins(UiStyle.panel(Color(0.08, 0.12, 0.12, 1.0), UiStyle.LINE_STRONG, 4, 1), 10, 3))
+	chip.add_theme_stylebox_override("panel", UiStyle.with_margins(UiStyle.panel(UiStyle.PANEL_RAISED), 10, 3))
 	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	chip.custom_minimum_size = Vector2(132.0, 0.0)
+	chip.custom_minimum_size = Vector2(KEY_CHIP_WIDTH, 0.0)
 	chip.add_child(key)
 	return chip
 
 
-func _on_reset_pressed() -> void:
-	UserSettings.reset_to_defaults()
-	AudioDirector.play(&"ui_confirm")
-	for child in _tabs.get_children():
-		child.queue_free()
-	var current_tab: int = _tabs.current_tab
+func _build_tabs() -> void:
 	_build_audio_tab()
 	_build_video_tab()
 	_build_gameplay_tab()
 	_build_controls_tab()
-	_tabs.current_tab = clampi(current_tab, 0, 3)
+
+
+## Rebuilds every page from the defaults. The old pages leave the container at once (not at the end of the
+## frame), otherwise the new pages could not take their names and the tabs would show generated ones.
+func _on_reset_pressed() -> void:
+	UserSettings.reset_to_defaults()
+	AudioDirector.play(&"ui_confirm")
+	var current_tab: int = _tabs.current_tab
+	for child in _tabs.get_children():
+		_tabs.remove_child(child)
+		child.queue_free()
+	_build_tabs()
+	_tabs.current_tab = clampi(current_tab, 0, _tabs.get_tab_count() - 1)

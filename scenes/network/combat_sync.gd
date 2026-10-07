@@ -129,7 +129,7 @@ func _note_source_damage_dealt(source_slot: int, applied_damage: int) -> void:
 		return
 	var source_player: Player = _get_player(source_slot)
 	if source_player != null:
-		source_player.note_damage_dealt(applied_damage)
+		source_player.note_damage_dealt()
 
 
 func _handle_player_killed(_target_slot: int, source_slot: int) -> void:

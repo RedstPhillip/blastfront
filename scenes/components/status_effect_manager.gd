@@ -164,5 +164,5 @@ func _notify_damage_dealt(source_slot: int, applied_damage: int) -> void:
 	for node in get_tree().get_nodes_in_group(GameSettings.PLAYERS_GROUP):
 		var player: Player = node as Player
 		if player != null and player.player_slot == source_slot:
-			player.note_damage_dealt(applied_damage)
+			player.note_damage_dealt()
 			return

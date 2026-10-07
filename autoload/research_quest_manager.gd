@@ -148,16 +148,23 @@ func award_airdrop(slot: int) -> int:
 	return amount
 
 
+## One order per tier, each on a different event: "Jump 5 times" next to "Jump 12 times" would be the same
+## order twice, both filled by the same jumps.
 func assign_quests_for_next_set() -> void:
 	if not _has_authority():
 		return
 	for slot in GameSettings.player_slots():
 		var quests: Array[Dictionary] = []
+		var used_events: Array[String] = []
 		for tier in [TIER_EASY, TIER_MEDIUM, TIER_HARD]:
-			var options: Array[Dictionary] = get_definitions_for_tier(tier)
+			var options: Array[Dictionary] = []
+			for definition in get_definitions_for_tier(tier):
+				if not used_events.has(str(definition.get("event", ""))):
+					options.append(definition)
 			if options.is_empty():
 				continue
 			var selected: Dictionary = options[_rng.randi_range(0, options.size() - 1)]
+			used_events.append(str(selected.get("event", "")))
 			quests.append(_make_assignment(selected))
 		_assignments_by_slot[slot] = quests
 	_active_set_has_quests = false
@@ -173,8 +180,6 @@ func _on_phase_changed(next_phase: StringName) -> void:
 	if next_phase == GameSettings.MATCH_PHASE_LOCKER:
 		reset_match()
 	elif next_phase == GameSettings.MATCH_PHASE_PLAYING_SET:
-		if _assignments_by_slot.is_empty():
-			assign_quests_for_next_set()
 		if previous_phase in [GameSettings.MATCH_PHASE_LOCKER, GameSettings.MATCH_PHASE_INTERMISSION]:
 			_last_awarded_by_slot.clear()
 			_survival_tick_timer = 0.0
@@ -358,7 +363,6 @@ func _make_assignment(definition: Dictionary) -> Dictionary:
 	return {
 		"id": str(definition.get("id", "")),
 		"title": str(definition.get("title", "Quest")),
-		"description": str(definition.get("description", "")),
 		"tier": str(definition.get("tier", "")),
 		"event": str(definition.get("event", "")),
 		"target": float(definition.get("target", 1.0)),
@@ -369,19 +373,10 @@ func _make_assignment(definition: Dictionary) -> Dictionary:
 	}
 
 
-func _quest(
-	quest_id: StringName,
-	title: String,
-	description: String,
-	tier: StringName,
-	event_name: StringName,
-	target: float,
-	reward: int
-) -> Dictionary:
+func _quest(quest_id: StringName, title: String, tier: StringName, event_name: StringName, target: float, reward: int) -> Dictionary:
 	return {
 		"id": str(quest_id),
 		"title": title,
-		"description": description,
 		"tier": str(tier),
 		"event": str(event_name),
 		"target": target,
@@ -392,23 +387,23 @@ func _quest(
 func _build_definitions() -> Dictionary:
 	var definitions: Dictionary = {}
 	var entries: Array[Dictionary] = [
-		_quest(&"jump_5", "Jump 5 times", "", TIER_EASY, EVENT_JUMP, 5.0, 1),
-		_quest(&"fire_8", "Fire 8 shots", "", TIER_EASY, EVENT_SHOT, 8.0, 1),
-		_quest(&"damage_20", "Deal 20 damage", "", TIER_EASY, &"damage", 20.0, 1),
-		_quest(&"block_attempt_3", "Block 3 times", "", TIER_EASY, EVENT_BLOCK_ATTEMPT, 3.0, 1),
-		_quest(&"survive_15", "Survive 15 s", "", TIER_EASY, &"survive_seconds", 15.0, 1),
+		_quest(&"jump_5", "Jump 5 times", TIER_EASY, EVENT_JUMP, 5.0, 1),
+		_quest(&"fire_8", "Fire 8 shots", TIER_EASY, EVENT_SHOT, 8.0, 1),
+		_quest(&"damage_20", "Deal 20 damage", TIER_EASY, &"damage", 20.0, 1),
+		_quest(&"block_attempt_3", "Block 3 times", TIER_EASY, EVENT_BLOCK_ATTEMPT, 3.0, 1),
+		_quest(&"survive_15", "Survive 15 s", TIER_EASY, &"survive_seconds", 15.0, 1),
 
-		_quest(&"first_hit", "Land the first hit", "", TIER_MEDIUM, &"first_hit", 1.0, 2),
-		_quest(&"jump_12", "Jump 12 times", "", TIER_MEDIUM, EVENT_JUMP, 12.0, 2),
-		_quest(&"damage_50", "Deal 50 damage", "", TIER_MEDIUM, &"damage", 50.0, 2),
-		_quest(&"hit_4", "Land 4 hits", "", TIER_MEDIUM, &"hits", 4.0, 2),
-		_quest(&"block_20", "Block 20 damage", "", TIER_MEDIUM, &"blocked_damage", 20.0, 2),
+		_quest(&"first_hit", "Land the first hit", TIER_MEDIUM, &"first_hit", 1.0, 2),
+		_quest(&"jump_12", "Jump 12 times", TIER_MEDIUM, EVENT_JUMP, 12.0, 2),
+		_quest(&"damage_50", "Deal 50 damage", TIER_MEDIUM, &"damage", 50.0, 2),
+		_quest(&"hit_4", "Land 4 hits", TIER_MEDIUM, &"hits", 4.0, 2),
+		_quest(&"block_20", "Block 20 damage", TIER_MEDIUM, &"blocked_damage", 20.0, 2),
 
-		_quest(&"no_hit", "Take no damage", "", TIER_HARD, &"no_hit", 1.0, 4),
-		_quest(&"win_set", "Win this set", "", TIER_HARD, &"win_set", 1.0, 4),
-		_quest(&"damage_100", "Deal 100 damage", "", TIER_HARD, &"damage", 100.0, 4),
-		_quest(&"block_50", "Block 50 damage", "", TIER_HARD, &"blocked_damage", 50.0, 4),
-		_quest(&"healthy_finish", "Finish above 60% health", "", TIER_HARD, &"healthy_finish", 1.0, 4),
+		_quest(&"no_hit", "Take no damage", TIER_HARD, &"no_hit", 1.0, 4),
+		_quest(&"win_set", "Win this set", TIER_HARD, &"win_set", 1.0, 4),
+		_quest(&"damage_100", "Deal 100 damage", TIER_HARD, &"damage", 100.0, 4),
+		_quest(&"block_50", "Block 50 damage", TIER_HARD, &"blocked_damage", 50.0, 4),
+		_quest(&"healthy_finish", "Finish above 60% health", TIER_HARD, &"healthy_finish", 1.0, 4),
 	]
 	for entry in entries:
 		definitions[str(entry.get("id", ""))] = entry

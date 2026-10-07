@@ -284,32 +284,13 @@ func spawn_explosion(world_position: Vector2, radius: float = 80.0, tint: Color 
 	var power: float = clampf(radius / 80.0, 0.6, 2.2)
 	spawn_burst(&"explosion", world_position, Vector2.UP, tint, power)
 	ImpactDecals.add_scorch(world_position, radius * 0.75)
-	play_sound_2d(&"explosion", world_position)
+	AudioDirector.play_at(&"explosion", world_position)
 	add_trauma(0.32 * power)
 	kick(Vector2.UP, 6.0 * power)
 	zoom_punch(0.02 * power)
 	flash(Color(1.0, 0.82, 0.55, 1.0), 0.18 * power, 0.16)
 	shockwave(world_position, 0.9 * power)
 	aberration(0.8 * power, 0.25)
-
-
-# --- Audio wrappers ------------------------------------------------------------------
-
-func play_sound(sound_id: StringName, volume_db: float = 0.0, _pitch_variation: float = 0.05) -> void:
-	AudioDirector.play(_map_sound_id(sound_id), _legacy_volume_offset(volume_db))
-
-
-func play_sound_2d(sound_id: StringName, world_position: Vector2, volume_db: float = 0.0, _pitch_variation: float = 0.05) -> void:
-	AudioDirector.play_at(_map_sound_id(sound_id), world_position, _legacy_volume_offset(volume_db))
-
-
-func _map_sound_id(sound_id: StringName) -> StringName:
-	return sound_id
-
-
-## Old call sites passed absolute dB tuned for the original wavs; keep a gentle relative influence.
-func _legacy_volume_offset(volume_db: float) -> float:
-	return clampf(volume_db * 0.25, -4.0, 3.0)
 
 
 # --- Damage numbers -----------------------------------------------------------------

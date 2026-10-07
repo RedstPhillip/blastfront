@@ -11,7 +11,8 @@ CALLBACKS = {
     '_validate_property', '_property_can_revert', '_property_get_revert', '_get_configuration_warnings',
     '_run', '_static_init', '_get_tooltip', '_structured_text_parser', '_iter_init', '_iter_next', '_iter_get',
 }
-root = sys.argv[1]
+# Default: the repository this file lives in (tools/testing/../..).
+root = sys.argv[1] if len(sys.argv) > 1 else os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 texts = {}
 for dp, dn, fn in os.walk(root):
     if '.godot' in dp or '.git' in dp or 'addons' in dp:

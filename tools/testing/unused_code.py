@@ -4,7 +4,8 @@ import os
 import re
 import sys
 
-root = sys.argv[1]
+# Default: the repository this file lives in (tools/testing/../..).
+root = sys.argv[1] if len(sys.argv) > 1 else os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 files = {}
 for dp, dn, fn in os.walk(root):
     if '.godot' in dp or '.git' in dp or 'addons' in dp:

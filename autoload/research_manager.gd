@@ -390,7 +390,6 @@ func _definition(
 	display_name: String,
 	branch: StringName,
 	icon_path: String,
-	description: String,
 	costs: Array,
 	position: Vector2,
 	requirements: Array = [],
@@ -402,7 +401,6 @@ func _definition(
 		"name": display_name,
 		"branch": str(branch),
 		"icon_path": icon_path,
-		"description": description,
 		"costs": costs,
 		"max_mark": costs.size(),
 		"position": position,
@@ -423,30 +421,30 @@ func _sort_definitions(first: Dictionary, second: Dictionary) -> bool:
 func _build_definitions() -> Dictionary:
 	var definitions: Dictionary = {}
 	var entries: Array = [
-		_definition(RECYCLING, "Recycling", BRANCH_ECONOMY, "res://assets/ui/research/recycling.svg", "Recycle shop blueprints for 50%, 75% or 100% of their coin price.", [1, 3, 7], Vector2(150, 40), [], true, 10),
-		_definition(BLUEPRINT_STORAGE, "Blueprint Storage", BRANCH_ECONOMY, "res://assets/ui/research/blueprint_storage.svg", "Unlock 1, 2 or 4 shared storage slots for armor and weapon blueprints.", [2, 4, 8], Vector2(330, 40), [_require(RECYCLING)], true, 20),
-		_definition(COIN_INTEREST, "Compound Interest", BRANCH_ECONOMY, "res://assets/ui/research/coin_interest.svg", "Earn 5%, 10% or 15% more coins from every completed set.", [2, 5, 9], Vector2(510, 40), [_require(BLUEPRINT_STORAGE)], true, 30),
-		_definition(CONDITION_WEAR, "Maintenance", BRANCH_ECONOMY, "res://assets/ui/research/condition_wear.svg", "Reduces condition wear to 70%, 35% or finally 0%.", [3, 6, 12], Vector2(690, 40), [_require(COIN_INTEREST)], true, 40),
-		_definition(UPGRADE_DISCOUNT, "Efficient Upgrades", BRANCH_ECONOMY, "res://assets/ui/research/upgrade_discount.svg", "Extension upgrades cost 10%, 22% or 35% fewer coins.", [3, 7, 12], Vector2(870, 40), [_require(CONDITION_WEAR)], true, 50),
-		_definition(RESEARCH_YIELD, "Applied Research", BRANCH_ECONOMY, "res://assets/ui/research/research_yield.svg", "Future quests award 20%, 40% or 65% more Research Points.", [5, 10, 16], Vector2(1050, 40), [_require(UPGRADE_DISCOUNT)], true, 60),
-		_definition(BONUS_MARK, "Prototype Assembly", BRANCH_ECONOMY, "res://assets/ui/research/bonus_mark.svg", "Bought weapon blueprints have a 6%, 14% or 26% chance to arrive as MK2.", [3, 6, 10], Vector2(690, 130), [_require(COIN_INTEREST)], true, 70),
-		_definition(LUCK, "Quality Control", BRANCH_ECONOMY, "res://assets/ui/research/luck.svg", "Increases the probability of receiving blueprints in a better condition.", [2, 5, 9], Vector2(870, 130), [_require(CONDITION_WEAR)], true, 80),
+		_definition(RECYCLING, "Recycling", BRANCH_ECONOMY, "res://assets/ui/research/recycling.svg", [1, 3, 7], Vector2(150, 40), [], true, 10),
+		_definition(BLUEPRINT_STORAGE, "Blueprint Storage", BRANCH_ECONOMY, "res://assets/ui/research/blueprint_storage.svg", [2, 4, 8], Vector2(330, 40), [_require(RECYCLING)], true, 20),
+		_definition(COIN_INTEREST, "Compound Interest", BRANCH_ECONOMY, "res://assets/ui/research/coin_interest.svg", [2, 5, 9], Vector2(510, 40), [_require(BLUEPRINT_STORAGE)], true, 30),
+		_definition(CONDITION_WEAR, "Maintenance", BRANCH_ECONOMY, "res://assets/ui/research/condition_wear.svg", [3, 6, 12], Vector2(690, 40), [_require(COIN_INTEREST)], true, 40),
+		_definition(UPGRADE_DISCOUNT, "Efficient Upgrades", BRANCH_ECONOMY, "res://assets/ui/research/upgrade_discount.svg", [3, 7, 12], Vector2(870, 40), [_require(CONDITION_WEAR)], true, 50),
+		_definition(RESEARCH_YIELD, "Applied Research", BRANCH_ECONOMY, "res://assets/ui/research/research_yield.svg", [5, 10, 16], Vector2(1050, 40), [_require(UPGRADE_DISCOUNT)], true, 60),
+		_definition(BONUS_MARK, "Prototype Assembly", BRANCH_ECONOMY, "res://assets/ui/research/bonus_mark.svg", [3, 6, 10], Vector2(690, 130), [_require(COIN_INTEREST)], true, 70),
+		_definition(LUCK, "Quality Control", BRANCH_ECONOMY, "res://assets/ui/research/luck.svg", [2, 5, 9], Vector2(870, 130), [_require(CONDITION_WEAR)], true, 80),
 
-		_definition(DASHING, "Dashing", BRANCH_MOVEMENT, "res://assets/ui/research/dashing.svg", "Unlock dash, then reduce its cooldown and add a protective shockwave.", [4, 8, 14], Vector2(330, 260), [], false, 110),
-		_definition(SLIDING, "Sliding", BRANCH_MOVEMENT, "res://assets/ui/research/sliding.svg", "Unlock a ground slide and improve speed and control.", [4, 8, 13], Vector2(570, 260), [_require(DASHING)], false, 120),
+		_definition(DASHING, "Dashing", BRANCH_MOVEMENT, "res://assets/ui/research/dashing.svg", [4, 8, 14], Vector2(330, 260), [], false, 110),
+		_definition(SLIDING, "Sliding", BRANCH_MOVEMENT, "res://assets/ui/research/sliding.svg", [4, 8, 13], Vector2(570, 260), [_require(DASHING)], false, 120),
 
-		_definition(LIFE_STEAL, "Life Steal", BRANCH_MISC, "res://assets/ui/research/life_steal.svg", "Heal for 5%, 10% or 16% of damage dealt.", [3, 7, 12], Vector2(270, 395), [], true, 210),
-		_definition(RAGE, "Last Stand", BRANCH_MISC, "res://assets/ui/research/rage.svg", "Below 20% health, deal 15%, 30% or 50% more damage.", [3, 7, 13], Vector2(470, 395), [_require(LIFE_STEAL)], true, 220),
-		_definition(PASSIVE_HEALING, "Field Regeneration", BRANCH_MISC, "res://assets/ui/research/passive_healing.svg", "While standing still, heal up to 50%, 75% or 100% health.", [4, 8, 14], Vector2(670, 395), [_require(RAGE)], true, 230),
-		_definition(PHOENIX, "Phoenix", BRANCH_MISC, "res://assets/ui/research/phoenix.svg", "Once per set, survive lethal damage and return with 40% health.", [20], Vector2(870, 395), [_require(PASSIVE_HEALING, 3)], true, 240),
-		_definition(TIME_CONTROL, "Time Control", BRANCH_MISC, "res://assets/ui/research/time_control.svg", "Future research: slow the world, extend the effect, then briefly freeze time.", [60, 120, 240], Vector2(1030, 395), [], false, 999),
-		_definition(FASTER_CAPTURE, "Faster Capture", BRANCH_MISC, "res://assets/ui/research/faster_capture.svg", "Capture airdrops 15%, 30% or 45% faster.", [3, 7, 12], Vector2(670, 500), [_require(RAGE)], true, 260),
-		_definition(CAPTURE_BONUS, "Capture Bonus", BRANCH_MISC, "res://assets/ui/research/capture_bonus.svg", "Captured airdrops award 6, 7 or 8 Research Points instead of 5.", [4, 8, 14], Vector2(870, 500), [_require(FASTER_CAPTURE)], true, 270),
-		_definition(CAPTURE_RADIUS, "Capture Radius", BRANCH_MISC, "res://assets/ui/research/capture_radius.svg", "Increase airdrop capture radius by 20, 42 or 68 units.", [4, 9, 15], Vector2(1070, 500), [_require(CAPTURE_BONUS)], true, 280),
+		_definition(LIFE_STEAL, "Life Steal", BRANCH_MISC, "res://assets/ui/research/life_steal.svg", [3, 7, 12], Vector2(270, 395), [], true, 210),
+		_definition(RAGE, "Last Stand", BRANCH_MISC, "res://assets/ui/research/rage.svg", [3, 7, 13], Vector2(470, 395), [_require(LIFE_STEAL)], true, 220),
+		_definition(PASSIVE_HEALING, "Field Regeneration", BRANCH_MISC, "res://assets/ui/research/passive_healing.svg", [4, 8, 14], Vector2(670, 395), [_require(RAGE)], true, 230),
+		_definition(PHOENIX, "Phoenix", BRANCH_MISC, "res://assets/ui/research/phoenix.svg", [20], Vector2(870, 395), [_require(PASSIVE_HEALING, 3)], true, 240),
+		_definition(TIME_CONTROL, "Time Control", BRANCH_MISC, "res://assets/ui/research/time_control.svg", [60, 120, 240], Vector2(1030, 395), [], false, 999),
+		_definition(FASTER_CAPTURE, "Faster Capture", BRANCH_MISC, "res://assets/ui/research/faster_capture.svg", [3, 7, 12], Vector2(670, 500), [_require(RAGE)], true, 260),
+		_definition(CAPTURE_BONUS, "Capture Bonus", BRANCH_MISC, "res://assets/ui/research/capture_bonus.svg", [4, 8, 14], Vector2(870, 500), [_require(FASTER_CAPTURE)], true, 270),
+		_definition(CAPTURE_RADIUS, "Capture Radius", BRANCH_MISC, "res://assets/ui/research/capture_radius.svg", [4, 9, 15], Vector2(1070, 500), [_require(CAPTURE_BONUS)], true, 280),
 	]
 	for entry in entries:
 		var presentation: Dictionary = PRESENTATION.get(StringName(str(entry["id"])), {})
-		entry["summary"] = str(presentation.get("summary", entry["description"]))
+		entry["summary"] = str(presentation.get("summary", ""))
 		entry["level_label"] = str(presentation.get("label", ""))
 		entry["levels"] = presentation.get("levels", [])
 		definitions[str(entry["id"])] = entry
@@ -455,22 +453,22 @@ func _build_definitions() -> Dictionary:
 
 ## How each project reads on the research screen: a few words, and what every mark is worth.
 const PRESENTATION: Dictionary = {
-	RECYCLING: {"summary": "Better sell prices. Recycle blueprints.", "label": "SELL VALUE", "levels": ["50%", "75%", "100%"]},
-	BLUEPRINT_STORAGE: {"summary": "Keep blueprints for later sets.", "label": "SLOTS", "levels": ["1", "2", "4"]},
-	COIN_INTEREST: {"summary": "More coins per set.", "label": "COIN BONUS", "levels": ["+5%", "+10%", "+15%"]},
-	CONDITION_WEAR: {"summary": "Gear wears slower.", "label": "WEAR", "levels": ["70%", "35%", "None"]},
-	UPGRADE_DISCOUNT: {"summary": "Cheaper merges.", "label": "MERGE COST", "levels": ["−10%", "−22%", "−35%"]},
-	RESEARCH_YIELD: {"summary": "More RP from orders.", "label": "RP BONUS", "levels": ["+20%", "+40%", "+65%"]},
-	BONUS_MARK: {"summary": "Bought blueprints may arrive as MK II.", "label": "CHANCE", "levels": ["6%", "14%", "26%"]},
-	LUCK: {"summary": "Shop blueprints roll better condition.", "label": "EXTRA ROLLS", "levels": ["1", "2", "3"]},
-	DASHING: {"summary": "Dash.", "label": "", "levels": ["Unlock", "Cooldown", "Shockwave"]},
-	SLIDING: {"summary": "Slide.", "label": "", "levels": ["Unlock", "Speed", "Control"]},
-	LIFE_STEAL: {"summary": "Heal from damage dealt.", "label": "HEAL", "levels": ["5%", "10%", "16%"]},
-	RAGE: {"summary": "More damage below 20% health.", "label": "DAMAGE", "levels": ["+15%", "+30%", "+50%"]},
-	PASSIVE_HEALING: {"summary": "Heal while standing still.", "label": "HEALS UP TO", "levels": ["50%", "75%", "100%"]},
-	PHOENIX: {"summary": "Survive one lethal hit per set.", "label": "COME BACK WITH", "levels": ["40% HP"]},
-	TIME_CONTROL: {"summary": "Slow time.", "label": "", "levels": ["Slow", "Longer", "Freeze"]},
-	FASTER_CAPTURE: {"summary": "Capture supply drops faster.", "label": "CAPTURE TIME", "levels": ["−15%", "−30%", "−45%"]},
-	CAPTURE_BONUS: {"summary": "More RP per supply drop.", "label": "RP PER DROP", "levels": ["6", "7", "8"]},
-	CAPTURE_RADIUS: {"summary": "Wider capture ring.", "label": "RADIUS", "levels": ["+20", "+42", "+68"]},
+	RECYCLING: {"summary": "Recycle blueprints for coins", "label": "SELL VALUE", "levels": ["50%", "75%", "100%"]},
+	BLUEPRINT_STORAGE: {"summary": "Keep blueprints between sets", "label": "SLOTS", "levels": ["1", "2", "4"]},
+	COIN_INTEREST: {"summary": "More coins per set", "label": "COIN BONUS", "levels": ["+5%", "+10%", "+15%"]},
+	CONDITION_WEAR: {"summary": "Gear wears slower", "label": "WEAR", "levels": ["70%", "35%", "None"]},
+	UPGRADE_DISCOUNT: {"summary": "Cheaper merges", "label": "MERGE COST", "levels": ["−10%", "−22%", "−35%"]},
+	RESEARCH_YIELD: {"summary": "More RP from orders", "label": "RP BONUS", "levels": ["+20%", "+40%", "+65%"]},
+	BONUS_MARK: {"summary": "Bought blueprints can arrive as MK II", "label": "CHANCE", "levels": ["6%", "14%", "26%"]},
+	LUCK: {"summary": "Better condition from the shop", "label": "EXTRA ROLLS", "levels": ["1", "2", "3"]},
+	DASHING: {"summary": "Dash", "label": "", "levels": ["Unlock", "Cooldown", "Shockwave"]},
+	SLIDING: {"summary": "Slide", "label": "", "levels": ["Unlock", "Speed", "Control"]},
+	LIFE_STEAL: {"summary": "Heal from damage dealt", "label": "HEAL", "levels": ["5%", "10%", "16%"]},
+	RAGE: {"summary": "More damage below 20% health", "label": "DAMAGE", "levels": ["+15%", "+30%", "+50%"]},
+	PASSIVE_HEALING: {"summary": "Heal while standing still", "label": "HEALS UP TO", "levels": ["50%", "75%", "100%"]},
+	PHOENIX: {"summary": "Survive one lethal hit per set", "label": "COME BACK WITH", "levels": ["40% HP"]},
+	TIME_CONTROL: {"summary": "Slow time", "label": "", "levels": ["Slow", "Longer", "Freeze"]},
+	FASTER_CAPTURE: {"summary": "Capture supply drops faster", "label": "CAPTURE TIME", "levels": ["−15%", "−30%", "−45%"]},
+	CAPTURE_BONUS: {"summary": "More RP per supply drop", "label": "RP PER DROP", "levels": ["6", "7", "8"]},
+	CAPTURE_RADIUS: {"summary": "Wider capture ring", "label": "RADIUS", "levels": ["+20", "+42", "+68"]},
 }

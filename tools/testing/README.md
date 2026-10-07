@@ -31,7 +31,7 @@ Linux/macOS work with `rsync` instead of `robocopy`) plus Python 3 (Pillow for i
 ```bash
 # optional; defaults are in env.sh
 export GODOT="/path/to/Godot_v4.6.1-stable_win64_console.exe"   # on Windows use the *_console.exe
-export WORK_DIR="$TEMP/blastfront_testwork"                       # outside the repo and outside Google Drive
+export WORK_DIR="$HOME/blastfront_testwork"   # outside the repo, Google Drive and %TEMP% (default: %LOCALAPPDATA%\blastfront_testwork)
 bash tools/testing/import.sh          # first sync + headless import of the mirror (a few minutes the first time)
 bash tools/testing/regress.sh         # should print OK for every scenario
 ```

@@ -601,7 +601,7 @@ func _note_source_damage_dealt(applied_damage: int) -> void:
 	for node in get_tree().get_nodes_in_group(GameSettings.PLAYERS_GROUP):
 		var player: Player = node as Player
 		if player.player_slot == owner_slot:
-			player.note_damage_dealt(applied_damage)
+			player.note_damage_dealt()
 			return
 
 
@@ -640,7 +640,7 @@ func _play_collision_feedback(collision: KinematicCollision2D, collider: Object)
 
 func _play_world_impact(impact_position: Vector2, normal: Vector2) -> void:
 	GameJuice.spawn_burst(&"impact", impact_position, normal, _impact_tint, projectile_scale)
-	GameJuice.play_sound_2d(&"impact", impact_position)
+	AudioDirector.play_at(&"impact", impact_position)
 	GameJuice.shake(GameSettings.PROJECTILE_IMPACT_SHAKE_STRENGTH, GameSettings.PROJECTILE_IMPACT_SHAKE_TIME)
 	ImpactDecals.add_hole(impact_position, normal)
 
@@ -679,7 +679,7 @@ func play_remote_despawn_feedback(reason: StringName, despawn_position: Vector2)
 			_play_payload_feedback(despawn_position)
 		&"blocked":
 			GameJuice.spawn_burst(&"block", despawn_position, normal, Color(0.72, 0.96, 1.0, 0.92))
-			GameJuice.play_sound_2d(&"block", despawn_position)
+			AudioDirector.play_at(&"block", despawn_position)
 		&"max_distance":
 			GameJuice.spawn_burst(&"run_dust", despawn_position, normal, Color.WHITE)
 	_release_tracer()

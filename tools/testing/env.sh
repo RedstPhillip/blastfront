@@ -6,11 +6,20 @@
 #   PROJECT_DIR  The repository (default: two levels above this folder).
 #   WORK_DIR     Scratch space for the test mirror, baselines, captures and results. Must be OUTSIDE the
 #                repository and outside any synced folder (Google Drive): it holds full project copies.
+#                Not in %TEMP% either: the copies keep the sources' old timestamps, so Windows' Storage Sense
+#                deletes them as stale temp files in the middle of a session.
+#                Default: %LOCALAPPDATA%\blastfront_testwork on Windows, ~/.cache/blastfront_testwork elsewhere.
 #   MIRROR       The project copy every test runs in (default: $WORK_DIR/mirror).
 
 TESTING_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="${PROJECT_DIR:-$(cd "$TESTING_DIR/../.." && pwd)}"
-WORK_DIR="${WORK_DIR:-${TMPDIR:-${TEMP:-/tmp}}/blastfront_testwork}"
+if [ -z "$WORK_DIR" ]; then
+	if [ -n "$LOCALAPPDATA" ] && command -v cygpath >/dev/null 2>&1; then
+		WORK_DIR="$(cygpath -u "$LOCALAPPDATA")/blastfront_testwork"
+	else
+		WORK_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/blastfront_testwork"
+	fi
+fi
 MIRROR="${MIRROR:-$WORK_DIR/mirror}"
 
 if [ -z "$GODOT" ]; then
@@ -53,5 +62,5 @@ sync_project_to() {
 
 # Strips the engine's shutdown noise so real errors stand out.
 filter_noise() {
-	grep -v "^\s*$" | grep -vE "leaked|RID allocations|~CompressedTexture2D|~Utilities|object.cpp|ObjectDB instances|Unreferenced static string|PagedAllocator|resources still in use|RenderingServer::get_singleton"
+	grep -v "^\s*$" | grep -vE "leaked|RID allocations|~CompressedTexture2D|~Utilities|object.cpp|ObjectDB instances|Unreferenced static string|PagedAllocator|resources still in use|RenderingServer::get_singleton|at: clear \(core/io/resource\.cpp"
 }
