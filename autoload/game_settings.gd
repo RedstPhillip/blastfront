@@ -167,6 +167,10 @@ const PLAYER_MAX_FALL_SPEED: float = 720.0
 const PLAYER_WALL_JUMP_VELOCITY: Vector2 = Vector2(320.0, -500.0)
 const PLAYER_HOVER_DISTANCE: float = 24.0
 const PLAYER_HOVER_SNAP_SPEED: float = 30.0
+const PLAYER_HEAD_SLIDE_SPEED: float = 200.0
+## Player bodies are ~30 px round: centres closer than this mean they are stuck inside each other.
+const PLAYER_OVERLAP_DISTANCE: float = 22.0
+const PLAYER_OVERLAP_PUSH_SPEED: float = 360.0
 const PLAYER_FOOT_SPREAD: float = 12.0
 const PLAYER_HIP_Y_OFFSET: float = 13.5
 const PLAYER_BOUNCE_AMPLITUDE: float = 1.5

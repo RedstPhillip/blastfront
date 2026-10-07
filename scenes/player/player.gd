@@ -222,6 +222,46 @@ func _physics_process(delta: float) -> void:
 	_update_movement_timers(delta)
 	update_wall_coyote(delta)
 	_update_wind_exposure(delta)
+	_push_out_of_players(delta)
+	_slide_off_player_below()
+
+
+## Two players that end up inside each other (a remote player's position catching up into you) would each
+## stand on the other and float off together, glued. Step sideways out of the other body, walls still block.
+func _push_out_of_players(delta: float) -> void:
+	for node in get_tree().get_nodes_in_group(GameSettings.PLAYERS_GROUP):
+		var other: Player = node as Player
+		if other == null or other == self or (collision_mask & other.collision_layer) == 0:
+			continue
+		var offset: Vector2 = global_position - other.global_position
+		if offset.length_squared() >= GameSettings.PLAYER_OVERLAP_DISTANCE * GameSettings.PLAYER_OVERLAP_DISTANCE:
+			continue
+		var side: float = signf(offset.x) if absf(offset.x) > 0.5 else (-1.0 if player_slot < other.player_slot else 1.0)
+		add_collision_exception_with(other)
+		move_and_collide(Vector2(side * GameSettings.PLAYER_OVERLAP_PUSH_SPEED * delta, 0.0))
+		remove_collision_exception_with(other)
+
+
+## Another player's round head is no place to stand: the slope of their shoulder counts as floor, but walking
+## towards their middle hits a steeper facet, so someone who lands off-centre and keeps pushing gets pinned
+## there. Whoever has only a player under them slides off, the way they are heading or else on their own side
+## (jumping off still works).
+func _slide_off_player_below() -> void:
+	if not is_on_floor() or _is_floor_ray(_ray_l) or _is_floor_ray(_ray_r):
+		return
+	for i in get_slide_collision_count():
+		var collision: KinematicCollision2D = get_slide_collision(i)
+		var below: Player = collision.get_collider() as Player
+		if below == null or collision.get_angle(up_direction) > floor_max_angle + 0.01:
+			continue
+		var side: float = signf(get_move_direction())
+		if side == 0.0:
+			side = signf(global_position.x - below.global_position.x)
+		if side == 0.0:
+			side = last_dir if last_dir != 0.0 else 1.0
+		if signf(velocity.x) != side or absf(velocity.x) < GameSettings.PLAYER_HEAD_SLIDE_SPEED:
+			velocity.x = side * GameSettings.PLAYER_HEAD_SLIDE_SPEED
+		return
 
 
 func configure_local_control(slot: int, move_left: StringName, move_right: StringName, jump: StringName, shoot: StringName, block: StringName, allow_shoot: bool) -> void:
