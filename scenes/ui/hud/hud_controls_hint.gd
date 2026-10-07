@@ -59,14 +59,14 @@ func _rebuild() -> void:
 	add_child(_row)
 	var gamepad: bool = InputDevice.using_gamepad
 	var entries: Array = [
-		["L-STICK" if gamepad else "A  D", "MOVE"],
+		["L STICK" if gamepad else "A  D", "MOVE"],
 		["A" if gamepad else "SPACE", "JUMP"],
 		[InputDevice.prompt(&"p1_shoot"), "SHOOT"],
 		[InputDevice.prompt(&"p1_block"), "BLOCK"],
 		[InputDevice.prompt(&"p1_reload"), "RELOAD"],
 	]
 	if gamepad:
-		entries.insert(1, ["R-STICK", "AIM"])
+		entries.insert(1, ["R STICK", "AIM"])
 	for entry in entries:
 		_row.add_child(_chip(str(entry[0]), str(entry[1])))
 	_row.reset_size()

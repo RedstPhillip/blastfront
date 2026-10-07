@@ -34,7 +34,7 @@ func physics_sync_tick(delta: float) -> void:
 
 
 func handle_packet(packet: Dictionary) -> void:
-	var payload: Dictionary = _get_payload(packet)
+	var payload: Dictionary = NetworkSession.get_payload(packet)
 	var sender_slot: int = int(packet.get("from_slot", 0))
 	var slot: int = int(payload.get("slot", sender_slot))
 	var packet_tick: int = int(packet.get("tick", 0))

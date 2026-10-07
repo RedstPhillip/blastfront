@@ -801,7 +801,7 @@ func _broadcast_state() -> void:
 	if not _has_authority() or not NetworkSession.is_steam_match_active():
 		return
 	NetworkSession.send_reliable(
-		_make_packet(GameSettings.PACKET_ONLINE_MATCH_STATE, build_state()),
+		NetworkSession.make_packet(GameSettings.PACKET_ONLINE_MATCH_STATE, build_state()),
 		GameSettings.NETWORK_CHANNEL_CONTROL
 	)
 
@@ -809,23 +809,12 @@ func _broadcast_state() -> void:
 func _send_request(packet_type: StringName, payload: Dictionary) -> void:
 	if not NetworkSession.is_steam_match_active():
 		return
-	NetworkSession.send_reliable(_make_packet(packet_type, payload), GameSettings.NETWORK_CHANNEL_CONTROL)
-
-
-func _make_packet(packet_type: StringName, payload: Dictionary) -> Dictionary:
-	return {
-		"protocol_version": GameSettings.NETWORK_PROTOCOL_VERSION,
-		"type": str(packet_type),
-		"seq": 0,
-		"tick": 0,
-		"from_slot": NetworkSession.local_player_slot,
-		"payload": payload,
-	}
+	NetworkSession.send_reliable(NetworkSession.make_packet(packet_type, payload), GameSettings.NETWORK_CHANNEL_CONTROL)
 
 
 func _on_packet_received(packet: Dictionary, _sender_id: int) -> void:
 	var packet_type: StringName = StringName(str(packet.get("type", "")))
-	var payload: Dictionary = _get_payload(packet)
+	var payload: Dictionary = NetworkSession.get_payload(packet)
 
 	if packet_type == GameSettings.PACKET_ONLINE_MATCH_STATE:
 		if not _has_authority():
@@ -920,10 +909,3 @@ func _has_authority() -> bool:
 
 func _is_player_slot(slot: int) -> bool:
 	return slot == GameSettings.PLAYER_ONE_SLOT or slot == GameSettings.PLAYER_TWO_SLOT
-
-
-func _get_payload(packet: Dictionary) -> Dictionary:
-	var payload: Variant = packet.get("payload", {})
-	if payload is Dictionary:
-		return payload
-	return {}

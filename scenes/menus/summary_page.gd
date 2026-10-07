@@ -46,7 +46,7 @@ func _ready() -> void:
 	resized.connect(_layout)
 	OnlineMatch.state_changed.connect(_refresh)
 	OnlineMatch.countdown_changed.connect(_on_countdown_changed)
-	InputDevice.device_changed.connect(func(_pad: bool) -> void: _prompt_bar.set_prompts(_prompts()))
+	InputDevice.device_changed.connect(_on_device_changed)
 	_layout()
 	_load_ledger()
 	_refresh()
@@ -78,7 +78,7 @@ func _build() -> void:
 	add_child(_content)
 
 	_spend_button = Button.new()
-	_spend_button.text = "SPEND COINS  ·  Q"
+	_spend_button.text = _spend_label()
 	_spend_button.custom_minimum_size = Vector2(0.0, 40.0)
 	UiStyle.style_button(_spend_button, false, 15)
 	_spend_button.pressed.connect(func() -> void: spend_requested.emit())
@@ -124,6 +124,16 @@ func _layout() -> void:
 	_prompt_bar.size = Vector2(size.x - DOCK_WIDTH - 72.0, 22.0)
 	_content.queue_redraw()
 	_dock.queue_redraw()
+
+
+func _on_device_changed(_using_gamepad: bool) -> void:
+	_prompt_bar.set_prompts(_prompts())
+	_spend_button.text = _spend_label()
+
+
+## The shop is the loadout page, one page to the left: Q on the keyboard, LB on a pad.
+func _spend_label() -> String:
+	return "SPEND COINS  ·  %s" % ("LB" if InputDevice.using_gamepad else "Q")
 
 
 func _prompts() -> Array:

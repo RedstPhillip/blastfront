@@ -74,8 +74,10 @@ func find_path(from_id: int, to_id: int) -> PackedInt64Array:
 	return _astar.get_id_path(from_id, to_id)
 
 
+## {"move", "hold", "vx"}: how to get from one point to the next. "vx" is the sideways speed the jump or drop
+## was validated with; flying the arc at full speed instead would hit what the slower arc clears.
 func get_move(from_id: int, to_id: int) -> Dictionary:
-	return _edge_moves.get(_edge_key(from_id, to_id), {"move": Move.WALK, "hold": 0.0})
+	return _edge_moves.get(_edge_key(from_id, to_id), {"move": Move.WALK, "hold": 0.0, "vx": 0.0})
 
 
 func _build(map_root: Node, space: PhysicsDirectSpaceState2D, bounds: Rect2) -> void:
@@ -142,29 +144,33 @@ func _link_to_other_chains(source: int, chain_ranges: Array[Vector2i], climb_onl
 				best_target = target
 				best_move = move
 		if best_target >= 0:
-			_connect(source, best_target, best_move["move"], best_move["hold"], 1.6)
+			_connect(source, best_target, best_move["move"], best_move["hold"], 1.6, best_move["vx"])
 
 
 func _validate_transition(from: Vector2, to: Vector2) -> Dictionary:
-	if to.y > from.y + 20.0 and _arc_is_clear(from, to, 0.0):
-		return {"move": Move.DROP, "hold": 0.0}
+	if to.y > from.y + 20.0:
+		var drop_speed: float = _arc_speed(from, to, 0.0)
+		if drop_speed != INF:
+			return {"move": Move.DROP, "hold": 0.0, "vx": drop_speed}
 	for hold in [0.32, 0.18]:
-		if _arc_is_clear(from, to, JUMP_VELOCITY if hold > 0.25 else JUMP_VELOCITY * 0.82):
-			return {"move": Move.JUMP, "hold": hold}
+		var jump_speed: float = _arc_speed(from, to, JUMP_VELOCITY if hold > 0.25 else JUMP_VELOCITY * 0.82)
+		if jump_speed != INF:
+			return {"move": Move.JUMP, "hold": hold, "vx": jump_speed}
 	return {}
 
 
-## Simulates the body centre travelling from `from` to `to` (feet positions) with the given launch speed.
-func _arc_is_clear(from: Vector2, to: Vector2, launch_speed: float) -> bool:
+## Simulates the body centre travelling from `from` to `to` (feet positions) with the given launch speed at
+## the one constant sideways speed that lands it there. Returns that speed, or INF when the arc is blocked.
+func _arc_speed(from: Vector2, to: Vector2, launch_speed: float) -> float:
 	var start: Vector2 = from - Vector2(0.0, BODY_OFFSET)
 	var end_y: float = to.y - BODY_RADIUS - 4.0
 	var flight_time: float = _time_to_reach(start.y, end_y, launch_speed)
 	if flight_time <= 0.0:
-		return false
+		return INF
 	var reach_x: float = to.x - signf(to.x - from.x) * minf(LANDING_TOLERANCE, absf(to.x - from.x))
 	var horizontal_speed: float = (reach_x - from.x) / flight_time
 	if absf(horizontal_speed) > RUN_SPEED:
-		return false
+		return INF
 	var steps: int = maxi(4, int(flight_time / 0.045))
 	var previous: Vector2 = start
 	for step in range(1, steps + 1):
@@ -177,9 +183,9 @@ func _arc_is_clear(from: Vector2, to: Vector2, launch_speed: float) -> bool:
 		for lateral in [-BODY_RADIUS * 0.7, BODY_RADIUS * 0.7]:
 			var offset: Vector2 = Vector2(lateral, 0.0)
 			if not _ray(previous + offset, probe_end + offset).is_empty():
-				return false
+				return INF
 		previous = point
-	return true
+	return horizontal_speed
 
 
 func _vertical_offset(t: float, launch_speed: float) -> float:
@@ -271,9 +277,9 @@ func _left_to_right(chain: PackedVector2Array) -> PackedVector2Array:
 	return chain
 
 
-func _connect(from_id: int, to_id: int, move: Move, hold: float, weight: float) -> void:
+func _connect(from_id: int, to_id: int, move: Move, hold: float, weight: float, speed_x: float = 0.0) -> void:
 	_astar.connect_points(from_id, to_id, false)
-	_edge_moves[_edge_key(from_id, to_id)] = {"move": move, "hold": hold}
+	_edge_moves[_edge_key(from_id, to_id)] = {"move": move, "hold": hold, "vx": speed_x}
 	_astar.edge_weights[_edge_key(from_id, to_id)] = weight
 
 

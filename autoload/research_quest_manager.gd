@@ -116,7 +116,7 @@ func record_local_action(event_name: StringName, amount: float = 1.0) -> void:
 		_apply_progress(local_slot, event_name, amount)
 		return
 	NetworkSession.send_reliable(
-		_make_packet(GameSettings.PACKET_RESEARCH_QUEST_EVENT, {
+		NetworkSession.make_packet(GameSettings.PACKET_RESEARCH_QUEST_EVENT, {
 			"event": str(event_name),
 			"amount": clampf(amount, 0.0, 1.0),
 		}),
@@ -295,7 +295,7 @@ func _award_points(slot: int, amount: int, reason: String) -> void:
 		_apply_local_award(award_id, amount, reason)
 	else:
 		NetworkSession.send_reliable(
-			_make_packet(GameSettings.PACKET_RESEARCH_POINTS_AWARDED, {
+			NetworkSession.make_packet(GameSettings.PACKET_RESEARCH_POINTS_AWARDED, {
 				"award_id": award_id,
 				"target_slot": slot,
 				"amount": amount,
@@ -316,7 +316,7 @@ func _apply_local_award(award_id: String, amount: int, reason: String) -> void:
 
 func _on_packet_received(packet: Dictionary, _sender_id: int) -> void:
 	var packet_type: StringName = StringName(str(packet.get("type", "")))
-	var payload: Dictionary = _get_payload(packet)
+	var payload: Dictionary = NetworkSession.get_payload(packet)
 	if packet_type == GameSettings.PACKET_RESEARCH_QUEST_EVENT and _has_authority():
 		var event_name: StringName = StringName(str(payload.get("event", "")))
 		var source_slot: int = int(packet.get("from_slot", 0))
@@ -337,7 +337,7 @@ func _on_packet_received(packet: Dictionary, _sender_id: int) -> void:
 func _broadcast_state(reliable: bool = false) -> void:
 	if not NetworkSession.is_steam_match_active() or not _has_authority():
 		return
-	var packet: Dictionary = _make_packet(GameSettings.PACKET_RESEARCH_QUEST_STATE, {
+	var packet: Dictionary = NetworkSession.make_packet(GameSettings.PACKET_RESEARCH_QUEST_STATE, {
 		"assignments": _assignments_by_slot.duplicate(true),
 		"last_awarded": _last_awarded_by_slot.duplicate(),
 		"active": _active_set_has_quests,
@@ -443,21 +443,3 @@ func _get_player(slot: int) -> Variant:
 	if world == null:
 		return null
 	return world.get_player_by_slot(slot)
-
-
-func _make_packet(packet_type: StringName, payload: Dictionary) -> Dictionary:
-	return {
-		"protocol_version": GameSettings.NETWORK_PROTOCOL_VERSION,
-		"type": str(packet_type),
-		"seq": 0,
-		"tick": 0,
-		"from_slot": NetworkSession.local_player_slot,
-		"payload": payload,
-	}
-
-
-func _get_payload(packet: Dictionary) -> Dictionary:
-	var payload_variant: Variant = packet.get("payload", {})
-	if payload_variant is Dictionary:
-		return payload_variant
-	return {}

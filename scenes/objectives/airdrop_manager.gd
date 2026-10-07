@@ -405,7 +405,7 @@ func _build_visual_state() -> Dictionary:
 func _send_state(reliable: bool) -> void:
 	if not NetworkSession.is_steam_match_active() or not _has_authority():
 		return
-	var packet: Dictionary = _make_packet(GameSettings.PACKET_AIRDROP_STATE, {
+	var packet: Dictionary = NetworkSession.make_packet(GameSettings.PACKET_AIRDROP_STATE, {
 		"phase": str(_phase),
 		"descent_progress": _descent_progress,
 		"capture_progress": _capture_progress,
@@ -424,7 +424,7 @@ func _on_packet_received(packet: Dictionary, _sender_id: int) -> void:
 		return
 	if StringName(str(packet.get("type", ""))) != GameSettings.PACKET_AIRDROP_STATE:
 		return
-	var payload: Dictionary = _get_payload(packet)
+	var payload: Dictionary = NetworkSession.get_payload(packet)
 	var next_phase: StringName = StringName(str(payload.get("phase", "inactive")))
 	var target_variant: Variant = payload.get("target_position", _target_position)
 	if target_variant is Vector2:
@@ -472,21 +472,3 @@ func _get_player(slot: int) -> Player:
 
 func _has_authority() -> bool:
 	return not NetworkSession.is_steam_match_active() or NetworkSession.is_host()
-
-
-func _make_packet(packet_type: StringName, payload: Dictionary) -> Dictionary:
-	return {
-		"protocol_version": GameSettings.NETWORK_PROTOCOL_VERSION,
-		"type": str(packet_type),
-		"seq": 0,
-		"tick": 0,
-		"from_slot": NetworkSession.local_player_slot,
-		"payload": payload,
-	}
-
-
-func _get_payload(packet: Dictionary) -> Dictionary:
-	var payload_variant: Variant = packet.get("payload", {})
-	if payload_variant is Dictionary:
-		return payload_variant
-	return {}

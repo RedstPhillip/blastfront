@@ -34,7 +34,7 @@ func request_shot(owner_slot: int, spawn_position: Vector2, direction: Vector2, 
 
 
 func handle_packet(packet: Dictionary) -> void:
-	var payload: Dictionary = _get_payload(packet)
+	var payload: Dictionary = NetworkSession.get_payload(packet)
 
 	var packet_type: StringName = StringName(str(packet.get("type", "")))
 	if packet_type == GameSettings.PACKET_SHOT_REQUEST:

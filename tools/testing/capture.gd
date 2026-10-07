@@ -379,6 +379,20 @@ func _build_script() -> void:
 						parts.append("P%d %s hp=%d tgt=%s goal=%s vis=%.1f clear=%s" % [slot, p.global_position.round(), p.health_component.health, b._target != null, str(b._goal_point), b._visible_time, b._solution_direction != Vector2.ZERO])
 					print("t=%.1f wind=%.0f vis=%.2f | %s | score %d-%d" % [_time, WorldConditions.wind.x, WorldConditions.visibility, " | ".join(parts), g.get_score_for_slot(1), g.get_score_for_slot(2)]))
 			_at(92.0, "quit")
+		"bot_spawn_look":
+			# Two hard bots; the camera stays on the left spawn, where bot 1 used to bounce for seconds.
+			_at(0.3, "call", func():
+				root.get_node("UserSettings").set_value(&"progress_bot_world", "verdant")
+				root.get_node("NetworkSession").start_bot_duel()
+				_main.start_game())
+			_at(0.8, "call", func(): _stress_game().get_player_by_slot(1).configure_ai_control(1, 2))
+			_at(1.0, "call", func(): _freeze_camera_keep_players(Vector2(330, 470), 1.6))
+			for i in range(80):
+				_at(1.5 + i * 0.5, "shot", "spawn_%02d" % i)
+				_at(1.5 + i * 0.5, "call", func():
+					var p = _stress_game().get_player_by_slot(1)
+					print("t=%.1f P1 %s v=%s floor=%s goal=%s" % [_time, p.global_position.round(), p.velocity.round(), p.is_on_floor(), str(p.ai_brain._goal_point)]))
+			_at(41.5, "quit")
 		"gunfeel":
 			_at(0.1, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
 			_at(0.5, "call", func(): _main._on_sandbox_requested())

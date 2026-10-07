@@ -416,7 +416,7 @@ func _handle_packet(sender_id: int, packet: Dictionary) -> void:
 			var hello_sender: int = _resolve_packet_sender(sender_id, packet)
 			if _is_lobby_member(hello_sender):
 				remote_steam_id = hello_sender
-				_set_status("Steam peer ready: %s" % _get_payload(packet).get("name", hello_sender))
+				_set_status("Steam peer ready: %s" % get_payload(packet).get("name", hello_sender))
 				_send_handshake_ack(hello_sender)
 		"hello_ack":
 			var ack_sender: int = _resolve_packet_sender(sender_id, packet)
@@ -479,11 +479,23 @@ func _resolve_packet_sender(sender_id: int, packet: Dictionary) -> int:
 	if sender_id != 0:
 		return sender_id
 
-	var payload: Dictionary = _get_payload(packet)
+	var payload: Dictionary = get_payload(packet)
 	return int(payload.get("steam_id", 0))
 
 
-func _get_payload(packet: Dictionary) -> Dictionary:
+## Every packet shares one envelope; the message itself is in "payload".
+func make_packet(packet_type: StringName, payload: Dictionary, sequence: int = 0, tick: int = 0) -> Dictionary:
+	return {
+		"protocol_version": GameSettings.NETWORK_PROTOCOL_VERSION,
+		"type": str(packet_type),
+		"seq": sequence,
+		"tick": tick,
+		"from_slot": local_player_slot,
+		"payload": payload,
+	}
+
+
+static func get_payload(packet: Dictionary) -> Dictionary:
 	var payload: Variant = packet.get("payload", {})
 	if payload is Dictionary:
 		return payload

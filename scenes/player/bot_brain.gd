@@ -39,6 +39,10 @@ const SOLUTION_BONUS: float = 3.0
 ## Shortest gap between two goal searches. Replans can be requested every frame (blocked line of fire,
 ## getting stuck); the ranked search finishes in a frame or two, so without this it would rerun constantly.
 const MIN_SEARCH_INTERVAL: float = 0.35
+## In the air the bot never steers weaker than this share of full speed, so a jump always makes progress.
+const MIN_AIR_STEER: float = 0.2
+## Ground speed (px/s) a jump tolerates beyond what its arc needs, or against it, before the bot brakes.
+const TAKEOFF_SPEED_TOLERANCE: float = 110.0
 const TRAJECTORY_STEPS: int = 90
 const TRAJECTORY_RAY_STRIDE: int = 2
 const TARGET_HIT_RADIUS: float = 20.0
@@ -67,6 +71,8 @@ var _goal_point: int = -1
 var _replan_timer: float = 0.0
 var _search_cooldown: float = 0.0
 var _air_target_x: float = INF
+## Sideways speed of the jump or drop in progress, as the navigation validated it.
+var _air_speed_x: float = 0.0
 var _stuck_timer: float = 0.0
 ## Candidate goal points for the running search with their cheap (raycast-free) scores, best last.
 var _search_queue: Array[int] = []
@@ -195,8 +201,12 @@ func _update_movement(delta: float) -> void:
 	var direction: float = 0.0
 	if not grounded:
 		if _air_target_x != INF:
-			if absf(_air_target_x - me.x) > 6.0:
-				direction = signf(_air_target_x - me.x)
+			var to_target: float = _air_target_x - me.x
+			if absf(to_target) > 6.0:
+				# Fly the arc the navigation checked: at full speed a jump up to a ledge above and to the
+				# side runs under the ledge and bumps its head instead of rising past the edge first.
+				var share: float = absf(_air_speed_x) / maxf(_player.speed, 1.0)
+				direction = signf(to_target) * clampf(maxf(share, MIN_AIR_STEER), 0.0, 1.0)
 		if not _has_ground_below(me, 700.0) and (_air_target_x == INF or not _has_ground_below(Vector2(_air_target_x, me.y), 700.0)):
 			direction = _nearest_safe_side(me)
 		if _player.is_on_wall() and _player.velocity.y > 0.0 and not _has_ground_below(me, 500.0):
@@ -213,8 +223,15 @@ func _update_movement(delta: float) -> void:
 				var next_id: int = int(_path[_path_index + 1])
 				var next: Vector2 = _nav.points[next_id]
 				var move: Dictionary = _nav.get_move(current_id, next_id)
+				var air_speed: float = float(move.get("vx", 0.0))
+				if int(move["move"]) == LevelNavigation.Move.JUMP and _too_fast_for_takeoff(air_speed):
+					# Still running the wrong way (or too fast) for this jump: brake on the spot first.
+					move_direction = 0.0
+					_stuck_timer = 0.0
+					return
 				_path_index += 1
 				direction = signf(next.x - feet.x)
+				_air_speed_x = air_speed
 				match int(move["move"]):
 					LevelNavigation.Move.JUMP:
 						_force_jump(float(move["hold"]))
@@ -239,6 +256,12 @@ func _update_movement(delta: float) -> void:
 	else:
 		_stuck_timer = 0.0
 	move_direction = direction
+
+
+func _too_fast_for_takeoff(air_speed: float) -> bool:
+	var speed: float = _player.velocity.x
+	var against: bool = signf(speed) != signf(air_speed) and absf(speed) > TAKEOFF_SPEED_TOLERANCE
+	return against or absf(speed) > absf(air_speed) + TAKEOFF_SPEED_TOLERANCE
 
 
 func _ensure_navigation() -> void:

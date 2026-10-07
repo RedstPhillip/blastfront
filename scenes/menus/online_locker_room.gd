@@ -451,8 +451,8 @@ func _status_for(slot: int) -> Array:
 	if slot != _local_slot:
 		return ["CHOOSING", UiStyle.TEXT_MUTED]
 	if not _has_opponent():
-		return ["PICK A COLOUR WHILE YOU WAIT", UiStyle.TEXT_DIM]
-	return ["SHOOT A COLOUR, THEN SHOOT READY", UiStyle.TEXT_DIM]
+		return ["SHOOT A COLOUR", UiStyle.TEXT_DIM]
+	return ["SHOOT A COLOUR, THEN READY", UiStyle.TEXT_DIM]
 
 
 ## Nobody there yet: a quiet wheel and, under the line, the invite button where the opponent will stand.
@@ -603,7 +603,7 @@ func _send_locker_snapshot() -> void:
 		"facing": _local_player.last_dir,
 	}
 	NetworkSession.send_unreliable(
-		_make_packet(GameSettings.PACKET_ONLINE_LOCKER_PLAYER_STATE, payload),
+		NetworkSession.make_packet(GameSettings.PACKET_ONLINE_LOCKER_PLAYER_STATE, payload),
 		GameSettings.NETWORK_CHANNEL_STATE
 	)
 
@@ -621,25 +621,7 @@ func _on_packet_received(packet: Dictionary, _sender_id: int) -> void:
 	if remote_player == null:
 		return
 
-	remote_player.apply_remote_snapshot(_get_payload(packet))
-
-
-func _make_packet(packet_type: StringName, payload: Dictionary) -> Dictionary:
-	return {
-		"protocol_version": GameSettings.NETWORK_PROTOCOL_VERSION,
-		"type": str(packet_type),
-		"seq": 0,
-		"tick": 0,
-		"from_slot": _local_slot,
-		"payload": payload,
-	}
-
-
-func _get_payload(packet: Dictionary) -> Dictionary:
-	var payload: Variant = packet.get("payload", {})
-	if payload is Dictionary:
-		return payload
-	return {}
+	remote_player.apply_remote_snapshot(NetworkSession.get_payload(packet))
 
 
 func _get_player_by_slot(slot: int) -> Player:

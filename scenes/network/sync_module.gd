@@ -32,10 +32,3 @@ func apply_snapshot(_data: Dictionary) -> void:
 
 func physics_sync_tick(_delta: float) -> void:
 	return
-
-
-func _get_payload(packet: Dictionary) -> Dictionary:
-	var payload: Variant = packet.get("payload", {})
-	if payload is Dictionary:
-		return payload
-	return {}

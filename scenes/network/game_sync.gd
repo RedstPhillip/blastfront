@@ -116,14 +116,7 @@ func request_block_state(owner_slot: int, active: bool, direction: Vector2, cool
 
 func _make_packet(packet_type: StringName, payload: Dictionary) -> Dictionary:
 	_sequence += 1
-	return {
-		"protocol_version": GameSettings.NETWORK_PROTOCOL_VERSION,
-		"type": str(packet_type),
-		"seq": _sequence,
-		"tick": tick,
-		"from_slot": get_local_slot(),
-		"payload": payload,
-	}
+	return NetworkSession.make_packet(packet_type, payload, _sequence, tick)
 
 
 func _on_packet_received(packet: Dictionary, _sender_id: int) -> void:
@@ -132,7 +125,7 @@ func _on_packet_received(packet: Dictionary, _sender_id: int) -> void:
 
 	var packet_type: String = str(packet.get("type", ""))
 	if packet_type == str(GameSettings.PACKET_WORLD_SNAPSHOT):
-		_apply_world_snapshot(_get_payload(packet))
+		_apply_world_snapshot(NetworkSession.get_payload(packet))
 		return
 
 	var module: SyncModule = _packet_handlers.get(packet_type, null) as SyncModule
@@ -170,13 +163,6 @@ func _apply_world_snapshot(payload: Dictionary) -> void:
 		var module_data: Variant = modules_data[raw_module_name]
 		if module != null and (module_data is Dictionary):
 			module.apply_snapshot(module_data)
-
-
-func _get_payload(packet: Dictionary) -> Dictionary:
-	var payload: Variant = packet.get("payload", {})
-	if payload is Dictionary:
-		return payload
-	return {}
 
 
 func _get_module_name(module: SyncModule) -> String:

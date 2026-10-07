@@ -54,7 +54,7 @@ func apply_snapshot(data: Dictionary) -> void:
 func handle_packet(packet: Dictionary) -> void:
 	if game_sync == null or game_sync.is_host():
 		return
-	var payload: Dictionary = _get_payload(packet)
+	var payload: Dictionary = NetworkSession.get_payload(packet)
 	_apply(str(payload.get("key", "")), payload.get("state", {}))
 
 

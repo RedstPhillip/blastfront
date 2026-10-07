@@ -31,7 +31,7 @@ func physics_sync_tick(_delta: float) -> void:
 
 
 func handle_packet(packet: Dictionary) -> void:
-	var payload: Dictionary = _get_payload(packet)
+	var payload: Dictionary = NetworkSession.get_payload(packet)
 	var slot: int = int(payload.get("slot", packet.get("from_slot", 0)))
 	if game_sync != null and game_sync.is_host():
 		slot = int(packet.get("from_slot", slot))

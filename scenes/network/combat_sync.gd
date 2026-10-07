@@ -244,7 +244,7 @@ func _clear_damage_over_time(effect_key: String) -> void:
 
 
 func handle_packet(packet: Dictionary) -> void:
-	var payload: Dictionary = _get_payload(packet)
+	var payload: Dictionary = NetworkSession.get_payload(packet)
 	var packet_type: StringName = StringName(str(packet.get("type", "")))
 	if packet_type == GameSettings.PACKET_PLAYER_HIT:
 		var target_slot: int = int(payload.get("target_slot", 0))
