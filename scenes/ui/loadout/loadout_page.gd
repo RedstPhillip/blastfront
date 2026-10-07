@@ -91,6 +91,8 @@ var _animate_changes: bool = false
 var _last_weapon_equipped: Dictionary = {}
 var _last_armor_equipped: Dictionary = {}
 var _opened: bool = false
+var _backdrop: bool = true
+var _prompt_bar: UiPromptBar = null
 
 
 func _ready() -> void:
@@ -161,9 +163,16 @@ func _process(delta: float) -> void:
 		_show_overview()
 
 
+## The page washes the world behind it (the blurred match in the pause menu); a host that already draws
+## the shared backdrop (the intermission) turns this off.
+func set_backdrop(enabled: bool) -> void:
+	_backdrop = enabled
+	queue_redraw()
+
+
 func _draw() -> void:
-	LoadoutStyle.draw_gradient_rect(self, Rect2(Vector2.ZERO, size), LoadoutStyle.BG_TOP, LoadoutStyle.BG_BOTTOM)
-	LoadoutStyle.draw_glow(self, Vector2(size.x * 0.32, size.y * 0.2), Vector2(size.x * 0.55, size.y * 0.5), Color(1.0, 1.0, 1.0, 0.025))
+	if _backdrop:
+		LoadoutStyle.draw_scrim(self, Rect2(Vector2.ZERO, size))
 
 
 # --- Layout ----------------------------------------------------------------------------------------------
@@ -193,11 +202,8 @@ func _column(width: float) -> VBoxContainer:
 	return column
 
 
-func _header(title: String) -> Label:
-	var label: Label = LoadoutStyle.label(title, UiStyle.FONT_DISPLAY, 20, LoadoutStyle.TEXT)
-	label.custom_minimum_size = Vector2(0.0, 26.0)
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	return label
+func _header(title: String) -> Control:
+	return LoadoutStyle.eyebrow(title)
 
 
 func _build_weapon_column() -> Control:
@@ -271,7 +277,7 @@ func _build_filter_row(title: String, filters: Array[StringName], labels: Dictio
 	row.custom_minimum_size = Vector2(0.0, 26.0)
 	row.add_theme_constant_override("separation", 4)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var caption: Label = LoadoutStyle.caption(title, LoadoutStyle.TEXT_MUTED, 10)
+	var caption: Label = LoadoutStyle.caption(title, LoadoutStyle.TEXT_SECONDARY, LoadoutStyle.EYEBROW_SIZE)
 	caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	caption.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(caption)
@@ -307,7 +313,7 @@ func _build_filter_row(title: String, filters: Array[StringName], labels: Dictio
 func _build_inventory_panel(columns: int, kind: StringName) -> Dictionary:
 	var panel: PanelContainer = PanelContainer.new()
 	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var style: StyleBoxFlat = LoadoutStyle.flat(Color(1, 1, 1, 0.022), 6)
+	var style: StyleBoxFlat = LoadoutStyle.well()
 	style.content_margin_left = 6.0
 	style.content_margin_right = 4.0
 	style.content_margin_top = 8.0
@@ -360,7 +366,7 @@ func _style_scrollbar(bar: VScrollBar) -> void:
 func _build_shop_panel() -> Control:
 	var panel: PanelContainer = PanelContainer.new()
 	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var style: StyleBoxFlat = LoadoutStyle.flat(Color(1, 1, 1, 0.03), 6)
+	var style: StyleBoxFlat = LoadoutStyle.well()
 	style.content_margin_left = 12.0
 	style.content_margin_right = 12.0
 	style.content_margin_top = 10.0
@@ -370,8 +376,9 @@ func _build_shop_panel() -> Control:
 	column.add_theme_constant_override("separation", 6)
 	panel.add_child(column)
 	var header: HBoxContainer = HBoxContainer.new()
+	header.add_theme_constant_override("separation", 10)
 	column.add_child(header)
-	var title: Label = LoadoutStyle.label("SHOP", UiStyle.FONT_DISPLAY, 16, LoadoutStyle.TEXT)
+	var title: Control = LoadoutStyle.eyebrow("SHOP", 22.0)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(title)
 	_coin_label = Label.new()
@@ -414,22 +421,13 @@ func _make_reward_tile(kind: StringName, index: int) -> LoadoutRewardTile:
 	return tile
 
 
-## One quiet line of controls (key cap + action), like a console prompt bar.
+## The shared prompt bar, as on the other between-rounds pages.
 func _build_tips_panel() -> Control:
-	var tips: Control = Control.new()
-	tips.custom_minimum_size = Vector2(0.0, 24.0)
-	tips.size_flags_vertical = Control.SIZE_SHRINK_END
-	tips.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tips.draw.connect(func() -> void:
-		var entries: Array = [["LMB", "Install"], ["RMB", "Remove"], ["DRAG", "Move"]]
-		if _shop_enabled:
-			entries.append(["DRAG", "Sell"])
-		var x: float = 0.0
-		for entry in entries:
-			x += LoadoutStyle.draw_key_chip(tips, Vector2(x, 3.0), str(entry[0]), 18.0) + 7.0
-			tips.draw_string(UiStyle.FONT_BODY, Vector2(x, 16.0), str(entry[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, LoadoutStyle.TEXT_MUTED)
-			x += UiStyle.FONT_BODY.get_string_size(str(entry[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x + 16.0)
-	return tips
+	_prompt_bar = UiPromptBar.new()
+	_prompt_bar.compact = true
+	_prompt_bar.size_flags_vertical = Control.SIZE_SHRINK_END
+	_prompt_bar.set_prompts([["LMB", "Install"], ["RMB", "Remove"], ["DRAG", "Move"]])
+	return _prompt_bar
 
 
 func _focus_first_tile() -> void:

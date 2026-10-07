@@ -311,7 +311,7 @@ func _burst(slot: StringName, count: int) -> void:
 
 func _draw() -> void:
 	var rect: Rect2 = Rect2(Vector2.ZERO, size)
-	draw_style_box(LoadoutStyle.flat(Color(1, 1, 1, 0.022), 6), rect)
+	draw_style_box(LoadoutStyle.well(), rect)
 	var center: Vector2 = Vector2(size.x * 0.5, size.y * 0.5)
 	LoadoutStyle.draw_glow(self, center + Vector2(0.0, -6.0), Vector2(size.x * 0.52, size.y * 0.5), Color(1.0, 1.0, 1.0, 0.045))
 	LoadoutStyle.draw_glow(self, center + Vector2(20.0, -6.0), Vector2(size.x * 0.22, size.y * 0.24), Color(1.0, 0.96, 0.9, 0.035))

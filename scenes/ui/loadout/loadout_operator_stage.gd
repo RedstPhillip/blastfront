@@ -209,7 +209,7 @@ func _burst(category: StringName, count: int) -> void:
 
 func _draw() -> void:
 	var rect: Rect2 = Rect2(Vector2.ZERO, size)
-	draw_style_box(LoadoutStyle.flat(Color(1, 1, 1, 0.022), 6), rect)
+	draw_style_box(LoadoutStyle.well(), rect)
 	var pedestal: Vector2 = _pedestal_center()
 	var light_top: Vector2 = Vector2(pedestal.x, 0.0)
 	draw_polygon(

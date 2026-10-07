@@ -153,7 +153,7 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	var drop_ready: bool = target_active and compatible_drag
 	var drop_color: Color = LoadoutStyle.drop_color(drop_armed, _time)
-	var fill: Color = Color(0.13, 0.14, 0.158, 0.92).lerp(LoadoutStyle.CARD_HOVER, _hover)
+	var fill: Color = LoadoutStyle.with_alpha(LoadoutStyle.CARD, 0.92).lerp(LoadoutStyle.CARD_HOVER, _hover)
 	_style.set_border_width_all(0)
 	if drop_ready:
 		fill = fill.lerp(Color(0.24, 0.18, 0.08, 0.95), 0.65 if drop_armed else 0.4)

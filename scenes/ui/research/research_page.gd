@@ -8,8 +8,8 @@ class_name ResearchPage
 ## worth, the hold-to-research action), so nothing jumps around. Clicking or pad focus selects; holding on a
 ## badge or the button researches.
 
-const DOCK_WIDTH: float = 392.0
-const DOCK_PAD: float = 24.0
+const DOCK_WIDTH: float = LoadoutStyle.DOCK_WIDTH
+const DOCK_PAD: float = LoadoutStyle.DOCK_PAD
 const TREE_LEFT: float = 182.0
 const COLUMN_STEP: float = 116.0
 const LANES: Array[Dictionary] = [
@@ -309,12 +309,6 @@ func _unhandled_input(event: InputEvent) -> void:
 
 # --- Drawing ---------------------------------------------------------------------------------------------
 
-func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), LoadoutStyle.BACKDROP)
-	var tree_width: float = size.x - DOCK_WIDTH
-	LoadoutStyle.draw_glow(self, Vector2(tree_width * 0.52, size.y * 0.5), Vector2(tree_width * 0.6, size.y * 0.5), Color(0.739, 0.725, 0.689, 0.025), 48)
-
-
 func _draw_tree() -> void:
 	for entry in _lane_labels:
 		var lane: Dictionary = entry["lane"]
@@ -400,9 +394,7 @@ func _draw_dock() -> void:
 
 
 func _section(x: float, y: float, width: float, text: String) -> void:
-	_dock.draw_string(UiStyle.FONT_BOLD, Vector2(x, y + 4.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, LoadoutStyle.TEXT_SECONDARY)
-	var text_width: float = UiStyle.FONT_BOLD.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x
-	_dock.draw_line(Vector2(x + text_width + 10.0, y), Vector2(x + width, y), LoadoutStyle.HAIRLINE, 1.0)
+	LoadoutStyle.draw_eyebrow(_dock, x, y, width, text)
 
 
 ## Word-wraps text into at most max_lines lines; returns the baseline of the last line.

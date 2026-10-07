@@ -7,6 +7,9 @@ extends Control
 
 const STATUS_SECONDS: float = 2.6
 
+## Narrow columns (the loadout's centre) pack the prompts tighter.
+var compact: bool = false
+
 var _prompts: Array = []
 var _status_text: String = ""
 var _status_color: Color = LoadoutStyle.TEXT
@@ -46,7 +49,7 @@ func _draw() -> void:
 	for prompt in _prompts:
 		x += LoadoutStyle.draw_key_chip(self, Vector2(x, 2.0), str(prompt[0]), 18.0) + 7.0
 		draw_string(UiStyle.FONT_UI, Vector2(x, 16.0), str(prompt[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, LoadoutStyle.TEXT_SECONDARY)
-		x += UiStyle.FONT_UI.get_string_size(str(prompt[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x + 22.0
+		x += UiStyle.FONT_UI.get_string_size(str(prompt[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x + (12.0 if compact else 22.0)
 	if _status_time <= 0.0 or _status_text == "":
 		return
 	var alpha: float = clampf(_status_time / 0.4, 0.0, 1.0) * clampf((STATUS_SECONDS - _status_time) / 0.12, 0.0, 1.0)

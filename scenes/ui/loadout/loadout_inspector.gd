@@ -239,7 +239,7 @@ func _layout_armor_preview() -> void:
 
 func _draw_preview() -> void:
 	var rect: Rect2 = Rect2(Vector2.ZERO, _preview.size)
-	_preview.draw_style_box(LoadoutStyle.flat(Color(0, 0, 0, 0.22), 4), rect)
+	_preview.draw_style_box(LoadoutStyle.flat(Color(0, 0, 0, 0.22), LoadoutStyle.WELL_RADIUS), rect)
 	LoadoutStyle.draw_glow(_preview, rect.get_center(), rect.size * Vector2(0.42, 0.55), Color(1, 1, 1, 0.06))
 	var ease: float = 1.0 - pow(1.0 - _reveal, 3.0)
 	var lift: Vector2 = Vector2(0.0, (1.0 - ease) * 6.0)
@@ -271,7 +271,7 @@ func _draw_condition() -> void:
 
 
 func _panel_style() -> StyleBoxFlat:
-	var style: StyleBoxFlat = LoadoutStyle.flat(Color(1, 1, 1, 0.03).lerp(Color(_accent_color.r, _accent_color.g, _accent_color.b, 0.12), _flash), 6)
+	var style: StyleBoxFlat = LoadoutStyle.flat(LoadoutStyle.WELL.lerp(Color(_accent_color.r, _accent_color.g, _accent_color.b, 0.12), _flash), LoadoutStyle.WELL_RADIUS)
 	style.content_margin_left = 12.0
 	style.content_margin_right = 12.0
 	style.content_margin_top = 12.0

@@ -8,8 +8,17 @@ extends RefCounted
 
 const BG_TOP: Color = Color(0.075, 0.075, 0.07, 1.0)
 const BG_BOTTOM: Color = Color(0.035, 0.035, 0.033, 1.0)
-const BACKDROP: Color = Color(0.03, 0.03, 0.028, 0.96)
-const DOCK: Color = Color(0.0, 0.0, 0.0, 0.32)
+## The between-rounds pages share one frame: the world stays faintly visible under an ink wash (SCRIM),
+## every surface is a recessed ink well (WELL, no border), every section opens with an eyebrow label and a
+## hairline, and the page's one action sits at the foot of its right-hand dock.
+const SCRIM_TOP: Color = Color(0.025, 0.026, 0.024, 0.68)
+const SCRIM_BOTTOM: Color = Color(0.012, 0.013, 0.012, 0.84)
+const WELL: Color = Color(0.0, 0.0, 0.0, 0.3)
+const WELL_RADIUS: int = 3
+const DOCK: Color = WELL
+const DOCK_WIDTH: float = 392.0
+const DOCK_PAD: float = 24.0
+const EYEBROW_SIZE: int = 11
 const CARD: Color = Color(0.11, 0.11, 0.104, 1.0)
 const CARD_HOVER: Color = Color(0.16, 0.16, 0.15, 1.0)
 const CARD_EMPTY: Color = Color(1.0, 1.0, 1.0, 0.025)
@@ -99,6 +108,41 @@ static func label(text: String, font: Font, size: int, color: Color) -> Label:
 
 static func caption(text: String, color: Color = TEXT_MUTED, size: int = 11) -> Label:
 	return label(text, UiStyle.FONT_BOLD, size, color)
+
+
+static func well(radius: int = WELL_RADIUS) -> StyleBoxFlat:
+	return flat(WELL, radius)
+
+
+## The page wash over the dimmed world.
+static func draw_scrim(canvas: CanvasItem, rect: Rect2) -> void:
+	draw_gradient_rect(canvas, rect, SCRIM_TOP, SCRIM_BOTTOM)
+
+
+## A section label with a hairline running on to the right edge, and optional quiet text at the end of the
+## line ("0 / 8", "RESETS TO 5 NEXT SET"). `y` is the line's height; the label sits on it.
+static func draw_eyebrow(canvas: CanvasItem, x: float, y: float, width: float, text: String, meta: String = "", meta_color: Color = TEXT_MUTED) -> void:
+	var font: Font = UiStyle.FONT_BOLD
+	canvas.draw_string(font, Vector2(x, y + 4.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, EYEBROW_SIZE, TEXT_SECONDARY)
+	var start: float = x + font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, EYEBROW_SIZE).x + 10.0
+	var end: float = x + width
+	if meta != "":
+		var meta_width: float = font.get_string_size(meta, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
+		canvas.draw_string(font, Vector2(end - meta_width, y + 4.0), meta, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, meta_color)
+		end -= meta_width + 10.0
+	if end > start:
+		canvas.draw_line(Vector2(start, y), Vector2(end, y), HAIRLINE, 1.0)
+
+
+## The eyebrow as a control for container layouts; its end text comes from the "eyebrow_meta" meta (set it,
+## then queue_redraw).
+static func eyebrow(text: String, height: float = 26.0) -> Control:
+	var row: Control = Control.new()
+	row.custom_minimum_size = Vector2(0.0, height)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.set_meta("eyebrow_meta", "")
+	row.draw.connect(func() -> void: draw_eyebrow(row, 0.0, row.size.y * 0.5, row.size.x, text, str(row.get_meta("eyebrow_meta", ""))))
+	return row
 
 
 ## Text shortened with an ellipsis to fit a width, for strings drawn straight onto a canvas.
