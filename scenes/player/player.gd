@@ -19,6 +19,8 @@ const WIND_GROUND_SHARE: float = 0.3
 const WIND_AIR_SHARE: float = 0.62
 ## Seconds a Time Control slow takes to settle in and to wear off, so the change reads instead of snapping.
 const TIME_RAMP_SECONDS: float = 0.18
+## Online: how far (s) a Time Control timer may drift from the host's before the snapshot moves it.
+const TIME_SYNC_TOLERANCE: float = 0.25
 
 static var _body_texture_cache: Dictionary = {}
 static var _body_texture_exists_cache: Dictionary = {}
@@ -1952,6 +1954,53 @@ func _end_time_freeze() -> void:
 		health_component.damage_floor = 0
 	GameJuice.spawn_burst(&"time_release", global_position, Vector2.UP, TimeFlow.COLOR)
 	AudioDirector.play_at(&"time_thaw", global_position)
+
+
+## Velocity in world units per real second (the remote side extrapolates with it); `velocity` itself is
+## in units per second of this player's own, possibly slowed, clock.
+func get_world_velocity() -> Vector2:
+	return velocity * time_scale
+
+
+## Online: this player's Time Control as the host sees it, for the world snapshot ({} when idle).
+func get_time_state() -> Dictionary:
+	if _time_slow_timer <= 0.0 and _time_control_cooldown <= 0.0:
+		return {}
+	return {
+		"slow": _time_slow_timer,
+		"freeze": _time_freeze_timer,
+		"scale": _time_slow_scale,
+		"cooldown": _time_control_cooldown,
+		"cooldown_total": _time_control_cooldown_total,
+	}
+
+
+## Online (client): lines Time Control up with the host's snapshot. A cast packet arrives a little after the
+## host played it and may be lost or overtaken by a round reset, so timers further off than the tolerance
+## are moved; closer ones are left alone so nothing visibly snaps. An ending slow is left to its own last
+## frame, which plays the release.
+func sync_time_state(state: Dictionary) -> void:
+	var slow: float = float(state.get("slow", 0.0))
+	var freeze: float = float(state.get("freeze", 0.0))
+	if absf(slow - _time_slow_timer) > TIME_SYNC_TOLERANCE:
+		if slow <= 0.0:
+			_time_slow_timer = minf(_time_slow_timer, 0.001)
+		else:
+			_time_slow_timer = slow
+			_time_slow_scale = clampf(float(state.get("scale", _time_slow_scale)), 0.0, 1.0)
+			_time_slow_duration = maxf(_time_slow_duration, slow)
+	if absf(freeze - _time_freeze_timer) > TIME_SYNC_TOLERANCE:
+		_time_freeze_timer = minf(_time_freeze_timer, 0.001) if freeze <= 0.0 else freeze
+	var cooldown: float = float(state.get("cooldown", 0.0))
+	if absf(cooldown - _time_control_cooldown) > TIME_SYNC_TOLERANCE * 2.0:
+		_time_control_cooldown = cooldown
+		_time_control_cooldown_total = maxf(float(state.get("cooldown_total", _time_control_cooldown_total)), maxf(cooldown, 0.01))
+
+
+## Ends any slow on this player at once (between rounds); the cooldown is kept.
+func reset_time_control_state() -> void:
+	_time_control_active_timer = 0.0
+	_clear_time_slow()
 
 
 func _clear_time_slow() -> void:

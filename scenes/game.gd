@@ -263,17 +263,34 @@ func request_block_state(owner: Node, active: bool, direction: Vector2, cooldown
 
 
 ## Casts the caster's Time Control: every other fighter (and every round they fire) runs slow for a few
-## seconds. Refused during the round intro, between rounds, while the caster is slowed or recharging.
-## Offline only for now: an online cast would have to go through the host.
+## seconds. Online the host owns every cast: the host casts and replays it on the client, a client asks the
+## host (its own checks only spare pointless requests). Returns false when nothing was cast or asked.
 func request_time_control(caster: Player) -> bool:
-	if caster == null or NetworkSession.is_steam_match_active():
+	if caster == null:
 		return false
-	if _round_intro_running or _offline_match_over:
+	if not NetworkSession.is_steam_match_active():
+		return not cast_time_control(caster).is_empty()
+	var time_sync: Variant = _game_sync.get_module(GameSettings.MODULE_TIME) if _game_sync != null else null
+	if time_sync == null:
 		return false
-	if NetworkSession.uses_set_flow() and not OnlineMatch.is_playing_set():
+	if NetworkSession.is_host():
+		var cast: Dictionary = cast_time_control(caster)
+		if cast.is_empty():
+			return false
+		time_sync.broadcast_cast(cast)
+		return true
+	if not _time_control_allowed(caster):
 		return false
-	if not caster.can_cast_time_control() or _is_kill_banner_up():
-		return false
+	time_sync.request_cast()
+	return true
+
+
+## Checks and applies a cast on this side; returns what was cast ({} when refused) so the host can replay
+## the very same cast on the client. Refused during the round intro, between rounds and during the kill
+## banner, while the caster is slowed or recharging.
+func cast_time_control(caster: Player) -> Dictionary:
+	if not _time_control_allowed(caster):
+		return {}
 	var profile: Dictionary = ResearchManager.get_time_control_profile(caster.player_slot)
 	var targets: Array[Player] = []
 	for node in get_tree().get_nodes_in_group(GameSettings.PLAYERS_GROUP):
@@ -281,12 +298,28 @@ func request_time_control(caster: Player) -> bool:
 		if other != null and other != caster and other.player_slot != caster.player_slot and not other.is_eliminated():
 			targets.append(other)
 	if targets.is_empty():
-		return false
-	var duration: float = float(profile["duration"])
-	caster.begin_time_control_cooldown(float(profile["cooldown"]), duration + float(profile.get("freeze", 0.0)))
+		return {}
+	var cast: Dictionary = {
+		"caster": caster.player_slot,
+		"targets": [],
+		"scale": float(profile["scale"]),
+		"duration": float(profile["duration"]),
+		"freeze": float(profile.get("freeze", 0.0)),
+		"cooldown": float(profile["cooldown"]),
+	}
+	caster.begin_time_control_cooldown(cast["cooldown"], cast["duration"] + cast["freeze"])
 	for target in targets:
-		target.apply_time_slow(float(profile["scale"]), duration, float(profile.get("freeze", 0.0)))
-	return true
+		target.apply_time_slow(cast["scale"], cast["duration"], cast["freeze"])
+		(cast["targets"] as Array).append(target.player_slot)
+	return cast
+
+
+func _time_control_allowed(caster: Player) -> bool:
+	if caster == null or _round_intro_running or _offline_match_over:
+		return false
+	if NetworkSession.uses_set_flow() and not OnlineMatch.is_playing_set():
+		return false
+	return caster.can_cast_time_control() and not _is_kill_banner_up()
 
 
 ## A player started a dash (Movement research): online, the other side mirrors it.

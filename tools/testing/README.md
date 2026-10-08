@@ -78,7 +78,8 @@ Pillow (`ImageChops.difference`) when a change should be pixel-identical.
 - **Time Control:** `time_probe` (bot duel: run and projectile speed before/during/after the slow, refusals in
   the intro and on cooldown, the reverse cast; prints `TIME_PROBE PASS/FAIL` lines), `time_sandbox`,
   `time_freeze` (Mk III: rounds hang, inputs blocked, 35% damage cap, last point kept, no cast during the kill
-  banner), `time_bot` (a low Hard bot casts once it sees you; a slowed bot backs off). regress.sh only greps
+  banner), `time_bot` (a low Hard bot casts once it sees you; a slowed bot backs off), `time_online` (host and
+  client paths without Steam: casts, spoofing, kill banner, late packets, snapshot corrections, frozen rounds). regress.sh only greps
   for script errors, so read the PASS/FAIL lines of these yourself.
 - **Bots:** `bot_watch` (two hard bots, state log every 1.5 s, `BF_WORLD`), `bot_spawn_look` (screenshots of
   the left spawn, where a navigation bug once kept a bot hopping)

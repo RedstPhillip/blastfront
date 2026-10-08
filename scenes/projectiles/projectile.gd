@@ -139,7 +139,10 @@ func apply_network_snapshot(snapshot: Dictionary) -> void:
 	var snapshot_rotation: Variant = snapshot.get("rotation", rotation)
 
 	if snapshot_position is Vector2:
-		global_position = global_position.lerp(snapshot_position, GameSettings.PROJECTILE_SNAPSHOT_INTERPOLATION)
+		# A round frozen in time (Time Control Mk III) takes the host's spot outright, so it hangs in the
+		# same place on both screens; moving rounds ease towards it.
+		var weight: float = 1.0 if _time_scale <= 0.001 else GameSettings.PROJECTILE_SNAPSHOT_INTERPOLATION
+		global_position = global_position.lerp(snapshot_position, weight)
 	if snapshot_velocity is Vector2:
 		velocity = snapshot_velocity
 	if snapshot_rotation is float or snapshot_rotation is int:

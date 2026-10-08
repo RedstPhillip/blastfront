@@ -1100,6 +1100,119 @@ func _build_script() -> void:
 				_tp_check("slowed bot backs off", gap > float(_tp_marks["gap"]) + 25.0))
 			_at(15.9, "call", func(): _tp_report())
 			_at(16.0, "quit")
+		"time_online":
+			# Time Control's online path without Steam (sends are no-ops): the sandbox is flipped into a hosted
+			# set with P2 as the remote peer, then into a client; the time module gets the packets a peer sends.
+			_at(0.1, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
+			_at(0.5, "call", func(): _main._on_sandbox_requested())
+			_at(1.6, "call", func():
+				var g = _stress_game()
+				var session = root.get_node("NetworkSession")
+				session.mode = &"host"
+				session._match_active = true
+				session.local_player_slot = 1
+				root.get_node("OnlineMatch")._reset_current_set_stats()
+				root.get_node("OnlineMatch").phase = &"playing_set"
+				g.get_player_by_slot(2).configure_remote_control(2)
+				root.get_node("ResearchManager")._local_marks["time_control"] = 3
+				root.get_node("ResearchManager")._remote_marks_by_player[2] = {"time_control": 3}
+				g._game_sync.setup(g)
+				g.get_player_by_slot(2).reset_network_state_to_current_transform())
+			# Host: the client asks; the host freezes its own player and starts the client's cooldown.
+			_at(2.0, "call", func():
+				var g = _stress_game()
+				_time_packet(&"time_cast_request", 2, {})
+				_tp_check("host casts the client's request", g.get_player_by_slot(1).is_time_frozen() and g.get_player_by_slot(2).get_time_control_cooldown_left() > 20.0)
+				var snapshot: Dictionary = g._game_sync.get_module(&"time").build_snapshot()
+				_tp_check("host snapshot carries the slow", (snapshot.get("players", {}) as Dictionary).has(1)))
+			_at(2.1, "call", func():
+				var g = _stress_game()
+				for slot in [1, 2]:
+					g.get_player_by_slot(slot).reset_time_control_state()
+					g.get_player_by_slot(slot)._time_control_cooldown = 0.0
+				_time_packet(&"time_cast_request", 1, {})
+				_tp_check("spoofed request (claims the host's slot) ignored", not g.get_player_by_slot(2).is_time_slowed() and not g.get_player_by_slot(1).is_time_slowed()))
+			# Host's own cast: the client's copy and its rounds (authoritative here) freeze.
+			_at(2.3, "call", func():
+				var g = _stress_game()
+				_tp_spawn_round(2, Vector2(-200, -140), "online_round")
+				_tp_check("host's own cast", g.request_time_control(g.get_player_by_slot(1)))
+				_tp_marks["online_cast"] = {"caster": 2, "targets": [1], "scale": 0.35, "duration": 3.0, "freeze": 1.5, "cooldown": 26.0})
+			_at(2.8, "call", func(): _tp_marks["online_round_at"] = _tp_rounds["online_round"].global_position)
+			_at(3.3, "call", func(): _tp_check("client's round frozen on the host", _tp_rounds["online_round"].global_position.distance_to(_tp_marks["online_round_at"]) < 0.5))
+			# Kill banner: the set stops, every slow ends on both sides and no cast is accepted. All in one frame,
+			# since the host's match flow would move a faked phase on by itself.
+			_at(3.5, "call", func():
+				var g = _stress_game()
+				var online_match = root.get_node("OnlineMatch")
+				online_match.phase = &"kill_banner"
+				g._game_sync.get_module(&"time").physics_sync_tick(0.016)
+				_tp_check("phase change ends the slow", not g.get_player_by_slot(2).is_time_slowed() and g.get_player_by_slot(2).time_scale == 1.0)
+				g.get_player_by_slot(2)._time_control_cooldown = 0.0
+				_time_packet(&"time_cast_request", 2, {})
+				_tp_check("request during the kill banner ignored", not g.get_player_by_slot(1).is_time_slowed() and g.get_player_by_slot(2).get_time_control_cooldown_left() == 0.0)
+				online_match.phase = &"playing_set")
+			# Client: the host's cast freezes the client's own player, which simulates itself frozen.
+			_at(4.0, "call", func():
+				var g = _stress_game()
+				root.get_node("NetworkSession").mode = &"client"
+				root.get_node("OnlineMatch").phase = &"playing_set"
+				for slot in [1, 2]:
+					g.get_player_by_slot(slot).reset_time_control_state()
+					g.get_player_by_slot(slot)._time_control_cooldown = 0.0
+				_time_packet(&"time_cast", 2, _tp_marks["online_cast"])
+				var p1 = g.get_player_by_slot(1)
+				_tp_check("client sees itself frozen", p1.is_time_frozen() and g.get_player_by_slot(2).get_time_control_cooldown_left() > 20.0)
+				_tp_marks["client_p1"] = p1.global_position)
+			_at(4.05, "press", "p1_move_right")
+			_at(4.6, "call", func():
+				var g = _stress_game()
+				var p1 = g.get_player_by_slot(1)
+				_tp_check("frozen client cannot move", p1.global_position.distance_to(_tp_marks["client_p1"]) < 0.5)
+				# A frozen round mirrored from the host takes the host's spot outright.
+				var projectiles = g._game_sync.get_module(&"projectile")
+				projectiles._apply_projectile_spawn({"net_id": 9001, "owner_slot": 1, "spawn_position": p1.global_position + Vector2(-150, -150), "direction": Vector2.RIGHT, "projectile": {"muzzle_speed": 900.0, "gravity": 0.0, "max_distance": 100000.0}}))
+			_at(4.7, "call", func():
+				var g = _stress_game()
+				var spot: Vector2 = g.get_player_by_slot(1).global_position + Vector2(-120, -150)
+				g._game_sync.get_module(&"projectile").apply_snapshot({"projectiles": [{"net_id": 9001, "position": spot, "velocity": Vector2(900, 0), "rotation": 0.0}]})
+				_tp_marks["frozen_spot"] = spot)
+			_at(5.0, "call", func():
+				var g = _stress_game()
+				var shot = g._game_sync.get_module(&"projectile")._projectiles.get(9001, null)
+				_tp_check("frozen round lines up with the host", shot != null and shot.global_position.distance_to(_tp_marks["frozen_spot"]) < 0.5))
+			# After the freeze: the client runs slowed, and its snapshot reports real speed.
+			_at(6.0, "call", func():
+				var p1 = _stress_game().get_player_by_slot(1)
+				var snap: Dictionary = _stress_game()._game_sync.get_module(&"player")._build_player_snapshot(p1)
+				var sent: Vector2 = snap["velocity"]
+				print("TIME_PROBE slowed client: own velocity %s, sent %s" % [p1.velocity.round(), sent.round()])
+				_tp_check("snapshot sends real-time velocity", p1.is_time_slowed() and absf(sent.x - p1.velocity.x * p1.time_scale) < 1.0 and absf(sent.x) < absf(p1.velocity.x)))
+			_at(6.1, "release", "p1_move_right")
+			# The host's snapshot moves a drifting timer, leaves a close one alone, ends a stale slow.
+			_at(6.2, "call", func():
+				var p1 = _stress_game().get_player_by_slot(1)
+				var time_sync = _stress_game()._game_sync.get_module(&"time")
+				var before: float = p1.get_time_slow_left()
+				time_sync.apply_snapshot({"players": {1: {"slow": before - 0.1, "freeze": 0.0, "scale": 0.35, "cooldown": 0.0}}})
+				_tp_check("small drift left alone", is_equal_approx(p1.get_time_slow_left(), before))
+				time_sync.apply_snapshot({"players": {1: {"slow": 0.6, "freeze": 0.0, "scale": 0.35, "cooldown": 0.0}}})
+				_tp_check("large drift corrected (%.2f s left)" % p1.get_time_slow_left(), absf(p1.get_time_slow_left() - 0.6) < 0.05)
+				time_sync.apply_snapshot({"players": {}}))
+			_at(6.6, "call", func(): _tp_check("stale slow ends on the host's word", not _stress_game().get_player_by_slot(1).is_time_slowed()))
+			# A cast arriving after a phase change is dropped.
+			_at(6.8, "call", func():
+				var g = _stress_game()
+				root.get_node("OnlineMatch").phase = &"intermission"
+				_time_packet(&"time_cast", 2, _tp_marks["online_cast"])
+				_tp_check("late cast during intermission ignored", not g.get_player_by_slot(1).is_time_slowed()))
+			_at(7.0, "call", func():
+				var session = root.get_node("NetworkSession")
+				session._match_active = false
+				session.mode = &"training"
+				root.get_node("OnlineMatch").phase = &"playing_set"
+				_tp_report())
+			_at(7.1, "quit")
 		"time_sandbox":
 			# Time Control in the sandbox: free to try, slows every dummy, nobody else.
 			_at(0.1, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
@@ -1926,6 +2039,11 @@ var _tp_marks: Dictionary = {}
 var _tp_rounds: Dictionary = {}
 var _tp_results: Dictionary = {}
 var _tp_failures: int = 0
+
+
+## Hands the time module a packet as if the other peer had sent it.
+func _time_packet(packet_type: StringName, from_slot: int, payload: Dictionary) -> void:
+	_stress_game()._game_sync.get_module(&"time").handle_packet({"type": str(packet_type), "from_slot": from_slot, "tick": 0, "payload": payload})
 
 
 func _tp_check(label: String, ok: bool) -> void:

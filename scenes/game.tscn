@@ -13,6 +13,7 @@
 [ext_resource type="Script" uid="uid://bhr5ms55p0gpf" path="res://scenes/network/block_sync.gd" id="12_block_sync"]
 [ext_resource type="Script" uid="uid://cwc1n0ffnm1h2" path="res://scenes/network/world_sync.gd" id="15_world_sync"]
 [ext_resource type="Script" uid="uid://cok1hx015eifm" path="res://scenes/network/movement_sync.gd" id="16_movement_sync"]
+[ext_resource type="Script" path="res://scenes/network/time_sync.gd" id="17_time_sync"]
 [ext_resource type="Script" path="res://scenes/game_camera.gd" id="13_camera"]
 [ext_resource type="PackedScene" path="res://scenes/effects/screen_fx.tscn" id="14_screen_fx"]
 
@@ -50,6 +51,9 @@ script = ExtResource("15_world_sync")
 
 [node name="MovementSync" type="Node" parent="GameSync"]
 script = ExtResource("16_movement_sync")
+
+[node name="TimeSync" type="Node" parent="GameSync"]
+script = ExtResource("17_time_sync")
 
 [node name="ScreenFx" parent="." instance=ExtResource("14_screen_fx")]
 

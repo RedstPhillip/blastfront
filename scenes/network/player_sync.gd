@@ -77,7 +77,7 @@ func _build_player_snapshot(player: Player) -> Dictionary:
 	var snapshot: Dictionary = {
 		"slot": player.player_slot,
 		"position": player.global_position,
-		"velocity": player.velocity,
+		"velocity": player.get_world_velocity(),
 		"aim": player.get_aim_world_position(),
 		"facing": player.last_dir,
 	}
