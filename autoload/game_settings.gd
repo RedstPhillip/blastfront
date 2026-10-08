@@ -149,6 +149,7 @@ const INPUT_P1_BLOCK: StringName = &"p1_block"
 const INPUT_P1_RELOAD: StringName = &"p1_reload"
 const INPUT_P1_TIME_CONTROL: StringName = &"p1_time_control"
 const INPUT_P1_DASH: StringName = &"p1_dash"
+const INPUT_P1_MOVE_DOWN: StringName = &"p1_move_down"
 const INPUT_PAUSE: StringName = &"pause"
 const INPUT_P2_MOVE_LEFT: StringName = &"p2_move_left"
 const INPUT_P2_MOVE_RIGHT: StringName = &"p2_move_right"
@@ -191,6 +192,18 @@ const PLAYER_DASH_PROTECTION_GRACE: float = 0.06
 const PLAYER_DASH_SHOCKWAVE_RADIUS: float = 96.0
 const PLAYER_DASH_SHOCKWAVE_KNOCKBACK: Vector2 = Vector2(470.0, -290.0)
 const PLAYER_DASH_SHOCKWAVE_STUN: float = 0.16
+## Sliding (Movement research): the body drops to PLAYER_SLIDE_HOVER above the floor with a flat capsule
+## of PLAYER_SLIDE_RADIUS, so its top sits ~17 px up and a round at standing height (~24 px up) passes over.
+## Under a ceiling too low to stand the slide turns into a crawl until there is room.
+const PLAYER_SLIDE_HOVER: float = 10.0
+const PLAYER_SLIDE_RADIUS: float = 7.0
+const PLAYER_SLIDE_CRAWL_SPEED: float = 110.0
+const PLAYER_SLIDE_BUFFER_TIME: float = 0.1
+## Shortest gap between two slides, so nobody stays low for good by chaining them.
+const PLAYER_SLIDE_LOCKOUT: float = 0.3
+const PLAYER_SLIDE_STEER_ACCELERATION: float = 2400.0
+## Mk III jump out of a slide: the slide's speed carries into the air and fades at this rate (px/s²).
+const PLAYER_SLIDE_CARRY_DECAY: float = 260.0
 ## Wall Jumps Mk III: holding into a wall hangs there this long before the slide starts.
 const PLAYER_WALL_CLING_TIME: float = 0.4
 ## Highest lip a dash climbs instead of stopping at it.

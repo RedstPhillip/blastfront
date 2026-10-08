@@ -1,6 +1,6 @@
 extends SyncModule
 
-## Sends the local player's position, aim, ammo and wall moves and feeds the remote player's snapshots.
+## Sends the local player's position, aim, ammo and moves (wall, slide) and feeds the remote player's snapshots.
 
 var _send_timer: float = 0.0
 var _last_sent_by_slot: Dictionary = {}
@@ -81,7 +81,7 @@ func _build_player_snapshot(player: Player) -> Dictionary:
 		"aim": player.get_aim_world_position(),
 		"facing": player.last_dir,
 	}
-	snapshot.merge(player.get_wall_snapshot())
+	snapshot.merge(player.get_move_snapshot())
 	var gun: Gun = player.get_gun()
 	if gun != null:
 		snapshot["ammo"] = gun.get_current_ammo()
@@ -128,7 +128,8 @@ func _should_send_snapshot(slot: int, snapshot: Dictionary) -> bool:
 		or bool(snapshot.get("reloading", false)) != bool(previous.get("reloading", false)) \
 		or float(snapshot.get("wall", 0.0)) != float(previous.get("wall", 0.0)) \
 		or bool(snapshot.get("cling", false)) != bool(previous.get("cling", false)) \
-		or int(snapshot.get("wall_jumps", 0)) != int(previous.get("wall_jumps", 0))
+		or int(snapshot.get("wall_jumps", 0)) != int(previous.get("wall_jumps", 0)) \
+		or bool(snapshot.get("slide", false)) != bool(previous.get("slide", false))
 
 
 func _remember_sent_snapshot(slot: int, snapshot: Dictionary) -> void:

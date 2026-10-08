@@ -73,7 +73,10 @@ Pillow (`ImageChops.difference`) when a change should be pixel-identical.
   `bot_dash` (two bots, `BF_BOT_LEVEL` 0-2 default hard, `BF_WORLD`; logs every dash), `wall_probe` (Wall
   Jumps per mark on a private rig: climb height, wall jumps in one airtime, cling time, standing on top,
   longest time stuck in the air; plus a platform lip and a cling that must end in a slide), `bot_climb`
-  (a bot of `BF_BOT_LEVEL` sent up a 160 px step and a 400 px wall; only the marks that reach may climb)
+  (a bot of `BF_BOT_LEVEL` sent up a 160 px step and a 400 px wall; only the marks that reach may climb),
+  `slide_probe` (Sliding per mark on a rig with a low tunnel and a dead-end pocket: length and speed,
+  standing-height rounds vs a slide with controls, never standing up without room, Mk III steer and the
+  carried jump, and a hard bot sliding under flat fire); `bot_dash` also counts slides
 - **Mars weather:** `mars`, `mars_storm`, `mars_close`, `mars_duel_look`, `shelter_probe`, `ledge_test`
 - **Tidewater and Rimefall:** `tidewater` / `rimefall` (overview and close-ups), `tide_play` (a flood lifts
   P1 out of the courtyard: warning, rise, swim, leap out, a round into the water, a spring tide; prints

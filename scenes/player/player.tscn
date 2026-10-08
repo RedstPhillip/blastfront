@@ -12,6 +12,7 @@
 [ext_resource type="Script" uid="uid://d03ad0fet400" path="res://scenes/player/fall_state.gd" id="12_fall"]
 [ext_resource type="Script" uid="uid://bnwaeoa5mqeg5" path="res://scenes/player/dash_state.gd" id="17_dash"]
 [ext_resource type="Script" uid="uid://6ls7oufw3gxc" path="res://scenes/player/swim_state.gd" id="18_swim"]
+[ext_resource type="Script" uid="uid://bwopt8v181opu" path="res://scenes/player/slide_state.gd" id="18_slide"]
 [ext_resource type="Script" uid="uid://canek1a6obvjn" path="res://scenes/components/health_component.gd" id="13_health"]
 [ext_resource type="Script" uid="uid://br043jwad2o1o" path="res://scenes/components/status_effect_manager.gd" id="14_status"]
 [ext_resource type="Script" uid="uid://c5mlupne5tl8h" path="res://scenes/player/armor_visual_root.gd" id="16_armor_visual"]
@@ -104,6 +105,9 @@ script = ExtResource("17_dash")
 
 [node name="SwimState" type="Node" parent="State"]
 script = ExtResource("18_swim")
+
+[node name="SlideState" type="Node" parent="State" unique_id=1554133582]
+script = ExtResource("18_slide")
 
 [node name="HealthComponent" type="Node" parent="." unique_id=832184161]
 script = ExtResource("13_health")

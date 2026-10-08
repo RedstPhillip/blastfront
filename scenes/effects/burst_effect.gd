@@ -89,6 +89,15 @@ func _build() -> void:
 				"align": true, "color": Color(_tint.lerp(Color.WHITE, 0.5), 0.9), "additive": true})
 			FxLib.glow_flash(self, Color(_tint.lerp(Color.WHITE, 0.5), 0.45), GameSettings.PLAYER_DASH_SHOCKWAVE_RADIUS * 2.2, 0.2)
 			_track(0.5)
+		&"slide":
+			# Grit sprayed ahead of the sliding feet and a low dust wash behind.
+			_emit({"texture": FxLib.TEX_DEBRIS, "amount": 5, "lifetime": 0.35, "direction": Vector2(_direction.x, -0.6),
+				"spread": 25.0, "speed": Vector2(80.0, 170.0), "gravity": Vector2(0, 700), "size": Vector2(0.08, 0.16),
+				"color": Color(0.42, 0.44, 0.34, 1.0), "spin": Vector2(-400, 400)})
+			_emit({"amount": 5, "lifetime": 0.45, "direction": Vector2(-_direction.x, -0.2), "spread": 30.0,
+				"speed": Vector2(40.0, 110.0), "gravity": Vector2(0, -20), "size": Vector2(0.2, 0.34), "curve": &"puff",
+				"color": DUST_COLOR, "damping": Vector2(120, 220)})
+			_track(0.45)
 		&"knockback":
 			_emit({"texture": FxLib.TEX_SPARK, "amount": 7, "lifetime": 0.22, "direction": _direction, "spread": 35.0,
 				"speed": Vector2(160.0, 300.0), "gravity": Vector2(0, 400), "size": Vector2(0.25, 0.45), "align": true,

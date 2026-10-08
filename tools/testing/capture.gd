@@ -574,6 +574,17 @@ func _build_script() -> void:
 				var snapshot: Dictionary = {"slot": 2, "position": p2.global_position, "velocity": Vector2(0.0, 40.0), "wall": -1.0, "cling": true, "wall_jumps": 3}
 				p2.apply_remote_snapshot(snapshot)
 				print("ONLINE remote wall state: wall_x=%.0f clinging=%s wall_jumps_seen=%d" % [p2.get_wall_contact_x(), p2.is_wall_clinging(), p2._wall_jump_count]))
+			# A remote slide switches the host's copy to the low hitbox (what the host judges rounds against).
+			_at(5.3, "call", func():
+				var p2 = _stress_game().get_player_by_slot(2)
+				p2.apply_remote_snapshot({"slot": 2, "position": p2.global_position, "velocity": Vector2(400.0, 0.0), "slide": true}))
+			_at(5.35, "call", func():
+				var p2 = _stress_game().get_player_by_slot(2)
+				print("ONLINE remote slide: sliding=%s low_hitbox=%s standing_hitbox_off=%s" % [p2.is_sliding(), not p2._slide_shape.disabled, p2._standing_shape.disabled])
+				p2.apply_remote_snapshot({"slot": 2, "position": p2.global_position, "velocity": Vector2.ZERO, "slide": false}))
+			_at(5.4, "call", func():
+				var p2 = _stress_game().get_player_by_slot(2)
+				print("ONLINE remote slide over: sliding=%s standing_hitbox_on=%s" % [p2.is_sliding(), not p2._standing_shape.disabled]))
 			_at(5.5, "call", func():
 				var session = root.get_node("NetworkSession")
 				session.mode = &"training"
@@ -662,6 +673,111 @@ func _build_script() -> void:
 				var p1 = _p1()
 				print("CLIMB wall: on_top=%s at %s most_wall_jumps=%d longest_stuck=%.2f s" % [p1.is_grounded() and p1.global_position.y < 230.0, p1.global_position.round(), int(_wall_stats.get("used_max", 0)), float(_wall_stats["stuck_max"])]))
 			_at(16.2, "quit")
+		"slide_probe":
+			# Sliding on a private rig (arena terrain removed): floor top 640, a low tunnel at x 700-900 (its
+			# ceiling 30 px above the floor: too low to stand, high enough to slide) and a dead-end pocket at
+			# x 960-1100 closed by a wall. Prints slide length and speed per mark, standing-height rounds fired
+			# at a slide (with standing and low-round controls), the tunnel and pocket exits, Mk III steering
+			# and the speed a Mk III jump out of a slide carries.
+			_at(0.1, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
+			_at(0.5, "call", func(): _main._on_sandbox_requested())
+			_at(1.5, "call", func():
+				_build_slide_rig()
+				_freeze_camera_keep_players(Vector2(650.0, 560.0), 1.3)
+				var dummy = _stress_game().get_player_by_slot(2)
+				dummy.set_controls_enabled(false)
+				dummy.global_position = Vector2(1300.0, 600.0)
+				_hooks.append(_watch_slide))
+			for i in range(3):
+				var mark: int = i + 1
+				var t0: float = 2.0 + i * 1.6
+				_at(t0, "call", func(): _set_slide_mark(mark); _wall_reset(Vector2(200.0, 616.0)))
+				_at(t0 + 0.1, "press", "p1_move_right")
+				_at(t0 + 0.4, "press", "p1_move_down")
+				_at(t0 + 0.45, "release", "p1_move_down")
+				_at(t0 + 0.5, "crop", ["slide_mk%d" % mark, Rect2(40, 360, 640, 180), 1.6])
+				_at(t0 + 1.3, "release", "p1_move_right")
+				_at(t0 + 1.4, "call", func(): _report_slide("mk%d" % mark))
+			# A round at standing height flies over a slide; the same round hits a standing player; a low
+			# round still hits the slide (the hitbox is there, only lower).
+			_at(7.0, "call", func(): _set_slide_mark(1); _wall_reset(Vector2(200.0, 616.0)); _p1().health_component.health = 100)
+			_at(7.1, "press", "p1_move_right")
+			_at(7.3, "press", "p1_move_down")
+			_at(7.35, "release", "p1_move_down")
+			_at(7.38, "call", func():
+				var p1 = _p1()
+				if OS.has_environment("BF_SLIDE_TRACE"):
+					print("TRACE fire t=%.2f y=%.1f state=%s standing_disabled=%s slide_disabled=%s" % [_time, p1.global_position.y, p1._state_machine.current_state.name, p1._standing_shape.disabled, p1._slide_shape.disabled])
+				_fire_at_height(616.0, 160.0))
+			_at(7.44, "crop", ["slide_under_round", Rect2(40, 360, 640, 180), 1.6])
+			_at(7.8, "call", func(): print("SLIDE round_at_standing_height_vs_slide hp=%d (100 = flew over)" % _p1().health_component.health))
+			_at(7.85, "release", "p1_move_right")
+			_at(8.2, "call", func(): _wall_reset(Vector2(200.0, 616.0)); _p1().health_component.health = 100)
+			_at(8.3, "call", func(): _fire_at_height(616.0, 160.0))
+			_at(8.7, "call", func(): print("SLIDE round_at_standing_height_vs_standing hp=%d (75 = hit)" % _p1().health_component.health))
+			_at(9.0, "call", func(): _wall_reset(Vector2(200.0, 616.0)); _p1().health_component.health = 100)
+			_at(9.1, "press", "p1_move_right")
+			_at(9.3, "press", "p1_move_down")
+			_at(9.35, "release", "p1_move_down")
+			_at(9.4, "call", func(): _fire_at_height(631.0, 160.0))
+			_at(9.8, "call", func(): print("SLIDE low_round_vs_slide hp=%d (75 = hit)" % _p1().health_component.health))
+			_at(9.85, "release", "p1_move_right")
+			# Into the low tunnel: the slide runs out under the ceiling, crawls on and stands up past it.
+			_at(10.5, "call", func(): _set_slide_mark(1); _wall_reset(Vector2(600.0, 616.0)))
+			_at(10.6, "press", "p1_move_right")
+			_at(10.8, "press", "p1_move_down")
+			_at(10.85, "release", "p1_move_down")
+			_at(11.0, "release", "p1_move_right")
+			_at(11.3, "press", "p1_jump")
+			_at(11.5, "release", "p1_jump")
+			_at(11.6, "crop", ["slide_tunnel", Rect2(560, 360, 640, 180), 1.6])
+			_at(14.0, "call", func(): _report_slide("tunnel"))
+			# Into the dead-end pocket: the crawl turns at the wall and comes back out.
+			_at(14.5, "call", func(): _set_slide_mark(2); _wall_reset(Vector2(880.0, 616.0)))
+			_at(14.6, "press", "p1_move_right")
+			_at(14.8, "press", "p1_move_down")
+			_at(14.85, "release", "p1_move_down")
+			_at(15.0, "release", "p1_move_right")
+			_at(19.5, "call", func(): _report_slide("pocket"))
+			# Mk III: steer back mid-slide; then jump out and compare the carried speed with Mk I.
+			_at(20.0, "call", func(): _set_slide_mark(3); _wall_reset(Vector2(300.0, 616.0)))
+			_at(20.1, "press", "p1_move_right")
+			_at(20.3, "press", "p1_move_down")
+			_at(20.35, "release", "p1_move_down")
+			_at(20.42, "release", "p1_move_right")
+			_at(20.42, "press", "p1_move_left")
+			_at(20.7, "call", func(): print("SLIDE mk3_steer velocity_x=%.0f (negative = steered back) state=%s" % [_p1().velocity.x, _p1()._state_machine.current_state.name]))
+			_at(20.75, "release", "p1_move_left")
+			for k in range(2):
+				var mark: int = 1 if k == 0 else 3
+				var t1: float = 21.5 + k * 1.6
+				_at(t1, "call", func(): _set_slide_mark(mark); _wall_reset(Vector2(200.0, 616.0)))
+				_at(t1 + 0.1, "press", "p1_move_right")
+				_at(t1 + 0.3, "press", "p1_move_down")
+				_at(t1 + 0.35, "release", "p1_move_down")
+				_at(t1 + 0.42, "press", "p1_jump")
+				_at(t1 + 0.42, "call", func(): _slide_stats["jump_x"] = _p1().global_position.x)
+				_at(t1 + 0.7, "release", "p1_jump")
+				_at(t1 + 0.6, "call", func(): print("SLIDE jump_out_mk%d airborne_speed=%.0f" % [mark, absf(_p1().velocity.x)]))
+				_at(t1 + 1.3, "release", "p1_move_right")
+				_at(t1 + 1.4, "call", func(): print("SLIDE jump_out_mk%d distance=%.0f" % [mark, _p1().global_position.x - float(_slide_stats["jump_x"])]))
+			# A hard bot under fire from flat rounds at body height: it should slide under some of them.
+			_at(25.0, "call", func():
+				var bot = _stress_game().get_player_by_slot(2)
+				bot.configure_ai_control(2, 2)
+				bot.set_controls_enabled(true)
+				bot.global_position = Vector2(450.0, 616.0)
+				bot.velocity = Vector2.ZERO
+				_p1().global_position = Vector2(1300.0, 600.0)
+				_hooks.append(_watch_dashes))
+			for k in range(12):
+				_at(25.6 + k * 0.5, "call", func():
+					var bot = _stress_game().get_player_by_slot(2)
+					var shot = load("res://scenes/projectiles/projectile.tscn").instantiate()
+					shot.configure_from_data(0, 1, Vector2.LEFT, {"muzzle_speed": 900.0, "gravity": 0.0, "damage": 1, "max_distance": 900.0})
+					_stress_game().spawn_projectile(shot, Vector2(bot.global_position.x + 260.0, 616.0)))
+			_at(31.8, "call", func(): print("SLIDE bot_under_fire slides=%d (of 12 rounds)" % _slide_count))
+			_at(32.0, "quit")
 		"bot_dash":
 			# Two bots (BF_BOT_LEVEL, default hard: Dashing Mk IV) fight on BF_WORLD; every dash is logged.
 			_at(0.3, "call", func():
@@ -685,7 +801,7 @@ func _build_script() -> void:
 				for slot in [1, 2]:
 					var p = _stress_game().get_player_by_slot(slot)
 					print("BOTDASH slot=%d mark=%d can_dash=%s grounded=%s local_slot=%d" % [slot, research.get_mark(&"dashing", slot), p.can_dash(), p.is_grounded(), root.get_node("NetworkSession").local_player_slot]))
-			_at(62.0, "call", func(): print("BOTDASH total dashes=%d" % _dash_count))
+			_at(62.0, "call", func(): print("BOTDASH total dashes=%d slides=%d" % [_dash_count, _slide_count]))
 			_at(62.2, "quit")
 		"bot_watch":
 			_at(0.3, "call", func():
@@ -833,7 +949,9 @@ func _build_script() -> void:
 			_at(3.8, "shot", "research_dash_mk2")
 			_at(3.9, "call", func(): _main.get_node("SceneRoot").get_child(-1).get("_research_page")._select(&"wall_jumps"))
 			_at(4.4, "shot", "research_wall_jumps")
-			_at(4.6, "quit")
+			_at(4.5, "call", func(): _main.get_node("SceneRoot").get_child(-1).get("_research_page")._select(&"sliding"))
+			_at(5.0, "shot", "research_sliding")
+			_at(5.2, "quit")
 		"aim_stability":
 			_at(0.1, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
 			_at(0.5, "call", func(): _main._on_sandbox_requested())
@@ -2275,6 +2393,7 @@ var _dash_spot: Vector2 = Vector2.ZERO
 var _dash_was: Dictionary = {}
 var _dash_start: Dictionary = {}
 var _dash_count: int = 0
+var _slide_count: int = 0
 var _probe_round: Variant = null
 var _dummy_start: Vector2 = Vector2.ZERO
 
@@ -2348,7 +2467,8 @@ func _movement_packet(packet_type: StringName, from_slot: int, payload: Dictiona
 	_stress_game()._game_sync.get_module(&"movement").handle_packet(packet)
 
 
-## Logs every dash of either player: start, and at the end the burst distance and the largest vertical speed.
+## Logs every dash of either player (start, and at the end the burst distance and the largest vertical
+## speed) and every slide start.
 func _watch_dashes() -> void:
 	var game = _stress_game()
 	if game == null:
@@ -2369,6 +2489,16 @@ func _watch_dashes() -> void:
 			var start: Array = _dash_start[slot]
 			print("DASH end   slot=%d t=%.2f burst_dx=%+.0f dy=%+.0f took=%.3f max_vy=%.0f" % [slot, _time, p.global_position.x - (start[0] as Vector2).x, p.global_position.y - (start[0] as Vector2).y, _time - float(start[1]), float(start[2])])
 		_dash_was[slot] = now
+		var sliding: bool = p._state_machine.current_state != null and p._state_machine.current_state.name == &"SlideState"
+		if sliding and not bool(_dash_was.get(slot + 10, false)):
+			_slide_count += 1
+			print("SLIDE start slot=%d t=%.2f x=%.0f" % [slot, _time, p.global_position.x])
+		_dash_was[slot + 10] = sliding
+		if OS.has_environment("BF_SLIDE_TRACE") and p.ai_brain != null:
+			var planned: bool = p.ai_brain._pending_slide_time >= 0.0
+			if planned and not bool(_dash_was.get(slot + 20, false)):
+				print("PLAN slide slot=%d t=%.2f dir=%+.0f grounded=%s state=%s" % [slot, _time, p.ai_brain._pending_slide_direction, p.is_grounded(), p._state_machine.current_state.name])
+			_dash_was[slot + 20] = planned
 
 
 # --- Movement probes (wall jumps) -----------------------------------------------------------------
@@ -2462,3 +2592,61 @@ func _watch_wall() -> void:
 
 func _report_wall(label: String) -> void:
 	print("WALL %s climb=%.0f px wall_jumps=%d cling=%.2f s stood_on_top=%s longest_stuck=%.2f s" % [label, float(_wall_stats["start_y"]) - float(_wall_stats["min_y"]), int(_wall_stats.get("used_max", 0)), float(_wall_stats["cling"]), _wall_stats["topped"], float(_wall_stats["stuck_max"])])
+
+
+# --- Movement probes (slide) ----------------------------------------------------------------------
+
+var _slide_stats: Dictionary = {}
+
+
+## Floor (top 640), a low tunnel at x 700-900 whose ceiling is 30 px above the floor, and a dead-end
+## pocket at x 960-1100 under the same low ceiling, closed by a wall at x 1100-1140.
+func _build_slide_rig() -> void:
+	_clear_terrain()
+	_build_test_floor(Vector2(100.0, 640.0), 1300.0, 40.0)
+	_build_test_floor(Vector2(700.0, 590.0), 200.0, 20.0)
+	_build_test_floor(Vector2(960.0, 590.0), 140.0, 20.0)
+	_build_test_floor(Vector2(1100.0, 400.0), 40.0, 240.0)
+
+
+func _set_slide_mark(mark: int) -> void:
+	root.get_node("ResearchManager")._local_marks["sliding"] = mark
+	_slide_stats = {}
+
+
+## A straight round from the right at the given height (world y), `ahead` px in front of P1, flying left.
+func _fire_at_height(y: float, ahead: float) -> void:
+	var shot = load("res://scenes/projectiles/projectile.tscn").instantiate()
+	shot.configure_from_data(0, 2, Vector2.LEFT, {"muzzle_speed": 900.0, "gravity": 0.0, "damage": 25, "max_distance": 700.0})
+	_stress_game().spawn_projectile(shot, Vector2(_p1().global_position.x + ahead, y))
+
+
+## Per slide: time in the slide, distance, top speed, how long it sat still (stuck) and whether the player
+## ever stood up without room (overlapping a ceiling).
+func _watch_slide() -> void:
+	var p1 = _p1()
+	var sliding: bool = p1._state_machine.current_state.name == &"SlideState"
+	if sliding and not bool(_slide_stats.get("active", false)):
+		_slide_stats = {"active": true, "start_x": p1.global_position.x, "start_t": _time, "top": 0.0, "still": 0.0, "still_max": 0.0, "prev": p1.global_position, "bad_stand": 0, "jump_x": _slide_stats.get("jump_x", 0.0)}
+	if sliding:
+		_slide_stats["top"] = maxf(float(_slide_stats["top"]), absf(p1.velocity.x))
+		if p1.global_position.distance_to(_slide_stats["prev"]) < 0.1:
+			_slide_stats["still"] = float(_slide_stats["still"]) + 1.0 / 60.0
+			_slide_stats["still_max"] = maxf(float(_slide_stats["still_max"]), float(_slide_stats["still"]))
+		else:
+			_slide_stats["still"] = 0.0
+		_slide_stats["prev"] = p1.global_position
+	elif bool(_slide_stats.get("active", false)):
+		_slide_stats["active"] = false
+		_slide_stats["end_x"] = p1.global_position.x
+		_slide_stats["took"] = _time - float(_slide_stats["start_t"])
+	if not _slide_stats.is_empty() and not sliding and p1.is_grounded() and not p1.has_headroom():
+		_slide_stats["bad_stand"] = int(_slide_stats.get("bad_stand", 0)) + 1
+
+
+func _report_slide(label: String) -> void:
+	var p1 = _p1()
+	if not _slide_stats.has("start_x"):
+		print("SLIDE %s never slid" % label)
+		return
+	print("SLIDE %s took=%.2f s distance=%+.0f top_speed=%.0f longest_still=%.2f s stood_without_room=%d frames now x=%.0f state=%s" % [label, float(_slide_stats.get("took", -1.0)), float(_slide_stats.get("end_x", p1.global_position.x)) - float(_slide_stats["start_x"]), float(_slide_stats["top"]), float(_slide_stats["still_max"]), int(_slide_stats.get("bad_stand", 0)), p1.global_position.x, p1._state_machine.current_state.name])

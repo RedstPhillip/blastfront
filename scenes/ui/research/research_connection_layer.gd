@@ -56,11 +56,45 @@ func _process(delta: float) -> void:
 		set_process(false)
 
 
+## A link along a row that skips a project arches over it (between the badge rings and the row above), so
+## it never reads as running through that project.
+func _bridge(from: Vector2, to: Vector2) -> PackedVector2Array:
+	var side: float = signf(to.x - from.x)
+	var lift: float = ResearchNodeButton.RING_RADIUS + 14.0
+	var up_x: float = from.x + side * ResearchPage.COLUMN_STEP * 0.5
+	var down_x: float = to.x - side * ResearchPage.COLUMN_STEP * 0.5
+	var r: float = 8.0
+	var points: PackedVector2Array = PackedVector2Array([from, Vector2(up_x - side * r, from.y)])
+	for step in range(1, 4):
+		var a: float = PI * 0.5 * float(step) / 4.0
+		points.append(Vector2(up_x - side * r + side * sin(a) * r, from.y - (r - cos(a) * r)))
+	points.append(Vector2(up_x, from.y - r))
+	points.append(Vector2(up_x, from.y - lift + r))
+	for step in range(1, 4):
+		var a: float = PI * 0.5 * float(step) / 4.0
+		points.append(Vector2(up_x + side * (r - cos(a) * r), from.y - lift + r - sin(a) * r))
+	points.append(Vector2(up_x + side * r, from.y - lift))
+	points.append(Vector2(down_x - side * r, to.y - lift))
+	for step in range(1, 4):
+		var a: float = PI * 0.5 * float(step) / 4.0
+		points.append(Vector2(down_x - side * r + side * sin(a) * r, to.y - lift + (r - cos(a) * r)))
+	points.append(Vector2(down_x, to.y - lift + r))
+	points.append(Vector2(down_x, to.y - r))
+	for step in range(1, 4):
+		var a: float = PI * 0.5 * float(step) / 4.0
+		points.append(Vector2(down_x + side * (r - cos(a) * r), to.y - r + sin(a) * r))
+	points.append(Vector2(down_x + side * r, to.y))
+	points.append(to)
+	return points
+
+
 func _path(link: Dictionary) -> PackedVector2Array:
 	var from: Vector2 = (link["source"] as ResearchNodeButton).get_center()
 	var to: Vector2 = (link["target"] as ResearchNodeButton).get_center()
 	if absf(to.y - from.y) < 1.0:
-		return PackedVector2Array([from, to])
+		if absf(to.x - from.x) < ResearchPage.COLUMN_STEP * 1.5:
+			return PackedVector2Array([from, to])
+		return _bridge(from, to)
 	# Change rows halfway between two columns, where the names under the badges leave a gap, and round
 	# the two corners a little.
 	var turn_x: float = from.x + ResearchPage.COLUMN_STEP * 0.5

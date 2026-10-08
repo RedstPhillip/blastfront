@@ -19,6 +19,7 @@ const CONTROL_ROWS: Array[Array] = [
 	["Reload", "R", "X"],
 	["Time Control", "Q", "Y"],
 	["Dash", "SHIFT", "B"],
+	["Slide", "S + A / D", "L STICK DOWN"],
 	["Orders", "TAB", "BACK"],
 	["Pause", "ESC", "START"],
 ]
@@ -232,7 +233,7 @@ func _build_gameplay_tab() -> void:
 
 func _build_controls_tab() -> void:
 	var page: VBoxContainer = _make_page("CONTROLS")
-	page.add_theme_constant_override("separation", 3)
+	page.add_theme_constant_override("separation", 2)
 	# Column heads sit over the key columns, in the same section style as the other tabs.
 	var heads: HBoxContainer = _row(page, "")
 	heads.custom_minimum_size.y = 20.0
@@ -245,18 +246,20 @@ func _build_controls_tab() -> void:
 		heads.add_child(head)
 	for entry in CONTROL_ROWS:
 		var row: HBoxContainer = _row(page, str(entry[0]))
-		row.custom_minimum_size.y = 26.0
+		# Twelve actions fit the tab without scrolling at a slightly smaller size than the other tabs' rows.
+		row.custom_minimum_size.y = 22.0
+		(row.get_child(0) as Label).add_theme_font_size_override(&"font_size", 16)
 		row.add_child(_key_chip(str(entry[1])))
 		row.add_child(_key_chip(str(entry[2])))
 
 
 func _key_chip(text: String) -> PanelContainer:
 	var key: Label = Label.new()
-	UiStyle.style_label(key, UiStyle.FONT_BOLD, 14, UiStyle.TEXT)
+	UiStyle.style_label(key, UiStyle.FONT_BOLD, 13, UiStyle.TEXT)
 	key.text = text
 	key.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var chip: PanelContainer = PanelContainer.new()
-	chip.add_theme_stylebox_override("panel", UiStyle.with_margins(UiStyle.panel(UiStyle.PANEL_RAISED), 10, 3))
+	chip.add_theme_stylebox_override("panel", UiStyle.with_margins(UiStyle.panel(UiStyle.PANEL_RAISED), 10, 2))
 	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	chip.custom_minimum_size = Vector2(KEY_CHIP_WIDTH, 0.0)
 	chip.add_child(key)

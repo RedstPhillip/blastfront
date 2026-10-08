@@ -98,6 +98,7 @@ var block_action: StringName = GameSettings.INPUT_P1_BLOCK
 var reload_action: StringName = GameSettings.INPUT_P1_RELOAD
 var time_control_action: StringName = GameSettings.INPUT_P1_TIME_CONTROL
 var dash_action: StringName = GameSettings.INPUT_P1_DASH
+var down_action: StringName = GameSettings.INPUT_P1_MOVE_DOWN
 var shooting_enabled: bool = true
 var movement_enabled: bool = true
 var player_color_id: StringName = &""
@@ -210,6 +211,21 @@ var _dash_protection_timer: float = 0.0
 var _dash_shockwave_armed: bool = false
 var _dashing: bool = false
 var _dash_fx: DashFx = null
+## Slide (Movement research): owner-side state, the remote copy's mirror, and the speed a Mk III jump out
+## of a slide carries into the air.
+var _sliding: bool = false
+var _remote_sliding: bool = false
+var _slide_direction: float = 1.0
+var _slide_timer: float = 0.0
+var _slide_time_total: float = 0.4
+var _slide_start_speed: float = 0.0
+var _slide_steer: bool = false
+var _slide_carry: bool = false
+var _slide_buffer_timer: float = 0.0
+var _slide_lockout: float = 0.0
+var _slide_dust_timer: float = 0.0
+var _carried_speed: float = 0.0
+var _slide_shape: CollisionShape2D = null
 var ai_brain: BotBrain = null
 ## How fast this player's own clock runs (Time Control): movement, gun, block and bot thinking advance by
 ## delta * time_scale, and TimeFlow hands the same value to the rounds they fired. 1 is normal time.
@@ -242,6 +258,7 @@ var _shader_status: float = -1.0
 @onready var _ray_l: RayCast2D = $RayL
 @onready var _ray_r: RayCast2D = $RayR
 @onready var _state_machine: StateMachine = $State
+@onready var _standing_shape: CollisionPolygon2D = $CollisionPolygon2D
 @onready var health_component: HealthComponent = $HealthComponent
 @onready var status_effect_manager: StatusEffectManager = $StatusEffectManager
 
@@ -308,6 +325,7 @@ func _physics_process(delta: float) -> void:
 	_update_block_input()
 	_update_movement_timers(own_delta)
 	_update_dash_input(own_delta)
+	_update_slide_input(own_delta)
 	update_wall_coyote(own_delta)
 	_update_wind_exposure(own_delta)
 	_push_out_of_players(own_delta)
@@ -464,6 +482,9 @@ func configure_remote_control(slot: int) -> void:
 	player_slot = slot
 	control_mode = GameSettings.CONTROL_REMOTE
 	ResearchManager.set_bot_marks(slot, {})
+	_sliding = false
+	_remote_sliding = false
+	_set_low_profile(false)
 	_can_shoot_when_controls_enabled = false
 	shooting_enabled = false
 	_block_active = false
@@ -745,6 +766,9 @@ func set_eliminated(eliminated: bool) -> void:
 		_block_cooldown_timer = 0.0
 		_cancel_dash()
 		_dash_protection_timer = 0.0
+		_sliding = false
+		_remote_sliding = false
+		_set_low_profile(false)
 		if _state_machine != null:
 			_state_machine.process_mode = Node.PROCESS_MODE_DISABLED
 	else:
@@ -756,7 +780,7 @@ func set_eliminated(eliminated: bool) -> void:
 		_block_timer = 0.0
 		_block_cooldown_timer = 0.0
 		_dash_cooldown_timer = 0.0
-		if _state_machine != null and _state_machine.current_state != null and _state_machine.current_state.name == &"DashState":
+		if _state_machine != null and _state_machine.current_state != null and _state_machine.current_state.name in [&"DashState", &"SlideState"]:
 			_state_machine.change_state("FallState")
 		if status_effect_manager != null:
 			status_effect_manager.clear_all()
@@ -792,6 +816,7 @@ func apply_remote_snapshot(snapshot: Dictionary) -> void:
 	if snapshot.has("ammo"):
 		_gun.apply_remote_ammo_state(snapshot_ammo, snapshot_reloading, snapshot_reload_ratio)
 	_apply_remote_wall_state(snapshot, had_network_target)
+	_apply_remote_slide_state(snapshot)
 
 	_has_network_target = true
 	if not had_network_target:
@@ -814,9 +839,10 @@ func _apply_remote_wall_state(snapshot: Dictionary, had_network_target: bool) ->
 		_wall_jump_count = count
 
 
-## What the owner tells the other side about its wall moves (see _apply_remote_wall_state).
-func get_wall_snapshot() -> Dictionary:
-	return {"wall": get_wall_contact_x(), "cling": is_wall_clinging(), "wall_jumps": _wall_jump_count}
+## What the owner tells the other side about its moves: wall contact, cling and wall jumps (see
+## _apply_remote_wall_state) and the slide (see _apply_remote_slide_state).
+func get_move_snapshot() -> Dictionary:
+	return {"wall": get_wall_contact_x(), "cling": is_wall_clinging(), "wall_jumps": _wall_jump_count, "slide": is_sliding()}
 
 
 func get_border_check_position() -> Vector2:
@@ -889,6 +915,8 @@ func _is_ai_action_active(action: StringName, enabled: bool, just_pressed: bool)
 		return ai_brain.time_control_pressed
 	if action == dash_action:
 		return ai_brain.dash_pressed
+	if action == down_action:
+		return ai_brain.slide_pressed
 	return false
 
 
@@ -1148,7 +1176,8 @@ func get_dash_cooldown_ratio() -> float:
 
 
 func can_dash() -> bool:
-	return has_dash() and movement_enabled and not _is_eliminated and _stun_timer <= 0.0 and _dash_cooldown_timer <= 0.0 and not _dashing
+	return has_dash() and movement_enabled and not _is_eliminated and _stun_timer <= 0.0 and _dash_cooldown_timer <= 0.0 and not _dashing \
+		and (not _sliding or has_headroom())
 
 
 ## A press is remembered briefly, so tapping dash a moment before the cooldown ends still dashes.
@@ -1328,6 +1357,171 @@ func _notify_dash(direction: float, protected: bool, shockwave: bool) -> void:
 		world.request_dash(self, direction, protected, shockwave)
 
 
+# --- Slide (Movement research) -----------------------------------------------------------------------
+
+func is_down_pressed() -> bool:
+	return _is_action_available(down_action, movement_enabled, true)
+
+
+func is_sliding() -> bool:
+	return _sliding if control_mode != GameSettings.CONTROL_REMOTE else _remote_sliding
+
+
+func can_slide() -> bool:
+	return not _sliding and _slide_lockout <= 0.0 and movement_enabled and not _is_eliminated and _stun_timer <= 0.0 \
+		and is_grounded() and get_move_direction() != 0.0 and not ResearchManager.get_slide_profile(player_slot).is_empty()
+
+
+## Down while running (a direction held on the ground) starts a slide; a press is remembered briefly.
+func _update_slide_input(delta: float) -> void:
+	_slide_lockout = maxf(_slide_lockout - delta, 0.0)
+	if is_down_pressed():
+		_slide_buffer_timer = GameSettings.PLAYER_SLIDE_BUFFER_TIME
+	else:
+		_slide_buffer_timer = maxf(_slide_buffer_timer - delta, 0.0)
+	if _slide_buffer_timer > 0.0 and can_slide() and _state_machine != null and _state_machine.current_state.name == &"RunState":
+		_slide_buffer_timer = 0.0
+		_state_machine.change_state("SlideState")
+
+
+## SlideState.enter: drops low along the held direction at the mark's speed (or the running speed, if faster).
+func begin_slide() -> void:
+	var profile: Dictionary = ResearchManager.get_slide_profile(player_slot)
+	var direction: float = signf(get_move_direction())
+	if direction == 0.0:
+		direction = signf(last_dir) if last_dir != 0.0 else 1.0
+	_sliding = true
+	_slide_direction = direction
+	last_dir = direction
+	_slide_steer = bool(profile.get("steer", false))
+	_slide_carry = bool(profile.get("carry", false))
+	_slide_time_total = float(profile.get("time", 0.4))
+	_slide_timer = _slide_time_total
+	_slide_start_speed = maxf(float(profile.get("speed", speed)), absf(velocity.x))
+	velocity.x = direction * _slide_start_speed
+	_set_low_profile(true)
+	_play_slide_feedback(direction)
+
+
+## One step of the slide (SlideState). The speed eases from the start speed down to a jog over the slide's
+## time; Mk III steers it. Once the time is up it ends where there is room to stand, otherwise it becomes a
+## crawl (stick or the slide's way, turning at walls) until there is. True when the slide is over.
+func update_slide(delta: float) -> bool:
+	_slide_timer = maxf(_slide_timer - delta, 0.0)
+	var input: float = get_move_direction()
+	if _slide_timer > 0.0:
+		var progress: float = 1.0 - _slide_timer / maxf(_slide_time_total, 0.01)
+		var slide_speed: float = lerpf(_slide_start_speed, speed * 0.75, progress * progress)
+		if _slide_steer and input != 0.0:
+			velocity.x = move_toward(velocity.x, signf(input) * slide_speed, GameSettings.PLAYER_SLIDE_STEER_ACCELERATION * delta)
+			if absf(velocity.x) > 1.0:
+				_slide_direction = signf(velocity.x)
+		else:
+			velocity.x = _slide_direction * slide_speed
+		last_dir = _slide_direction
+		_slide_dust_timer -= delta
+		if _slide_dust_timer <= 0.0:
+			_slide_dust_timer = 0.05
+			GameJuice.spawn_burst(&"run_dust", global_position + Vector2(_slide_direction * 12.0, GameSettings.PLAYER_SLIDE_HOVER - 2.0), Vector2(_slide_direction, 0.0), Color(0.76, 0.68, 0.50, 0.55))
+		return false
+	if has_headroom():
+		return true
+	if is_on_wall() and signf(get_wall_normal().x) == -_slide_direction:
+		_slide_direction = -_slide_direction
+	if input != 0.0:
+		_slide_direction = signf(input)
+	velocity.x = _slide_direction * GameSettings.PLAYER_SLIDE_CRAWL_SPEED
+	last_dir = _slide_direction
+	return false
+
+
+## SlideState.exit: back on the feet (the caller made sure there is room), with a short lockout.
+func end_slide() -> void:
+	if not _sliding:
+		return
+	_sliding = false
+	_slide_timer = 0.0
+	_slide_lockout = GameSettings.PLAYER_SLIDE_LOCKOUT
+	# Straight back to standing height, so the round body is not switched on inside the floor.
+	if is_grounded():
+		global_position.y = minf(global_position.y, _floor_y_below() - hover_dist)
+	_set_low_profile(false)
+
+
+## Mk III: jumping out of the slide keeps its speed in the air (it fades, see apply_horizontal_movement).
+func jump_out_of_slide() -> void:
+	var carried: float = absf(velocity.x)
+	end_slide()
+	jump()
+	if _slide_carry:
+		_carried_speed = carried
+
+
+## Room to stand up here: the standing body (a ~15 px circle at standing height) touches no level geometry.
+func has_headroom() -> bool:
+	var query: PhysicsShapeQueryParameters2D = PhysicsShapeQueryParameters2D.new()
+	var circle: CircleShape2D = CircleShape2D.new()
+	circle.radius = 14.5
+	query.shape = circle
+	query.transform = Transform2D(0.0, Vector2(global_position.x, _floor_y_below() - hover_dist - 1.0))
+	query.collision_mask = 1
+	query.exclude = [get_rid()]
+	return get_world_2d().direct_space_state.intersect_shape(query, 1).is_empty()
+
+
+## The floor under the feet (the higher of the two foot rays), or where it would be at standing hover.
+func _floor_y_below() -> float:
+	var floor_y: float = global_position.y + hover_dist
+	if _is_floor_ray(_ray_l):
+		floor_y = minf(floor_y, _ray_l.get_collision_point().y)
+	if _is_floor_ray(_ray_r):
+		floor_y = minf(floor_y, _ray_r.get_collision_point().y)
+	return floor_y
+
+
+func _current_hover() -> float:
+	return GameSettings.PLAYER_SLIDE_HOVER if is_sliding() else hover_dist
+
+
+## Swaps the round standing body for the flat slide capsule (and back). Used by the owner and by remote
+## copies, whose hitbox is what the host judges shots against.
+func _set_low_profile(low: bool) -> void:
+	if _standing_shape == null or _slide_shape == null:
+		return
+	_standing_shape.set_deferred(&"disabled", low)
+	_slide_shape.set_deferred(&"disabled", not low)
+
+
+func _play_slide_feedback(direction: float) -> void:
+	GameJuice.spawn_burst(&"slide", global_position + Vector2(direction * 10.0, GameSettings.PLAYER_SLIDE_HOVER - 2.0), Vector2(direction, 0.0), Color.WHITE)
+	AudioDirector.play_at(&"slide", global_position)
+	_body_punch_scale = Vector2(1.2, 0.8)
+	_slide_dust_timer = 0.05
+	if _face != null:
+		_face.set_expression(PlayerFace.Mood.FOCUS, 0.5)
+
+
+## The other side's slide (player snapshot): the low hitbox the host judges shots against, the pose, the sound.
+func _apply_remote_slide_state(snapshot: Dictionary) -> void:
+	var sliding: bool = snapshot.get("slide", false) == true
+	if sliding == _remote_sliding:
+		return
+	_remote_sliding = sliding
+	_set_low_profile(sliding)
+	if sliding:
+		_slide_direction = signf(last_dir) if last_dir != 0.0 else 1.0
+		_play_slide_feedback(_slide_direction)
+
+
+## While sliding the feet stay planted on the floor: the leading one stretched out, the other tucked under.
+func _update_slide_feet(floor_y: float) -> void:
+	var direction: float = _slide_direction
+	_set_feet(
+		Vector2(global_position.x + direction * 17.0, floor_y) if direction < 0.0 else Vector2(global_position.x - 5.0, floor_y - 2.0),
+		Vector2(global_position.x + direction * 17.0, floor_y) if direction > 0.0 else Vector2(global_position.x + 5.0, floor_y - 2.0)
+	)
+
+
 func apply_horizontal_movement(delta: float, max_speed: float, acceleration: float, friction: float) -> float:
 	var direction: float = get_move_direction()
 	var slow: float = get_status_speed_multiplier()
@@ -1337,6 +1531,8 @@ func apply_horizontal_movement(delta: float, max_speed: float, acceleration: flo
 	acceleration *= slow
 	friction *= slow
 	var drift: float = get_wind_drift_speed()
+	if _carried_speed > 0.0:
+		max_speed = maxf(max_speed, _carried_speed)
 	if direction != 0.0:
 		last_dir = signf(direction)
 		velocity.x = move_toward(velocity.x, direction * max_speed + drift, acceleration * delta)
@@ -1475,13 +1671,8 @@ func maintain_hover_height(delta: float) -> void:
 	if not is_grounded():
 		return
 
-	var floor_y: float = global_position.y + hover_dist
-	if _is_floor_ray(_ray_l):
-		floor_y = minf(floor_y, _ray_l.get_collision_point().y)
-	if _is_floor_ray(_ray_r):
-		floor_y = minf(floor_y, _ray_r.get_collision_point().y)
-
-	var target_y: float = floor_y - hover_dist
+	var floor_y: float = _floor_y_below()
+	var target_y: float = floor_y - _current_hover()
 	global_position.y = lerpf(global_position.y, target_y, clampf(delta * hover_snap_speed, 0.0, 1.0))
 	if velocity.y > 0.0:
 		velocity.y = 0.0
@@ -1499,62 +1690,68 @@ func update_visual_movement(delta: float) -> void:
 		if _is_floor_ray(_ray_r):
 			floor_y = minf(floor_y, _ray_r.get_collision_point().y)
 
-		var ideal_l: Vector2 = Vector2(global_position.x - foot_spread + look, floor_y)
-		var ideal_r: Vector2 = Vector2(global_position.x + foot_spread + look, floor_y)
-		var floor_l: bool = _is_floor_ray(_ray_l)
-		var floor_r: bool = _is_floor_ray(_ray_r)
-		if floor_l != floor_r:
-			var edge_gap: float = foot_spread * GameSettings.PLAYER_EDGE_GAP_MULTIPLIER
-			if floor_l:
-				ideal_l.x = minf(ideal_l.x, _ray_l.get_collision_point().x)
-				ideal_r.x = minf(ideal_r.x, ideal_l.x + edge_gap)
-			else:
-				ideal_r.x = maxf(ideal_r.x, _ray_r.get_collision_point().x)
-				ideal_l.x = maxf(ideal_l.x, ideal_r.x - edge_gap)
-		var move_dir: float = _get_visual_move_direction()
-		var changed_direction: bool = (
-			move_dir != 0.0
-			and _last_visual_move_dir != 0.0
-			and move_dir != _last_visual_move_dir
-		)
+		if is_sliding():
+			_update_slide_feet(floor_y)
+			_was_visual_grounded = true
+			_step_t_l = 1.0
+			_step_t_r = 1.0
+		else:
+			var ideal_l: Vector2 = Vector2(global_position.x - foot_spread + look, floor_y)
+			var ideal_r: Vector2 = Vector2(global_position.x + foot_spread + look, floor_y)
+			var floor_l: bool = _is_floor_ray(_ray_l)
+			var floor_r: bool = _is_floor_ray(_ray_r)
+			if floor_l != floor_r:
+				var edge_gap: float = foot_spread * GameSettings.PLAYER_EDGE_GAP_MULTIPLIER
+				if floor_l:
+					ideal_l.x = minf(ideal_l.x, _ray_l.get_collision_point().x)
+					ideal_r.x = minf(ideal_r.x, ideal_l.x + edge_gap)
+				else:
+					ideal_r.x = maxf(ideal_r.x, _ray_r.get_collision_point().x)
+					ideal_l.x = maxf(ideal_l.x, ideal_r.x - edge_gap)
+			var move_dir: float = _get_visual_move_direction()
+			var changed_direction: bool = (
+				move_dir != 0.0
+				and _last_visual_move_dir != 0.0
+				and move_dir != _last_visual_move_dir
+			)
 
-		if not _was_visual_grounded:
-			_set_feet(ideal_l, ideal_r)
+			if not _was_visual_grounded:
+				_set_feet(ideal_l, ideal_r)
 
-		if _step_t_l < 1.0:
-			_step_t_l = minf(_step_t_l + delta / step_duration, 1.0)
-			foot_pos_l = _arc(_step_from_l, _step_to_l, _step_t_l, step_arc_h)
-		if _step_t_r < 1.0:
-			_step_t_r = minf(_step_t_r + delta / step_duration, 1.0)
-			foot_pos_r = _arc(_step_from_r, _step_to_r, _step_t_r, step_arc_h)
+			if _step_t_l < 1.0:
+				_step_t_l = minf(_step_t_l + delta / step_duration, 1.0)
+				foot_pos_l = _arc(_step_from_l, _step_to_l, _step_t_l, step_arc_h)
+			if _step_t_r < 1.0:
+				_step_t_r = minf(_step_t_r + delta / step_duration, 1.0)
+				foot_pos_r = _arc(_step_from_r, _step_to_r, _step_t_r, step_arc_h)
 
-		if _ice_sliding:
-			# Gliding on ice: the feet stay planted and skate along under the body.
-			_set_feet(ideal_l, ideal_r)
-		elif changed_direction:
-			_set_feet(ideal_l, ideal_r)
-		elif _step_t_l >= 1.0 and _step_t_r >= 1.0:
-			var dl: float = foot_pos_l.distance_to(ideal_l)
-			var dr: float = foot_pos_r.distance_to(ideal_r)
-			var l_ready: bool = (_step_clock - _last_step_time_l) >= stride_min_interval
-			var r_ready: bool = (_step_clock - _last_step_time_r) >= stride_min_interval
+			if _ice_sliding:
+				# Gliding on ice: the feet stay planted and skate along under the body.
+				_set_feet(ideal_l, ideal_r)
+			elif changed_direction:
+				_set_feet(ideal_l, ideal_r)
+			elif _step_t_l >= 1.0 and _step_t_r >= 1.0:
+				var dl: float = foot_pos_l.distance_to(ideal_l)
+				var dr: float = foot_pos_r.distance_to(ideal_r)
+				var l_ready: bool = (_step_clock - _last_step_time_l) >= stride_min_interval
+				var r_ready: bool = (_step_clock - _last_step_time_r) >= stride_min_interval
 
-			var prefer_left: bool = _last_stepped == 1
-			if prefer_left:
-				if dl > step_trigger and l_ready:
-					_begin_step(true, ideal_l)
-				elif dr > step_trigger and r_ready:
-					_begin_step(false, ideal_r)
-			else:
-				if dr > step_trigger and r_ready:
-					_begin_step(false, ideal_r)
-				elif dl > step_trigger and l_ready:
-					_begin_step(true, ideal_l)
+				var prefer_left: bool = _last_stepped == 1
+				if prefer_left:
+					if dl > step_trigger and l_ready:
+						_begin_step(true, ideal_l)
+					elif dr > step_trigger and r_ready:
+						_begin_step(false, ideal_r)
+				else:
+					if dr > step_trigger and r_ready:
+						_begin_step(false, ideal_r)
+					elif dl > step_trigger and l_ready:
+						_begin_step(true, ideal_l)
 
-		bounce_t += delta * GameSettings.PLAYER_BOUNCE_SPEED * speed_ratio
-		_was_visual_grounded = true
-		if move_dir != 0.0:
-			_last_visual_move_dir = move_dir
+			bounce_t += delta * GameSettings.PLAYER_BOUNCE_SPEED * speed_ratio
+			_was_visual_grounded = true
+			if move_dir != 0.0:
+				_last_visual_move_dir = move_dir
 	else:
 		_was_visual_grounded = false
 		_last_visual_move_dir = 0.0
@@ -1578,9 +1775,11 @@ func update_visual_movement(delta: float) -> void:
 	var visual_direction: float = get_move_direction()
 	if control_mode == GameSettings.CONTROL_REMOTE:
 		visual_direction = clampf(velocity.x / maxf(speed, 1.0), -1.0, 1.0)
+	# Sliding leans back against the run, feet first.
+	var lean: float = -_slide_direction * 0.2 if is_sliding() else visual_direction * GameSettings.PLAYER_VISUAL_ROTATION_SCALE
 	rotation = lerp_angle(
 		rotation,
-		visual_direction * GameSettings.PLAYER_VISUAL_ROTATION_SCALE + _wind_lean() + _slide_lean(),
+		lean + _wind_lean() + _slide_lean(),
 		delta * GameSettings.PLAYER_VISUAL_ROTATION_LERP_SPEED
 	)
 	_update_body_sprite_direction()
@@ -1721,6 +1920,10 @@ func _update_movement_timers(delta: float) -> void:
 	else:
 		_jump_buffer_timer = maxf(_jump_buffer_timer - delta, 0.0)
 
+	if _carried_speed > 0.0:
+		_carried_speed = maxf(_carried_speed - GameSettings.PLAYER_SLIDE_CARRY_DECAY * delta, 0.0)
+		if is_on_floor() and velocity.y >= 0.0:
+			_carried_speed = 0.0
 	if is_grounded():
 		_coyote_timer = coyote_time
 		_wall_jumps_used = 0
@@ -2257,6 +2460,15 @@ func _setup_visual_extras() -> void:
 	_dash_fx = DashFx.new()
 	_dash_fx.name = "DashFx"
 	add_child(_dash_fx)
+	var capsule: CapsuleShape2D = CapsuleShape2D.new()
+	capsule.radius = GameSettings.PLAYER_SLIDE_RADIUS
+	capsule.height = 30.0
+	_slide_shape = CollisionShape2D.new()
+	_slide_shape.name = "SlideShape"
+	_slide_shape.shape = capsule
+	_slide_shape.rotation = PI * 0.5
+	_slide_shape.disabled = true
+	add_child(_slide_shape)
 	var block_fx: BlockShieldFx = BlockShieldFx.new()
 	block_fx.name = "BlockShieldFx"
 	add_child(block_fx)
@@ -2418,7 +2630,10 @@ func _update_feedback_visuals(delta: float) -> void:
 
 	var horizontal_ratio: float = clampf(absf(velocity.x) / maxf(speed, 1.0), 0.0, 1.0)
 	var target_scale: Vector2 = Vector2(1.0 + horizontal_ratio * 0.035, 1.0 - horizontal_ratio * 0.02)
-	if _last_feedback_grounded and horizontal_ratio < 0.08:
+	if is_sliding():
+		# Flattened low over the ground (the body sits PLAYER_SLIDE_HOVER up, so it must not sink in).
+		target_scale = Vector2(1.22, 0.68)
+	elif _last_feedback_grounded and horizontal_ratio < 0.08:
 		_idle_visual_time += delta
 		var idle_pulse: float = sin(_idle_visual_time * 2.4) * 0.012
 		target_scale = Vector2(1.0 + idle_pulse, 1.0 - idle_pulse)

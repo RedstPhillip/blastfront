@@ -125,6 +125,10 @@ const EVENTS: Dictionary = {
 		{"files": ["dash_shock"], "volume": -3.0, "pitch": Vector2(0.94, 1.06)},
 		{"files": ["land_thud_0", "land_thud_1", "land_thud_2", "land_thud_3", "land_thud_4"], "volume": -7.0, "pitch": Vector2(1.05, 1.2)},
 	]},
+	&"slide": {"bus": &"SFX", "voices": 2, "cooldown": 0.12, "layers": [
+		{"files": ["slide_0", "slide_1"], "volume": -6.0, "pitch": Vector2(0.92, 1.08)},
+		{"files": ["land_thud_0", "land_thud_2", "land_thud_4"], "volume": -14.0, "pitch": Vector2(1.2, 1.4)},
+	]},
 	&"dash_dodge": {"bus": &"SFX", "voices": 2, "cooldown": 0.06, "layers": [
 		{"files": ["dash_0", "dash_1", "dash_2"], "volume": -12.0, "pitch": Vector2(1.5, 1.7)},
 	]},

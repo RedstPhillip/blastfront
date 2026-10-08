@@ -384,6 +384,27 @@ func has_wall_cling(player_slot: int = 0) -> bool:
 	return get_mark(WALL_JUMPS, player_slot) >= 3
 
 
+## Sliding's mark; the sandbox lets the slide be tried without research (like the dash).
+func get_slide_mark(player_slot: int = 0) -> int:
+	var mark: int = get_mark(SLIDING, player_slot)
+	if mark == 0 and NetworkSession.is_training():
+		return 1
+	return mark
+
+
+## What a slide does at the player's mark: {speed (px/s at the start), time (s), steer, carry}, or {} without
+## the research. Mk II is faster and longer; Mk III steers and carries its speed into a jump.
+func get_slide_profile(player_slot: int = 0) -> Dictionary:
+	match get_slide_mark(player_slot):
+		0:
+			return {}
+		1:
+			return {"speed": 380.0, "time": 0.42, "steer": false, "carry": false}
+		2:
+			return {"speed": 470.0, "time": 0.6, "steer": false, "carry": false}
+	return {"speed": 470.0, "time": 0.6, "steer": true, "carry": true}
+
+
 # Players are handled untyped in this autoload on purpose: naming the Player class here would compile the
 # whole player (and everything it uses) at start-up, before the menu can appear.
 func apply_local_life_steal(source_slot: int, applied_damage: int) -> int:
@@ -500,7 +521,7 @@ func _build_definitions() -> Dictionary:
 
 		_definition(DASHING, "Dashing", BRANCH_MOVEMENT, "res://assets/ui/research/dashing.svg", [4, 7, 11, 15], Vector2(330, 260), [], true, 110),
 		_definition(WALL_JUMPS, "Wall Jumps", BRANCH_MOVEMENT, "res://assets/ui/research/wall_jumps.svg", [3, 6, 10], Vector2(450, 260), [_require(DASHING)], true, 115),
-		_definition(SLIDING, "Sliding", BRANCH_MOVEMENT, "res://assets/ui/research/sliding.svg", [4, 8, 13], Vector2(570, 260), [_require(DASHING)], false, 120),
+		_definition(SLIDING, "Sliding", BRANCH_MOVEMENT, "res://assets/ui/research/sliding.svg", [4, 8, 13], Vector2(570, 260), [_require(DASHING)], true, 120),
 
 		_definition(LIFE_STEAL, "Life Steal", BRANCH_MISC, "res://assets/ui/research/life_steal.svg", [3, 7, 12], Vector2(270, 395), [], true, 210),
 		_definition(RAGE, "Last Stand", BRANCH_MISC, "res://assets/ui/research/rage.svg", [3, 7, 13], Vector2(470, 395), [_require(LIFE_STEAL)], true, 220),
@@ -544,7 +565,7 @@ const PRESENTATION: Dictionary = {
 	LUCK: {"summary": "Better condition from the shop", "label": "EXTRA ROLLS", "levels": ["1", "2", "3"]},
 	DASHING: {"summary": "Burst sideways, on the ground or in the air", "label": "EACH MARK ADDS", "levels": ["Dash · 2.4 s", "Cooldown 1.4 s", "Shockwave", "No damage"]},
 	WALL_JUMPS: {"summary": "Climb walls with more wall jumps in a row", "label": "EACH MARK ADDS", "levels": ["2 in a row", "No limit · stronger", "Wall cling"]},
-	SLIDING: {"summary": "Slide", "label": "", "levels": ["Unlock", "Speed", "Control"]},
+	SLIDING: {"summary": "Drop low under shots and keep your speed", "label": "EACH MARK ADDS", "levels": ["Slide · 0.4 s", "Faster · 0.6 s", "Steer · jump out"]},
 	LIFE_STEAL: {"summary": "Heal from damage dealt", "label": "HEAL", "levels": ["5%", "10%", "16%"]},
 	RAGE: {"summary": "More damage below 20% health", "label": "DAMAGE", "levels": ["+15%", "+30%", "+50%"]},
 	PASSIVE_HEALING: {"summary": "Heal while standing still", "label": "HEALS UP TO", "levels": ["50%", "75%", "100%"]},

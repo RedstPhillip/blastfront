@@ -2,7 +2,7 @@ class_name BotBrain
 extends Node
 
 ## AI controller for a Player in CONTROL_AI mode. Produces the same inputs a human would:
-## movement axis, jump press/hold, shoot press, block press, dash press and an aim position.
+## movement axis, jump press/hold, shoot press, block press, dash and slide presses and an aim position.
 ## Movement follows a LevelNavigation graph; firing positions are scored with real ballistic
 ## line-of-fire checks (including high lobs over cover), amortised across physics frames.
 
@@ -15,17 +15,17 @@ const PROFILES: Dictionary = {
 	Difficulty.EASY: {
 		"aim_error": 7.5, "reaction": 0.45, "fire_delay": 0.6, "block_chance": 0.18, "block_reaction": 0.3,
 		"lead": 0.35, "preferred_distance": 0.85, "dodge_chance": 0.12, "turn_rate": 4.0, "pressure": 0.35,
-		"use_lobs": false, "capture_drive": 2.2, "dash_dodge": 0.15, "dash_drive": 0.18,
+		"use_lobs": false, "capture_drive": 2.2, "dash_dodge": 0.15, "dash_drive": 0.18, "slide_dodge": 0.1,
 	},
 	Difficulty.NORMAL: {
 		"aim_error": 3.2, "reaction": 0.27, "fire_delay": 0.25, "block_chance": 0.48, "block_reaction": 0.17,
 		"lead": 0.75, "preferred_distance": 0.7, "dodge_chance": 0.28, "turn_rate": 7.5, "pressure": 0.6,
-		"use_lobs": true, "capture_drive": 3.6, "dash_dodge": 0.35, "dash_drive": 0.4,
+		"use_lobs": true, "capture_drive": 3.6, "dash_dodge": 0.35, "dash_drive": 0.4, "slide_dodge": 0.25,
 	},
 	Difficulty.HARD: {
 		"aim_error": 1.3, "reaction": 0.15, "fire_delay": 0.07, "block_chance": 0.78, "block_reaction": 0.09,
 		"lead": 1.0, "preferred_distance": 0.58, "dodge_chance": 0.42, "turn_rate": 13.0, "pressure": 0.85,
-		"use_lobs": true, "capture_drive": 4.6, "dash_dodge": 0.6, "dash_drive": 0.65,
+		"use_lobs": true, "capture_drive": 4.6, "dash_dodge": 0.6, "dash_drive": 0.65, "slide_dodge": 0.4,
 	},
 }
 
@@ -56,7 +56,7 @@ const MUZZLE_REACH: float = 34.0
 ## How far a dash carries (burst plus the glide after it) and how often the bot weighs dashing on purpose.
 const DASH_REACH: float = 160.0
 const DASH_THINK_INTERVAL: float = 0.35
-## Research marks per difficulty (Dashing, Wall Jumps, Time Control): bots never visit the research page, so
+## Research marks per difficulty (Dashing, Wall Jumps, Sliding, Time Control): bots never visit the research page, so
 ## the game hands them these.
 const DASH_MARKS: Dictionary = {
 	Difficulty.EASY: 1,
@@ -70,6 +70,11 @@ const TIME_CONTROL_MARKS: Dictionary = {
 	Difficulty.HARD: 3,
 }
 const WALL_JUMP_MARKS: Dictionary = {
+	Difficulty.EASY: 0,
+	Difficulty.NORMAL: 1,
+	Difficulty.HARD: 3,
+}
+const SLIDE_MARKS: Dictionary = {
 	Difficulty.EASY: 0,
 	Difficulty.NORMAL: 1,
 	Difficulty.HARD: 3,
@@ -94,6 +99,7 @@ var shoot_pressed: bool = false
 var block_pressed: bool = false
 var time_control_pressed: bool = false
 var dash_pressed: bool = false
+var slide_pressed: bool = false
 var aim_position: Vector2 = Vector2.ZERO
 
 var _player: Player = null
@@ -157,6 +163,8 @@ var _dash_think_timer: float = 0.0
 var _time_control_think_timer: float = 0.0
 var _pending_dash_time: float = -1.0
 var _pending_dash_direction: float = 0.0
+var _pending_slide_time: float = -1.0
+var _pending_slide_direction: float = 0.0
 ## Set after a dash along the path: the waypoints it flew past are skipped instead of walked back to.
 var _skip_passed_points: bool = false
 ## A wall climb in progress: the way to the wall (0 when not climbing) and the ledge's height.
@@ -173,6 +181,8 @@ static func research_marks(bot_difficulty: int) -> Dictionary:
 		str(ResearchManager.DASHING): int(DASH_MARKS[bot_difficulty]),
 		str(ResearchManager.WALL_JUMPS): int(WALL_JUMP_MARKS[bot_difficulty]),
 	}
+	if int(SLIDE_MARKS[bot_difficulty]) > 0:
+		marks[str(ResearchManager.SLIDING)] = int(SLIDE_MARKS[bot_difficulty])
 	if int(TIME_CONTROL_MARKS.get(bot_difficulty, 0)) > 0:
 		marks[str(ResearchManager.TIME_CONTROL)] = int(TIME_CONTROL_MARKS[bot_difficulty])
 	return marks
@@ -230,6 +240,7 @@ func _physics_process(delta: float) -> void:
 	block_pressed = false
 	time_control_pressed = false
 	dash_pressed = false
+	slide_pressed = false
 	if _player == null or not is_instance_valid(_player) or _player.is_eliminated() or not _player.movement_enabled:
 		move_direction = 0.0
 		jump_held = false
@@ -246,6 +257,7 @@ func _physics_process(delta: float) -> void:
 		return
 	_update_threats(delta)
 	_update_movement(delta)
+	_update_slide(delta)
 	_update_dash(delta)
 	_update_aim_and_fire(delta)
 	_update_time_control(delta)
@@ -704,6 +716,43 @@ func _update_time_control(delta: float) -> void:
 		time_control_pressed = true
 
 
+# --- Slide -----------------------------------------------------------------------------
+
+## Fires a planned slide under an incoming round (the body has to be low before the round arrives).
+func _update_slide(delta: float) -> void:
+	if _pending_slide_time < 0.0:
+		return
+	_pending_slide_time -= delta
+	if _pending_slide_time >= 0.0:
+		return
+	if _player.is_grounded() and _dash_is_safe(_pending_slide_direction, 110.0):
+		slide_pressed = true
+		move_direction = _pending_slide_direction
+
+
+## A flat round at body height can be slid under: plans that slide (along the way the bot runs, else
+## towards the shooter) on safe floor; false when it does not fit.
+func _plan_slide_dodge(projectile: Projectile, me: Vector2, impact_time: float) -> bool:
+	if ResearchManager.get_slide_profile(_player.player_slot).is_empty() or not _player.is_grounded():
+		return false
+	var velocity: Vector2 = projectile.velocity
+	if absf(velocity.y) > absf(velocity.x) * 0.6:
+		return false
+	var fall: float = 0.5 * projectile.gravity * WorldConditions.projectile_gravity_scale * impact_time * impact_time
+	var height: float = projectile.global_position.y + velocity.y * impact_time + fall - me.y
+	if height < -16.0 or height > 4.0:
+		return false
+	var direction: float = signf(move_direction) if move_direction != 0.0 else signf(projectile.global_position.x - me.x)
+	if direction == 0.0 or not _dash_is_safe(direction, 110.0):
+		return false
+	var reaction: float = float(_profile["block_reaction"]) * randf_range(0.8, 1.25)
+	if reaction >= impact_time:
+		return false
+	_pending_slide_time = maxf(impact_time - 0.16, reaction)
+	_pending_slide_direction = direction
+	return true
+
+
 # --- Dash ------------------------------------------------------------------------------
 
 ## Fires a planned dodge on time, otherwise now and then dashes on purpose: away when hurt and pressed,
@@ -1033,7 +1082,9 @@ func _update_threats(delta: float) -> void:
 		var block_ready: bool = _player.get_block_cooldown_ratio() >= 0.999 and not _player.is_blocking()
 		# A protected dash beats a block (it also moves); without protection the dash only sidesteps lobs.
 		var dash_odds: float = float(_profile.get("dash_dodge", 0.0)) * (1.0 if ResearchManager.has_dash_protection(_player.player_slot) else 0.5)
-		if _pending_dash_time < 0.0 and _player.can_dash() and randf() < dash_odds and _plan_dash_dodge(projectile, me, impact_time):
+		if _pending_slide_time < 0.0 and randf() < float(_profile.get("slide_dodge", 0.0)) and _plan_slide_dodge(projectile, me, impact_time):
+			pass
+		elif _pending_dash_time < 0.0 and _player.can_dash() and randf() < dash_odds and _plan_dash_dodge(projectile, me, impact_time):
 			pass
 		elif block_ready and randf() < (maxf(float(_profile["block_chance"]), 0.85) if _player.is_time_slowed() else float(_profile["block_chance"])):
 			var reaction: float = float(_profile["block_reaction"]) * randf_range(0.8, 1.25)
