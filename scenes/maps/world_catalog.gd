@@ -8,11 +8,13 @@ const DEFAULT_WORLD: StringName = &"verdant"
 const WORLDS: Dictionary = {
 	&"verdant": {"name": "Verdant", "scene": "res://scenes/maps/arena.tscn"},
 	&"mars": {"name": "Mars", "scene": "res://scenes/maps/mars/mars_arena.tscn"},
+	&"tidewater": {"name": "Tidewater", "scene": "res://scenes/maps/tidewater/tidewater_arena.tscn"},
+	&"rimefall": {"name": "Rimefall", "scene": "res://scenes/maps/rimefall/rimefall_arena.tscn"},
 }
 
 
 static func ids() -> Array[StringName]:
-	return [&"verdant", &"mars"]
+	return [&"verdant", &"mars", &"tidewater", &"rimefall"]
 
 
 static func active_world_id() -> StringName:

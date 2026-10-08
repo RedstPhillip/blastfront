@@ -186,9 +186,13 @@ def write_wav(stereo, path):
 def write_ogg(stereo, path, quality=6):
     import shutil
     if shutil.which("ffmpeg") is None:
-        # No ffmpeg on this machine: libsndfile (via soundfile) writes Ogg Vorbis directly.
+        # No ffmpeg on this machine: libsndfile (via soundfile) writes Ogg Vorbis directly. In blocks: one
+        # big Vorbis write overflows the stack inside libsndfile on Windows.
         import soundfile
-        soundfile.write(path, np.clip(stereo, -1, 1), SR, format="OGG", subtype="VORBIS")
+        data = np.clip(stereo, -1, 1)
+        with soundfile.SoundFile(path, "w", SR, data.shape[1] if data.ndim == 2 else 1, format="OGG", subtype="VORBIS") as out:
+            for start in range(0, len(data), SR):
+                out.write(data[start:start + SR])
         return
     wav_path = path.replace(".ogg", ".tmp.wav")
     data = np.clip(stereo, -1, 1)

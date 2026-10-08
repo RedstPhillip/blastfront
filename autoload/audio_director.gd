@@ -342,6 +342,8 @@ const MUSIC_TRACKS: Dictionary = {
 	&"locker": "locker_theme.ogg",
 	&"ambience_wind": "ambience_wind.ogg",
 	&"ambience_mars": "ambience_mars.ogg",
+	&"ambience_tidewater": "ambience_tidewater.ogg",
+	&"ambience_rimefall": "ambience_rimefall.ogg",
 }
 
 var _streams: Dictionary = {}

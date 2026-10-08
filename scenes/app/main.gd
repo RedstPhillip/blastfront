@@ -17,10 +17,11 @@ const ONLINE_LOCKER_ROOM_SCENE_PATH: String = "res://scenes/menus/online_locker_
 const LOADOUT_PAGE_SCENE_PATH: String = "res://scenes/ui/loadout/loadout_page.tscn"
 const SETTINGS_MENU_SCENE_PATH: String = "res://scenes/menus/settings_menu.tscn"
 ## Background load order: the small settings page first (so opening it right away never waits on the
-## match), then the match and the other world's map, then everything reached from a match.
+## match), then the match and the other worlds' maps, then everything reached from a match.
 const BACKGROUND_SCENES: Array[String] = [
-	SETTINGS_MENU_SCENE_PATH, GAME_SCENE_PATH, "res://scenes/maps/mars/mars_arena.tscn", LOADOUT_PAGE_SCENE_PATH,
-	INTERMISSION_MENU_SCENE_PATH, ONLINE_LOCKER_ROOM_SCENE_PATH,
+	SETTINGS_MENU_SCENE_PATH, GAME_SCENE_PATH, "res://scenes/maps/mars/mars_arena.tscn",
+	"res://scenes/maps/tidewater/tidewater_arena.tscn", "res://scenes/maps/rimefall/rimefall_arena.tscn",
+	LOADOUT_PAGE_SCENE_PATH, INTERMISSION_MENU_SCENE_PATH, ONLINE_LOCKER_ROOM_SCENE_PATH,
 ]
 const TRANSITION_SHADER: Shader = preload("res://scenes/app/transition.gdshader")
 const COVER_SECONDS: float = 0.32

@@ -156,6 +156,207 @@ def render_mars_ambience(seconds):
     return stereo
 
 
+def _sparse_events(n, rate_hz, rng):
+    """Sample indices of a Poisson stream of events (rate per second) across n samples."""
+    count = rng.poisson(rate_hz * n / SR)
+    return np.sort(rng.integers(0, n, count))
+
+
+def render_tidewater_ambience(seconds):
+    """A drowned temple at night in the rain: steady downpour, waves washing through the ruins in slow
+    swells, water dripping off stone and thunder rolling far away."""
+    t = t_axis(seconds)
+    n = len(t)
+    rng = np.random.default_rng(211)
+    rain = bandpass(rng.standard_normal(n), 1400.0, 9000.0) * 0.32
+    rain *= 0.85 + 0.15 * np.sin(2 * np.pi * 0.07 * t)
+    patter = np.zeros(n)
+    for start in _sparse_events(n, 55.0, rng):
+        length = int(SR * rng.uniform(0.004, 0.012))
+        end = min(start + length, n)
+        patter[start:end] += rng.uniform(-1, 1) * np.exp(-np.arange(end - start) / (length * 0.3))
+    patter = bandpass(patter, 1800.0, 6000.0) * 0.9
+    # Waves: two swells of different period wash in and drain away.
+    swell = 0.5 + 0.5 * np.sin(2 * np.pi * t / 8.0) ** 3 + 0.25 * np.sin(2 * np.pi * t / 13.0 + 1.0)
+    swell = np.clip(swell, 0.15, 1.4)
+    wash = bandpass(rng.standard_normal(n), 180.0, 1100.0) * 0.9 * swell
+    undertow = lowpass(rng.standard_normal(n), 110.0) * 1.3 * (0.6 + 0.4 * swell)
+    drips = np.zeros(n)
+    for start in _sparse_events(n, 0.9, rng):
+        length = int(SR * 0.18)
+        end = min(start + length, n)
+        tt = np.arange(end - start) / SR
+        freq = rng.uniform(900.0, 1700.0) * (1.0 + 0.6 * np.exp(-tt / 0.01))
+        drips[start:end] += np.sin(2 * np.pi * np.cumsum(freq) / SR) * np.exp(-tt / 0.035) * rng.uniform(0.3, 0.7)
+    drips = reverb(drips, wet=0.5, seconds=1.8, damping=3000.0)
+    thunder = np.zeros(n)
+    for start in _sparse_events(n, 0.035, rng):
+        length = int(SR * 5.0)
+        end = min(start + length, n)
+        tt = np.arange(end - start) / SR
+        roll = 1.0 + 0.5 * np.sin(2 * np.pi * 1.3 * tt) * np.exp(-tt / 1.5)
+        thunder[start:end] += np.clip(tt / 0.4, 0, 1) * np.exp(-tt / 1.8) * roll
+    thunder = lowpass(rng.standard_normal(n), 140.0) * thunder * 2.6
+    mono = rain + undertow + thunder
+    left = mono + wash + patter * 0.8 + drips[:, 0] * 0.6
+    right = mono + np.roll(wash, int(SR * 0.7)) + np.roll(patter, 911) * 0.8 + drips[:, 1] * 0.6
+    return np.stack([left, right], axis=1)
+
+
+def render_rimefall_ambience(seconds):
+    """A glacier pass at night: thin wind whistling over the ice, a low drone off the mountain, snow
+    hissing past, and now and then the glacier groaning or a crack ringing out across the frozen lake."""
+    t = t_axis(seconds)
+    n = len(t)
+    rng = np.random.default_rng(313)
+    gusts = 0.5 + 0.5 * np.clip(np.sin(2 * np.pi * 0.045 * t) * np.sin(2 * np.pi * 0.017 * t + 0.6) * 2.2, -1, 1)
+    drone = lowpass(rng.standard_normal(n), 75.0) * 1.4 * (0.75 + 0.25 * gusts)
+    whistle = resonant_wind(seconds, 1750.0, 45.0, 0.09, 17) * 0.3 * gusts
+    howl = resonant_wind(seconds, 700.0, 80.0, 0.06, 19) * 0.32 * (0.4 + 0.6 * gusts)
+    snow = highpass(rng.standard_normal(n), 4200.0) * 0.05 * (0.6 + 0.4 * gusts)
+    groans = np.zeros(n)
+    for start in _sparse_events(n, 0.06, rng):
+        length = int(SR * 2.4)
+        end = min(start + length, n)
+        tt = np.arange(end - start) / SR
+        freq = rng.uniform(70.0, 110.0) * (1.0 + 0.25 * np.sin(2 * np.pi * 0.35 * tt))
+        phase = 2 * np.pi * np.cumsum(freq) / SR
+        voice = np.sign(np.sin(phase)) * 0.4 + np.sin(phase * 2.01) * 0.3
+        groans[start:end] += voice * np.sin(np.pi * np.clip(tt / 2.4, 0, 1)) ** 2
+    groans = bandpass(groans, 60.0, 600.0) * 0.5
+    cracks = np.zeros(n)
+    for start in _sparse_events(n, 0.08, rng):
+        length = int(SR * 1.6)
+        end = min(start + length, n)
+        tt = np.arange(end - start) / SR
+        ring = sum(np.sin(2 * np.pi * f * tt) for f in rng.uniform(300.0, 1600.0, 4)) * 0.25
+        snap = rng.standard_normal(end - start) * np.exp(-tt / 0.008)
+        cracks[start:end] += (snap * 0.8 + ring * np.exp(-tt / 0.35)) * rng.uniform(0.25, 0.6)
+    cracks = reverb(highpass(cracks, 200.0), wet=0.6, seconds=3.2, damping=5000.0)
+    chimes = np.zeros(n)
+    for start in _sparse_events(n, 0.5, rng):
+        length = int(SR * 0.9)
+        end = min(start + length, n)
+        tt = np.arange(end - start) / SR
+        chimes[start:end] += np.sin(2 * np.pi * rng.uniform(2800.0, 5200.0) * tt) * np.exp(-tt / 0.25) * 0.08
+    chimes = reverb(chimes, wet=0.7, seconds=2.5, damping=8000.0)
+    mono = drone + howl + snow + groans
+    left = mono + whistle + cracks[:, 0] + chimes[:, 0]
+    right = mono + np.roll(whistle, int(SR * 1.3)) + cracks[:, 1] + chimes[:, 1]
+    return np.stack([left, right], axis=1)
+
+
+# --- Tidewater: the tide and the water -------------------------------------------------------------------
+
+def render_tide_horn():
+    """The flood warning: a long conch blast, breathy and low, swelling and bending up at the end, with the
+    echo of the ruins behind it."""
+    seconds = 3.4
+    t = t_axis(seconds)
+    bend = 1.0 + 0.04 * np.clip((t - 2.2) / 0.8, 0, 1) ** 2
+    vibrato = 1.0 + 0.006 * np.sin(2 * np.pi * 5.2 * t) * np.clip((t - 0.6) / 0.8, 0, 1)
+    freq = 116.0 * bend * vibrato
+    phase = 2 * np.pi * np.cumsum(freq) / SR
+    tone = sum(np.sin(phase * h) * a for h, a in ((1, 1.0), (2, 0.55), (3, 0.42), (4, 0.2), (5, 0.16), (6, 0.08)))
+    breath = bandpass(noise(len(t)), 300.0, 2400.0) * 0.18
+    env = np.clip(t / 0.35, 0, 1) ** 1.5 * (0.8 + 0.2 * np.clip((t - 0.4) / 1.5, 0, 1)) * np.clip((seconds - 0.25 - t) / 0.7, 0, 1)
+    mono = lowpass((tone * 0.5 + breath) * env, 2200.0)
+    return limit_peak(normalize_rms(reverb(mono, wet=0.45, seconds=2.6, damping=2500.0), -15.0))
+
+
+def _water_body(seconds, lo, hi, seed):
+    rng = np.random.default_rng(seed)
+    n = int(seconds * SR)
+    body = bandpass(rng.standard_normal(n), lo, hi)
+    gurgle = np.zeros(n)
+    for start in _sparse_events(n, 9.0, rng):
+        length = int(SR * rng.uniform(0.03, 0.09))
+        end = min(start + length, n)
+        tt = np.arange(end - start) / SR
+        f = rng.uniform(250.0, 700.0) * (1.0 + 1.2 * tt / max(tt[-1], 1e-3) if len(tt) else 1.0)
+        gurgle[start:end] += np.sin(2 * np.pi * np.cumsum(f) / SR) * np.sin(np.pi * tt / max(tt[-1], 1e-3))
+    return body, gurgle
+
+
+def render_tide_surge():
+    """The sea pouring into the ruins: a rushing roar that builds over the rise and churns with gurgles."""
+    seconds = 5.2
+    t = t_axis(seconds)
+    body, gurgle = _water_body(seconds, 150.0, 2600.0, 61)
+    roar = lowpass(noise(len(t)), 160.0) * 1.6
+    rise = np.clip(t / 1.4, 0, 1) * np.clip((seconds - t) / 1.6, 0, 1)
+    churn = 0.8 + 0.2 * np.sin(2 * np.pi * 1.7 * t) * np.sin(2 * np.pi * 0.6 * t)
+    mono = (body * churn + roar + gurgle * 0.35) * rise
+    return limit_peak(normalize_rms(stereoize(mono, 0.4), -17.0))
+
+
+def render_tide_drain():
+    """The sea draining back out: a falling hiss and trickle with gurgles that thin out."""
+    seconds = 5.6
+    t = t_axis(seconds)
+    body, gurgle = _water_body(seconds, 400.0, 3800.0, 67)
+    trickle = bandpass(noise(len(t)), 2500.0, 7000.0) * 0.4
+    fall = np.clip(t / 0.5, 0, 1) * np.exp(-t / 2.4)
+    mono = (body * 0.8 + trickle + gurgle * 0.5) * fall
+    return limit_peak(normalize_rms(stereoize(mono, 0.4), -19.0))
+
+
+def render_splash(seed):
+    """Something hitting the water: a sharp slap, a spray of droplets and a short bubbly tail."""
+    rng = np.random.default_rng(seed)
+    seconds = 0.9
+    t = t_axis(seconds)
+    slap = bandpass(rng.standard_normal(len(t)), 500.0, 6000.0) * np.exp(-t / 0.05)
+    spray = highpass(rng.standard_normal(len(t)), 2500.0) * np.exp(-t / 0.18) * 0.5
+    bubbles = np.zeros(len(t))
+    for start in _sparse_events(len(t), 22.0, rng):
+        length = int(SR * rng.uniform(0.02, 0.05))
+        end = min(start + length, len(t))
+        tt = np.arange(end - start) / SR
+        f = rng.uniform(500.0, 1100.0) * (1.0 + 2.0 * tt / 0.05)
+        bubbles[start:end] += np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-tt / 0.015) * 0.4
+    bubbles *= np.exp(-t / 0.3)
+    body = lowpass(rng.standard_normal(len(t)), 300.0) * np.exp(-t / 0.08) * 1.2
+    mono = slap + spray + bubbles + body
+    return limit_peak(normalize_rms(stereoize(mono, 0.25), -16.0))
+
+
+def render_swim(seed):
+    """One swimming stroke: a soft low swish of water."""
+    rng = np.random.default_rng(seed)
+    seconds = 0.45
+    t = t_axis(seconds)
+    swish = bandpass(rng.standard_normal(len(t)), 250.0, 1800.0) * np.sin(np.pi * np.clip(t / seconds, 0, 1)) ** 2
+    return limit_peak(normalize_rms(stereoize(swish, 0.2), -24.0))
+
+
+# --- Rimefall: the ice -------------------------------------------------------------------------------------
+
+def render_ice_skid():
+    """Boots skating over glare ice: a gritty bright scrape that fades as the slide slows."""
+    rng = np.random.default_rng(83)
+    seconds = 0.7
+    t = t_axis(seconds)
+    grit = np.zeros(len(t))
+    hits = rng.random(len(t)) < 0.05
+    grit[hits] = rng.uniform(-1.0, 1.0, int(hits.sum()))
+    scrape = bandpass(rng.standard_normal(len(t)), 1800.0, 6500.0) * 0.6 + bandpass(grit, 2500.0, 9000.0) * 1.4
+    scrape *= 0.75 + 0.25 * np.sin(2 * np.pi * 31.0 * t)
+    env = np.clip(t / 0.02, 0, 1) * np.exp(-t / 0.28)
+    return limit_peak(normalize_rms(stereoize(scrape * env, 0.2), -19.0))
+
+
+def render_step_ice(seed):
+    """A footstep on ice: a crisp click with a short glassy ring."""
+    rng = np.random.default_rng(seed)
+    seconds = 0.22
+    t = t_axis(seconds)
+    click = highpass(rng.standard_normal(len(t)), 1500.0) * np.exp(-t / 0.006)
+    ring = sum(np.sin(2 * np.pi * f * t) for f in rng.uniform(2200.0, 4600.0, 3)) * np.exp(-t / 0.04) * 0.12
+    thud = lowpass(rng.standard_normal(len(t)), 250.0) * np.exp(-t / 0.02) * 0.5
+    return limit_peak(normalize_rms(stereoize(click + ring + thud, 0.1), -22.0))
+
+
 # --- Weapons -------------------------------------------------------------------------------------------
 # Every report is built from the same parts so the family stays coherent: a bright transient, a noise
 # blast, a sub thump for weight and an outdoor tail with a slap-back echo. The proportions give each
@@ -362,7 +563,15 @@ def main():
         "shot_heavy.wav": render_shot_heavy,
         "shot_light.wav": render_shot_light,
         "shot_launcher.wav": render_shot_launcher,
+        "tide_horn.wav": render_tide_horn,
+        "tide_surge.wav": render_tide_surge,
+        "tide_drain.wav": render_tide_drain,
+        "ice_skid.wav": render_ice_skid,
     }
+    for index in range(3):
+        renders["splash_%d.wav" % index] = lambda seed=index: render_splash(500 + seed)
+        renders["swim_%d.wav" % index] = lambda seed=index: render_swim(600 + seed)
+        renders["step_ice_%d.wav" % index] = lambda seed=index: render_step_ice(700 + seed)
     only = sys.argv[1:]
     for name, render in renders.items():
         if only and name not in only:
@@ -377,6 +586,12 @@ def main():
         loop = make_seamless(render_mars_ambience, 40.0)
         write_ogg(normalize_rms(loop, -24.0), os.path.join(MUSIC_DIR, "ambience_mars.ogg"))
         print("rendered ambience_mars.ogg")
+    for world, render in (("tidewater", render_tidewater_ambience), ("rimefall", render_rimefall_ambience)):
+        name = "ambience_%s.ogg" % world
+        if not only or name in only:
+            loop = make_seamless(render, 40.0)
+            write_ogg(normalize_rms(loop, -24.0), os.path.join(MUSIC_DIR, name))
+            print("rendered", name)
 
 
 if __name__ == "__main__":

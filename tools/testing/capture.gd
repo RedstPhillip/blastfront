@@ -1366,6 +1366,21 @@ func _build_script() -> void:
 				_at(3.95 + i * 0.4, "shot", "mars_close_%d" % i)
 			_at(6.2, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
 			_at(6.3, "quit")
+		"tidewater", "rimefall":
+			var world_id: String = _scenario
+			var close_spots: Array = [Vector2(260, 440), Vector2(620, 520), Vector2(900, 560), Vector2(1110, 420), Vector2(1110, 620)]
+			_at(0.2, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", world_id))
+			_at(0.5, "call", func(): _main._on_sandbox_requested())
+			_at(1.0, "mouse", Vector2(820, 400))
+			_at(3.0, "shot", "%s_game" % world_id)
+			_at(3.2, "call", func(): _freeze_camera(Vector2(get_first_node_in_group(&"map_bounds").bounds.get_center().x, 420), 0.57))
+			_at(3.5, "shot", "%s_overview" % world_id)
+			for i in range(close_spots.size()):
+				var spot: Vector2 = close_spots[i]
+				_at(3.7 + i * 0.4, "call", func(): _freeze_camera(spot, 2.0))
+				_at(3.95 + i * 0.4, "shot", "%s_close_%d" % [world_id, i])
+			_at(6.2, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
+			_at(6.3, "quit")
 		"mars_play":
 			_at(0.2, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "mars"))
 			_at(0.5, "call", func(): _main._on_sandbox_requested())
