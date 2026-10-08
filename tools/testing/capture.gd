@@ -179,6 +179,7 @@ func _build_script() -> void:
 				g.match_finished.emit(1))
 			_at(4.0, "shot", "victory_banner")
 			_at(6.2, "shot", "victory_a")
+			_at(6.3, "call", func(): _log_focus("victory"))
 			_at(7.5, "shot", "victory_b")
 			_at(7.6, "call", func(): get_first_node_in_group(&"game_world").get_node("HUD/PauseMenu").pause_game())
 			_at(8.2, "shot", "pause_restart")
@@ -227,7 +228,13 @@ func _build_script() -> void:
 				if sm.size() > 0:
 					sm[0].current_tab = 3)
 			_at(2.6, "shot", "controls_tab")
-			_at(2.7, "quit")
+			for tab in [1, 2]:
+				_at(2.7 + tab * 0.4, "call", func():
+					var tabs = _main.get_node("SceneRoot").get_child(0).find_children("*", "TabContainer", true, false)
+					if tabs.size() > 0:
+						tabs[0].current_tab = tab)
+				_at(2.9 + tab * 0.4, "shot", "settings_tab_%d" % tab)
+			_at(3.8, "quit")
 		"settings_reset":
 			_at(1.5, "call", func(): _main.get_node("SceneRoot").get_child(0)._on_settings_pressed())
 			_at(2.0, "call", func():
@@ -775,6 +782,7 @@ func _build_script() -> void:
 				root.get_node("OnlineMatch").coin_balances[1] = 99
 				_loadout_page()._on_merge_requested(_merge_pair[0], _merge_pair[1]))
 			_at(4.6, "shot", "merge_band")
+			_at(4.65, "call", func(): _log_focus("merge"))
 			_at(4.7, "call", func(): _loadout_page()._merge_dialog.confirm())
 			_at(5.6, "shot", "merge_done")
 			_at(5.7, "quit")

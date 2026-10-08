@@ -98,14 +98,14 @@ func _make_page(page_name: String) -> VBoxContainer:
 	_tabs.add_child(scroll)
 	var page: VBoxContainer = VBoxContainer.new()
 	page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	page.add_theme_constant_override("separation", 10)
+	page.add_theme_constant_override("separation", 6)
 	scroll.add_child(page)
 	return page
 
 
 func _row(page: VBoxContainer, label_text: String) -> HBoxContainer:
 	var row: HBoxContainer = HBoxContainer.new()
-	row.custom_minimum_size = Vector2(0.0, 44.0)
+	row.custom_minimum_size = Vector2(0.0, 40.0)
 	row.add_theme_constant_override("separation", 16)
 	page.add_child(row)
 	var label: Label = Label.new()
@@ -139,11 +139,11 @@ func _slider(page: VBoxContainer, label_text: String, key: StringName, max_value
 	value_label.custom_minimum_size = Vector2(60.0, 0.0)
 	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	value_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	value_label.text = "%d%%" % int(round(slider.value / max_value * 100.0))
+	value_label.text = "%d%%" % int(round(slider.value * 100.0))
 	row.add_child(value_label)
 	slider.value_changed.connect(func(value: float) -> void:
 		UserSettings.set_value(key, value)
-		value_label.text = "%d%%" % int(round(value / max_value * 100.0))
+		value_label.text = "%d%%" % int(round(value * 100.0))
 		AudioDirector.play(&"ui_slider")
 	)
 
