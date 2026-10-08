@@ -171,6 +171,8 @@ var time_scale: float = 1.0
 var _time_slow_scale: float = 1.0
 var _time_slow_timer: float = 0.0
 var _time_slow_duration: float = 0.0
+## Mk III: a full stop before the slow. Health cannot drop below the floor set when it began.
+var _time_freeze_timer: float = 0.0
 var _time_control_cooldown: float = 0.0
 var _time_control_cooldown_total: float = 0.0
 ## While this player's own cast holds the opponent slowed (drives the HUD dial).
@@ -241,7 +243,8 @@ func _process(delta: float) -> void:
 	_update_status_effect_feedback(own_delta)
 	_update_block_armor_effects(own_delta)
 	_update_research_healing(own_delta)
-	_update_feedback_visuals(own_delta)
+	# Body feedback keeps moving a little even when frozen, so a hit on a frozen player still reads.
+	_update_feedback_visuals(delta * maxf(time_scale, 0.3))
 
 
 func _physics_process(delta: float) -> void:
@@ -505,9 +508,14 @@ func apply_resolved_damage(amount: int, source_position: Vector2 = Vector2.ZERO)
 	if amount <= 0 or health_component == null:
 		return 0
 	var old_health: int = health_component.health
+	if _time_freeze_timer > 0.0 and old_health <= health_component.damage_floor:
+		# The freeze's damage cap is used up: the hit glances off the stopped clock.
+		GameJuice.spawn_burst(&"reflect", global_position, (global_position - source_position).normalized(), TimeFlow.COLOR)
+		AudioDirector.play_at(&"time_absorb", global_position)
+		return 0
 	apply_hit_feedback(source_position, amount)
 	health_component.damage(amount)
-	return mini(amount, old_health)
+	return old_health - health_component.health
 
 
 func get_modified_incoming_damage(amount: int) -> int:
@@ -710,7 +718,7 @@ func _is_action_available(action: StringName, enabled: bool, just_pressed: bool)
 
 
 func _is_ai_action_active(action: StringName, enabled: bool, just_pressed: bool) -> bool:
-	if ai_brain == null or not enabled or _stun_timer > 0.0:
+	if ai_brain == null or not enabled or _stun_timer > 0.0 or _time_freeze_timer > 0.0:
 		return false
 	if action == jump_action:
 		return ai_brain.jump_pressed if just_pressed else ai_brain.jump_held
@@ -726,7 +734,7 @@ func _is_ai_action_active(action: StringName, enabled: bool, just_pressed: bool)
 
 
 func _can_read_input(enabled: bool) -> bool:
-	return control_mode == GameSettings.CONTROL_LOCAL and enabled and _stun_timer <= 0.0
+	return control_mode == GameSettings.CONTROL_LOCAL and enabled and _stun_timer <= 0.0 and _time_freeze_timer <= 0.0
 
 
 func is_blocking() -> bool:
@@ -1738,8 +1746,13 @@ func is_time_slowed() -> bool:
 	return _time_slow_timer > 0.0
 
 
+func is_time_frozen() -> bool:
+	return _time_freeze_timer > 0.0
+
+
+## Seconds left of the current phase: the freeze while frozen, else the slow.
 func get_time_slow_left() -> float:
-	return _time_slow_timer
+	return _time_freeze_timer if _time_freeze_timer > 0.0 else _time_slow_timer
 
 
 ## 1 when Time Control is ready, rising from 0 while it recharges.
@@ -1784,19 +1797,26 @@ func begin_time_control_cooldown(cooldown: float, active_seconds: float) -> void
 	AudioDirector.play_at(&"time_cast", global_position)
 
 
-## Runs this player's clock at `scale` for `duration` seconds (a Time Control cast on them).
-func apply_time_slow(scale: float, duration: float) -> void:
+## Runs this player's clock at `scale` for `duration` seconds (a Time Control cast on them), after a full
+## stop of `freeze_seconds` (Mk III). While frozen they lose at most a share of their maximum health and
+## never their last point, so the freeze sets up a comeback instead of a free kill.
+func apply_time_slow(scale: float, duration: float, freeze_seconds: float = 0.0) -> void:
 	var was_slowed: bool = _time_slow_timer > 0.0
 	_time_slow_scale = clampf(scale, 0.0, 1.0)
-	_time_slow_timer = maxf(_time_slow_timer, duration)
+	_time_slow_timer = maxf(_time_slow_timer, duration + freeze_seconds)
 	_time_slow_duration = maxf(_time_slow_timer, 0.01)
+	if freeze_seconds > 0.0:
+		_time_freeze_timer = maxf(_time_freeze_timer, freeze_seconds)
+		if health_component != null:
+			var allowed: int = int(ceil(float(health_component.max_health) * ResearchManager.TIME_FREEZE_DAMAGE_SHARE))
+			health_component.damage_floor = maxi(1, health_component.health - allowed)
 	if was_slowed:
 		return
 	if _face != null:
 		_face.set_expression(PlayerFace.Mood.SHOCKED, 0.5)
 	GameJuice.spawn_burst(&"time_slow", global_position, Vector2.UP, TimeFlow.COLOR)
-	AudioDirector.play_at(&"time_slow_start", global_position)
-	AudioDirector.duck_music(-8.0, duration, 0.6)
+	AudioDirector.play_at(&"time_freeze_start" if freeze_seconds > 0.0 else &"time_slow_start", global_position)
+	AudioDirector.duck_music(-8.0, duration + freeze_seconds, 0.6)
 	GameJuice.shockwave(global_position, 1.5, 0.9)
 	GameJuice.flash(TimeFlow.COLOR, 0.22, 0.4)
 	GameJuice.aberration(1.4, 0.55)
@@ -1806,12 +1826,20 @@ func apply_time_slow(scale: float, duration: float) -> void:
 func _update_time_control(delta: float) -> void:
 	_time_control_cooldown = maxf(_time_control_cooldown - delta, 0.0)
 	_time_control_active_timer = maxf(_time_control_active_timer - delta, 0.0)
+	if _time_freeze_timer > 0.0:
+		_time_freeze_timer = maxf(_time_freeze_timer - delta, 0.0)
+		if _time_freeze_timer <= 0.0:
+			_end_time_freeze()
 	if _time_slow_timer > 0.0:
 		_time_slow_timer = maxf(_time_slow_timer - delta, 0.0)
 		if _time_slow_timer <= 0.0:
 			_play_time_slow_end()
 	var previous: float = time_scale
-	var target: float = _time_slow_scale if _time_slow_timer > 0.0 else 1.0
+	var target: float = 1.0
+	if _time_freeze_timer > 0.0:
+		target = 0.0
+	elif _time_slow_timer > 0.0:
+		target = _time_slow_scale
 	if time_scale != target:
 		time_scale = move_toward(time_scale, target, delta / TIME_RAMP_SECONDS)
 	if previous < 1.0 or time_scale < 1.0:
@@ -1826,8 +1854,18 @@ func _play_time_slow_end() -> void:
 		GameJuice.aberration(0.6, 0.3)
 
 
+func _end_time_freeze() -> void:
+	if health_component != null:
+		health_component.damage_floor = 0
+	GameJuice.spawn_burst(&"time_release", global_position, Vector2.UP, TimeFlow.COLOR)
+	AudioDirector.play_at(&"time_thaw", global_position)
+
+
 func _clear_time_slow() -> void:
 	_time_slow_timer = 0.0
+	_time_freeze_timer = 0.0
+	if health_component != null:
+		health_component.damage_floor = 0
 	if time_scale < 1.0:
 		time_scale = 1.0
 		TimeFlow.set_scale(player_slot, 1.0, global_position)

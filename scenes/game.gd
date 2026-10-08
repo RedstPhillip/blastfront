@@ -272,7 +272,7 @@ func request_time_control(caster: Player) -> bool:
 		return false
 	if NetworkSession.uses_set_flow() and not OnlineMatch.is_playing_set():
 		return false
-	if not caster.can_cast_time_control():
+	if not caster.can_cast_time_control() or _is_kill_banner_up():
 		return false
 	var profile: Dictionary = ResearchManager.get_time_control_profile(caster.player_slot)
 	var targets: Array[Player] = []
@@ -283,9 +283,9 @@ func request_time_control(caster: Player) -> bool:
 	if targets.is_empty():
 		return false
 	var duration: float = float(profile["duration"])
-	caster.begin_time_control_cooldown(float(profile["cooldown"]), duration)
+	caster.begin_time_control_cooldown(float(profile["cooldown"]), duration + float(profile.get("freeze", 0.0)))
 	for target in targets:
-		target.apply_time_slow(float(profile["scale"]), duration)
+		target.apply_time_slow(float(profile["scale"]), duration, float(profile.get("freeze", 0.0)))
 	return true
 
 
@@ -310,6 +310,17 @@ func request_dash_shockwave(owner: Node, origin: Vector2, direction: float) -> v
 		return
 	for hit in dasher.get_dash_shockwave_hits(origin, direction):
 		(hit["target"] as Player).receive_knockback(hit["velocity"], origin)
+
+
+## Between a knockout and the next round (the kill banner), nobody casts. The sandbox respawns its dummies
+## on their own and has no banner.
+func _is_kill_banner_up() -> bool:
+	if NetworkSession.is_training():
+		return false
+	for player in [_player_1, _player_2]:
+		if player != null and is_instance_valid(player) and player.is_eliminated():
+			return true
+	return false
 
 
 func build_authoritative_shot(owner_slot: int) -> Dictionary:

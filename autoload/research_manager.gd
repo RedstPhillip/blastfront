@@ -146,13 +146,6 @@ func reset_for_new_game(persist_progress: bool = true) -> void:
 	_publish_local_profile()
 
 
-func reset_points_for_big_round() -> void:
-	research_points = DEFAULT_RESEARCH_POINTS
-	research_points_changed.emit(research_points)
-	research_changed.emit()
-	_publish_local_profile()
-
-
 ## Gives a bot fixed marks for the moves it is allowed to use (empty clears them).
 func set_bot_marks(player_slot: int, marks: Dictionary) -> void:
 	if marks.is_empty():
@@ -338,7 +331,7 @@ func get_time_control_mark(player_slot: int = 0) -> int:
 	return mark
 
 
-## What a cast does at the player's mark: {scale, duration, cooldown}, or {} without the research.
+## What a cast does at the player's mark: {scale, duration, cooldown, freeze}, or {} without the research.
 func get_time_control_profile(player_slot: int = 0) -> Dictionary:
 	var mark: int = get_time_control_mark(player_slot)
 	if mark <= 0:
@@ -501,15 +494,20 @@ func _build_definitions() -> Dictionary:
 		entry["summary"] = str(presentation.get("summary", ""))
 		entry["level_label"] = str(presentation.get("label", ""))
 		entry["levels"] = presentation.get("levels", [])
+		entry["details"] = presentation.get("details", [])
 		definitions[str(entry["id"])] = entry
 	return definitions
 
 
-## Time Control per mark: how fast the opponent's clock runs, how long (s) and the wait (s) before the next
-## cast. Mk II and III (longer, then a freeze) play like Mk I until they are built.
+## Time Control per mark: how fast the opponent's clock runs while slowed, how long the slow lasts (s), the
+## wait before the next cast (s), and for Mk III a full stop (s) before the slow. While frozen a fighter can
+## lose at most TIME_FREEZE_DAMAGE_SHARE of their maximum health and never their last point (see Player).
 const TIME_CONTROL_MARKS: Array[Dictionary] = [
-	{"scale": 0.35, "duration": 3.0, "cooldown": 35.0},
+	{"scale": 0.35, "duration": 3.0, "cooldown": 35.0, "freeze": 0.0},
+	{"scale": 0.35, "duration": 4.5, "cooldown": 26.0, "freeze": 0.0},
+	{"scale": 0.35, "duration": 3.0, "cooldown": 26.0, "freeze": 1.5},
 ]
+const TIME_FREEZE_DAMAGE_SHARE: float = 0.35
 
 
 ## How each project reads on the research screen: a few words, and what every mark is worth.
@@ -528,7 +526,8 @@ const PRESENTATION: Dictionary = {
 	RAGE: {"summary": "More damage below 20% health", "label": "DAMAGE", "levels": ["+15%", "+30%", "+50%"]},
 	PASSIVE_HEALING: {"summary": "Heal while standing still", "label": "HEALS UP TO", "levels": ["50%", "75%", "100%"]},
 	PHOENIX: {"summary": "Survive one lethal hit per set", "label": "COME BACK WITH", "levels": ["40% HP"]},
-	TIME_CONTROL: {"summary": "Slow the opponent and their shots", "label": "SLOWS FOR", "levels": ["3 s", "Longer", "Freeze"]},
+	TIME_CONTROL: {"summary": "Slow the opponent and their shots in flight", "label": "EFFECT", "levels": ["Slow 3 s", "Slow 4.5 s", "Freeze"],
+		"details": ["35% speed for 3 s  ·  35 s cooldown", "Slow lasts 4.5 s  ·  26 s cooldown", "Full stop 1.5 s, then 3 s slow  ·  max 35% HP lost frozen"]},
 	FASTER_CAPTURE: {"summary": "Capture supply drops faster", "label": "CAPTURE TIME", "levels": ["−15%", "−30%", "−45%"]},
 	CAPTURE_BONUS: {"summary": "More RP per supply drop", "label": "RP PER DROP", "levels": ["6", "7", "8"]},
 	CAPTURE_RADIUS: {"summary": "Wider capture ring", "label": "RADIUS", "levels": ["+20", "+42", "+68"]},

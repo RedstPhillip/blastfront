@@ -343,7 +343,7 @@ func _draw_dock() -> void:
 	var points_text: String = str(int(roundf(_shown_points)))
 	ResearchNodeButton.draw_rp_glyph(_dock, Vector2(x + 10.0, 58.0), 10.0 * (1.0 + pop), UiStyle.INTEL)
 	_dock.draw_string(UiStyle.FONT_DISPLAY, Vector2(x + 28.0, 70.0), points_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 34, UiStyle.INTEL.lerp(Color.WHITE, _points_pop * 0.5))
-	_dock.draw_string(UiStyle.FONT_BOLD, Vector2(x, 66.0), "RESETS TO %d NEXT SET" % ResearchManager.DEFAULT_RESEARCH_POINTS, HORIZONTAL_ALIGNMENT_RIGHT, inner, 10, LoadoutStyle.TEXT_MUTED)
+	_dock.draw_string(UiStyle.FONT_BOLD, Vector2(x, 66.0), "KEPT BETWEEN SETS", HORIZONTAL_ALIGNMENT_RIGHT, inner, 10, LoadoutStyle.TEXT_MUTED)
 	_dock.draw_line(Vector2(x, 100.0), Vector2(x + inner, 100.0), LoadoutStyle.HAIRLINE, 1.0)
 
 	var id: StringName = _selected_id
@@ -368,19 +368,25 @@ func _draw_dock() -> void:
 	_draw_wrapped(str(definition.get("summary", "")), x, 166.0, inner, 14, LoadoutStyle.TEXT_SECONDARY, 2)
 
 	var levels: Array = definition.get("levels", [])
+	var details: Array = definition.get("details", [])
 	var costs: Array = definition.get("costs", [])
+	# Projects whose marks change what they do (not just a number) spell each mark out under its row.
+	var row_step: float = 46.0 if not details.is_empty() else 30.0
 	_dock.draw_string(UiStyle.FONT_BOLD, Vector2(x, 222.0), str(definition.get("level_label", "")), HORIZONTAL_ALIGNMENT_LEFT, -1, 10, LoadoutStyle.TEXT_MUTED)
 	for index in range(max_mark):
-		var y: float = 250.0 + float(index) * 30.0
+		var y: float = 250.0 + float(index) * row_step
 		var row_mark: int = index + 1
 		var done: bool = row_mark <= mark
 		var next: bool = row_mark == mark + 1 and unlocked
 		var row_color: Color = UiStyle.INTEL if done else (LoadoutStyle.TEXT if next else LoadoutStyle.TEXT_MUTED)
 		if next:
-			_dock.draw_rect(Rect2(x - 10.0, y - 19.0, inner + 20.0, 27.0), Color(1, 1, 1, 0.07 if ResearchManager.can_purchase(id) else 0.035))
+			_dock.draw_rect(Rect2(x - 10.0, y - 19.0, inner + 20.0, row_step - 3.0), Color(1, 1, 1, 0.07 if ResearchManager.can_purchase(id) else 0.035))
 		_dock.draw_string(UiStyle.FONT_BOLD, Vector2(x, y), "MK " + LoadoutStyle.roman(row_mark), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, row_color)
 		var value: String = str(levels[index]) if index < levels.size() else ""
 		_dock.draw_string(UiStyle.FONT_DISPLAY, Vector2(x + 56.0, y + 1.0), value, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, row_color)
+		if index < details.size():
+			var detail_color: Color = LoadoutStyle.TEXT_SECONDARY if done or next else LoadoutStyle.TEXT_MUTED
+			_dock.draw_string(UiStyle.FONT_UI, Vector2(x + 56.0, y + 18.0), str(details[index]), HORIZONTAL_ALIGNMENT_LEFT, inner - 56.0, 11, detail_color)
 		if done:
 			LoadoutStyle.draw_check(_dock, Vector2(x + inner - 7.0, y - 5.0), 7.0, UiStyle.INTEL, LoadoutStyle.SURFACE_DEEP)
 		elif index < costs.size():
@@ -393,7 +399,7 @@ func _draw_dock() -> void:
 			_dock.draw_string(UiStyle.FONT_BOLD, Vector2(x + inner - cost_width, y), cost_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, cost_color)
 	var missing: String = _missing_requirement(definition) if mark == 0 else ""
 	if missing != "":
-		var needs_y: float = 250.0 + float(max_mark) * 30.0 + 22.0
+		var needs_y: float = 250.0 + float(max_mark) * row_step + 22.0
 		_dock.draw_string(UiStyle.FONT_BOLD, Vector2(x, needs_y), "NEEDS", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, LoadoutStyle.TEXT_MUTED)
 		_dock.draw_string(UiStyle.FONT_UI, Vector2(x + 56.0, needs_y + 1.0), missing, HORIZONTAL_ALIGNMENT_LEFT, inner - 56.0, 14, LoadoutStyle.TEXT)
 

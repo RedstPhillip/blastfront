@@ -73,7 +73,10 @@ Pillow (`ImageChops.difference`) when a change should be pixel-identical.
   `bot_dash` (two bots, `BF_BOT_LEVEL` 0-2 default hard, `BF_WORLD`; logs every dash)
 - **Mars weather:** `mars`, `mars_storm`, `mars_close`, `mars_duel_look`, `shelter_probe`, `ledge_test`
 - **Time Control:** `time_probe` (bot duel: run and projectile speed before/during/after the slow, refusals in
-  the intro and on cooldown, the reverse cast; prints `TIME_PROBE PASS/FAIL` lines), `time_sandbox`
+  the intro and on cooldown, the reverse cast; prints `TIME_PROBE PASS/FAIL` lines), `time_sandbox`,
+  `time_freeze` (Mk III: rounds hang, inputs blocked, 35% damage cap, last point kept, no cast during the kill
+  banner), `time_bot` (a low Hard bot casts once it sees you; a slowed bot backs off). regress.sh only greps
+  for script errors, so read the PASS/FAIL lines of these yourself.
 - **Bots:** `bot_watch` (two hard bots, state log every 1.5 s, `BF_WORLD`), `bot_spawn_look` (screenshots of
   the left spawn, where a navigation bug once kept a bot hopping)
 - **Economy / loadout interaction:** `sell_test`, `sell_equipped`, `botshop`, `shoptour`, `lo_interact`, `loadout_inter`

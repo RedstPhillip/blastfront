@@ -598,14 +598,15 @@ func _update_drill_visual(delta: float) -> void:
 	modulate = look
 
 
-## Slowed rounds trail slowly too, and their glow swells so they read as caught in slowed time.
+## Slowed rounds trail slowly too, and their glow swells so they read as caught in slowed time. Frozen
+## rounds (Mk III) hang where they are with their trail and streak standing still, then fly on.
 func _set_time_scale(flow: float) -> void:
 	_time_scale = flow
 	var trail: CPUParticles2D = get_node_or_null("Trail") as CPUParticles2D
 	if trail != null:
-		trail.speed_scale = maxf(flow, 0.05)
+		trail.speed_scale = flow
 	if _head_glow != null:
-		var swell: float = 1.0 + TimeFlow.strength_of(flow) * 0.6
+		var swell: float = 1.0 + TimeFlow.strength_of(flow) * 0.6 + (0.5 if flow <= 0.001 else 0.0)
 		_head_glow.scale = Vector2.ONE * 0.26 * maxf(projectile_scale, 0.7) * swell
 
 

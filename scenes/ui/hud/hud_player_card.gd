@@ -294,6 +294,9 @@ func _update_reload() -> void:
 
 func _update_status() -> void:
 	var signature: String = ",".join(_status_names())
+	if _player.is_time_slowed():
+		# The slowed chip counts down in tenths.
+		signature += ":" + _slowed_chip_text()
 	if signature != _status_signature:
 		_status_signature = signature
 		_status.queue_redraw()
@@ -306,6 +309,10 @@ func _status_names() -> Array[StringName]:
 	if _player.status_effect_manager != null and _player.status_effect_manager.get_active_count() > 0:
 		names.append_array(_player.status_effect_manager.get_active_effect_names())
 	return names
+
+
+func _slowed_chip_text() -> String:
+	return "%s %.1f" % ["FROZEN" if _player.is_time_frozen() else "SLOWED", _player.get_time_slow_left()]
 
 
 ## Time Control: the dial charges back after a cast, turns amber when ready and drains while the cast holds
@@ -478,7 +485,7 @@ func _draw_status(layer: Control) -> void:
 					chip_color = Color(1.0, 0.92, 0.35)
 				&"poison":
 					chip_color = Color(0.5, 1.0, 0.45)
-			var text: String = str(effect_name).to_upper()
+			var text: String = _slowed_chip_text() if effect_name == &"slowed" else str(effect_name).to_upper()
 			var width: float = UiStyle.FONT_BOLD.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x + 12.0
 			var x: float = _mx(CONTENT_LEFT + x_offset, width)
 			layer.draw_circle(Vector2(x + 4.0, STATUS_Y + 4.0), 2.5, chip_color, true, -1.0, true)

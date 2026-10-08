@@ -39,6 +39,9 @@ func _physics_process(delta: float) -> void:
 	if _target == null or not is_instance_valid(_target):
 		detach()
 		return
+	# A round standing still (frozen in time) keeps its streak instead of collapsing it into one point.
+	if get_point_count() > 0 and get_point_position(get_point_count() - 1).is_equal_approx(_target.global_position):
+		return
 	add_point(_target.global_position)
 	while get_point_count() > MAX_POINTS:
 		remove_point(0)

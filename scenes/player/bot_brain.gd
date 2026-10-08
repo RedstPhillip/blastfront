@@ -58,6 +58,21 @@ const DASH_MARKS: Dictionary = {
 	Difficulty.NORMAL: 2,
 	Difficulty.HARD: 4,
 }
+## Time Control Mk per difficulty (0: none). Bots cast it as a comeback: low on health, or the target reloading.
+const TIME_CONTROL_MARKS: Dictionary = {
+	Difficulty.EASY: 0,
+	Difficulty.NORMAL: 1,
+	Difficulty.HARD: 3,
+}
+## Health share below which a bot reaches for Time Control, how often it weighs casting, and the chance per
+## look by difficulty (a human gets a moment to read the situation first).
+const TIME_CONTROL_LOW_HEALTH: float = 0.4
+const TIME_CONTROL_THINK_INTERVAL: float = 0.5
+const TIME_CONTROL_CHANCE: Dictionary = {
+	Difficulty.EASY: 0.0,
+	Difficulty.NORMAL: 0.35,
+	Difficulty.HARD: 0.6,
+}
 
 var difficulty: int = Difficulty.NORMAL
 var move_direction: float = 0.0
@@ -121,6 +136,7 @@ var _pending_block_time: float = -1.0
 var _block_focus: Node2D = null
 var _block_focus_timer: float = 0.0
 var _dash_think_timer: float = 0.0
+var _time_control_think_timer: float = 0.0
 var _pending_dash_time: float = -1.0
 var _pending_dash_direction: float = 0.0
 ## Set after a dash along the path: the waypoints it flew past are skipped instead of walked back to.
@@ -131,7 +147,10 @@ var _skip_passed_points: bool = false
 static func research_marks(bot_difficulty: int) -> Dictionary:
 	if not DASH_MARKS.has(bot_difficulty):
 		return {}
-	return {str(ResearchManager.DASHING): int(DASH_MARKS[bot_difficulty])}
+	var marks: Dictionary = {str(ResearchManager.DASHING): int(DASH_MARKS[bot_difficulty])}
+	if int(TIME_CONTROL_MARKS.get(bot_difficulty, 0)) > 0:
+		marks[str(ResearchManager.TIME_CONTROL)] = int(TIME_CONTROL_MARKS[bot_difficulty])
+	return marks
 
 
 func setup(player: Player, bot_difficulty: int) -> void:
@@ -204,6 +223,7 @@ func _physics_process(delta: float) -> void:
 	_update_movement(delta)
 	_update_dash(delta)
 	_update_aim_and_fire(delta)
+	_update_time_control(delta)
 
 
 # --- Movement --------------------------------------------------------------------------
@@ -216,6 +236,9 @@ func _update_movement(delta: float) -> void:
 	var me: Vector2 = _player.global_position
 	var feet: Vector2 = me + Vector2(0.0, _player.hover_dist)
 	var grounded: bool = _player.is_grounded()
+	if grounded and _player.is_time_slowed() and _target != null:
+		_back_off_in_slowed_time(me)
+		return
 
 	_replan_timer -= delta
 	_search_cooldown -= delta
@@ -490,6 +513,46 @@ func _wall_ahead(direction: float) -> bool:
 	var me: Vector2 = _player.global_position
 	var hit: Dictionary = _ray(me, me + Vector2(direction * 34.0, 0.0))
 	return not hit.is_empty() and absf((hit["normal"] as Vector2).x) > 0.7
+
+
+## Caught in slowed time the bot cannot win a trade: it backs away from the target along safe floor (dashing
+## when it can) and leans on its block (see _update_threats) until the clock runs normally again.
+func _back_off_in_slowed_time(me: Vector2) -> void:
+	var away: float = signf(me.x - _target.global_position.x)
+	if away == 0.0:
+		away = 1.0 if randf() < 0.5 else -1.0
+	if _wall_ahead(away) or not _has_ground_below(me + Vector2(away * 34.0, 0.0), SAFE_DROP_DEPTH):
+		away = -away
+		if _wall_ahead(away) or not _has_ground_below(me + Vector2(away * 34.0, 0.0), SAFE_DROP_DEPTH):
+			move_direction = 0.0
+			return
+	move_direction = away
+	if _player.can_dash() and _dash_is_safe(away) and not _player.is_time_frozen():
+		_press_dash(away)
+	_replan_timer = 0.0
+
+
+# --- Time Control ------------------------------------------------------------------------
+
+## Casts Time Control as a comeback: low on health, or the target reloading or empty (an opening), with
+## the target in sight and in range. Weighed every half second with a chance per difficulty, so it stays a
+## rare, readable move rather than an instant reflex.
+func _update_time_control(delta: float) -> void:
+	_time_control_think_timer -= delta
+	if _time_control_think_timer > 0.0:
+		return
+	_time_control_think_timer = TIME_CONTROL_THINK_INTERVAL
+	if _target == null or _target.is_time_slowed() or not _player.can_cast_time_control():
+		return
+	var me: Vector2 = _player.global_position
+	if me.distance_to(_target.global_position) > _weapon_range() or _ray_blocked(me, _target.global_position):
+		return
+	var health: HealthComponent = _player.health_component
+	var low: bool = health != null and float(health.health) < float(health.max_health) * TIME_CONTROL_LOW_HEALTH
+	var gun: Gun = _target.get_gun()
+	var opening: bool = gun != null and (gun.is_reloading() or gun.get_current_ammo() <= 0)
+	if (low or opening) and randf() < float(TIME_CONTROL_CHANCE.get(difficulty, 0.0)):
+		time_control_pressed = true
 
 
 # --- Dash ------------------------------------------------------------------------------
@@ -810,7 +873,9 @@ func _update_threats(delta: float) -> void:
 		var id: int = projectile.get_instance_id()
 		if _evaluated_threats.has(id):
 			continue
-		var impact_time: float = _predict_impact_time(projectile, me)
+		# A slowed bot looks further ahead in the round's time: the same reaction window in its own.
+		var horizon: float = THREAT_HORIZON / maxf(_player.time_scale, 0.05)
+		var impact_time: float = _predict_impact_time(projectile, me, horizon)
 		if impact_time < 0.0:
 			continue
 		# Predicted in the round's own time; the bot's timers count in its own. Either clock may be slowed.
@@ -821,7 +886,7 @@ func _update_threats(delta: float) -> void:
 		var dash_odds: float = float(_profile.get("dash_dodge", 0.0)) * (1.0 if ResearchManager.has_dash_protection(_player.player_slot) else 0.5)
 		if _pending_dash_time < 0.0 and _player.can_dash() and randf() < dash_odds and _plan_dash_dodge(projectile, me, impact_time):
 			pass
-		elif block_ready and randf() < float(_profile["block_chance"]):
+		elif block_ready and randf() < (maxf(float(_profile["block_chance"]), 0.85) if _player.is_time_slowed() else float(_profile["block_chance"])):
 			var reaction: float = float(_profile["block_reaction"]) * randf_range(0.8, 1.25)
 			if reaction < impact_time:
 				_block_focus = projectile
@@ -832,13 +897,13 @@ func _update_threats(delta: float) -> void:
 		_evaluated_threats.clear()
 
 
-func _predict_impact_time(projectile: Projectile, me: Vector2) -> float:
+func _predict_impact_time(projectile: Projectile, me: Vector2, horizon: float = THREAT_HORIZON) -> float:
 	var position: Vector2 = projectile.global_position
 	var velocity: Vector2 = projectile.velocity
 	var step: float = 1.0 / 60.0
 	var t: float = 0.0
 	var drift: Vector2 = WorldConditions.projectile_wind_acceleration(projectile.get_wind_response())
-	while t < THREAT_HORIZON:
+	while t < horizon:
 		velocity.y += projectile.gravity * WorldConditions.projectile_gravity_scale * step
 		velocity += drift * step
 		position += velocity * step

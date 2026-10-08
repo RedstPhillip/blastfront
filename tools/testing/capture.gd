@@ -894,6 +894,125 @@ func _build_script() -> void:
 			_at(11.4, "shot", "time_5_self_slowed")
 			_at(11.5, "call", func(): _tp_report())
 			_at(11.6, "quit")
+		"time_freeze":
+			# Time Control Mk III: the opponent and their rounds stop dead for 1.5 s, then run slow. Checks the
+			# hang, the blocked inputs, the damage cap (35% of max health, never the last point) and that nobody
+			# casts while the kill banner is up.
+			_at(0.1, "call", func(): root.get_node("UserSettings").set_value(&"progress_bot_world", "verdant"))
+			_at(0.3, "call", func():
+				root.get_node("NetworkSession").start_bot_duel()
+				_main.start_game())
+			_at(1.0, "call", func():
+				root.get_node("ResearchManager")._local_marks["time_control"] = 3
+				var p2 = _stress_game().get_player_by_slot(2)
+				p2.configure_local_control(2, &"p2_move_left", &"p2_move_right", &"p2_jump", &"p2_shoot", &"p2_block", false)
+				p2.time_control_action = &"")
+			_at(4.0, "call", func(): _tp_reset_positions())
+			_at(4.1, "call", func(): _tp_spawn_round(2, Vector2(-200, -140), "freeze_p2round"))
+			_at(4.3, "key_down", "p1_time_control")
+			_at(4.45, "key_up", "p1_time_control")
+			_at(4.5, "press", "p2_move_left")
+			_at(4.6, "call", func():
+				var p2 = _stress_game().get_player_by_slot(2)
+				_tp_check("Mk III freezes the opponent", p2.is_time_frozen())
+				_tp_marks["freeze"] = {"round": _tp_rounds["freeze_p2round"].global_position, "p2": p2.global_position})
+			_at(4.7, "shot", "freeze_0")
+			_at(4.8, "call", func():
+				var p2 = _stress_game().get_player_by_slot(2)
+				for i in range(3):
+					p2.apply_incoming_damage(40, 1, p2.global_position + Vector2(-60, 0))
+				_tp_check("frozen player loses at most 35%% (health %d)" % p2.health_component.health, p2.health_component.health == 65))
+			_at(5.5, "call", func():
+				var p2 = _stress_game().get_player_by_slot(2)
+				var m: Dictionary = _tp_marks["freeze"]
+				var round_moved: float = (_tp_rounds["freeze_p2round"].global_position - (m["round"] as Vector2)).length()
+				var p2_moved: float = (p2.global_position - (m["p2"] as Vector2)).length()
+				print("TIME_PROBE frozen 0.9 s: round moved %.2f px, P2 moved %.2f px" % [round_moved, p2_moved])
+				_tp_check("frozen round hangs in the air", round_moved < 0.5)
+				_tp_check("frozen player cannot move", p2_moved < 0.5))
+			_at(5.55, "release", "p2_move_left")
+			_at(5.6, "shot", "freeze_1")
+			_at(6.3, "call", func():
+				var p2 = _stress_game().get_player_by_slot(2)
+				_tp_check("freeze ends into the slow", not p2.is_time_frozen() and p2.is_time_slowed())
+				_tp_marks["thaw"] = _tp_rounds["freeze_p2round"].global_position.x)
+			_at(6.5, "call", func():
+				var speed: float = (_tp_rounds["freeze_p2round"].global_position.x - float(_tp_marks["thaw"])) / 0.2
+				_tp_check("round flies on slowed after the freeze (%.0f px/s)" % speed, absf(speed - 315.0) < 25.0))
+			_at(6.55, "shot", "freeze_2")
+			# The last point: a fresh freeze on a nearly dead player.
+			_at(10.5, "call", func():
+				var g = _stress_game()
+				var p1 = g.get_player_by_slot(1)
+				var p2 = g.get_player_by_slot(2)
+				p1._time_control_cooldown = 0.0
+				p2.health_component.health = 10
+				_tp_check("second cast", g.request_time_control(p1))
+				p2.apply_incoming_damage(60, 1, p2.global_position)
+				_tp_check("a freeze never takes the last point (health %d)" % p2.health_component.health, p2.health_component.health == 1 and not p2.is_eliminated()))
+			_at(12.5, "call", func():
+				var g = _stress_game()
+				var p1 = g.get_player_by_slot(1)
+				var p2 = g.get_player_by_slot(2)
+				_tp_check("cap lifts when the freeze ends", p2.health_component.damage_floor == 0)
+				p2.apply_incoming_damage(60, 1, p2.global_position)
+				p1._time_control_cooldown = 0.0
+				_tp_check("no cast while the kill banner is up", p2.is_eliminated() and not g.request_time_control(p1)))
+			_at(12.7, "call", func(): _tp_report())
+			_at(12.8, "quit")
+		"time_bot":
+			# Hard bot with Time Control Mk III: it casts when it is low and the player is reloading, and backs
+			# off when the player slows it.
+			_at(0.1, "call", func():
+				root.get_node("UserSettings").set_value(&"progress_bot_world", "verdant")
+				root.get_node("UserSettings").set_value(&"gameplay_bot_difficulty", 2))
+			_at(0.3, "call", func():
+				root.get_node("NetworkSession").start_bot_duel()
+				_main.start_game())
+			_at(3.5, "call", func():
+				var g = _stress_game()
+				_tp_check("hard bot has Time Control Mk III", root.get_node("ResearchManager").get_time_control_mark(2) == 3)
+				_tp_reset_positions()
+				g.get_player_by_slot(2).health_component.health = 30
+				g.get_player_by_slot(1).get_gun()._start_reload())
+			for i in range(123):
+				_at(3.6 + i * 0.1, "call", func():
+					var g = _stress_game()
+					var p1 = g.get_player_by_slot(1)
+					var p2 = g.get_player_by_slot(2)
+					# Keep the fight going: the probe is about the decision, not who wins.
+					p1.health_component.health = p1.health_component.max_health
+					if i < 80:
+						p2.health_component.health = 30
+					if i % 10 == 0 and i < 80:
+						print("TIME_PROBE bot t=%.1f vis=%.2f reloading=%s intro=%s elim=%s/%s can_cast=%s" % [_time, p2.ai_brain._visible_time, p1.get_gun().is_reloading(), g.is_round_intro_running(), p1.is_eliminated(), p2.is_eliminated(), p2.can_cast_time_control()])
+					if not _tp_marks.has("bot_cast") and p1.is_time_slowed():
+						_tp_marks["bot_cast"] = _time
+						print("TIME_PROBE bot cast after %.1f s" % (_time - 3.5)))
+			_at(11.5, "call", func(): _tp_check("low bot casts once it sees the player", _tp_marks.has("bot_cast")))
+			_at(14.0, "call", func():
+				var g = _stress_game()
+				root.get_node("ResearchManager")._local_marks["time_control"] = 1
+				var p1 = g.get_player_by_slot(1)
+				var p2 = g.get_player_by_slot(2)
+				p1.health_component.health = p1.health_component.max_health
+				p2.health_component.health = p2.health_component.max_health
+				p1._time_control_cooldown = 0.0
+				p1._clear_time_slow()
+				p2._clear_time_slow()
+				p2._time_control_cooldown = 99.0
+				_tp_reset_positions()
+				# On the right-hand flat, with about 95 px of floor behind the bot to back off over.
+				p2.global_position.x -= 80.0
+				_tp_marks["gap"] = absf(p2.global_position.x - p1.global_position.x)
+				_tp_check("player slows the bot", g.request_time_control(p1)))
+			_at(15.8, "call", func():
+				var g = _stress_game()
+				var gap: float = absf(g.get_player_by_slot(2).global_position.x - g.get_player_by_slot(1).global_position.x)
+				print("TIME_PROBE slowed bot gap %.0f -> %.0f px" % [float(_tp_marks["gap"]), gap])
+				_tp_check("slowed bot backs off", gap > float(_tp_marks["gap"]) + 25.0))
+			_at(15.9, "call", func(): _tp_report())
+			_at(16.0, "quit")
 		"time_sandbox":
 			# Time Control in the sandbox: free to try, slows every dummy, nobody else.
 			_at(0.1, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))

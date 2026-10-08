@@ -316,6 +316,18 @@ const EVENTS: Dictionary = {
 		{"files": ["teleport_0"], "volume": -7.0, "pitch": Vector2(1.25, 1.35)},
 		{"files": ["shield_2"], "volume": -12.0, "pitch": Vector2(1.3, 1.4)},
 	]},
+	&"time_freeze_start": {"bus": &"SFX", "voices": 1, "layers": [
+		{"files": ["ice_0", "ice_2", "ice_4"], "volume": -3.0, "pitch": Vector2(0.55, 0.62)},
+		{"files": ["boom_low_0", "boom_low_1"], "volume": -4.0, "pitch": Vector2(0.45, 0.5)},
+		{"files": ["metal_heavy_1"], "volume": -10.0, "pitch": Vector2(0.5, 0.55)},
+	]},
+	&"time_thaw": {"bus": &"SFX", "voices": 1, "layers": [
+		{"files": ["ice_1", "ice_3"], "volume": -7.0, "pitch": Vector2(1.1, 1.25)},
+		{"files": ["teleport_1"], "volume": -10.0, "pitch": Vector2(1.4, 1.5)},
+	]},
+	&"time_absorb": {"bus": &"SFX", "voices": 2, "cooldown": 0.08, "layers": [
+		{"files": ["shield_0", "shield_3"], "volume": -8.0, "pitch": Vector2(0.6, 0.7)},
+	]},
 	&"time_denied": {"bus": &"UI", "voices": 1, "cooldown": 0.25, "layers": [
 		{"files": ["ui:error"], "volume": -10.0, "pitch": Vector2(0.8, 0.85)},
 	]},

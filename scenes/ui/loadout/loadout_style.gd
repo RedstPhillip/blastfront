@@ -122,7 +122,7 @@ static func draw_scrim(canvas: CanvasItem, rect: Rect2) -> void:
 
 
 ## A section label with a hairline running on to the right edge, and optional quiet text at the end of the
-## line ("0 / 8", "RESETS TO 5 NEXT SET"). `y` is the line's height; the label sits on it.
+## line ("0 / 8", "KEPT BETWEEN SETS"). `y` is the line's height; the label sits on it.
 static func draw_eyebrow(canvas: CanvasItem, x: float, y: float, width: float, text: String, meta: String = "", meta_color: Color = TEXT_MUTED) -> void:
 	var font: Font = UiStyle.FONT_BOLD
 	canvas.draw_string(font, Vector2(x, y + 4.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, EYEBROW_SIZE, TEXT_SECONDARY)

@@ -34,9 +34,13 @@ var health: int = max_health:
 		return health
 
 
+## Health damage cannot take below this (a Time Control freeze caps what the frozen player can lose).
+var damage_floor: int = 0
+
+
 func damage(amount: int) -> void:
 	if amount > 0:
-		health -= amount
+		health = maxi(health - amount, mini(damage_floor, health))
 
 
 func heal(amount: int) -> void:
