@@ -188,6 +188,8 @@ const PLAYER_DASH_PROTECTION_GRACE: float = 0.06
 const PLAYER_DASH_SHOCKWAVE_RADIUS: float = 96.0
 const PLAYER_DASH_SHOCKWAVE_KNOCKBACK: Vector2 = Vector2(470.0, -290.0)
 const PLAYER_DASH_SHOCKWAVE_STUN: float = 0.16
+## Wall Jumps Mk III: holding into a wall hangs there this long before the slide starts.
+const PLAYER_WALL_CLING_TIME: float = 0.4
 ## Highest lip a dash climbs instead of stopping at it.
 const PLAYER_DASH_STEP_HEIGHT: float = 18.0
 ## Player bodies are ~30 px round: centres closer than this mean they are stuck inside each other.

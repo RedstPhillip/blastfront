@@ -89,6 +89,16 @@ var _jump_buffer_timer: float = 0.0
 var _block_buffer_timer: float = 0.0
 var _wall_coyote_timer: float = 0.0
 var _wall_coyote_dir: float = 0.0
+## Wall Jumps research: kicks used since the ground (the limit comes from the marks), the Mk III cling
+## (once per wall contact), and a running count of wall jumps the network snapshot carries so the other
+## side can show each kick.
+var _wall_jumps_used: int = 0
+var _wall_cling_timer: float = 0.0
+var _wall_cling_used: bool = false
+var _wall_jump_count: int = 0
+## What the owner reported about its wall contact (remote copies are moved by snapshots, not physics).
+var _remote_wall_x: float = 0.0
+var _remote_clinging: bool = false
 var _step_clock: float = 0.0
 var _last_stepped: int = 1
 var _last_step_time_l: float = GameSettings.PLAYER_INITIAL_STEP_TIME
@@ -653,11 +663,32 @@ func apply_remote_snapshot(snapshot: Dictionary) -> void:
 		last_dir = signf(float(snapshot_facing))
 	if snapshot.has("ammo"):
 		_gun.apply_remote_ammo_state(snapshot_ammo, snapshot_reloading, snapshot_reload_ratio)
+	_apply_remote_wall_state(snapshot, had_network_target)
 
 	_has_network_target = true
 	if not had_network_target:
 		global_position = _network_target_position
 		velocity = _network_target_velocity
+
+
+## Wall moves of a remote player: its wall contact (slide dust), the Mk III cling and each wall jump (the
+## running count steps up), so they read the same as on the owner's screen.
+func _apply_remote_wall_state(snapshot: Dictionary, had_network_target: bool) -> void:
+	_remote_wall_x = float(snapshot.get("wall", 0.0))
+	var clinging: bool = snapshot.get("cling", false) == true
+	if clinging and not _remote_clinging:
+		_play_wall_cling_feedback(_remote_wall_x)
+	_remote_clinging = clinging
+	if snapshot.has("wall_jumps"):
+		var count: int = int(snapshot["wall_jumps"])
+		if had_network_target and count != _wall_jump_count:
+			_emit_jump_feedback(Vector2(-signf(_network_target_velocity.x), 0.35))
+		_wall_jump_count = count
+
+
+## What the owner tells the other side about its wall moves (see _apply_remote_wall_state).
+func get_wall_snapshot() -> Dictionary:
+	return {"wall": get_wall_contact_x(), "cling": is_wall_clinging(), "wall_jumps": _wall_jump_count}
 
 
 func get_border_check_position() -> Vector2:
@@ -879,10 +910,21 @@ func update_wall_coyote(delta: float) -> void:
 		_wall_coyote_dir = signf(wall_x) if absf(wall_x) > 0.0 else -last_dir
 	else:
 		_wall_coyote_timer = maxf(_wall_coyote_timer - delta, 0.0)
+		_wall_cling_timer = 0.0
 
 
 func can_wall_jump() -> bool:
-	return _wall_coyote_timer > 0.0 and has_buffered_jump()
+	return _wall_coyote_timer > 0.0 and has_buffered_jump() and has_wall_jump_left()
+
+
+## One wall jump per airtime without the research; Wall Jumps raises the limit (see ResearchManager).
+func has_wall_jump_left() -> bool:
+	var limit: int = ResearchManager.get_wall_jump_limit(player_slot)
+	return limit < 0 or _wall_jumps_used < limit
+
+
+func get_wall_jumps_used() -> int:
+	return _wall_jumps_used
 
 
 func wall_jump() -> void:
@@ -892,12 +934,56 @@ func wall_jump() -> void:
 	var input_dir: float = get_move_direction()
 	if input_dir != 0.0:
 		dir = -signf(input_dir)
-	velocity.x = -dir * wall_jump_velocity.x
-	velocity.y = wall_jump_velocity.y
+	var strength: Vector2 = ResearchManager.get_wall_jump_strength(player_slot)
+	velocity.x = -dir * wall_jump_velocity.x * strength.x
+	velocity.y = wall_jump_velocity.y * strength.y
 	_wall_coyote_timer = 0.0
+	_wall_jumps_used += 1
+	_wall_jump_count += 1
+	_wall_cling_used = false
+	_wall_cling_timer = 0.0
 	consume_jump_buffer()
 	_coyote_timer = 0.0
 	_emit_jump_feedback(Vector2(dir, 0.35))
+
+
+## Wall Jumps Mk III, run by the wall state: holding into the wall once the rise is over hangs there for
+## PLAYER_WALL_CLING_TIME (once per wall contact), then the slide takes over. True while clinging.
+func update_wall_cling(delta: float) -> bool:
+	if _wall_cling_timer > 0.0:
+		_wall_cling_timer = maxf(_wall_cling_timer - delta, 0.0) if _is_holding_into_wall() else 0.0
+		return _wall_cling_timer > 0.0
+	if _wall_cling_used or velocity.y < 0.0 or not ResearchManager.has_wall_cling(player_slot) or not _is_holding_into_wall():
+		return false
+	_wall_cling_used = true
+	_wall_cling_timer = GameSettings.PLAYER_WALL_CLING_TIME
+	_play_wall_cling_feedback(get_wall_normal().x)
+	return true
+
+
+func is_wall_clinging() -> bool:
+	return _wall_cling_timer > 0.0 if control_mode != GameSettings.CONTROL_REMOTE else _remote_clinging
+
+
+func _is_holding_into_wall() -> bool:
+	if not is_on_wall():
+		return false
+	var direction: float = get_move_direction()
+	return direction != 0.0 and signf(direction) == -signf(get_wall_normal().x)
+
+
+func _play_wall_cling_feedback(wall_x: float) -> void:
+	var normal: Vector2 = Vector2(signf(wall_x), 0.0)
+	GameJuice.spawn_burst(&"wall_dust", global_position - normal * 14.0 + Vector2(0.0, 4.0), normal, Color.WHITE)
+	AudioDirector.play_at(&"wall_slide", global_position, 4.0, 0.8)
+	_body_punch_scale = Vector2(0.86, 1.1)
+
+
+## The wall this player touches (its normal's x), or 0: from physics on the owner, from snapshots elsewhere.
+func get_wall_contact_x() -> float:
+	if control_mode == GameSettings.CONTROL_REMOTE:
+		return _remote_wall_x
+	return get_wall_normal().x if is_on_wall() else 0.0
 
 
 func jump() -> void:
@@ -1340,14 +1426,17 @@ func update_visual_movement(delta: float) -> void:
 		_step_t_r = 1.0
 		var hip: Vector2 = global_position + Vector2(0.0, hip_y_offset).rotated(rotation)
 		var tuck_y: float = hover_dist * GameSettings.PLAYER_AIR_FOOT_HOVER_MULTIPLIER - air_foot_tuck_y
-		foot_pos_l = foot_pos_l.lerp(
-			hip + Vector2(-air_foot_tuck_x, tuck_y),
-			delta * GameSettings.PLAYER_AIR_FOOT_LERP_SPEED
-		)
-		foot_pos_r = foot_pos_r.lerp(
-			hip + Vector2(air_foot_tuck_x, tuck_y),
-			delta * GameSettings.PLAYER_AIR_FOOT_LERP_SPEED
-		)
+		var target_l: Vector2 = hip + Vector2(-air_foot_tuck_x, tuck_y)
+		var target_r: Vector2 = hip + Vector2(air_foot_tuck_x, tuck_y)
+		# Sliding down or clinging to a wall: both feet braced flat against it, one above the other.
+		var wall_x: float = get_wall_contact_x()
+		if wall_x != 0.0 and (velocity.y >= 0.0 or is_wall_clinging()):
+			var wall_side: float = -signf(wall_x)
+			var brace_y: float = -2.0 if is_wall_clinging() else 2.0
+			target_l = global_position + Vector2(wall_side * 15.0, brace_y + 4.0)
+			target_r = global_position + Vector2(wall_side * 14.0, brace_y + 15.0)
+		foot_pos_l = foot_pos_l.lerp(target_l, delta * GameSettings.PLAYER_AIR_FOOT_LERP_SPEED)
+		foot_pos_r = foot_pos_r.lerp(target_r, delta * GameSettings.PLAYER_AIR_FOOT_LERP_SPEED)
 		bounce_t = lerp(bounce_t, 0.0, delta * GameSettings.PLAYER_BOUNCE_SPEED)
 
 	var visual_direction: float = get_move_direction()
@@ -1363,14 +1452,15 @@ func update_visual_movement(delta: float) -> void:
 
 
 func _update_wall_slide_feedback(delta: float, grounded: bool) -> void:
-	if grounded or not is_on_wall() or velocity.y < 30.0:
+	var wall_x: float = get_wall_contact_x()
+	if grounded or wall_x == 0.0 or velocity.y < 30.0:
 		_wall_slide_timer = 0.0
 		return
 	_wall_slide_timer -= delta
 	if _wall_slide_timer > 0.0:
 		return
 	_wall_slide_timer = WALL_SLIDE_FEEDBACK_INTERVAL
-	var wall_normal: Vector2 = get_wall_normal()
+	var wall_normal: Vector2 = Vector2(signf(wall_x), 0.0)
 	var contact: Vector2 = global_position - wall_normal * 14.0 + Vector2(0.0, 6.0)
 	GameJuice.spawn_burst(&"wall_dust", contact, wall_normal, Color.WHITE)
 	AudioDirector.play_at(&"wall_slide", contact)
@@ -1496,6 +1586,9 @@ func _update_movement_timers(delta: float) -> void:
 
 	if is_grounded():
 		_coyote_timer = coyote_time
+		_wall_jumps_used = 0
+		_wall_cling_used = false
+		_wall_cling_timer = 0.0
 	else:
 		_coyote_timer = maxf(_coyote_timer - delta, 0.0)
 

@@ -3,9 +3,11 @@ extends RefCounted
 
 ## Platformer navigation graph built automatically from the level's StaticBody2D polygons.
 ## Nodes are sampled along walkable top edges; edges are walks along a surface plus jumps and drops
-## between surfaces, each validated by simulating the player's jump arc against the physics world.
+## between surfaces, each validated by simulating the player's jump arc against the physics world, and
+## climbs: from the foot of a solid wall up to the ledge on top of it with wall jumps (only planned for
+## bots whose Wall Jumps marks reach that high).
 
-enum Move { WALK, JUMP, DROP }
+enum Move { WALK, JUMP, DROP, CLIMB }
 
 const SAMPLE_SPACING: float = 34.0
 const BODY_OFFSET: float = 24.0
@@ -19,6 +21,13 @@ const MAX_HORIZONTAL_REACH: float = 260.0
 const MAX_CLIMB: float = 100.0
 const MAX_DROP: float = 460.0
 const TOP_NORMAL_THRESHOLD: float = -0.6
+## Wall climbs (measured with wall_probe, holding jump): a full jump lifts the body ~92 px, each wall jump
+## adds ~55 px more (~85 px with the stronger Mk II kick). Kept a little under the measured values.
+const CLIMB_JUMP_RISE: float = 88.0
+const CLIMB_KICK_RISE: float = 50.0
+const CLIMB_STRONG_KICK_RISE: float = 80.0
+const CLIMB_MARGIN: float = 10.0
+const MAX_WALL_CLIMB: float = 420.0
 const WORLD_MASK: int = 1
 
 static var _cache: Dictionary = {}
@@ -34,6 +43,7 @@ var _bounds: Rect2 = GameSettings.DEFAULT_MAP_BOUNDS
 var _gravity: float = GRAVITY
 var _max_climb: float = MAX_CLIMB
 var _max_reach: float = MAX_HORIZONTAL_REACH
+var _gravity_scale: float = 1.0
 
 
 static func get_for(map_root: Node, space: PhysicsDirectSpaceState2D, bounds: Rect2) -> LevelNavigation:
@@ -68,10 +78,26 @@ func nearest_point(world_feet: Vector2, max_distance: float = 140.0) -> int:
 	return best
 
 
-func find_path(from_id: int, to_id: int) -> PackedInt64Array:
+## A path for a bot that can climb walls up to `climb_reach` px (see wall_climb_reach); climbs higher than
+## that are never part of it.
+func find_path(from_id: int, to_id: int, climb_reach: float = 0.0) -> PackedInt64Array:
 	if from_id < 0 or to_id < 0:
 		return PackedInt64Array()
-	return _astar.get_id_path(from_id, to_id)
+	_astar.climb_reach = climb_reach
+	var path: PackedInt64Array = _astar.get_id_path(from_id, to_id)
+	for index in range(path.size() - 1):
+		if float(_astar.climb_heights.get(_edge_key(int(path[index]), int(path[index + 1])), 0.0)) > climb_reach:
+			return PackedInt64Array()
+	return path
+
+
+## How high a player climbs a wall with this many wall jumps in a row (-1: no limit) and kick strength.
+func wall_climb_reach(wall_jump_limit: int, strong_kick: bool) -> float:
+	if wall_jump_limit < 0 and strong_kick:
+		return MAX_WALL_CLIMB / _gravity_scale
+	var kicks: int = wall_jump_limit if wall_jump_limit >= 0 else 4
+	var kick_rise: float = CLIMB_STRONG_KICK_RISE if strong_kick else CLIMB_KICK_RISE
+	return (CLIMB_JUMP_RISE + kick_rise * float(kicks) - CLIMB_MARGIN) / _gravity_scale
 
 
 ## {"move", "hold", "vx"}: how to get from one point to the next. "vx" is the sideways speed the jump or drop
@@ -84,6 +110,7 @@ func _build(map_root: Node, space: PhysicsDirectSpaceState2D, bounds: Rect2) -> 
 	_space = space
 	_bounds = bounds
 	var gravity_scale: float = clampf(WorldConditions.gravity_scale, 0.3, 2.0)
+	_gravity_scale = gravity_scale
 	_gravity = GRAVITY * gravity_scale
 	_max_climb = MAX_CLIMB / gravity_scale
 	_max_reach = MAX_HORIZONTAL_REACH / sqrt(gravity_scale)
@@ -115,6 +142,10 @@ func _build(map_root: Node, space: PhysicsDirectSpaceState2D, bounds: Rect2) -> 
 			edge_sources.append(chain_range.y - 1 - offset)
 		for source in range(chain_range.x, chain_range.y):
 			_link_to_other_chains(source, chain_ranges, not edge_sources.has(source))
+	for chain_range in chain_ranges:
+		if chain_range.y > chain_range.x:
+			_link_climb(chain_range.x, -1.0)
+			_link_climb(chain_range.y - 1, 1.0)
 
 
 func _link_to_other_chains(source: int, chain_ranges: Array[Vector2i], climb_only: bool) -> void:
@@ -145,6 +176,43 @@ func _link_to_other_chains(source: int, chain_ranges: Array[Vector2i], climb_onl
 				best_move = move
 		if best_target >= 0:
 			_connect(source, best_target, best_move["move"], best_move["hold"], 1.6, best_move["vx"])
+
+
+## A climb onto the ledge at `top` (a surface's end point; side -1 = its left end): needs a solid wall
+## under that end, open air beside it, and floor at its foot higher than a plain jump reaches.
+func _link_climb(top_id: int, side: float) -> void:
+	var top: Vector2 = points[top_id]
+	var face: Dictionary = _ray(top + Vector2(side * 90.0, 30.0), top + Vector2(0.0, 30.0))
+	if face.is_empty() or signf((face["normal"] as Vector2).x) != side:
+		return
+	var face_x: float = (face["position"] as Vector2).x
+	var best: int = -1
+	var best_dy: float = INF
+	for index in range(points.size()):
+		if _chain_of_point[index] == _chain_of_point[top_id]:
+			continue
+		var foot: Vector2 = points[index]
+		var out: float = (foot.x - face_x) * side
+		var dy: float = foot.y - top.y
+		if out < 18.0 or out > 70.0 or dy <= _max_climb or dy > MAX_WALL_CLIMB / _gravity_scale or dy >= best_dy:
+			continue
+		best = index
+		best_dy = dy
+	if best < 0:
+		return
+	var foot: Vector2 = points[best]
+	var column_x: float = face_x + side * (BODY_RADIUS + 4.0)
+	# Open air all the way up beside the wall, and wall to kick off all the way up.
+	if not _ray(Vector2(column_x, foot.y - BODY_OFFSET), Vector2(column_x, top.y - BODY_OFFSET - BODY_RADIUS)).is_empty():
+		return
+	var y: float = foot.y - 30.0
+	while y > top.y + 12.0:
+		var hit: Dictionary = _ray(Vector2(column_x, y), Vector2(face_x - side * 6.0, y))
+		if hit.is_empty() or signf((hit["normal"] as Vector2).x) != side:
+			return
+		y -= 40.0
+	_connect(best, top_id, Move.CLIMB, 0.32, 2.2, -side * RUN_SPEED)
+	_astar.climb_heights[_edge_key(best, top_id)] = best_dy + CLIMB_MARGIN
 
 
 func _validate_transition(from: Vector2, to: Vector2) -> Dictionary:
@@ -300,9 +368,15 @@ class NavAStar:
 	extends AStar2D
 
 	var edge_weights: Dictionary = {}
+	## Height of every climb edge, and how high the bot asking for a path can climb.
+	var climb_heights: Dictionary = {}
+	var climb_reach: float = 0.0
 
 	func _compute_cost(from_id: int, to_id: int) -> float:
-		var weight: float = float(edge_weights.get(from_id * 100000 + to_id, 1.0))
+		var key: int = from_id * 100000 + to_id
+		if float(climb_heights.get(key, 0.0)) > climb_reach:
+			return 1.0e9
+		var weight: float = float(edge_weights.get(key, 1.0))
 		return get_point_position(from_id).distance_to(get_point_position(to_id)) * weight
 
 	func _estimate_cost(from_id: int, to_id: int) -> float:

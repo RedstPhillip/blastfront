@@ -70,7 +70,10 @@ Pillow (`ImageChops.difference`) when a change should be pixel-identical.
 - **Movement probes:** `dash_probe` (on its own test floor: burst distance, cooldown per mark, air dash,
   Mk IV protection against a real round, Mk III shockwave vs a parked dummy; render for close-up crops),
   `dash_online` (faked hosted set, no Steam: the movement module fed the packets a peer would send),
-  `bot_dash` (two bots, `BF_BOT_LEVEL` 0-2 default hard, `BF_WORLD`; logs every dash)
+  `bot_dash` (two bots, `BF_BOT_LEVEL` 0-2 default hard, `BF_WORLD`; logs every dash), `wall_probe` (Wall
+  Jumps per mark on a private rig: climb height, wall jumps in one airtime, cling time, standing on top,
+  longest time stuck in the air; plus a platform lip and a cling that must end in a slide), `bot_climb`
+  (a bot of `BF_BOT_LEVEL` sent up a 160 px step and a 400 px wall; only the marks that reach may climb)
 - **Mars weather:** `mars`, `mars_storm`, `mars_close`, `mars_duel_look`, `shelter_probe`, `ledge_test`
 - **Time Control:** `time_probe` (bot duel: run and projectile speed before/during/after the slow, refusals in
   the intro and on cooldown, the reverse cast; prints `TIME_PROBE PASS/FAIL` lines), `time_sandbox`,
@@ -93,7 +96,7 @@ only polled input sees it), `key_down`/`key_up` (an action through `Input.parse_
 `_freeze_camera(at, zoom)` (hides players and HUD), `_freeze_camera_keep_players`, `_place_p1(pos)`,
 `_weather()` (Mars weather, `skip_to_storm(...)`), `_lo_mouse_to_tile(id, offset)` / `_lo_press(down)`
 (real drag & drop in the loadout), `_build_test_floor(top_left, width)` (a plain slab for movement probes;
-the arenas have no long flat floor), `_hooks` (callables run every frame, e.g. `_watch_dashes`),
+the arenas have no long flat floor; `_clear_terrain()` removes the arena's own), `_hooks` (callables run every frame, e.g. `_watch_dashes`),
 `_movement_packet(type, from_slot, payload)` (feed the movement sync module like a peer would).
 
 ## Performance measurement

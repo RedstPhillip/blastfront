@@ -441,8 +441,6 @@ func _build_script() -> void:
 			_at(0.1, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
 			_at(0.5, "call", func(): _main._on_sandbox_requested())
 			_at(1.6, "call", func():
-				if OS.has_environment("BF_SCOUT"):
-					_scout_floor()
 				_dash_spot = _build_test_floor(Vector2(300.0, 100.0), 800.0)
 				_freeze_camera_keep_players(Vector2(700.0, 120.0), 1.25)
 				var dummy = _stress_game().get_player_by_slot(2)
@@ -570,6 +568,12 @@ func _build_script() -> void:
 				_dash_reset_p1()
 				_movement_packet(&"knockback", 2, {"target_slot": 1, "velocity": Vector2(470.0, -290.0), "origin": _p1().global_position})
 				print("ONLINE client got knockback: velocity=%s" % _p1().velocity.round()))
+			# Wall moves ride on the player snapshot: the remote copy shows the wall contact, the cling and kicks.
+			_at(5.2, "call", func():
+				var p2 = _stress_game().get_player_by_slot(2)
+				var snapshot: Dictionary = {"slot": 2, "position": p2.global_position, "velocity": Vector2(0.0, 40.0), "wall": -1.0, "cling": true, "wall_jumps": 3}
+				p2.apply_remote_snapshot(snapshot)
+				print("ONLINE remote wall state: wall_x=%.0f clinging=%s wall_jumps_seen=%d" % [p2.get_wall_contact_x(), p2.is_wall_clinging(), p2._wall_jump_count]))
 			_at(5.5, "call", func():
 				var session = root.get_node("NetworkSession")
 				session.mode = &"training"
@@ -577,6 +581,87 @@ func _build_script() -> void:
 				root.get_node("OnlineMatch").phase = &"locker"
 				print("ONLINE done"))
 			_at(5.7, "quit")
+		"wall_probe":
+			# Wall Jumps per mark on a private rig (the arena's own collision is switched off): a 400 px wall
+			# climbed by holding into it and holding jump 0.2 s of every 0.25 s; the climb height, wall jumps and
+			# cling time are printed per mark. Then the stuck checks: over the wall top, under a platform lip,
+			# and a cling that must end in a slide.
+			_at(0.1, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
+			_at(0.5, "call", func(): _main._on_sandbox_requested())
+			_at(1.5, "call", func():
+				_build_wall_rig()
+				_freeze_camera_keep_players(Vector2(760.0, 440.0), 1.0)
+				var dummy = _stress_game().get_player_by_slot(2)
+				dummy.set_controls_enabled(false)
+				dummy.global_position = Vector2(300.0, 600.0)
+				_hooks.append(_watch_wall))
+			var marks: Array = [0, 1, 2, 3]
+			for i in range(marks.size()):
+				var mark: int = marks[i]
+				var t0: float = 2.0 + i * 4.0
+				_at(t0, "call", func(): _set_wall_mark(mark); _wall_reset(Vector2(770.0, 616.0)))
+				_at(t0 + 0.2, "press", "p1_move_right")
+				for k in range(12):
+					_at(t0 + 0.3 + k * 0.25, "press", "p1_jump")
+					_at(t0 + 0.5 + k * 0.25, "release", "p1_jump")
+				_at(t0 + 0.9, "crop", ["wall_mk%d_a" % mark, Rect2(440, 60, 520, 600), 1.0])
+				_at(t0 + 1.6, "crop", ["wall_mk%d_b" % mark, Rect2(440, 60, 520, 600), 1.0])
+				_at(t0 + 3.4, "call", func(): _report_wall("mk%d" % mark))
+				_at(t0 + 3.45, "release", "p1_move_right")
+			# Over the top: from Mk II, keep holding into the wall until standing on top of it.
+			_at(18.0, "call", func(): _set_wall_mark(2); _wall_reset(Vector2(770.0, 616.0)))
+			_at(18.2, "press", "p1_move_right")
+			for k in range(16):
+				_at(18.3 + k * 0.25, "press", "p1_jump")
+				_at(18.5 + k * 0.25, "release", "p1_jump")
+			_at(22.5, "call", func(): _report_wall("over_top"))
+			_at(22.55, "release", "p1_move_right")
+			# Under a platform lip: jump into the underside corner while holding towards it, for 2 s.
+			_at(23.0, "call", func(): _set_wall_mark(3); _wall_reset(Vector2(330.0, 616.0)))
+			_at(23.2, "press", "p1_move_right")
+			for k in range(30):
+				_at(23.3 + k * 0.06, "press", "p1_jump")
+				_at(23.32 + k * 0.06, "release", "p1_jump")
+			_at(25.4, "release", "p1_move_right")
+			_at(26.2, "call", func(): _report_wall("platform_lip"); print("WALL platform_lip end grounded=%s state=%s" % [_p1().is_grounded(), _p1()._state_machine.current_state.name]))
+			# A cling ends in a slide: jump onto the wall once, hold into it, never press again.
+			_at(27.0, "call", func(): _set_wall_mark(3); _wall_reset(Vector2(770.0, 616.0)))
+			_at(27.2, "press", "p1_move_right")
+			_at(27.3, "press", "p1_jump")
+			_at(27.6, "release", "p1_jump")
+			_at(27.75, "crop", ["wall_cling", Rect2(600, 300, 200, 300), 2.5])
+			_at(28.6, "crop", ["wall_slide", Rect2(600, 300, 200, 300), 2.5])
+			_at(29.6, "call", func(): _report_wall("cling_only"); print("WALL cling_only end grounded=%s state=%s" % [_p1().is_grounded(), _p1()._state_machine.current_state.name]))
+			_at(29.65, "release", "p1_move_right")
+			_at(30.0, "quit")
+		"bot_climb":
+			# A bot (BF_BOT_LEVEL 0-2, default hard) sent up a 160 px step, then a 400 px wall, on the climb rig.
+			# Hard (Wall Jumps Mk III) climbs both, normal (Mk I) only the step, easy (none) neither.
+			_at(0.1, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
+			_at(0.5, "call", func(): _main._on_sandbox_requested())
+			_at(1.5, "call", func():
+				_build_climb_rig()
+				_freeze_camera_keep_players(Vector2(760.0, 440.0), 1.0)
+				var dummy = _stress_game().get_player_by_slot(2)
+				dummy.set_controls_enabled(false)
+				dummy.global_position = Vector2(160.0, 600.0)
+				var level: int = int(OS.get_environment("BF_BOT_LEVEL")) if OS.has_environment("BF_BOT_LEVEL") else 2
+				_p1().configure_ai_control(1, level)
+				_wall_reset(Vector2(300.0, 616.0))
+				_hooks.append(_hold_bot_goals)
+				_hooks.append(_watch_wall))
+			_at(2.0, "call", func(): _bot_goal(_p1(), Vector2(560.0, 480.0)))
+			_at(4.0, "crop", ["climb_step", Rect2(140, 60, 1000, 640), 1.0])
+			_at(8.0, "call", func():
+				var p1 = _p1()
+				print("CLIMB step: on_top=%s at %s most_wall_jumps=%d longest_stuck=%.2f s" % [p1.is_grounded() and p1.global_position.y < 470.0, p1.global_position.round(), int(_wall_stats.get("used_max", 0)), float(_wall_stats["stuck_max"])])
+				_wall_reset(Vector2(800.0, 616.0)))
+			_at(8.5, "call", func(): _bot_goal(_p1(), Vector2(1030.0, 240.0)))
+			_at(10.0, "crop", ["climb_wall", Rect2(140, 60, 1000, 640), 1.0])
+			_at(16.0, "call", func():
+				var p1 = _p1()
+				print("CLIMB wall: on_top=%s at %s most_wall_jumps=%d longest_stuck=%.2f s" % [p1.is_grounded() and p1.global_position.y < 230.0, p1.global_position.round(), int(_wall_stats.get("used_max", 0)), float(_wall_stats["stuck_max"])]))
+			_at(16.2, "quit")
 		"bot_dash":
 			# Two bots (BF_BOT_LEVEL, default hard: Dashing Mk IV) fight on BF_WORLD; every dash is logged.
 			_at(0.3, "call", func():
@@ -746,7 +831,9 @@ func _build_script() -> void:
 				research.research_points_changed.emit(30)
 				_main.get_node("SceneRoot").get_child(-1).get("_research_page")._select(&"dashing"))
 			_at(3.8, "shot", "research_dash_mk2")
-			_at(4.0, "quit")
+			_at(3.9, "call", func(): _main.get_node("SceneRoot").get_child(-1).get("_research_page")._select(&"wall_jumps"))
+			_at(4.4, "shot", "research_wall_jumps")
+			_at(4.6, "quit")
 		"aim_stability":
 			_at(0.1, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
 			_at(0.5, "call", func(): _main._on_sandbox_requested())
@@ -2020,7 +2107,7 @@ func _fire_at_p1(ahead: float) -> void:
 
 
 ## A plain static floor for movement probes (top-left corner at `top_left`), drawn as a dark slab so it
-## shows in captures. Returns the top-left corner.
+## shows in captures, and placed in the map so bot navigation sees it. Returns the top-left corner.
 func _build_test_floor(top_left: Vector2, width: float, height: float = 24.0) -> Vector2:
 	var body: StaticBody2D = StaticBody2D.new()
 	body.collision_layer = 1
@@ -2036,53 +2123,10 @@ func _build_test_floor(top_left: Vector2, width: float, height: float = 24.0) ->
 	slab.color = Color(0.16, 0.17, 0.15, 1.0)
 	body.add_child(slab)
 	body.position = top_left
-	_stress_game().add_child(body)
+	var bounds_node = get_first_node_in_group(&"map_bounds")
+	var map_root: Node = bounds_node.get_parent() if bounds_node != null and bounds_node.get_parent() != null else _stress_game()
+	map_root.add_child(body)
 	return top_left
-
-
-## The longest flat run of floor (constant height over `width` px, open above) seen from above.
-func _flat_spot(width: float) -> Vector2:
-	var space: PhysicsDirectSpaceState2D = _stress_game().get_world_2d().direct_space_state
-	var query: PhysicsRayQueryParameters2D = PhysicsRayQueryParameters2D.new()
-	query.collision_mask = 1
-	var bounds: Rect2 = Rect2(0.0, 0.0, 2262.0, 720.0)
-	var bounds_node = get_first_node_in_group(&"map_bounds")
-	if bounds_node != null and bounds_node.get("bounds") is Rect2:
-		bounds = bounds_node.get("bounds")
-	var run_start: float = INF
-	var run_y: float = INF
-	var step: float = 10.0
-	var x: float = bounds.position.x + 40.0
-	while x < bounds.end.x - 40.0:
-		query.from = Vector2(x, bounds.position.y - 300.0)
-		query.to = Vector2(x, bounds.end.y + 300.0)
-		var hit: Dictionary = space.intersect_ray(query)
-		var y: float = (hit["position"] as Vector2).y if not hit.is_empty() else INF
-		if y != INF and absf(y - run_y) <= 1.5:
-			if x - run_start >= width:
-				return Vector2(run_start, run_y)
-		else:
-			run_start = x
-			run_y = y
-		x += step
-	print("NO FLAT SPOT")
-	return Vector2(400.0, 480.0)
-
-
-func _scout_floor() -> void:
-	var space: PhysicsDirectSpaceState2D = _stress_game().get_world_2d().direct_space_state
-	var query: PhysicsRayQueryParameters2D = PhysicsRayQueryParameters2D.new()
-	query.collision_mask = 1
-	var line: PackedStringArray = PackedStringArray()
-	for i in range(0, 120):
-		var x: float = -100.0 + i * 25.0
-		query.from = Vector2(x, -600.0)
-		query.to = Vector2(x, 1600.0)
-		var hit: Dictionary = space.intersect_ray(query)
-		line.append("%d:%s" % [int(x), str(int((hit["position"] as Vector2).y)) if not hit.is_empty() else "-"])
-	print("SCOUT ", " ".join(line))
-	var bounds_node = get_first_node_in_group(&"map_bounds")
-	print("SCOUT bounds ", bounds_node.get("bounds") if bounds_node != null else null, " p1 ", _p1().global_position, " p2 ", _stress_game().get_player_by_slot(2).global_position)
 
 
 ## Hands the movement sync module a packet as if it came from `from_slot`.
@@ -2112,3 +2156,96 @@ func _watch_dashes() -> void:
 			var start: Array = _dash_start[slot]
 			print("DASH end   slot=%d t=%.2f burst_dx=%+.0f dy=%+.0f took=%.3f max_vy=%.0f" % [slot, _time, p.global_position.x - (start[0] as Vector2).x, p.global_position.y - (start[0] as Vector2).y, _time - float(start[1]), float(start[2])])
 		_dash_was[slot] = now
+
+
+# --- Movement probes (wall jumps) -----------------------------------------------------------------
+
+var _wall_stats: Dictionary = {}
+
+
+## Removes the arena's terrain and builds the wall rig: a long floor (top 640), a 400 px wall block at
+## x 800-1060 (top 240) and a low platform at x 360-560 whose underside is 100 px up.
+func _build_wall_rig() -> void:
+	_clear_terrain()
+	_build_test_floor(Vector2(100.0, 640.0), 1300.0, 40.0)
+	_build_test_floor(Vector2(800.0, 240.0), 260.0, 400.0)
+	_build_test_floor(Vector2(360.0, 520.0), 200.0, 20.0)
+
+
+func _clear_terrain() -> void:
+	for body in _stress_game().find_children("*", "StaticBody2D", true, false):
+		body.get_parent().remove_child(body)
+		body.queue_free()
+
+
+## The bot climb rig: floor (top 640), a 160 px step at x 420-660 and a 400 px wall block at x 900-1160.
+func _build_climb_rig() -> void:
+	_clear_terrain()
+	_build_test_floor(Vector2(100.0, 640.0), 1300.0, 40.0)
+	_build_test_floor(Vector2(420.0, 480.0), 240.0, 160.0)
+	_build_test_floor(Vector2(900.0, 240.0), 260.0, 400.0)
+
+
+## Sends a bot to the nav point nearest `goal` and keeps it there (no goal searches of its own).
+func _bot_goal(player: Node, goal: Vector2) -> void:
+	var brain = player.ai_brain
+	brain._ensure_navigation()
+	brain._goal_point = brain._nav.nearest_point(goal, 120.0)
+	brain._plan_path(player.global_position + Vector2(0.0, player.hover_dist))
+	var moves: PackedStringArray = PackedStringArray()
+	for index in range(brain._path.size() - 1):
+		moves.append(str(int(brain._nav.get_move(int(brain._path[index]), int(brain._path[index + 1]))["move"])))
+	print("CLIMB slot=%d goal=%s reach=%.0f path=%d moves=%s (3 = climb)" % [player.player_slot, goal, brain._climb_reach(), brain._path.size(), ",".join(moves)])
+
+
+func _hold_bot_goals() -> void:
+	for slot in [1, 2]:
+		var p = _stress_game().get_player_by_slot(slot)
+		if p != null and p.ai_brain != null:
+			p.ai_brain._replan_timer = 999.0
+			p.ai_brain._search_queue.clear()
+
+
+func _set_wall_mark(mark: int) -> void:
+	root.get_node("ResearchManager")._local_marks["wall_jumps"] = mark
+
+
+func _wall_reset(at: Vector2) -> void:
+	var p1 = _p1()
+	p1.global_position = at
+	p1.velocity = Vector2.ZERO
+	p1.last_dir = 1.0
+	p1._state_machine.change_state("RunState")
+	_wall_stats = {"start_y": at.y, "min_y": at.y, "cling": 0.0, "topped": false, "stuck": 0.0, "stuck_max": 0.0, "prev_pos": at}
+
+
+## Climb height (body centre above the start), most wall jumps in one airtime, time spent clinging, whether
+## the player stood on the wall top, and the longest time hung motionless in the air (stuck).
+func _watch_wall() -> void:
+	if _wall_stats.is_empty():
+		return
+	var p1 = _p1()
+	_wall_stats["min_y"] = minf(float(_wall_stats["min_y"]), p1.global_position.y)
+	var grounded: bool = p1.is_grounded()
+	var clinging: bool = p1.get("_wall_cling_timer") != null and float(p1.get("_wall_cling_timer")) > 0.0
+	if clinging:
+		_wall_stats["cling"] = float(_wall_stats["cling"]) + 1.0 / 60.0
+	if grounded and p1.global_position.y < 250.0:
+		_wall_stats["topped"] = true
+	_wall_stats["used_max"] = maxi(int(_wall_stats.get("used_max", 0)), p1.get_wall_jumps_used())
+	# Stuck: airborne, not clinging, and not moving for a while (hung on a corner or an edge).
+	if not grounded and not clinging and p1.global_position.distance_to(_wall_stats["prev_pos"]) < 0.1:
+		_wall_stats["stuck"] = float(_wall_stats["stuck"]) + 1.0 / 60.0
+		_wall_stats["stuck_max"] = maxf(float(_wall_stats["stuck_max"]), float(_wall_stats["stuck"]))
+	else:
+		_wall_stats["stuck"] = 0.0
+	_wall_stats["prev_pos"] = p1.global_position
+	if OS.has_environment("BF_WALL_TRACE"):
+		var used: int = p1.get_wall_jumps_used()
+		if used != int(_wall_stats.get("used", 0)):
+			print("TRACE t=%.2f used=%d y=%.0f vy=%.0f state=%s on_wall=%s" % [_time, used, p1.global_position.y, p1.velocity.y, p1._state_machine.current_state.name, p1.is_on_wall()])
+			_wall_stats["used"] = used
+
+
+func _report_wall(label: String) -> void:
+	print("WALL %s climb=%.0f px wall_jumps=%d cling=%.2f s stood_on_top=%s longest_stuck=%.2f s" % [label, float(_wall_stats["start_y"]) - float(_wall_stats["min_y"]), int(_wall_stats.get("used_max", 0)), float(_wall_stats["cling"]), _wall_stats["topped"], float(_wall_stats["stuck_max"])])

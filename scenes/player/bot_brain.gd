@@ -52,7 +52,8 @@ const MUZZLE_REACH: float = 34.0
 ## How far a dash carries (burst plus the glide after it) and how often the bot weighs dashing on purpose.
 const DASH_REACH: float = 160.0
 const DASH_THINK_INTERVAL: float = 0.35
-## Dashing Mk per difficulty: bots never visit the research page, so the game hands them these.
+## Research marks per difficulty (Dashing, Wall Jumps, Time Control): bots never visit the research page, so
+## the game hands them these.
 const DASH_MARKS: Dictionary = {
 	Difficulty.EASY: 1,
 	Difficulty.NORMAL: 2,
@@ -60,6 +61,11 @@ const DASH_MARKS: Dictionary = {
 }
 ## Time Control Mk per difficulty (0: none). Bots cast it as a comeback: low on health, or the target reloading.
 const TIME_CONTROL_MARKS: Dictionary = {
+	Difficulty.EASY: 0,
+	Difficulty.NORMAL: 1,
+	Difficulty.HARD: 3,
+}
+const WALL_JUMP_MARKS: Dictionary = {
 	Difficulty.EASY: 0,
 	Difficulty.NORMAL: 1,
 	Difficulty.HARD: 3,
@@ -73,6 +79,8 @@ const TIME_CONTROL_CHANCE: Dictionary = {
 	Difficulty.NORMAL: 0.35,
 	Difficulty.HARD: 0.6,
 }
+## A climb that ends back at the wall's foot takes climbing out of the plans for this long.
+const FAILED_CLIMB_PAUSE_MSEC: int = 6000
 
 var difficulty: int = Difficulty.NORMAL
 var move_direction: float = 0.0
@@ -141,13 +149,20 @@ var _pending_dash_time: float = -1.0
 var _pending_dash_direction: float = 0.0
 ## Set after a dash along the path: the waypoints it flew past are skipped instead of walked back to.
 var _skip_passed_points: bool = false
+## A wall climb in progress: the way to the wall (0 when not climbing) and the ledge's height.
+var _climb_direction: float = 0.0
+var _climb_top_y: float = 0.0
+var _climbs_blocked_until: int = 0
 
 
 ## Research marks a bot of this difficulty fights with.
 static func research_marks(bot_difficulty: int) -> Dictionary:
 	if not DASH_MARKS.has(bot_difficulty):
 		return {}
-	var marks: Dictionary = {str(ResearchManager.DASHING): int(DASH_MARKS[bot_difficulty])}
+	var marks: Dictionary = {
+		str(ResearchManager.DASHING): int(DASH_MARKS[bot_difficulty]),
+		str(ResearchManager.WALL_JUMPS): int(WALL_JUMP_MARKS[bot_difficulty]),
+	}
 	if int(TIME_CONTROL_MARKS.get(bot_difficulty, 0)) > 0:
 		marks[str(ResearchManager.TIME_CONTROL)] = int(TIME_CONTROL_MARKS[bot_difficulty])
 	return marks
@@ -249,6 +264,11 @@ func _update_movement(delta: float) -> void:
 	_continue_goal_search(feet, grounded)
 	if grounded:
 		_air_target_x = INF
+		if _climb_direction != 0.0:
+			_climb_direction = 0.0
+			if feet.y > _climb_top_y + 20.0:
+				_climbs_blocked_until = Time.get_ticks_msec() + FAILED_CLIMB_PAUSE_MSEC
+				_replan_timer = 0.0
 		if _skip_passed_points and not _player.is_dashing():
 			_skip_passed_points = false
 			_skip_walked_points(feet)
@@ -264,6 +284,13 @@ func _update_movement(delta: float) -> void:
 				# side runs under the ledge and bumps its head instead of rising past the edge first.
 				var share: float = absf(_air_speed_x) / maxf(_player.speed, 1.0)
 				direction = signf(to_target) * clampf(maxf(share, MIN_AIR_STEER), 0.0, 1.0)
+		if _climb_direction != 0.0:
+			# Climbing: keep pushing into the wall and kick off it whenever it is reached below the ledge.
+			direction = _climb_direction
+			if _player.is_on_wall() and feet.y > _climb_top_y - 4.0 and _player.velocity.y > -80.0:
+				jump_pressed = true
+				jump_held = true
+				_jump_hold_timer = 0.3
 		if not _has_ground_below(me, 700.0) and (_air_target_x == INF or not _has_ground_below(Vector2(_air_target_x, me.y), 700.0)):
 			direction = _nearest_safe_side(me)
 		if _player.is_on_wall() and _player.velocity.y > 0.0 and not _has_ground_below(me, 500.0):
@@ -297,6 +324,11 @@ func _update_movement(delta: float) -> void:
 						_air_target_x = next.x
 					LevelNavigation.Move.DROP:
 						_air_target_x = next.x
+					LevelNavigation.Move.CLIMB:
+						_force_jump(float(move["hold"]))
+						_air_target_x = next.x
+						_climb_direction = signf(next.x - feet.x)
+						_climb_top_y = next.y
 			else:
 				_path_index += 1
 		else:
@@ -340,7 +372,15 @@ func _plan_path(feet: Vector2) -> void:
 	var start_id: int = _nav.nearest_point(feet, 90.0)
 	if start_id < 0 or _goal_point < 0:
 		return
-	_path = _nav.find_path(start_id, _goal_point)
+	_path = _nav.find_path(start_id, _goal_point, _climb_reach())
+
+
+## How high this bot can climb a wall with its Wall Jumps marks (0 while climbing is paused after a fail).
+func _climb_reach() -> float:
+	if Time.get_ticks_msec() < _climbs_blocked_until:
+		return 0.0
+	var slot: int = _player.player_slot
+	return _nav.wall_climb_reach(ResearchManager.get_wall_jump_limit(slot), ResearchManager.get_wall_jump_strength(slot).y > 1.0)
 
 
 func _begin_goal_search() -> void:

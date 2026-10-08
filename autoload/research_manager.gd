@@ -22,6 +22,7 @@ const LUCK: StringName = &"luck"
 const RESEARCH_YIELD: StringName = &"research_yield"
 
 const DASHING: StringName = &"dashing"
+const WALL_JUMPS: StringName = &"wall_jumps"
 const SLIDING: StringName = &"sliding"
 
 const LIFE_STEAL: StringName = &"life_steal"
@@ -363,6 +364,26 @@ func has_dash_protection(player_slot: int = 0) -> bool:
 	return get_dash_mark(player_slot) >= 4
 
 
+## Wall jumps allowed before touching the ground again: one without the research, two at Mk I, no limit
+## (-1) from Mk II.
+func get_wall_jump_limit(player_slot: int = 0) -> int:
+	match get_mark(WALL_JUMPS, player_slot):
+		0:
+			return 1
+		1:
+			return 2
+	return -1
+
+
+## Multiplies the wall jump's kick (x: sideways, y: up): stronger from Mk II.
+func get_wall_jump_strength(player_slot: int = 0) -> Vector2:
+	return Vector2(1.1, 1.15) if get_mark(WALL_JUMPS, player_slot) >= 2 else Vector2.ONE
+
+
+func has_wall_cling(player_slot: int = 0) -> bool:
+	return get_mark(WALL_JUMPS, player_slot) >= 3
+
+
 # Players are handled untyped in this autoload on purpose: naming the Player class here would compile the
 # whole player (and everything it uses) at start-up, before the menu can appear.
 func apply_local_life_steal(source_slot: int, applied_damage: int) -> int:
@@ -478,6 +499,7 @@ func _build_definitions() -> Dictionary:
 		_definition(LUCK, "Quality Control", BRANCH_ECONOMY, "res://assets/ui/research/luck.svg", [2, 5, 9], Vector2(870, 130), [_require(CONDITION_WEAR)], true, 80),
 
 		_definition(DASHING, "Dashing", BRANCH_MOVEMENT, "res://assets/ui/research/dashing.svg", [4, 7, 11, 15], Vector2(330, 260), [], true, 110),
+		_definition(WALL_JUMPS, "Wall Jumps", BRANCH_MOVEMENT, "res://assets/ui/research/wall_jumps.svg", [3, 6, 10], Vector2(450, 260), [_require(DASHING)], true, 115),
 		_definition(SLIDING, "Sliding", BRANCH_MOVEMENT, "res://assets/ui/research/sliding.svg", [4, 8, 13], Vector2(570, 260), [_require(DASHING)], false, 120),
 
 		_definition(LIFE_STEAL, "Life Steal", BRANCH_MISC, "res://assets/ui/research/life_steal.svg", [3, 7, 12], Vector2(270, 395), [], true, 210),
@@ -521,6 +543,7 @@ const PRESENTATION: Dictionary = {
 	BONUS_MARK: {"summary": "Bought blueprints can arrive as MK II", "label": "CHANCE", "levels": ["6%", "14%", "26%"]},
 	LUCK: {"summary": "Better condition from the shop", "label": "EXTRA ROLLS", "levels": ["1", "2", "3"]},
 	DASHING: {"summary": "Burst sideways, on the ground or in the air", "label": "EACH MARK ADDS", "levels": ["Dash · 2.4 s", "Cooldown 1.4 s", "Shockwave", "No damage"]},
+	WALL_JUMPS: {"summary": "Climb walls with more wall jumps in a row", "label": "EACH MARK ADDS", "levels": ["2 in a row", "No limit · stronger", "Wall cling"]},
 	SLIDING: {"summary": "Slide", "label": "", "levels": ["Unlock", "Speed", "Control"]},
 	LIFE_STEAL: {"summary": "Heal from damage dealt", "label": "HEAL", "levels": ["5%", "10%", "16%"]},
 	RAGE: {"summary": "More damage below 20% health", "label": "DAMAGE", "levels": ["+15%", "+30%", "+50%"]},

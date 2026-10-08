@@ -24,7 +24,7 @@ const LAYOUT: Dictionary = {
 	&"bonus_mark": Vector2i(3, 1), &"luck": Vector2i(4, 1),
 	&"life_steal": Vector2i(0, 0), &"rage": Vector2i(1, 0), &"passive_healing": Vector2i(2, 0), &"phoenix": Vector2i(3, 0),
 	&"time_control": Vector2i(5, 0), &"faster_capture": Vector2i(2, 1), &"capture_bonus": Vector2i(3, 1), &"capture_radius": Vector2i(4, 1),
-	&"dashing": Vector2i(0, 0), &"sliding": Vector2i(1, 0),
+	&"dashing": Vector2i(0, 0), &"wall_jumps": Vector2i(1, 0), &"sliding": Vector2i(2, 0),
 }
 ## Three lanes have to fit above the prompt bar at 720 px: a badge's labels end ~65 px under its centre and
 ## the next row's ring starts ~66 px above its own, so rows cannot sit much closer than this.
