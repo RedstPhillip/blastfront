@@ -28,8 +28,9 @@ func _ready() -> void:
 	if _research_page.has_method(&"set_top_inset"):
 		_research_page.set_top_inset(TOP_INSET)
 	GameJuice.attach_button_feedback(self)
+	InputDevice.device_changed.connect(_on_device_changed)
 	_set_page(0)
-	_status_page.focus_default.call_deferred()
+	_focus_page.call_deferred()
 
 
 ## Page tabs across the top on a thin ink header: text tabs with an amber underline for the open page,
@@ -120,6 +121,7 @@ func _set_page(next_page: int) -> void:
 		_tab_buttons[index].set_pressed_no_signal(index - 1 == _page_index)
 	if previous == _page_index or not is_inside_tree():
 		return
+	_focus_page.call_deferred()
 	AudioDirector.play(&"ui_whoosh", -8.0)
 	var page: Control = [_loadout_page, _status_page, _research_page][_page_index + 1]
 	page.modulate.a = 0.0
@@ -127,6 +129,18 @@ func _set_page(next_page: int) -> void:
 	var tween: Tween = create_tween().set_parallel(true)
 	tween.tween_property(page, "modulate:a", 1.0, 0.18)
 	tween.tween_property(page, "position:x", 0.0, 0.26).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+
+## The open page takes the cursor (its default control), so a pad can always act after a page switch.
+func _focus_page() -> void:
+	var page: Control = [_loadout_page, _status_page, _research_page][_page_index + 1]
+	if page.has_method(&"focus_default"):
+		page.focus_default()
+
+
+func _on_device_changed(using_gamepad: bool) -> void:
+	if using_gamepad and get_viewport().gui_get_focus_owner() == null:
+		_focus_page()
 
 
 func _is_page_cancel_event(event: InputEvent) -> bool:

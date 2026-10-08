@@ -274,6 +274,32 @@ func _build_script() -> void:
 				_at(2.75 + i * 0.35, "call", func(): _log_focus(game_step))
 				_at(2.8 + i * 0.35, "shot", "padg_%02d" % i)
 			_at(3.0 + game_steps.size() * 0.35, "quit")
+		"pad_nav_inter":
+			# Between sets as a pad user: LB / RB switch pages, the d-pad moves inside each page, B goes back.
+			_at(0.3, "call", func():
+				root.get_node("UserSettings").set_value(&"gameplay_bot_phase_shop", true)
+				_main._on_bot_requested(1))
+			_at(2.0, "call", func():
+				root.get_node("InputDevice")._set_gamepad(true)
+				root.get_node("OnlineMatch").coin_balances[1] = 40
+				root.get_node("OnlineMatch").match_points[1] = 1
+				_main.change_scene(_main.get_scene("res://scenes/menus/intermission_menu.tscn")))
+			var inter_steps: Array = [
+				"start", "LB", "ui_down", "ui_right", "RB", "RB", "ui_down", "ui_right", "ui_up", "ui_cancel",
+				"ui_down", "LB", "ui_up", "ui_cancel",
+			]
+			for i in range(inter_steps.size()):
+				var inter_step: String = inter_steps[i]
+				_at(4.0 + i * 0.4, "call", func():
+					if inter_step == "LB" or inter_step == "RB":
+						_push_pad_button(JOY_BUTTON_LEFT_SHOULDER if inter_step == "LB" else JOY_BUTTON_RIGHT_SHOULDER)
+					elif inter_step != "start":
+						_push_action(inter_step))
+				_at(4.2 + i * 0.4, "call", func():
+					var menu = _main.get_node("SceneRoot").get_child(-1)
+					_log_focus("%s p%d" % [inter_step, menu._page_index if "_page_index" in menu else 99]))
+				_at(4.25 + i * 0.4, "shot", "padi_%02d" % i)
+			_at(4.5 + inter_steps.size() * 0.4, "quit")
 		"botshop":
 			_at(0.3, "call", func():
 				root.get_node("UserSettings").set_value(&"gameplay_bot_phase_shop", true)
@@ -1021,11 +1047,25 @@ var _tracker = null
 var _merge_pair: Array = []
 
 
+func _push_pad_button(button: JoyButton) -> void:
+	for pressed in [true, false]:
+		var event: InputEventJoypadButton = InputEventJoypadButton.new()
+		event.device = 0
+		event.button_index = button
+		event.pressed = pressed
+		_viewport.push_input(event)
+
+
 func _log_focus(label: String) -> void:
 	var owner: Control = _viewport.gui_get_focus_owner()
 	var text: String = "none"
 	if owner != null:
-		text = "%s '%s' in %s" % [owner.get_class(), str(owner.get("text")) if owner.get("text") != null else "", owner.get_parent().name]
+		var label_text: String = str(owner.get("text")) if owner.get("text") != null else ""
+		if owner.get("research_id") != null:
+			label_text = str(owner.get("research_id"))
+		elif owner.get("item") != null:
+			label_text = str(owner.get("item").get("item_id") if owner.get("item").get("item_id") != null else owner.get("item").call("get_definition_id"))
+		text = "%s '%s' in %s" % [owner.get_class(), label_text, owner.get_parent().name]
 	print("FOCUS %-10s -> %s" % [label, text])
 
 

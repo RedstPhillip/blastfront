@@ -60,7 +60,7 @@ Pillow (`ImageChops.difference`) when a change should be pixel-identical.
 - **Regression set:** `combat flow online_ui ui_quests victory gamepad explosive lo_interact loadout_inter loadout2 world_switch mars_play locker_esc`
 - **Screens:** `menu` (main menu, bot panel, settings), `pad_nav` (menus driven only by ui_* actions,
   prints the focused control after every step and shoots each one), `pad_nav_game` (pause menu and sandbox
-  loadout as a pad user), `controls_tab`, `settings_reset` (prints the tab
+  loadout as a pad user), `pad_nav_inter` (LB / RB through the between-set pages, d-pad inside them), `controls_tab`, `settings_reset` (prints the tab
   titles after RESET DEFAULTS), `summary_look`, `research_look`, `online_pages`,
   `loadout`, `pause`, `hud`, `victory`, `bg_look`, `art` / `armor_art` (sheets of every weapon part and
   armor piece, ideal for pixel diffs of the procedural art)

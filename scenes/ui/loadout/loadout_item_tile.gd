@@ -209,6 +209,10 @@ func _draw() -> void:
 	if drop_highlight:
 		_style.border_color = LoadoutStyle.drop_color(armed, _pulse_time)
 		_style.set_border_width_all(2)
+	elif has_focus() and InputDevice.using_gamepad:
+		# The pad cursor: the same accent frame as focused options elsewhere.
+		_style.border_color = UiStyle.ACCENT
+		_style.set_border_width_all(2)
 	elif ease_hover > 0.0:
 		_style.border_color = Color(1, 1, 1, 0.4 * ease_hover)
 		_style.set_border_width_all(1)

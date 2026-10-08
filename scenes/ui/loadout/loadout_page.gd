@@ -109,8 +109,7 @@ func _ready() -> void:
 	_refresh_all(false)
 	_show_overview()
 	_play_open()
-	if InputDevice.using_gamepad:
-		_focus_first_tile.call_deferred()
+	focus_default.call_deferred()
 
 
 func _exit_tree() -> void:
@@ -430,11 +429,20 @@ func _build_tips_panel() -> Control:
 	return _prompt_bar
 
 
+## Pads need a cursor on the page; mouse players get none, so no tile looks hovered when nothing is.
+func focus_default() -> void:
+	if InputDevice.using_gamepad:
+		_focus_first_tile()
+
+
+## First owned part, else first armor piece, else the first shop offer (an empty locker before the first
+## purchase still needs a cursor somewhere).
 func _focus_first_tile() -> void:
-	for tile in _weapon_tiles:
-		if tile.visible and tile.item != null:
-			tile.grab_focus()
-			return
+	for pool in [_weapon_tiles, _armor_tiles, _offer_tiles, _saved_tiles]:
+		for tile in pool:
+			if tile.is_visible_in_tree() and tile.item != null:
+				tile.grab_focus()
+				return
 
 
 func _play_open() -> void:
