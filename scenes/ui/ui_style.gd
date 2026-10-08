@@ -135,8 +135,18 @@ static func style_button(button: Button, primary: bool, font_size: int = 20) -> 
 
 
 ## A toggle option inside a row (difficulty, world, on/off): selected = solid light fill with dark text.
+## Focus (pad / keyboard) is an accent frame drawn over whatever state the option is in, so the selected
+## option still shows which one the cursor is on.
 static func style_option(button: Button, font_size: int = 17) -> void:
 	style_button(button, false, font_size)
 	button.add_theme_stylebox_override("pressed", with_margins(panel(TEXT), 26, 10))
+	button.add_theme_stylebox_override("focus", focus_frame())
 	button.add_theme_color_override("font_pressed_color", INK)
 	button.add_theme_color_override("font_hover_pressed_color", INK)
+
+
+## Focus overlay for controls whose fill already means something (selected options): an accent frame only.
+static func focus_frame() -> StyleBoxFlat:
+	var style: StyleBoxFlat = panel(Color(0, 0, 0, 0), ACCENT, 2, 2)
+	style.draw_center = false
+	return style

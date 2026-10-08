@@ -437,6 +437,8 @@ func _on_hero_landed(hero: MenuHero) -> void:
 func _refresh_steam(_message: String) -> void:
 	var enabled: bool = SteamService.steam_enabled
 	_online_button.disabled = not enabled
+	# A disabled entry is skipped by pad and keyboard navigation instead of swallowing a press.
+	_online_button.focus_mode = Control.FOCUS_ALL if enabled else Control.FOCUS_NONE
 	_online_button.tooltip_text = "" if enabled else "Steam offline"
 	_steam_dot.color = UiStyle.SUCCESS if enabled else UiStyle.TEXT_MUTED
 	_steam_label.text = ("STEAM ONLINE  ·  %s" % SteamService.steam_name.to_upper()) if enabled else "STEAM OFFLINE"

@@ -242,6 +242,22 @@ func _build_script() -> void:
 				print("TABS ", ",".join(titles), " current=", tabs.current_tab))
 			_at(2.6, "shot", "settings_after_reset")
 			_at(2.7, "quit")
+		"pad_nav":
+			# Menus driven only by ui_* actions (d-pad / stick + A / B): prints the focused control after each step.
+			var steps: Array = [
+				"ui_down", "ui_down", "ui_up", "ui_up", "ui_accept",
+				"ui_up", "ui_up", "ui_right", "ui_up", "ui_down", "ui_down", "ui_down", "ui_cancel",
+				"ui_down", "ui_down", "ui_down", "ui_accept", "ui_up", "ui_up", "ui_up", "ui_up", "ui_right",
+				"ui_up", "ui_up", "ui_up", "ui_up", "ui_up", "ui_right", "ui_down", "ui_cancel",
+			]
+			_at(1.2, "call", func(): _log_focus("start"))
+			for i in range(steps.size()):
+				var step: String = steps[i]
+				_at(1.4 + i * 0.35, "action", step)
+				_at(1.55 + i * 0.35, "call", func(): _log_focus(step))
+				_at(1.6 + i * 0.35, "shot", "pad_%02d" % i)
+			_at(1.6 + steps.size() * 0.35, "shot", "pad_nav_end")
+			_at(1.8 + steps.size() * 0.35, "quit")
 		"botshop":
 			_at(0.3, "call", func():
 				root.get_node("UserSettings").set_value(&"gameplay_bot_phase_shop", true)
@@ -987,6 +1003,14 @@ func _equip(ids: Array) -> void:
 
 var _tracker = null
 var _merge_pair: Array = []
+
+
+func _log_focus(label: String) -> void:
+	var owner: Control = _viewport.gui_get_focus_owner()
+	var text: String = "none"
+	if owner != null:
+		text = "%s '%s' in %s" % [owner.get_class(), str(owner.get("text")) if owner.get("text") != null else "", owner.get_parent().name]
+	print("FOCUS %-10s -> %s" % [label, text])
 
 
 func _loadout_page() -> Node:
