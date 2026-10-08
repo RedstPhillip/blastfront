@@ -1,6 +1,9 @@
 extends Node2D
 class_name MapBorder
 
+## The arena's edges: warning lines as a player gets close, and the knockback and damage when one
+## crosses.
+
 @export var warn_distance: float = GameSettings.MAP_BORDER_WARN_DISTANCE
 @export var line_length: float = GameSettings.MAP_BORDER_LINE_LENGTH
 @export var line_thickness: float = GameSettings.MAP_BORDER_LINE_THICKNESS

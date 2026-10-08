@@ -1,6 +1,9 @@
 class_name WeaponExtensionDefinition
 extends Resource
 
+## One weapon part type (a .tres): slot, display data, stat modifiers per mark and its projectile
+## tags and effects.
+
 const MAX_CONDITION_DRAWBACK_PENALTY: float = 1.25
 
 const SLOT_MIDDLE: StringName = &"middle"

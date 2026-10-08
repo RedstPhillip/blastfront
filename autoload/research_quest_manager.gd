@@ -1,5 +1,8 @@
 extends Node
 
+## Orders: three per set and player (easy, medium, hard), their progress from match events, and the
+## research points they pay out. The host decides; clients report their own jumps, shots and blocks.
+
 signal quests_changed
 signal research_reward_awarded(amount: int, reason: String)
 

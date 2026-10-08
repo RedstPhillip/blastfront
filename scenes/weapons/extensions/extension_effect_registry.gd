@@ -23,7 +23,7 @@ static func has_effect(effect_name: StringName) -> bool:
 static func apply_projectile_effects(target: Player, projectile: Projectile) -> void:
 	var projectile_effects: Dictionary = projectile.extension_effects
 	for raw_effect_name in projectile_effects.keys():
-		var effect_name: StringName = StringName(str(raw_effect_name))	
+		var effect_name: StringName = StringName(str(raw_effect_name))
 		var effect: ExtensionEffect = effects.get(effect_name, null) as ExtensionEffect
 		if effect == null:
 			continue

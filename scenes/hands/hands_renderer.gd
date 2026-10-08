@@ -1,6 +1,8 @@
 extends Node2D
 class_name HandsRenderer
 
+## Draws the arms from the shoulders to the gun grip and the guard hand.
+
 @export var upper_len: float = GameSettings.ARM_UPPER_LENGTH
 @export var lower_len: float = GameSettings.ARM_LOWER_LENGTH
 @export var line_w: float = GameSettings.ARM_LINE_WIDTH

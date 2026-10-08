@@ -1,4 +1,7 @@
-﻿extends Node
+extends Node
+
+## Weapon parts: definitions, the parts each player owns and has installed, merging, condition wear and
+## the effective gun stats a build gives.
 
 signal inventory_changed(player_slot: int)
 signal loadout_changed(player_slot: int)

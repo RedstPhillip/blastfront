@@ -1,6 +1,9 @@
 extends CharacterBody2D
 class_name Player
 
+## One fighter: movement (the State children run it), aim, block, ammo through its Gun, health, armor and
+## research effects, and all body feedback. Driven by local input, a BotBrain or network snapshots.
+
 const DEFAULT_BODY_TEXTURE: Texture2D = preload("res://assets/player/body/blue.png")
 const BODY_SHADER: Shader = preload("res://scenes/player/player_body.gdshader")
 const BODY_TEXTURE_PATH: String = "res://assets/player/body/%s.png"
@@ -10,6 +13,9 @@ const WALL_SLIDE_FEEDBACK_INTERVAL: float = 0.09
 const HEALING_AREA_SEGMENTS: int = 72
 const HEALING_AREA_FILL_COLOR: Color = Color(0.0, 0.95, 0.38, 0.24)
 const HEALING_AREA_RING_COLOR: Color = Color(0.0, 0.78, 0.22, 0.96)
+## Share of the wind speed that turns into drift on the ground and in the air (Mars storms).
+const WIND_GROUND_SHARE: float = 0.3
+const WIND_AIR_SHARE: float = 0.62
 
 static var _body_texture_cache: Dictionary = {}
 static var _body_texture_exists_cache: Dictionary = {}
@@ -94,13 +100,10 @@ var _body_motion_scale: Vector2 = Vector2.ONE
 var _body_punch_scale: Vector2 = Vector2.ONE
 var _hit_flash_timer: float = 0.0
 var _hit_feedback_guard_timer: float = 0.0
+## How much of the wind reaches the player (terrain upwind gives shelter; Mars storms).
+var _wind_exposure: float = 1.0
 ## Hits landing in the same frame (shotgun pellets, multi-barrel volleys, splash) are gathered here and
 ## played as one combined hit at the end of the frame: one burst, one sound, one shove sized by the total.
-## Wind (Mars storms): how much of it reaches the player (terrain upwind gives shelter), and how much of
-## the air speed turns into drift on the ground and in the air.
-const WIND_GROUND_SHARE: float = 0.3
-const WIND_AIR_SHARE: float = 0.62
-var _wind_exposure: float = 1.0
 var _pending_hit_damage: int = 0
 var _pending_hit_count: int = 0
 var _pending_hit_direction: Vector2 = Vector2.ZERO
@@ -147,16 +150,16 @@ var _halo: Sprite2D = null
 var _body_material: ShaderMaterial = null
 var _wall_slide_timer: float = 0.0
 var ai_brain: BotBrain = null
-
-@onready var _healing_area: Node2D = $HealingArea
-@onready var _healing_area_fill: Polygon2D = $HealingArea/Fill
-@onready var _healing_area_ring: Line2D = $HealingArea/Ring
-@onready var _body_sprite: Sprite2D = $Sprite2D
 ## Colour the body sprite currently shows (texture + base modulate are only swapped when it changes) and
 ## the last values pushed to the body shader, so idle frames do not re-set unchanged uniforms.
 var _body_color_id: StringName = &""
 var _shader_flash: float = -1.0
 var _shader_status: float = -1.0
+
+@onready var _healing_area: Node2D = $HealingArea
+@onready var _healing_area_fill: Polygon2D = $HealingArea/Fill
+@onready var _healing_area_ring: Line2D = $HealingArea/Ring
+@onready var _body_sprite: Sprite2D = $Sprite2D
 @onready var _shield: Sprite2D = $ArmRenderer/Shield
 @onready var _armor_visual_root: ArmorVisualRoot = $ArmorVisualRoot
 @onready var _leg_renderer: Node = $LegRenderer

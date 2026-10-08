@@ -1,5 +1,7 @@
 extends Node
 
+## Armor pieces: definitions, owned pieces, the equipped shield, vest and boots per player, and merging.
+
 signal inventory_changed
 signal loadout_changed
 signal player_loadout_changed(player_slot: int)

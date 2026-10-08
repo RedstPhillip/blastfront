@@ -1,5 +1,7 @@
 extends SyncModule
 
+## Online damage, kills, healing and status effects, applied by the host and replicated to the client.
+
 const STATUS_EFFECT_PACKET_COALESCE_MSEC: int = 120
 
 var _active_damage_over_time: Dictionary = {}

@@ -1,6 +1,9 @@
 extends Node2D
 class_name Gun
 
+## The player's carbine: aim, fire rate, ammo and reload, the stats its installed parts add, the laser
+## sight, muzzle feedback and the shot data a projectile is built from.
+
 const MUZZLE_WORLD_COLLISION_MASK: int = 1
 const MUZZLE_PLAYER_COLLISION_MASK: int = 2
 const MUZZLE_WALL_CLEARANCE: float = 6.0
@@ -270,7 +273,7 @@ func _build_shot_directions(base_direction: Vector2) -> Array[Vector2]:
 
 func _fire_projectile(direction: Vector2, muzzle_position: Vector2, projectile_data: Dictionary) -> void:
 	var world: Node2D = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)
-	
+
 	if world == null:
 		return
 

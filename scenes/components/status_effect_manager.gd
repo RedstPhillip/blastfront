@@ -1,6 +1,8 @@
 class_name StatusEffectManager
 extends Node
 
+## Timed status effects on a player (slows, stuns, poison) and their ticks.
+
 signal effect_added(effect_name: StringName)
 signal effect_removed(effect_name: StringName)
 
@@ -160,7 +162,7 @@ func _tick_instance(instance: Dictionary) -> void:
 func _notify_damage_dealt(source_slot: int, applied_damage: int) -> void:
 	if applied_damage <= 0:
 		return
-	
+
 	for node in get_tree().get_nodes_in_group(GameSettings.PLAYERS_GROUP):
 		var player: Player = node as Player
 		if player != null and player.player_slot == source_slot:

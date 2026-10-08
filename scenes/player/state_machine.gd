@@ -1,6 +1,7 @@
 extends Node
 class_name StateMachine
 
+## Runs the active movement State of a player and switches between them.
 
 @export var initial_state: State
 var current_state: State

@@ -1,5 +1,7 @@
 extends Node
 
+## Steam start-up through GodotSteam when it is present; the game runs offline without it.
+
 signal initialized
 signal initialization_failed(message: String)
 signal status_changed(message: String)

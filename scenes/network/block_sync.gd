@@ -1,5 +1,7 @@
 extends SyncModule
 
+## Block state (active, direction, cooldown) of both players across the network.
+
 var _block_active: Dictionary = GameSettings.default_block_state()
 var _block_direction: Dictionary = {}
 var _block_cooldown_ratio: Dictionary = {}

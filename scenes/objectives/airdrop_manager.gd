@@ -1,6 +1,9 @@
 extends Node2D
 class_name AirdropManager
 
+## Supply drops: picks a landing spot, announces it, drops the crate and runs the capture ring that
+## pays research points. Host-authoritative online.
+
 const AIRDROP_SCENE: PackedScene = preload("res://scenes/objectives/airdrop_crate.tscn")
 const PHASE_INACTIVE: StringName = &"inactive"
 const PHASE_WARNING: StringName = &"warning"

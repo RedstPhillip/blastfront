@@ -1,5 +1,8 @@
 extends Node
 
+## Session mode (offline, training, bot duel, Steam host or client), the Steam lobby and P2P transport,
+## and the shared packet envelope.
+
 signal status_changed(message: String)
 signal lobby_ready
 signal lobby_left

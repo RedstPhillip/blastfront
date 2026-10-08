@@ -43,6 +43,8 @@ const MIN_SEARCH_INTERVAL: float = 0.35
 const MIN_AIR_STEER: float = 0.2
 ## Ground speed (px/s) a jump tolerates beyond what its arc needs, or against it, before the bot brakes.
 const TAKEOFF_SPEED_TOLERANCE: float = 110.0
+## Longest the bot brakes before a jump; on a slope or in a storm it may never get slow enough.
+const MAX_TAKEOFF_BRAKE: float = 0.25
 const TRAJECTORY_STEPS: int = 90
 const TRAJECTORY_RAY_STRIDE: int = 2
 const TARGET_HIT_RADIUS: float = 20.0
@@ -73,6 +75,7 @@ var _search_cooldown: float = 0.0
 var _air_target_x: float = INF
 ## Sideways speed of the jump or drop in progress, as the navigation validated it.
 var _air_speed_x: float = 0.0
+var _takeoff_brake_timer: float = 0.0
 var _stuck_timer: float = 0.0
 ## Candidate goal points for the running search with their cheap (raycast-free) scores, best last.
 var _search_queue: Array[int] = []
@@ -224,11 +227,13 @@ func _update_movement(delta: float) -> void:
 				var next: Vector2 = _nav.points[next_id]
 				var move: Dictionary = _nav.get_move(current_id, next_id)
 				var air_speed: float = float(move.get("vx", 0.0))
-				if int(move["move"]) == LevelNavigation.Move.JUMP and _too_fast_for_takeoff(air_speed):
+				if int(move["move"]) == LevelNavigation.Move.JUMP and _too_fast_for_takeoff(air_speed) and _takeoff_brake_timer < MAX_TAKEOFF_BRAKE:
 					# Still running the wrong way (or too fast) for this jump: brake on the spot first.
+					_takeoff_brake_timer += delta
 					move_direction = 0.0
 					_stuck_timer = 0.0
 					return
+				_takeoff_brake_timer = 0.0
 				_path_index += 1
 				direction = signf(next.x - feet.x)
 				_air_speed_x = air_speed
@@ -259,7 +264,8 @@ func _update_movement(delta: float) -> void:
 
 
 func _too_fast_for_takeoff(air_speed: float) -> bool:
-	var speed: float = _player.velocity.x
+	# Measured against the ground speed the wind settles a standing bot at, which braking cannot undo.
+	var speed: float = _player.velocity.x - _player.get_wind_drift_speed()
 	var against: bool = signf(speed) != signf(air_speed) and absf(speed) > TAKEOFF_SPEED_TOLERANCE
 	return against or absf(speed) > absf(air_speed) + TAKEOFF_SPEED_TOLERANCE
 
@@ -276,6 +282,7 @@ func _ensure_navigation() -> void:
 func _plan_path(feet: Vector2) -> void:
 	_path = PackedInt64Array()
 	_path_index = 0
+	_takeoff_brake_timer = 0.0
 	var start_id: int = _nav.nearest_point(feet, 90.0)
 	if start_id < 0 or _goal_point < 0:
 		return

@@ -1,4 +1,6 @@
-﻿extends Node
+extends Node
+
+## The between-set shop: offers rolled for each intermission, buying, saved blueprints and selling.
 
 signal rewards_changed
 

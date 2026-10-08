@@ -1,6 +1,8 @@
 class_name HealthComponent
 extends Node
 
+## Health with a maximum; signals changes and depletion.
+
 signal max_health_changed(old: int, new: int)
 signal health_changed(old: int, new: int)
 signal health_depleted

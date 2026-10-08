@@ -1,5 +1,7 @@
-﻿extends Node
+extends Node
 class_name GameSync
+
+## Online glue for one match: ticks the sync modules, routes their packets and sends world snapshots.
 
 var game: Variant = null
 var tick: int = 0

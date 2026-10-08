@@ -1,6 +1,8 @@
 extends Node2D
 class_name LegRenderer
 
+## Draws the legs from the hips to the feet the player steps with.
+
 @export var upper_len: float = GameSettings.LEG_UPPER_LENGTH
 @export var lower_len: float = GameSettings.LEG_LOWER_LENGTH
 @export var line_w: float = GameSettings.LEG_LINE_WIDTH

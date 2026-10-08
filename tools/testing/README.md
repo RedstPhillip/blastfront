@@ -43,7 +43,7 @@ bash tools/testing/regress.sh         # should print OK for every scenario
 
 | Command | What it does |
 |---|---|
-| `regress.sh [scenario...]` | Syncs the mirror, runs the 13 regression scenarios headless, prints `OK` / `FAIL` + distinct errors. Run before every commit. |
+| `regress.sh [scenario...]` | Syncs the mirror, compiles every script once (`parse_all.gd`, catches errors in files no scenario loads), runs the 13 regression scenarios headless, prints `OK` / `FAIL` + distinct errors. Run before every commit. |
 | `run_headless.sh <scenario>` | One scenario headless, full (filtered) output. Good for scenarios that `print` measurements. |
 | `run_capture.sh <scenario> [out_dir]` | One scenario with real rendering, invisible; PNG per `shot` action (default `$WORK_DIR/captures/<scenario>`). `BF_FULLHD=1` for 1920x1080. `PROJ_OVERRIDE=$WORK_DIR/mirror_base` renders the old version for before/after comparisons. |
 | `import.sh` | Sync + headless import. |
@@ -56,20 +56,24 @@ Pillow (`ImageChops.difference`) when a change should be pixel-identical.
 ### Scenarios (cases in `capture.gd` `_build_script()`)
 
 - **Regression set:** `combat flow online_ui ui_quests victory gamepad explosive lo_interact loadout_inter loadout2 world_switch mars_play locker_esc`
-- **Screens:** `menu` (main menu, bot panel, settings), `summary_look`, `research_look`, `online_pages`,
+- **Screens:** `menu` (main menu, bot panel, settings), `controls_tab`, `settings_reset` (prints the tab
+  titles after RESET DEFAULTS), `summary_look`, `research_look`, `online_pages`,
   `loadout`, `pause`, `hud`, `victory`, `bg_look`, `art` / `armor_art` (sheets of every weapon part and
   armor piece, ideal for pixel diffs of the procedural art)
 - **Gameplay:** `sandbox`, `bot`, `look`, `gunfeel`, `laser_look` (`BF_WORLD=mars` for Mars), `gun_ingame`,
   `scope_check` (prints ballistics per scope), `aim_stability`, `airdrop_look`, `explosive`, `terrain`
-- **Mars weather:** `mars`, `mars_storm`, `mars_close`, `mars_duel_look`, `shelter_probe`, `ledge_test`, `bot_watch`
+- **Mars weather:** `mars`, `mars_storm`, `mars_close`, `mars_duel_look`, `shelter_probe`, `ledge_test`
+- **Bots:** `bot_watch` (two hard bots, state log every 1.5 s, `BF_WORLD`), `bot_spawn_look` (screenshots of
+  the left spawn, where a navigation bug once kept a bot hopping)
 - **Economy / loadout interaction:** `sell_test`, `sell_equipped`, `botshop`, `shoptour`, `lo_interact`, `loadout_inter`
 - **Long stress:** `stress` (AI vs AI, random loadouts every 6 s, `BF_STRESS_SECONDS`, `BF_WORLD`),
   `stress_sandbox` (continuous fire with random loadouts); both print frame percentiles and the worst spikes.
 
 Writing a scenario: add a case, queue actions with `_at(seconds, kind, arg)`; kinds are `shot` (save PNG),
 `call` (run a lambda, e.g. `_main._on_sandbox_requested()` or `root.get_node("UserSettings").set_value(...)`),
-`mouse` (move pointer in viewport coordinates), `action` (press+release an input action), `press`/`release`
-(hold an input action), `quit`. Helpers: `_stress_game()` (the running Game node), `_equip([ids])`,
+`mouse` (move pointer in viewport coordinates), `action` (pushes a real press+release event, needed for
+anything handled in `_input`/`_unhandled_input` such as pause), `press`/`release` (hold an input action;
+only polled input sees it), `quit`. Helpers: `_stress_game()` (the running Game node), `_equip([ids])`,
 `_freeze_camera(at, zoom)` (hides players and HUD), `_freeze_camera_keep_players`, `_place_p1(pos)`,
 `_weather()` (Mars weather, `skip_to_storm(...)`), `_lo_mouse_to_tile(id, offset)` / `_lo_press(down)`
 (real drag & drop in the loadout).
@@ -153,6 +157,14 @@ They are heuristics: check dynamic loads (`"%s.wav" % key`, colour ids, research
 - `print` inside a measured window shows up as 20-40 ms spikes; collect and print at the end.
 - VRAM (BC7) compression of the big painted backgrounds saved no VRAM on the dev iGPU and grew the pack by
   4.5 MB; they stay lossless.
+- Never keep `WORK_DIR` in `%TEMP%`: the mirror's files carry the sources' old timestamps, and Windows'
+  Storage Sense deleted a third of them mid-session, which showed up as "GDExtension not found" and
+  "Could not parse global class" in every run.
+- Input actions pressed with `Input.action_press` never reach `_unhandled_input`; scenarios that open menus
+  (pause) need the `action` kind, which pushes a real `InputEventAction` into the viewport.
+- Bots: `LevelNavigation` validates each jump at one sideways speed (`vx` on the edge) and the bot steers
+  to it in the air; at full speed jumps up and sideways bumped into the ledge they were meant to land on.
+  `bot_watch` (positions, goals, score every 1.5 s) and `bot_spawn_look` (screenshots) show such loops.
 
 ## Reference numbers
 

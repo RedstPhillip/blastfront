@@ -1,6 +1,8 @@
 extends Node
 class_name SyncModule
 
+## Base for one part of the online sync (players, projectiles, combat, blocks, world).
+
 var game_sync = null
 var game = null
 

@@ -1,6 +1,9 @@
 class_name GameSettings
 extends RefCounted
 
+## Game-wide constants: slots, groups, input actions, tuning for players, guns, projectiles, borders and
+## the network protocol.
+
 const PLAYER_ONE_SLOT: int = 1
 const PLAYER_TWO_SLOT: int = 2
 

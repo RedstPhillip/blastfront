@@ -1,5 +1,8 @@
 extends SyncModule
 
+## Online shots: the host spawns authoritative projectiles from shot requests, clients mirror them, and
+## despawns and extension payloads (explosions, grenades, damage over time) follow the host.
+
 const PROJECTILE_SCENE: PackedScene = preload("res://scenes/projectiles/projectile.tscn")
 
 var _next_projectile_id: int = GameSettings.NETWORK_FIRST_PROJECTILE_ID

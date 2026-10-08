@@ -1,5 +1,7 @@
 extends SyncModule
 
+## Sends the local player's position, aim and ammo and feeds the remote player's snapshots.
+
 var _send_timer: float = 0.0
 var _last_sent_by_slot: Dictionary = {}
 var _last_sent_time_by_slot: Dictionary = {}

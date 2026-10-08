@@ -1,6 +1,9 @@
 extends CharacterBody2D
 class_name Projectile
 
+## One round in flight: gravity, wind, drag and the behaviours of its extensions (bounce, drill, hover),
+## hits on players and walls, and the impact feedback. Only the authority applies damage.
+
 signal despawn_requested(projectile: Node, reason: StringName, collider)
 
 @export var muzzle_speed: float = GameSettings.PROJECTILE_MUZZLE_SPEED
@@ -570,8 +573,6 @@ func _is_overlapping_world_obstacle() -> bool:
 	query.collide_with_areas = false
 	query.exclude = [get_rid()]
 	return not get_world_2d().direct_space_state.intersect_shape(query, 1).is_empty()
-
-
 
 
 func _update_drill_visual(delta: float) -> void:

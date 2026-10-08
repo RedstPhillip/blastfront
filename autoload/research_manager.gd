@@ -1,4 +1,7 @@
-﻿extends Node
+extends Node
+
+## Research points and the research tree: definitions, levels per player and the gameplay effects they
+## grant (life steal, last stand, healing, capture bonuses, economy perks).
 
 signal research_changed
 signal research_points_changed(points: int)
@@ -378,7 +381,6 @@ func _requirements_met(definition: Dictionary) -> bool:
 		if get_mark(required_id) < required_mark:
 			return false
 	return true
-
 
 
 func _publish_local_profile() -> void:

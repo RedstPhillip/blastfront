@@ -1,6 +1,9 @@
 extends Node2D
 class_name Game
 
+## The match world: arena, both players, projectiles and camera. Sets the mode up (sandbox, versus bot,
+## online), runs offline rounds and scoring, and hands online state to GameSync.
+
 signal point_awarded(winner_slot: int)
 signal round_intro_started(round_number: int, duration: float)
 signal match_finished(winner_slot: int)
