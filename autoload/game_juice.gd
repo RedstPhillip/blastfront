@@ -255,6 +255,8 @@ func spawn_burst(kind: StringName, world_position: Vector2, direction: Vector2 =
 	var root_node: Node = _effect_root()
 	_place_effect(effect_node, root_node, world_position)
 	effect_node.configure(kind, direction, tint, scale_factor)
+	if TimeFlow.active:
+		effect_node.set(&"time_scale", TimeFlow.scale_at(world_position))
 	root_node.add_child(effect_node)
 
 
@@ -265,6 +267,8 @@ func spawn_muzzle(world_position: Vector2, direction: Vector2, tint: Color = Col
 	var root_node: Node = _effect_root()
 	_place_effect(effect_node, root_node, world_position)
 	effect_node.configure(direction, tint, power)
+	if TimeFlow.active:
+		effect_node.set(&"time_scale", TimeFlow.scale_at(world_position))
 	root_node.add_child(effect_node)
 
 

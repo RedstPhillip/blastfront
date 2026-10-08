@@ -320,6 +320,22 @@ func has_phoenix(player_slot: int = 0) -> bool:
 	return is_unlocked(PHOENIX, player_slot)
 
 
+func get_time_control_mark(player_slot: int = 0) -> int:
+	var mark: int = get_mark(TIME_CONTROL, player_slot)
+	# The sandbox lets the ability be tried without researching it.
+	if mark == 0 and NetworkSession.is_training():
+		return 1
+	return mark
+
+
+## What a cast does at the player's mark: {scale, duration, cooldown}, or {} without the research.
+func get_time_control_profile(player_slot: int = 0) -> Dictionary:
+	var mark: int = get_time_control_mark(player_slot)
+	if mark <= 0:
+		return {}
+	return TIME_CONTROL_MARKS[mini(mark, TIME_CONTROL_MARKS.size()) - 1]
+
+
 # Players are handled untyped in this autoload on purpose: naming the Player class here would compile the
 # whole player (and everything it uses) at start-up, before the menu can appear.
 func apply_local_life_steal(source_slot: int, applied_damage: int) -> int:
@@ -439,7 +455,7 @@ func _build_definitions() -> Dictionary:
 		_definition(RAGE, "Last Stand", BRANCH_MISC, "res://assets/ui/research/rage.svg", [3, 7, 13], Vector2(470, 395), [_require(LIFE_STEAL)], true, 220),
 		_definition(PASSIVE_HEALING, "Field Regeneration", BRANCH_MISC, "res://assets/ui/research/passive_healing.svg", [4, 8, 14], Vector2(670, 395), [_require(RAGE)], true, 230),
 		_definition(PHOENIX, "Phoenix", BRANCH_MISC, "res://assets/ui/research/phoenix.svg", [20], Vector2(870, 395), [_require(PASSIVE_HEALING, 3)], true, 240),
-		_definition(TIME_CONTROL, "Time Control", BRANCH_MISC, "res://assets/ui/research/time_control.svg", [60, 120, 240], Vector2(1030, 395), [], false, 999),
+		_definition(TIME_CONTROL, "Time Control", BRANCH_MISC, "res://assets/ui/research/time_control.svg", [60, 120, 240], Vector2(1030, 395), [], true, 250),
 		_definition(FASTER_CAPTURE, "Faster Capture", BRANCH_MISC, "res://assets/ui/research/faster_capture.svg", [3, 7, 12], Vector2(670, 500), [_require(RAGE)], true, 260),
 		_definition(CAPTURE_BONUS, "Capture Bonus", BRANCH_MISC, "res://assets/ui/research/capture_bonus.svg", [4, 8, 14], Vector2(870, 500), [_require(FASTER_CAPTURE)], true, 270),
 		_definition(CAPTURE_RADIUS, "Capture Radius", BRANCH_MISC, "res://assets/ui/research/capture_radius.svg", [4, 9, 15], Vector2(1070, 500), [_require(CAPTURE_BONUS)], true, 280),
@@ -451,6 +467,13 @@ func _build_definitions() -> Dictionary:
 		entry["levels"] = presentation.get("levels", [])
 		definitions[str(entry["id"])] = entry
 	return definitions
+
+
+## Time Control per mark: how fast the opponent's clock runs, how long (s) and the wait (s) before the next
+## cast. Mk II and III (longer, then a freeze) play like Mk I until they are built.
+const TIME_CONTROL_MARKS: Array[Dictionary] = [
+	{"scale": 0.35, "duration": 3.0, "cooldown": 35.0},
+]
 
 
 ## How each project reads on the research screen: a few words, and what every mark is worth.
@@ -469,7 +492,7 @@ const PRESENTATION: Dictionary = {
 	RAGE: {"summary": "More damage below 20% health", "label": "DAMAGE", "levels": ["+15%", "+30%", "+50%"]},
 	PASSIVE_HEALING: {"summary": "Heal while standing still", "label": "HEALS UP TO", "levels": ["50%", "75%", "100%"]},
 	PHOENIX: {"summary": "Survive one lethal hit per set", "label": "COME BACK WITH", "levels": ["40% HP"]},
-	TIME_CONTROL: {"summary": "Slow time", "label": "", "levels": ["Slow", "Longer", "Freeze"]},
+	TIME_CONTROL: {"summary": "Slow the opponent and their shots", "label": "SLOWS FOR", "levels": ["3 s", "Longer", "Freeze"]},
 	FASTER_CAPTURE: {"summary": "Capture supply drops faster", "label": "CAPTURE TIME", "levels": ["−15%", "−30%", "−45%"]},
 	CAPTURE_BONUS: {"summary": "More RP per supply drop", "label": "RP PER DROP", "levels": ["6", "7", "8"]},
 	CAPTURE_RADIUS: {"summary": "Wider capture ring", "label": "RADIUS", "levels": ["+20", "+42", "+68"]},

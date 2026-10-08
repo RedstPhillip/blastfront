@@ -56,6 +56,7 @@ var jump_pressed: bool = false
 var jump_held: bool = false
 var shoot_pressed: bool = false
 var block_pressed: bool = false
+var time_control_pressed: bool = false
 var aim_position: Vector2 = Vector2.ZERO
 
 var _player: Player = null
@@ -161,11 +162,14 @@ func _physics_process(delta: float) -> void:
 	jump_pressed = false
 	shoot_pressed = false
 	block_pressed = false
+	time_control_pressed = false
 	if _player == null or not is_instance_valid(_player) or _player.is_eliminated() or not _player.movement_enabled:
 		move_direction = 0.0
 		jump_held = false
 		_visible_time = 0.0
 		return
+	# A slowed bot thinks, reacts and aims on its slowed clock too (Time Control).
+	delta *= _player.time_scale
 	_space = _player.get_world_2d().direct_space_state
 	_jump_cooldown = maxf(_jump_cooldown - delta, 0.0)
 	_update_jump_hold(delta)
@@ -662,6 +666,8 @@ func _update_threats(delta: float) -> void:
 		var impact_time: float = _predict_impact_time(projectile, me)
 		if impact_time < 0.0:
 			continue
+		# Predicted in the round's own time; the bot's timers count in its own. Either clock may be slowed.
+		impact_time *= _player.time_scale / maxf(TimeFlow.scale_for(projectile.owner_slot), 0.05)
 		_evaluated_threats[id] = true
 		var block_ready: bool = _player.get_block_cooldown_ratio() >= 0.999 and not _player.is_blocking()
 		if block_ready and randf() < float(_profile["block_chance"]):

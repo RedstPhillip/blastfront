@@ -2,7 +2,7 @@ shader_type canvas_item;
 render_mode unshaded;
 
 // Full-screen post process: shockwave distortion, chromatic aberration, mip-chain bloom,
-// colour grading, vignette, low-health danger tint, flash and film grain.
+// colour grading, vignette, low-health danger tint, slowed-time grade, flash and film grain.
 
 uniform sampler2D screen_tex : hint_screen_texture, filter_linear_mipmap, repeat_disable;
 uniform float intensity = 1.0;
@@ -24,6 +24,13 @@ uniform float flash_amount = 0.0;
 uniform float danger = 0.0;
 uniform float desaturate = 0.0;
 uniform vec4 waves[4];
+// Slowed time (Time Control): strength, where the slowed player is (screen UV), the field radius in
+// screen heights, and 1 when the viewer is the one slowed.
+uniform float chrono = 0.0;
+uniform vec2 chrono_center = vec2(0.5);
+uniform float chrono_radius = 0.2;
+uniform float chrono_self = 0.0;
+uniform vec3 chrono_color : source_color = vec3(0.64, 0.52, 1.0);
 
 float hash(vec2 p) {
 	return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
@@ -75,6 +82,22 @@ void fragment() {
 	float edge = 1.0 - smoothstep(0.75, 0.15, length(vig_uv) * 1.25);
 	float pulse = 0.75 + 0.25 * sin(TIME * 7.0);
 	col = mix(col, vec3(0.62, 0.02, 0.05), clamp(danger * edge * pulse, 0.0, 0.85));
+
+	if (chrono > 0.0) {
+		vec2 cd = SCREEN_UV - chrono_center;
+		cd.x *= aspect;
+		float cdist = length(cd);
+		float field = 1.0 - smoothstep(chrono_radius * 0.55, chrono_radius * 1.5, cdist);
+		float reach = clamp(max(field, chrono_self * 0.85) + 0.22, 0.0, 1.0);
+		float cluma = dot(col, vec3(0.299, 0.587, 0.114));
+		vec3 cold = vec3(cluma) * mix(vec3(1.0), chrono_color * 1.3, 0.7);
+		col = mix(col, cold, chrono * reach * 0.62);
+		// Ripples crawl outwards from the slowed player, fading with distance.
+		float ripple = sin(cdist / max(chrono_radius, 0.01) * 9.0 - TIME * 2.2);
+		ripple = smoothstep(0.82, 1.0, ripple) * (1.0 - smoothstep(chrono_radius * 0.4, chrono_radius * 3.2, cdist));
+		col += chrono_color * ripple * chrono * 0.16;
+		col = mix(col, chrono_color * 0.22, chrono * edge * (0.28 + 0.4 * chrono_self));
+	}
 
 	col = mix(col, flash_color.rgb, clamp(flash_amount, 0.0, 1.0));
 	col += (hash(SCREEN_UV * vec2(1931.0, 1117.0) + fract(TIME) * 17.0) - 0.5) * grain * intensity;

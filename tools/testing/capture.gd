@@ -551,6 +551,8 @@ func _build_script() -> void:
 			_at(0.5, "call", func(): _main.change_scene(_main.get_scene("res://scenes/menus/intermission_menu.tscn")))
 			_at(2.0, "call", func(): _main.get_node("SceneRoot").get_child(-1)._set_page(1))
 			_at(3.0, "shot", "research")
+			_at(3.05, "call", func(): _viewport.find_children("*", "ResearchPage", true, false)[0]._select(&"time_control"))
+			_at(3.15, "shot", "research_time_control")
 			_at(3.2, "call", func(): _main.get_node("SceneRoot").get_child(-1)._set_page(-1))
 			_at(4.2, "shot", "inter_loadout")
 			_at(4.5, "quit")
@@ -645,6 +647,88 @@ func _build_script() -> void:
 			for i in range(10):
 				_at(3.8 + i * 0.1, "shot", "gren_%02d" % i)
 			_at(5.0, "quit")
+		"time_probe":
+			# Time Control Mk I in a bot duel: P2 is driven by the p2 keys so its run speed can be measured, P1
+			# casts with the real key. Measures run and projectile speed before, during and after the slow,
+			# and checks the refusals (round intro, cooldown). Prints TIME_PROBE lines and PASS/FAIL checks.
+			_at(0.1, "call", func(): root.get_node("UserSettings").set_value(&"progress_bot_world", OS.get_environment("BF_WORLD") if OS.has_environment("BF_WORLD") else "verdant"))
+			_at(0.3, "call", func():
+				root.get_node("NetworkSession").start_bot_duel()
+				_main.start_game())
+			_at(1.0, "call", func():
+				root.get_node("ResearchManager")._local_marks["time_control"] = 1
+				var g = _stress_game()
+				var p2 = g.get_player_by_slot(2)
+				p2.configure_local_control(2, &"p2_move_left", &"p2_move_right", &"p2_jump", &"p2_shoot", &"p2_block", false)
+				p2.time_control_action = &"")
+			_at(1.2, "key_down", "p1_time_control")
+			_at(1.3, "key_up", "p1_time_control")
+			_at(1.4, "call", func(): _tp_check("cast refused during intro", not TimeFlow.active and _stress_game().get_player_by_slot(1).get_time_control_cooldown_left() == 0.0))
+			# Baseline (t 4-5), slowed (t 6.2-7), restored (t 9.8-10.6).
+			for phase in [["normal", 4.0], ["slowed", 6.2], ["after", 9.8]]:
+				var tag: String = phase[0]
+				var t0: float = phase[1]
+				_at(t0, "call", func(): _tp_reset_positions())
+				_at(t0 + 0.1, "press", "p2_move_left")
+				_at(t0 + 0.1, "press", "p1_move_right")
+				_at(t0 + 0.1, "call", func():
+					_tp_spawn_round(2, Vector2(-200, -140), tag + "_p2round")
+					_tp_spawn_round(1, Vector2(-200, -200), tag + "_p1round"))
+				_at(t0 + 0.3, "call", func(): _tp_mark(tag))
+				_at(t0 + 0.5, "call", func(): _tp_measure(tag))
+				_at(t0 + 0.55, "release", "p2_move_left")
+				_at(t0 + 0.55, "release", "p1_move_right")
+			_at(5.8, "key_down", "p1_time_control")
+			_at(5.95, "key_up", "p1_time_control")
+			_at(6.05, "call", func():
+				var g = _stress_game()
+				_tp_check("cast went through", TimeFlow.active and g.get_player_by_slot(1).get_time_control_cooldown_left() > 30.0)
+				_tp_check("caster keeps normal time", g.get_player_by_slot(1).time_scale == 1.0))
+			_at(6.12, "shot", "time_0_cast")
+			_at(6.5, "shot", "time_1_slowed")
+			_at(7.4, "shot", "time_2_slowed")
+			_at(7.1, "key_down", "p1_time_control")
+			_at(7.25, "key_up", "p1_time_control")
+			_at(7.35, "call", func():
+				var left: float = _stress_game().get_player_by_slot(1).get_time_control_cooldown_left()
+				_tp_check("recast refused on cooldown (%.1f s left)" % left, left < 34.0 and left > 30.0))
+			_at(8.7, "shot", "time_3_late")
+			_at(9.25, "shot", "time_4_release")
+			_at(9.6, "call", func(): _tp_check("slow wore off", not TimeFlow.active and _stress_game().get_player_by_slot(2).time_scale == 1.0))
+			# The other way round: the opponent casts, the local player is the slowed one (full-screen grade).
+			_at(10.7, "call", func():
+				root.get_node("ResearchManager")._remote_marks_by_player[2] = {"time_control": 1}
+				var g = _stress_game()
+				_tp_check("opponent's cast slows the local player", g.request_time_control(g.get_player_by_slot(2)) and g.get_player_by_slot(1).is_time_slowed()))
+			_at(11.4, "shot", "time_5_self_slowed")
+			_at(11.5, "call", func(): _tp_report())
+			_at(11.6, "quit")
+		"time_sandbox":
+			# Time Control in the sandbox: free to try, slows every dummy, nobody else.
+			_at(0.1, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
+			_at(0.5, "call", func(): _main._on_sandbox_requested())
+			_at(1.0, "mouse", Vector2(900, 400))
+			_at(1.4, "key_down", "p1_time_control")
+			_at(1.55, "key_up", "p1_time_control")
+			_at(1.6, "press", "p1_shoot")
+			_at(1.75, "release", "p1_shoot")
+			_at(1.8, "call", func():
+				var g = _stress_game()
+				var slowed: int = 0
+				var dummies: int = 0
+				for node in g.get_tree().get_nodes_in_group(&"players"):
+					if node.player_slot == 1:
+						_tp_check("sandbox caster keeps normal time", node.time_scale == 1.0)
+					else:
+						dummies += 1
+						if node.time_scale < 1.0:
+							slowed += 1
+				_tp_check("sandbox slows every dummy (%d/%d)" % [slowed, dummies], dummies > 0 and slowed == dummies))
+			_at(1.9, "shot", "time_sandbox_0")
+			_at(2.6, "shot", "time_sandbox_1")
+			_at(5.0, "call", func(): _tp_check("sandbox slow wore off", not TimeFlow.active))
+			_at(5.1, "call", func(): _tp_report())
+			_at(5.2, "quit")
 		"online_ui":
 			_at(0.5, "call", func(): _main._show_locker_room())
 			_at(2.0, "shot", "locker")
@@ -1232,6 +1316,13 @@ func _run(action: Dictionary) -> void:
 			release.action = StringName(action["a"])
 			release.pressed = false
 			_viewport.push_input(release)
+		"key_down", "key_up":
+			# Through the input queue like a real key, so is_action_just_pressed sees it in the next physics
+			# step even when rendering runs frames at a different pace than physics.
+			var key_event: InputEventAction = InputEventAction.new()
+			key_event.action = StringName(action["a"])
+			key_event.pressed = action["k"] == "key_down"
+			Input.parse_input_event(key_event)
 		"press":
 			Input.action_press(StringName(action["a"]))
 		"release":
@@ -1421,6 +1512,83 @@ func _stress_node_added(node: Node) -> void:
 
 
 var _probe_marks: Dictionary = {}
+var _tp_marks: Dictionary = {}
+var _tp_rounds: Dictionary = {}
+var _tp_results: Dictionary = {}
+var _tp_failures: int = 0
+
+
+func _tp_check(label: String, ok: bool) -> void:
+	if not ok:
+		_tp_failures += 1
+	print("TIME_PROBE %s %s" % ["PASS" if ok else "FAIL", label])
+
+
+## Puts both fighters on the flat ground either side of the pit in the arena's middle (Verdant: 125 px of
+## level ground each), so the short measured run stays on the flat.
+func _tp_reset_positions() -> void:
+	var g = _stress_game()
+	g._set_spawn_positions()
+	var middle: float = (g.get_player_by_slot(1).global_position.x + g.get_player_by_slot(2).global_position.x) * 0.5
+	var space: PhysicsDirectSpaceState2D = g.get_world_2d().direct_space_state
+	for slot in [1, 2]:
+		var x: float = middle + (-260.0 if slot == 1 else 260.0)
+		var hit: Dictionary = space.intersect_ray(PhysicsRayQueryParameters2D.create(Vector2(x, 420.0), Vector2(x, 3000.0), 1))
+		var p = g.get_player_by_slot(slot)
+		p.global_position = Vector2(x, float(hit["position"].y) - 40.0) if not hit.is_empty() else p.global_position
+		p.velocity = Vector2.ZERO
+
+
+## A probe round with no collision, flying flat above the arena, so only time changes its speed.
+func _tp_spawn_round(slot: int, offset: Vector2, key: String) -> void:
+	var g = _stress_game()
+	var projectile = g.PROJECTILE_SCENE.instantiate()
+	projectile.configure_from_data(0, slot, Vector2.RIGHT, {"muzzle_speed": 900.0, "gravity": 0.0, "linear_damping": 0.0, "max_distance": 100000.0})
+	projectile.collision_mask = 0
+	projectile.collision_layer = 0
+	g.spawn_projectile(projectile, g.get_player_by_slot(1).global_position + offset)
+	_tp_rounds[key] = projectile
+
+
+func _tp_mark(tag: String) -> void:
+	var g = _stress_game()
+	_tp_marks[tag] = {"t": _time, "p1": g.get_player_by_slot(1).global_position.x, "p2": g.get_player_by_slot(2).global_position.x,
+		"r2": _tp_rounds[tag + "_p2round"].global_position.x, "r1": _tp_rounds[tag + "_p1round"].global_position.x}
+
+
+func _tp_measure(tag: String) -> void:
+	var g = _stress_game()
+	var m: Dictionary = _tp_marks[tag]
+	var dt: float = _time - float(m["t"])
+	var result: Dictionary = {
+		"p1_run": absf(g.get_player_by_slot(1).global_position.x - float(m["p1"])) / dt,
+		"p2_run": absf(g.get_player_by_slot(2).global_position.x - float(m["p2"])) / dt,
+		"p2_round": absf(_tp_rounds[tag + "_p2round"].global_position.x - float(m["r2"])) / dt,
+		"p1_round": absf(_tp_rounds[tag + "_p1round"].global_position.x - float(m["r1"])) / dt,
+		"p2_scale": g.get_player_by_slot(2).time_scale,
+	}
+	_tp_results[tag] = result
+	print("TIME_PROBE %-6s P1 run %.0f px/s | P2 run %.0f px/s | P2 round %.0f px/s | P1 round %.0f px/s | P2 time_scale %.2f" % [tag, result["p1_run"], result["p2_run"], result["p2_round"], result["p1_round"], result["p2_scale"]])
+	for key in [tag + "_p2round", tag + "_p1round"]:
+		if is_instance_valid(_tp_rounds[key]):
+			_tp_rounds[key].queue_free()
+
+
+func _tp_report() -> void:
+	if _tp_results.has("normal") and _tp_results.has("slowed"):
+		var normal: Dictionary = _tp_results["normal"]
+		var slowed: Dictionary = _tp_results["slowed"]
+		var run_ratio: float = float(slowed["p2_run"]) / maxf(float(normal["p2_run"]), 1.0)
+		var round_ratio: float = float(slowed["p2_round"]) / maxf(float(normal["p2_round"]), 1.0)
+		print("TIME_PROBE ratio slowed/normal: P2 run %.2f, P2 round %.2f, P1 run %.2f, P1 round %.2f" % [run_ratio, round_ratio,
+			float(slowed["p1_run"]) / maxf(float(normal["p1_run"]), 1.0), float(slowed["p1_round"]) / maxf(float(normal["p1_round"]), 1.0)])
+		_tp_check("slowed player runs at ~35%", absf(run_ratio - 0.35) < 0.06)
+		_tp_check("slowed player's rounds fly at ~35%", absf(round_ratio - 0.35) < 0.03)
+		_tp_check("caster runs at full speed", absf(float(slowed["p1_run"]) - float(normal["p1_run"])) < 8.0)
+		_tp_check("caster's rounds fly at full speed", absf(float(slowed["p1_round"]) - float(normal["p1_round"])) < 5.0)
+	if _tp_results.has("after") and _tp_results.has("normal"):
+		_tp_check("speed back to normal after", absf(float(_tp_results["after"]["p2_run"]) - float(_tp_results["normal"]["p2_run"])) < 8.0)
+	print("TIME_PROBE done, %d failure(s)" % _tp_failures)
 
 
 func _weather() -> Node:

@@ -2,7 +2,8 @@ class_name ScreenFx
 extends CanvasLayer
 
 ## Drives the full-screen post-process shader: flashes, aberration pulses, shockwaves,
-## low-health danger tint and dramatic desaturation. Intensity follows the player's setting.
+## low-health danger tint, dramatic desaturation and the slowed-time grade. Intensity follows the player's
+## setting.
 
 const MAX_WAVES: int = 4
 const DANGER_HEALTH_RATIO: float = 0.3
@@ -19,6 +20,8 @@ var _desaturate_target: float = 0.0
 var _danger: float = 0.0
 var _waves: Array[Dictionary] = []
 var _heartbeat_timer: float = 0.0
+var _chrono: float = 0.0
+var _chrono_self: float = 0.0
 
 
 func _ready() -> void:
@@ -73,6 +76,36 @@ func _process(delta: float) -> void:
 	_material.set_shader_parameter(&"desaturate", _desaturate)
 	_material.set_shader_parameter(&"danger", _danger)
 	_update_waves(real_delta, viewport_size)
+	_update_chrono(real_delta, viewport_size)
+
+
+## Slowed time (Time Control): a cold grade gathered around the slowed player, with slow ripples running
+## out of them; the player who is slowed gets it over the whole screen.
+func _update_chrono(delta: float, viewport_size: Vector2) -> void:
+	var flow: Dictionary = TimeFlow.strongest()
+	var target: float = 0.0
+	var self_target: float = _chrono_self
+	if not flow.is_empty():
+		target = TimeFlow.strength_of(float(flow["scale"]))
+		self_target = 1.0 if int(flow["slot"]) == _local_slot() else 0.0
+		var canvas: Transform2D = get_viewport().get_canvas_transform()
+		var screen_position: Vector2 = canvas * (flow["position"] as Vector2)
+		_material.set_shader_parameter(&"chrono_center", screen_position / viewport_size)
+		_material.set_shader_parameter(&"chrono_radius", TimeFlow.FIELD_RADIUS * canvas.get_scale().y / maxf(viewport_size.y, 1.0))
+	if target == _chrono and self_target == _chrono_self:
+		return
+	_chrono = move_toward(_chrono, target, delta * 4.0)
+	_chrono_self = move_toward(_chrono_self, self_target, delta * 4.0)
+	_material.set_shader_parameter(&"chrono", _chrono)
+	_material.set_shader_parameter(&"chrono_self", _chrono_self)
+
+
+func _local_slot() -> int:
+	var world: Node = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)
+	if world == null or not world.has_method(&"get_local_player"):
+		return 0
+	var player: Player = world.get_local_player()
+	return player.player_slot if player != null and is_instance_valid(player) else 0
 
 
 func _update_waves(delta: float, viewport_size: Vector2) -> void:

@@ -29,6 +29,9 @@ static var _pool_host: Node2D = null
 static var _idle_by_key: Dictionary = {}
 static var _idle_count: int = 0
 static var _pooled_count: int = 0
+## Clock of the effect being built right now: an effect spawned near a player in slowed time (Time Control)
+## sets it around its build, so its emitters and flash tweens play at that speed.
+static var spawn_time_scale: float = 1.0
 
 
 static func additive_material() -> CanvasItemMaterial:
@@ -119,6 +122,7 @@ static func emit(parent: Node, params: Dictionary) -> CPUParticles2D:
 	else:
 		particles.z_index = int(params.get("z", 0))
 		particles.position = params.get("offset", Vector2.ZERO)
+		particles.speed_scale = spawn_time_scale
 		parent.add_child(particles)
 		particles.emitting = true
 	return particles
@@ -133,6 +137,7 @@ static func _place_pooled(particles: CPUParticles2D, parent_2d: Node2D, params: 
 	particles.global_transform = parent_2d.global_transform.translated_local(params.get("offset", Vector2.ZERO)) * Transform2D(direction.angle(), Vector2.ZERO)
 	particles.z_as_relative = false
 	particles.z_index = clampi(_absolute_z(parent_2d) + int(params.get("z", 0)), RenderingServer.CANVAS_ITEM_Z_MIN, RenderingServer.CANVAS_ITEM_Z_MAX)
+	particles.speed_scale = spawn_time_scale
 	particles.restart()
 
 
@@ -220,7 +225,7 @@ static func glow_flash(parent: Node, color: Color, size: float, duration: float,
 	var base_scale: float = size / float(TEX_GLOW.get_width())
 	sprite.scale = Vector2.ONE * base_scale * 0.6
 	parent.add_child(sprite)
-	var tween: Tween = sprite.create_tween().set_parallel(true)
+	var tween: Tween = sprite.create_tween().set_parallel(true).set_speed_scale(spawn_time_scale)
 	tween.tween_property(sprite, "scale", Vector2.ONE * base_scale, duration * 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.tween_property(sprite, "modulate:a", 0.0, duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.chain().tween_callback(sprite.queue_free)
@@ -238,7 +243,7 @@ static func ring(parent: Node, color: Color, start_size: float, end_size: float,
 	var texture_size: float = float(TEX_RING.get_width())
 	sprite.scale = Vector2.ONE * (start_size / texture_size)
 	parent.add_child(sprite)
-	var tween: Tween = sprite.create_tween().set_parallel(true)
+	var tween: Tween = sprite.create_tween().set_parallel(true).set_speed_scale(spawn_time_scale)
 	tween.tween_property(sprite, "scale", Vector2.ONE * (end_size / texture_size), duration).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
 	tween.tween_property(sprite, "modulate:a", 0.0, duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tween.chain().tween_callback(sprite.queue_free)
@@ -257,7 +262,7 @@ static func light_flash(parent: Node, color: Color, energy: float, radius: float
 	light.range_item_cull_mask = FLASH_LIGHT_MASK
 	light.shadow_enabled = false
 	parent.add_child(light)
-	var tween: Tween = light.create_tween()
+	var tween: Tween = light.create_tween().set_speed_scale(spawn_time_scale)
 	tween.tween_property(light, "energy", 0.0, duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.tween_callback(light.queue_free)
 	return light

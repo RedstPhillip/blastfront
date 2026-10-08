@@ -204,6 +204,8 @@ func _reset_ammo() -> void:
 func _physics_process(delta: float) -> void:
 	if _player == null:
 		return
+	# Fire rate, reload and recoil run on the owner's clock (Time Control).
+	delta *= _player.time_scale
 	if _extension_player_slot != int(_player.player_slot):
 		_refresh_extension_loadout()
 

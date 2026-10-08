@@ -17,6 +17,7 @@ const CONTROL_ROWS: Array[Array] = [
 	["Shoot", "LMB", "RT / RB"],
 	["Block", "RMB", "LT / LB"],
 	["Reload", "R", "X"],
+	["Time Control", "Q", "Y"],
 	["Orders", "TAB", "BACK"],
 	["Pause", "ESC", "START"],
 ]
@@ -243,7 +244,7 @@ func _build_controls_tab() -> void:
 		heads.add_child(head)
 	for entry in CONTROL_ROWS:
 		var row: HBoxContainer = _row(page, str(entry[0]))
-		row.custom_minimum_size.y = 30.0
+		row.custom_minimum_size.y = 28.0
 		row.add_child(_key_chip(str(entry[1])))
 		row.add_child(_key_chip(str(entry[2])))
 

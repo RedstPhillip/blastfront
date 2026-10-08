@@ -1,11 +1,14 @@
 extends Node
 class_name StateMachine
 
-## Runs the active movement State of a player and switches between them.
+## Runs the active movement State of a player and switches between them. States get the delta of the
+## player's own clock (Time Control slows it).
 
 @export var initial_state: State
 var current_state: State
 var states: Dictionary = {}
+
+@onready var _player: Player = get_parent() as Player
 
 
 func _ready() -> void:
@@ -32,12 +35,16 @@ func change_state(new_state: String) -> void:
 
 func _physics_process(delta: float) -> void:
 	if current_state:
-		current_state.physics_update(delta)
+		current_state.physics_update(delta * _time_scale())
 
 
 func _process(delta: float) -> void:
 	if current_state:
-		current_state.update(delta)
+		current_state.update(delta * _time_scale())
+
+
+func _time_scale() -> float:
+	return _player.time_scale if _player != null else 1.0
 
 
 func _input(event: InputEvent) -> void:

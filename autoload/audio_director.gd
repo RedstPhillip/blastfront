@@ -292,6 +292,22 @@ const EVENTS: Dictionary = {
 	&"match_defeat": {"bus": &"UI", "voices": 1, "layers": [
 		{"files": ["stinger:match_defeat"], "volume": -3.0, "pitch": Vector2(1.0, 1.0)},
 	]},
+	&"time_cast": {"bus": &"SFX", "voices": 1, "layers": [
+		{"files": ["teleport_1"], "volume": -4.0, "pitch": Vector2(0.62, 0.66)},
+		{"files": ["powerup_0"], "volume": -9.0, "pitch": Vector2(0.7, 0.74)},
+	]},
+	&"time_slow_start": {"bus": &"SFX", "voices": 1, "layers": [
+		{"files": ["boom_low_0", "boom_low_1"], "volume": -5.0, "pitch": Vector2(0.55, 0.6)},
+		{"files": ["shield_4"], "volume": -8.0, "pitch": Vector2(0.45, 0.5)},
+		{"files": ["teleport_0"], "volume": -9.0, "pitch": Vector2(0.5, 0.55)},
+	]},
+	&"time_slow_end": {"bus": &"SFX", "voices": 1, "layers": [
+		{"files": ["teleport_0"], "volume": -7.0, "pitch": Vector2(1.25, 1.35)},
+		{"files": ["shield_2"], "volume": -12.0, "pitch": Vector2(1.3, 1.4)},
+	]},
+	&"time_denied": {"bus": &"UI", "voices": 1, "cooldown": 0.25, "layers": [
+		{"files": ["ui:error"], "volume": -10.0, "pitch": Vector2(0.8, 0.85)},
+	]},
 	&"bullet_whiz": {"bus": &"SFX", "voices": 2, "cooldown": 0.08, "layers": [
 		{"files": ["shield_1", "shield_3"], "volume": -18.0, "pitch": Vector2(2.4, 2.9)},
 	]},
@@ -360,6 +376,9 @@ func play_at(event_id: StringName, world_position: Vector2, volume_offset_db: fl
 	if definition.get("bus", &"SFX") == &"UI":
 		play(event_id, volume_offset_db, pitch_multiplier)
 		return
+	if TimeFlow.active:
+		# Sounds from inside slowed time drop in pitch with it (Time Control).
+		pitch_multiplier *= lerpf(0.7, 1.0, TimeFlow.scale_at(world_position))
 	for layer in definition["layers"]:
 		var stream: AudioStream = _pick_stream(layer)
 		if stream == null:

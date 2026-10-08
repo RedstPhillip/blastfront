@@ -50,6 +50,7 @@ func _enter_tree() -> void:
 
 func _ready() -> void:
 	add_to_group(GameSettings.GAME_WORLD_GROUP)
+	TimeFlow.reset()
 
 	if NetworkSession.is_steam_match_active():
 		OnlineMatch.phase_changed.connect(_on_online_phase_changed)
@@ -95,6 +96,7 @@ func _ready() -> void:
 func _exit_tree() -> void:
 	GameJuice.clear_camera(_camera)
 	ImpactDecals.clear_all()
+	TimeFlow.reset()
 	if OnlineMatch.phase_changed.is_connected(_on_online_phase_changed):
 		OnlineMatch.phase_changed.disconnect(_on_online_phase_changed)
 	if OnlineMatch.state_changed.is_connected(_on_online_state_changed):
@@ -258,6 +260,33 @@ func request_block_state(owner: Node, active: bool, direction: Vector2, cooldown
 		return
 
 	_game_sync.request_block_state(owner_slot, active, direction, cooldown_ratio)
+
+
+## Casts the caster's Time Control: every other fighter (and every round they fire) runs slow for a few
+## seconds. Refused during the round intro, between rounds, while the caster is slowed or recharging.
+## Offline only for now: an online cast would have to go through the host.
+func request_time_control(caster: Player) -> bool:
+	if caster == null or NetworkSession.is_steam_match_active():
+		return false
+	if _round_intro_running or _offline_match_over:
+		return false
+	if NetworkSession.uses_set_flow() and not OnlineMatch.is_playing_set():
+		return false
+	if not caster.can_cast_time_control():
+		return false
+	var profile: Dictionary = ResearchManager.get_time_control_profile(caster.player_slot)
+	var targets: Array[Player] = []
+	for node in get_tree().get_nodes_in_group(GameSettings.PLAYERS_GROUP):
+		var other: Player = node as Player
+		if other != null and other != caster and other.player_slot != caster.player_slot and not other.is_eliminated():
+			targets.append(other)
+	if targets.is_empty():
+		return false
+	var duration: float = float(profile["duration"])
+	caster.begin_time_control_cooldown(float(profile["cooldown"]), duration)
+	for target in targets:
+		target.apply_time_slow(float(profile["scale"]), duration)
+	return true
 
 
 func build_authoritative_shot(owner_slot: int) -> Dictionary:

@@ -13,7 +13,7 @@ func physics_update(delta: float) -> void:
 		state_machine.change_state("JumpState")
 		return
 
-	player.move_and_slide()
+	player.move_and_slide_scaled()
 	player.update_visual_movement(delta)
 
 	if player.is_on_wall() and direction != 0:

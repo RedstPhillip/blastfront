@@ -3,8 +3,8 @@ extends Control
 
 ## A player's status in a bottom corner, kept slim so the arena stays visible: the portrait with live eyes
 ## inside a thin ring that charges with the block (white while blocking), name and health, a segmented
-## health bar with a delayed damage trail, status effects, and for the opponent a reload tag (your own
-## ammo lives at the crosshair). No panel: a soft shadow keeps it legible, and the whole strip steps back
+## health bar with a delayed damage trail, status effects, the Time Control dial for whoever has it, and for
+## the opponent a reload tag (your own ammo lives at the crosshair). No panel: a soft shadow keeps it legible, and the whole strip steps back
 ## whenever a player passes behind it.
 ## Every layer only redraws when its state changes; pulses and shakes run on modulate/position.
 
@@ -19,6 +19,7 @@ const STATUS_Y: float = 42.0
 const HEALTH_SEGMENT: int = 25
 const LOW_HEALTH_RATIO: float = 0.3
 const RING_STEPS: float = 48.0
+const TIME_DIAL_STEPS: float = 24.0
 const OCCLUDED_ALPHA: float = 0.3
 const DOT_TEXTURE: Texture2D = preload("res://assets/fx/dot.png")
 const BODY_TEXTURE_PATH: String = "res://assets/player/body/%s.png"
@@ -47,6 +48,9 @@ var _ability_ready: bool = false
 var _ready_pop: float = 0.0
 var _reload_signature: String = ""
 var _status_signature: String = ""
+var _time_signature: String = ""
+var _time_pop: float = 0.0
+var _time_chip_width: float = 0.0
 var _portrait: Texture2D = null
 var _portrait_color: StringName = &""
 var _hp_tween: Tween = null
@@ -59,6 +63,7 @@ var _ring: Control = null
 var _bar: Control = null
 var _bar_flash: Control = null
 var _status: Control = null
+var _time_chip: Control = null
 var _name_label: Label = null
 var _tag_label: Label = null
 var _hp_label: Label = null
@@ -99,6 +104,7 @@ func _build() -> void:
 	_bar_flash = _layer(_shake_root, _draw_bar_flash)
 	_bar_flash.modulate.a = 0.0
 	_status = _layer(_shake_root, _draw_status)
+	_time_chip = _layer(_shake_root, _draw_time_chip)
 	_name_label = _label(UiStyle.FONT_BOLD, 14, UiStyle.TEXT, 4)
 	_tag_label = _label(UiStyle.FONT_BOLD, 10, UiStyle.TEXT_DIM, 3)
 	_hp_label = _label(UiStyle.FONT_DISPLAY, 22, UiStyle.TEXT, 5)
@@ -150,7 +156,7 @@ func _refresh_labels() -> void:
 
 
 func _redraw_all() -> void:
-	for layer in [_shadow, _portrait_node, _ring, _bar, _bar_flash, _status]:
+	for layer in [_shadow, _portrait_node, _ring, _bar, _bar_flash, _status, _time_chip]:
 		layer.queue_redraw()
 
 
@@ -171,6 +177,7 @@ func _process(delta: float) -> void:
 	_update_ring(delta)
 	_update_reload()
 	_update_status()
+	_update_time_chip(delta)
 	_update_blink(delta)
 	_update_feedback(delta)
 	_update_occlusion(delta)
@@ -262,12 +269,44 @@ func _update_reload() -> void:
 
 
 func _update_status() -> void:
-	var signature: String = ""
-	if _player.status_effect_manager != null and _player.status_effect_manager.get_active_count() > 0:
-		signature = ",".join(_player.status_effect_manager.get_active_effect_names())
+	var signature: String = ",".join(_status_names())
 	if signature != _status_signature:
 		_status_signature = signature
 		_status.queue_redraw()
+
+
+func _status_names() -> Array[StringName]:
+	var names: Array[StringName] = []
+	if _player.is_time_slowed():
+		names.append(&"slowed")
+	if _player.status_effect_manager != null and _player.status_effect_manager.get_active_count() > 0:
+		names.append_array(_player.status_effect_manager.get_active_effect_names())
+	return names
+
+
+## Time Control: the dial charges back after a cast, turns amber when ready and drains while the cast holds
+## the opponent slowed. Shown on both cards, so you can see when theirs is up too.
+func _update_time_chip(delta: float) -> void:
+	var signature: String = ""
+	if _player.has_time_control():
+		var active: float = _player.get_time_control_active_ratio()
+		var charge: float = _player.get_time_control_charge()
+		if active > 0.0:
+			signature = "active:%d" % int(ceil(active * TIME_DIAL_STEPS))
+		elif charge >= 1.0:
+			signature = "ready:%s" % InputDevice.prompt(GameSettings.INPUT_P1_TIME_CONTROL)
+		else:
+			signature = "charge:%d:%d" % [int(charge * TIME_DIAL_STEPS), int(ceil(_player.get_time_control_cooldown_left()))]
+	if signature != _time_signature:
+		if signature.begins_with("ready") and _time_signature.begins_with("charge"):
+			_time_pop = 1.0
+		_time_signature = signature
+		_time_chip_width = float(_time_chip_layout()["width"])
+		_time_chip.queue_redraw()
+		_status.queue_redraw()
+	if _time_pop > 0.0:
+		_time_pop = maxf(_time_pop - delta * 2.5, 0.0)
+		_time_chip.queue_redraw()
 
 
 func _update_blink(delta: float) -> void:
@@ -380,9 +419,11 @@ func _draw_status(layer: Control) -> void:
 		return
 	var x_offset: float = 0.0
 	if _status_signature != "":
-		for effect_name in _player.status_effect_manager.get_active_effect_names():
+		for effect_name in _status_names():
 			var chip_color: Color = UiStyle.TEXT_DIM
 			match effect_name:
+				&"slowed":
+					chip_color = TimeFlow.COLOR.lightened(0.2)
 				&"freeze":
 					chip_color = Color(0.55, 0.88, 1.0)
 				&"shock":
@@ -400,9 +441,70 @@ func _draw_status(layer: Control) -> void:
 		var label: String = "RELOADING" if _reload_signature == "reload" else "EMPTY"
 		var color: Color = UiStyle.ACCENT if _reload_signature == "reload" else UiStyle.DANGER
 		var width: float = UiStyle.FONT_BOLD.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
-		var x: float = _mx(CARD_SIZE.x - width, width)
+		var end_gap: float = _time_chip_width + 12.0 if _time_signature != "" else 0.0
+		var x: float = _mx(CARD_SIZE.x - end_gap - width, width)
 		layer.draw_string_outline(UiStyle.FONT_BOLD, Vector2(x, STATUS_Y + 8.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, 3, Color(0, 0, 0, 0.7))
 		layer.draw_string(UiStyle.FONT_BOLD, Vector2(x, STATUS_Y + 8.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, color)
+
+
+## Pieces of the Time Control chip for the current signature: dial, label, seconds left or the key to press.
+func _time_chip_layout() -> Dictionary:
+	if _time_signature == "":
+		return {"width": 0.0}
+	var parts: PackedStringArray = _time_signature.split(":")
+	var state: String = parts[0]
+	var font: Font = UiStyle.FONT_BOLD
+	var seconds: String = parts[2] if state == "charge" else ""
+	var key: String = parts[1] if state == "ready" and _local else ""
+	var label_width: float = font.get_string_size("TIME", HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
+	var seconds_width: float = font.get_string_size(seconds, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x if seconds != "" else 0.0
+	var key_width: float = maxf(font.get_string_size(key, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x + 10.0, 13.0) if key != "" else 0.0
+	var width: float = 17.0 + label_width + (5.0 + seconds_width if seconds != "" else 0.0) + (6.0 + key_width if key != "" else 0.0)
+	return {"parts": parts, "state": state, "seconds": seconds, "key": key, "label_width": label_width, "width": width}
+
+
+func _draw_time_chip(layer: Control) -> void:
+	if _player == null or _time_signature == "":
+		return
+	var chip: Dictionary = _time_chip_layout()
+	var parts: PackedStringArray = chip["parts"]
+	var state: String = chip["state"]
+	var seconds: String = chip["seconds"]
+	var key: String = chip["key"]
+	var label: String = "TIME"
+	var label_width: float = chip["label_width"]
+	var font: Font = UiStyle.FONT_BOLD
+	var width: float = chip["width"]
+	var x: float = _mx(CARD_SIZE.x - width, width)
+	var center: Vector2 = Vector2(x + 6.0, STATUS_Y + 4.0)
+	var ratio: float = 1.0
+	var dial_color: Color = UiStyle.ACCENT
+	var label_color: Color = UiStyle.ACCENT
+	if state == "active":
+		ratio = float(parts[1]) / TIME_DIAL_STEPS
+		dial_color = TimeFlow.COLOR
+		label_color = TimeFlow.COLOR.lightened(0.2)
+	elif state == "charge":
+		ratio = float(parts[1]) / TIME_DIAL_STEPS
+		dial_color = LoadoutStyle.with_alpha(TimeFlow.COLOR, 0.65)
+		label_color = UiStyle.TEXT_DIM
+	layer.draw_circle(center, 7.0, Color(0.0, 0.0, 0.0, 0.55), true, -1.0, true)
+	if ratio > 0.0:
+		layer.draw_arc(center, 4.2, -PI * 0.5, -PI * 0.5 + TAU * ratio, maxi(int(24.0 * ratio), 3), dial_color, 3.4, true)
+	layer.draw_line(center, center + Vector2(0.0, -4.6).rotated(TAU * ratio), Color(1.0, 1.0, 1.0, 0.85), 1.2, true)
+	if _time_pop > 0.0:
+		layer.draw_arc(center, 8.0 + (1.0 - _time_pop) * 7.0, 0.0, TAU, 32, LoadoutStyle.with_alpha(UiStyle.ACCENT, _time_pop * 0.8), 1.5, true)
+	var text_x: float = x + 17.0
+	var baseline: float = STATUS_Y + 8.0
+	layer.draw_string_outline(font, Vector2(text_x, baseline), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, 3, Color(0, 0, 0, 0.7))
+	layer.draw_string(font, Vector2(text_x, baseline), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, label_color)
+	text_x += label_width
+	if seconds != "":
+		text_x += 5.0
+		layer.draw_string_outline(font, Vector2(text_x, baseline), seconds, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, 3, Color(0, 0, 0, 0.7))
+		layer.draw_string(font, Vector2(text_x, baseline), seconds, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, UiStyle.TEXT_MUTED)
+	if key != "":
+		LoadoutStyle.draw_key_chip(layer, Vector2(text_x + 6.0, STATUS_Y - 2.5), key, 13.0, UiStyle.TEXT)
 
 
 # --- Helpers ---------------------------------------------------------------------------------------

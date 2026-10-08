@@ -67,6 +67,10 @@ func _rebuild() -> void:
 	]
 	if gamepad:
 		entries.insert(1, ["R STICK", "AIM"])
+	var world: Node = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)
+	var local_player: Player = world.get_local_player() if world != null and world.has_method(&"get_local_player") else null
+	if local_player != null and local_player.has_time_control():
+		entries.append([InputDevice.prompt(GameSettings.INPUT_P1_TIME_CONTROL), "TIME"])
 	for entry in entries:
 		_row.add_child(_chip(str(entry[0]), str(entry[1])))
 	_row.reset_size()

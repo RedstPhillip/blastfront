@@ -5,6 +5,8 @@ extends Node2D
 var _direction: Vector2 = Vector2.LEFT
 var _tint: Color = Color(1.0, 0.82, 0.38, 1.0)
 var _power: float = 1.0
+## Clock the flash plays on: below 1 when the shooter is in slowed time (set by GameJuice).
+var time_scale: float = 1.0
 
 
 func configure(direction: Vector2, tint: Color = Color(1.0, 0.82, 0.38, 1.0), power: float = 1.0) -> void:
@@ -22,7 +24,8 @@ func _ready() -> void:
 	add_child(flash)
 	add_child(core)
 	flash.scale = Vector2(0.6, 0.8)
-	var tween: Tween = create_tween().set_parallel(true)
+	FxLib.spawn_time_scale = time_scale
+	var tween: Tween = create_tween().set_parallel(true).set_speed_scale(time_scale)
 	tween.tween_property(flash, "scale", Vector2(1.2, 1.1), 0.05).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.tween_property(flash, "modulate:a", 0.0, 0.07).set_delay(0.015)
 	tween.tween_property(core, "modulate:a", 0.0, 0.05)
@@ -35,7 +38,8 @@ func _ready() -> void:
 	FxLib.emit(self, {"texture": FxLib.TEX_SMOKE, "amount": 4, "lifetime": 0.75, "direction": Vector2.RIGHT, "spread": 22.0,
 		"speed": Vector2(30.0, 90.0), "gravity": Vector2(0, -45), "size": Vector2(0.12, 0.22) * _power, "curve": &"puff",
 		"color": Color(0.72, 0.72, 0.68, 0.45), "fade": &"smoke", "damping": Vector2(60, 110), "spin": Vector2(-40, 40)})
-	get_tree().create_timer(1.1, false).timeout.connect(queue_free)
+	FxLib.spawn_time_scale = 1.0
+	get_tree().create_timer(1.1 / maxf(time_scale, 0.05), false).timeout.connect(queue_free)
 
 
 func _make_flash_polygon(length: float, width: float, color: Color) -> Polygon2D:

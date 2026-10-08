@@ -8,7 +8,7 @@ func physics_update(delta: float) -> void:
 		state_machine.change_state("JumpState")
 		return
 
-	player.move_and_slide()
+	player.move_and_slide_scaled()
 	player.maintain_hover_height(delta)
 	player.update_visual_movement(delta)
 

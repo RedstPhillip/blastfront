@@ -12,6 +12,8 @@ var _direction: Vector2 = Vector2.UP
 var _tint: Color = Color.WHITE
 var _power: float = 1.0
 var _life: float = 0.5
+## Clock the effect plays on: below 1 when it spawned near a player in slowed time (set by GameJuice).
+var time_scale: float = 1.0
 
 
 func configure(kind: StringName, direction: Vector2, tint: Color = Color.WHITE, power: float = 1.0) -> void:
@@ -22,8 +24,10 @@ func configure(kind: StringName, direction: Vector2, tint: Color = Color.WHITE, 
 
 
 func _ready() -> void:
+	FxLib.spawn_time_scale = time_scale
 	_build()
-	var timer: SceneTreeTimer = get_tree().create_timer(_life + 0.35, false)
+	FxLib.spawn_time_scale = 1.0
+	var timer: SceneTreeTimer = get_tree().create_timer(_life / maxf(time_scale, 0.05) + 0.35, false)
 	timer.timeout.connect(queue_free)
 
 
@@ -117,6 +121,30 @@ func _build() -> void:
 			FxLib.ring(self, Color(_tint, 0.75), 8.0, 120.0, 0.35)
 			FxLib.glow_flash(self, Color(_tint, 0.6), 140.0, 0.3)
 			_track(0.4)
+		&"time_cast":
+			_emit({"texture": FxLib.TEX_SPARK, "amount": 18, "lifetime": 0.5, "direction": Vector2.UP, "spread": 180.0,
+				"speed": Vector2(160.0, 360.0), "gravity": Vector2.ZERO, "size": Vector2(0.25, 0.5), "align": true,
+				"color": Color(_tint, 1.0), "additive": true, "damping": Vector2(300, 500)})
+			FxLib.ring(self, Color(_tint, 0.9), 20.0, 180.0, 0.45)
+			FxLib.glow_flash(self, Color(_tint, 0.8), 160.0, 0.35)
+			FxLib.light_flash(self, _tint, 1.6, 220.0, 0.45)
+			_track(0.6)
+		&"time_slow":
+			# Rings close in on the slowed player and motes hang in the air around them.
+			FxLib.ring(self, Color(_tint, 0.95), 280.0, 60.0, 0.55)
+			FxLib.ring(self, Color(1.0, 1.0, 1.0, 0.5), 200.0, 46.0, 0.4)
+			_emit({"texture": FxLib.TEX_DOT, "amount": 16, "lifetime": 1.4, "direction": Vector2.UP, "spread": 180.0,
+				"speed": Vector2(10.0, 40.0), "gravity": Vector2(0, -8), "size": Vector2(0.08, 0.16), "curve": &"pop",
+				"color": Color(_tint.lightened(0.4), 0.9), "additive": true, "radius": 60.0, "damping": Vector2(5, 15)})
+			FxLib.glow_flash(self, Color(_tint, 0.7), 220.0, 0.6)
+			FxLib.light_flash(self, _tint, 1.8, 260.0, 0.6)
+			_track(1.5)
+		&"time_release":
+			FxLib.ring(self, Color(_tint, 0.7), 50.0, 240.0, 0.4)
+			_emit({"texture": FxLib.TEX_SPARK, "amount": 12, "lifetime": 0.3, "direction": Vector2.UP, "spread": 180.0,
+				"speed": Vector2(200.0, 420.0), "gravity": Vector2.ZERO, "size": Vector2(0.2, 0.4), "align": true,
+				"color": Color(_tint.lightened(0.3), 1.0), "additive": true, "damping": Vector2(200, 400)})
+			_track(0.5)
 		_:
 			_emit({"amount": 10, "lifetime": 0.35, "direction": _direction, "spread": 60.0, "speed": Vector2(60.0, 150.0),
 				"size": Vector2(0.2, 0.4), "color": _tint})
@@ -233,7 +261,7 @@ func _spawn_light_column(color: Color) -> void:
 	beam.position = Vector2(0, -90)
 	beam.z_index = 1
 	add_child(beam)
-	var tween: Tween = beam.create_tween().set_parallel(true)
+	var tween: Tween = beam.create_tween().set_parallel(true).set_speed_scale(time_scale)
 	tween.tween_property(beam, "scale:x", 0.02, 0.5).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN)
 	tween.tween_property(beam, "modulate:a", 0.0, 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 

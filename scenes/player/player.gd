@@ -16,6 +16,8 @@ const HEALING_AREA_RING_COLOR: Color = Color(0.0, 0.78, 0.22, 0.96)
 ## Share of the wind speed that turns into drift on the ground and in the air (Mars storms).
 const WIND_GROUND_SHARE: float = 0.3
 const WIND_AIR_SHARE: float = 0.62
+## Seconds a Time Control slow takes to settle in and to wear off, so the change reads instead of snapping.
+const TIME_RAMP_SECONDS: float = 0.18
 
 static var _body_texture_cache: Dictionary = {}
 static var _body_texture_exists_cache: Dictionary = {}
@@ -64,6 +66,7 @@ var jump_action: StringName = GameSettings.INPUT_P1_JUMP
 var shoot_action: StringName = GameSettings.INPUT_P1_SHOOT
 var block_action: StringName = GameSettings.INPUT_P1_BLOCK
 var reload_action: StringName = GameSettings.INPUT_P1_RELOAD
+var time_control_action: StringName = GameSettings.INPUT_P1_TIME_CONTROL
 var shooting_enabled: bool = true
 var movement_enabled: bool = true
 var player_color_id: StringName = &""
@@ -150,6 +153,17 @@ var _halo: Sprite2D = null
 var _body_material: ShaderMaterial = null
 var _wall_slide_timer: float = 0.0
 var ai_brain: BotBrain = null
+## How fast this player's own clock runs (Time Control): movement, gun, block and bot thinking advance by
+## delta * time_scale, and TimeFlow hands the same value to the rounds they fired. 1 is normal time.
+var time_scale: float = 1.0
+var _time_slow_scale: float = 1.0
+var _time_slow_timer: float = 0.0
+var _time_slow_duration: float = 0.0
+var _time_control_cooldown: float = 0.0
+var _time_control_cooldown_total: float = 0.0
+## While this player's own cast holds the opponent slowed (drives the HUD dial).
+var _time_control_active_timer: float = 0.0
+var _time_control_active_total: float = 0.0
 ## Colour the body sprite currently shows (texture + base modulate are only swapped when it changes) and
 ## the last values pushed to the body shader, so idle frames do not re-set unchanged uniforms.
 var _body_color_id: StringName = &""
@@ -199,33 +213,40 @@ func _ready() -> void:
 func _exit_tree() -> void:
 	if ArmorInventory.player_loadout_changed.is_connected(_on_armor_loadout_changed):
 		ArmorInventory.player_loadout_changed.disconnect(_on_armor_loadout_changed)
+	if time_scale < 1.0:
+		TimeFlow.set_scale(player_slot, 1.0, global_position)
 
 
 func _process(delta: float) -> void:
 	if _is_eliminated:
 		return
-	_update_block_timers(delta)
-	_stun_timer = maxf(_stun_timer - delta, 0.0)
-	_adrenaline_timer = maxf(_adrenaline_timer - delta, 0.0)
-	_update_status_effect_feedback(delta)
-	_update_block_armor_effects(delta)
-	_update_research_healing(delta)
-	_update_feedback_visuals(delta)
+	_update_time_control(delta)
+	var own_delta: float = delta * time_scale
+	_update_block_timers(own_delta)
+	_stun_timer = maxf(_stun_timer - own_delta, 0.0)
+	_adrenaline_timer = maxf(_adrenaline_timer - own_delta, 0.0)
+	_update_status_effect_feedback(own_delta)
+	_update_block_armor_effects(own_delta)
+	_update_research_healing(own_delta)
+	_update_feedback_visuals(own_delta)
 
 
 func _physics_process(delta: float) -> void:
 	if _is_eliminated:
 		return
 	_update_ground_rays()
-	_step_clock += delta
 	if control_mode == GameSettings.CONTROL_REMOTE:
+		_step_clock += delta
 		_physics_process_remote(delta)
 		return
+	var own_delta: float = delta * time_scale
+	_step_clock += own_delta
+	_update_time_control_input()
 	_update_block_input()
-	_update_movement_timers(delta)
-	update_wall_coyote(delta)
-	_update_wind_exposure(delta)
-	_push_out_of_players(delta)
+	_update_movement_timers(own_delta)
+	update_wall_coyote(own_delta)
+	_update_wind_exposure(own_delta)
+	_push_out_of_players(own_delta)
 	_slide_off_unsupported_floor()
 
 
@@ -330,6 +351,7 @@ func set_controls_enabled(enabled: bool) -> void:
 func reset_research_round_state() -> void:
 	_phoenix_used = false
 	_passive_heal_progress = 0.0
+	_clear_time_slow()
 
 
 func reset_network_state_to_current_transform() -> void:
@@ -545,6 +567,7 @@ func set_eliminated(eliminated: bool) -> void:
 	_update_healing_area_visual(0.0, 0.0)
 
 	if eliminated:
+		_clear_time_slow()
 		movement_enabled = false
 		shooting_enabled = false
 		_has_network_target = false
@@ -663,6 +686,8 @@ func _is_ai_action_active(action: StringName, enabled: bool, just_pressed: bool)
 		return ai_brain.shoot_pressed
 	if action == block_action:
 		return ai_brain.block_pressed
+	if action == time_control_action:
+		return ai_brain.time_control_pressed
 	return false
 
 
@@ -939,6 +964,19 @@ func get_status_speed_multiplier() -> float:
 	if status_effect_manager == null:
 		return 1.0
 	return status_effect_manager.get_slow_multiplier()
+
+
+## move_and_slide on this player's own clock. Velocity stays in units per second of their time, so a slowed
+## player keeps the same arcs (jumps reach the same height) and just plays them out slower.
+func move_and_slide_scaled() -> void:
+	if time_scale >= 0.999:
+		move_and_slide()
+		return
+	if time_scale <= 0.001:
+		return
+	velocity *= time_scale
+	move_and_slide()
+	velocity /= time_scale
 
 
 func apply_gravity(delta: float, multiplier: float = 1.0) -> void:
@@ -1430,6 +1468,128 @@ func _notify_block_state(active: bool) -> void:
 	world.request_block_state(self, active, get_block_direction(), get_block_cooldown_ratio())
 
 
+# --- Time Control ---------------------------------------------------------------------------------------
+
+func is_time_control_pressed() -> bool:
+	if control_mode == GameSettings.CONTROL_LOCAL and not InputMap.has_action(time_control_action):
+		return false
+	return _is_action_available(time_control_action, movement_enabled, true)
+
+
+func has_time_control() -> bool:
+	return not ResearchManager.get_time_control_profile(player_slot).is_empty()
+
+
+## Nobody casts from inside slowed time: the slowed player has to wait it out.
+func can_cast_time_control() -> bool:
+	return (
+		movement_enabled
+		and not _is_eliminated
+		and _time_control_cooldown <= 0.0
+		and _time_slow_timer <= 0.0
+		and has_time_control()
+	)
+
+
+func is_time_slowed() -> bool:
+	return _time_slow_timer > 0.0
+
+
+func get_time_slow_left() -> float:
+	return _time_slow_timer
+
+
+## 1 when Time Control is ready, rising from 0 while it recharges.
+func get_time_control_charge() -> float:
+	if _time_control_cooldown <= 0.0:
+		return 1.0
+	return clampf(1.0 - _time_control_cooldown / _time_control_cooldown_total, 0.0, 1.0)
+
+
+func get_time_control_cooldown_left() -> float:
+	return _time_control_cooldown
+
+
+## Share of this player's own cast still holding the opponent slowed (1 just cast, 0 over).
+func get_time_control_active_ratio() -> float:
+	if _time_control_active_timer <= 0.0:
+		return 0.0
+	return clampf(_time_control_active_timer / _time_control_active_total, 0.0, 1.0)
+
+
+## The world decides whether a cast goes through (round state, cooldown, targets); a refused press only
+## answers with a sound when the player owns the ability.
+func _update_time_control_input() -> void:
+	if not is_time_control_pressed():
+		return
+	var world: Node = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)
+	var cast: bool = world != null and world.has_method(&"request_time_control") and world.request_time_control(self)
+	if not cast and control_mode == GameSettings.CONTROL_LOCAL and has_time_control():
+		AudioDirector.play(&"time_denied")
+
+
+## Starts the wait after this player's own cast; active_seconds is how long the opponent stays slowed.
+func begin_time_control_cooldown(cooldown: float, active_seconds: float) -> void:
+	_time_control_cooldown = cooldown
+	_time_control_cooldown_total = maxf(cooldown, 0.01)
+	_time_control_active_timer = active_seconds
+	_time_control_active_total = maxf(active_seconds, 0.01)
+	_body_punch_scale = Vector2(0.86, 1.14)
+	if _face != null:
+		_face.set_expression(PlayerFace.Mood.FOCUS, 0.6)
+	GameJuice.spawn_burst(&"time_cast", global_position, Vector2.UP, TimeFlow.COLOR)
+	AudioDirector.play_at(&"time_cast", global_position)
+
+
+## Runs this player's clock at `scale` for `duration` seconds (a Time Control cast on them).
+func apply_time_slow(scale: float, duration: float) -> void:
+	var was_slowed: bool = _time_slow_timer > 0.0
+	_time_slow_scale = clampf(scale, 0.0, 1.0)
+	_time_slow_timer = maxf(_time_slow_timer, duration)
+	_time_slow_duration = maxf(_time_slow_timer, 0.01)
+	if was_slowed:
+		return
+	if _face != null:
+		_face.set_expression(PlayerFace.Mood.SHOCKED, 0.5)
+	GameJuice.spawn_burst(&"time_slow", global_position, Vector2.UP, TimeFlow.COLOR)
+	AudioDirector.play_at(&"time_slow_start", global_position)
+	AudioDirector.duck_music(-8.0, duration, 0.6)
+	GameJuice.shockwave(global_position, 1.5, 0.9)
+	GameJuice.flash(TimeFlow.COLOR, 0.22, 0.4)
+	GameJuice.aberration(1.4, 0.55)
+	GameJuice.zoom_punch(0.035)
+
+
+func _update_time_control(delta: float) -> void:
+	_time_control_cooldown = maxf(_time_control_cooldown - delta, 0.0)
+	_time_control_active_timer = maxf(_time_control_active_timer - delta, 0.0)
+	if _time_slow_timer > 0.0:
+		_time_slow_timer = maxf(_time_slow_timer - delta, 0.0)
+		if _time_slow_timer <= 0.0:
+			_play_time_slow_end()
+	var previous: float = time_scale
+	var target: float = _time_slow_scale if _time_slow_timer > 0.0 else 1.0
+	if time_scale != target:
+		time_scale = move_toward(time_scale, target, delta / TIME_RAMP_SECONDS)
+	if previous < 1.0 or time_scale < 1.0:
+		TimeFlow.set_scale(player_slot, time_scale, global_position)
+
+
+func _play_time_slow_end() -> void:
+	GameJuice.spawn_burst(&"time_release", global_position, Vector2.UP, TimeFlow.COLOR)
+	AudioDirector.play_at(&"time_slow_end", global_position)
+	GameJuice.shockwave(global_position, 0.7, 0.5)
+	if _is_local_view_player():
+		GameJuice.aberration(0.6, 0.3)
+
+
+func _clear_time_slow() -> void:
+	_time_slow_timer = 0.0
+	if time_scale < 1.0:
+		time_scale = 1.0
+		TimeFlow.set_scale(player_slot, 1.0, global_position)
+
+
 func _initialize_feet() -> void:
 	_set_feet(
 		global_position + Vector2(-foot_spread, hover_dist),
@@ -1539,6 +1699,9 @@ func _setup_visual_extras() -> void:
 	var block_fx: BlockShieldFx = BlockShieldFx.new()
 	block_fx.name = "BlockShieldFx"
 	add_child(block_fx)
+	var time_fx: TimeFieldFx = TimeFieldFx.new()
+	time_fx.name = "TimeFieldFx"
+	add_child(time_fx)
 
 
 func get_face() -> PlayerFace:
@@ -1676,7 +1839,12 @@ func _update_feedback_visuals(delta: float) -> void:
 			_shader_flash = hit_ratio * hit_ratio
 			_body_material.set_shader_parameter(&"flash", _shader_flash)
 		var status_amount: float = 0.0
-		if status_effect_manager != null and status_effect_manager.get_active_count() > 0:
+		var chrono: float = TimeFlow.strength_of(time_scale)
+		if chrono > 0.0:
+			# Slowed time wins over other status tints: it is the one the fight now turns on.
+			status_amount = chrono * (0.5 + sin(Time.get_ticks_msec() * 0.003) * 0.08)
+			_body_material.set_shader_parameter(&"status_tint", TimeFlow.COLOR)
+		elif status_effect_manager != null and status_effect_manager.get_active_count() > 0:
 			var tint: Color = status_effect_manager.get_tint_color()
 			if tint != Color.WHITE:
 				status_amount = 0.38 + sin(Time.get_ticks_msec() * 0.008) * 0.12

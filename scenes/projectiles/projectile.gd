@@ -35,6 +35,8 @@ var _whiz_played: bool = false
 var _local_view_player: Player = null
 var _wind_response: float = 1.0
 var _impact_tint: Color = Color(0.98, 0.55, 0.18, 0.9)
+## Speed of the clock this round flies on: its shooter's (Time Control slows both).
+var _time_scale: float = 1.0
 
 
 func configure_from_data(
@@ -99,6 +101,10 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	var flow: float = TimeFlow.scale_for(owner_slot)
+	if flow != _time_scale:
+		_set_time_scale(flow)
+	delta *= flow
 	ExtensionBehaviorRegistry.update_projectile_behaviors(self, delta)
 
 	velocity.y += gravity * WorldConditions.projectile_gravity_scale * delta
@@ -578,10 +584,23 @@ func _is_overlapping_world_obstacle() -> bool:
 func _update_drill_visual(delta: float) -> void:
 	if _drill_visual_timer > 0.0:
 		_drill_visual_timer = maxf(_drill_visual_timer - delta, 0.0)
+	var look: Color = Color.WHITE
 	if extension_tags.has("drill") and (_drill_visual_timer > 0.0 or _drill_ignore_distance_remaining > 0.0):
-		modulate = Color(0.72, 0.86, 1.0, 0.76)
-	else:
-		modulate = Color.WHITE
+		look = Color(0.72, 0.86, 1.0, 0.76)
+	if _time_scale < 1.0:
+		look *= Color.WHITE.lerp(TimeFlow.COLOR.lightened(0.3), TimeFlow.strength_of(_time_scale) * 0.75)
+	modulate = look
+
+
+## Slowed rounds trail slowly too, and their glow swells so they read as caught in slowed time.
+func _set_time_scale(flow: float) -> void:
+	_time_scale = flow
+	var trail: CPUParticles2D = get_node_or_null("Trail") as CPUParticles2D
+	if trail != null:
+		trail.speed_scale = maxf(flow, 0.05)
+	if _head_glow != null:
+		var swell: float = 1.0 + TimeFlow.strength_of(flow) * 0.6
+		_head_glow.scale = Vector2.ONE * 0.26 * maxf(projectile_scale, 0.7) * swell
 
 
 func _apply_local_collision_damage(collider: Object) -> void:
