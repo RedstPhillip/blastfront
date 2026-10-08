@@ -325,6 +325,8 @@ func _show_online_results() -> void:
 		"PLAY AGAIN" if can_rematch else "HOST DECIDES"
 	)
 
+
+## The score is the headline above, so the row is about how you played: accuracy, damage, blocks, hits.
 func _build_stats(slot: int) -> Array[Dictionary]:
 	var stats: Dictionary = _game.get_match_stats(slot)
 	var shots: int = int(stats.get("shots", 0))
@@ -334,7 +336,7 @@ func _build_stats(slot: int) -> Array[Dictionary]:
 		{"label": "ACCURACY", "value": accuracy, "format": "%d%%"},
 		{"label": "DAMAGE", "value": float(stats.get("damage", 0)), "format": "%d"},
 		{"label": "BLOCKS", "value": float(stats.get("blocks", 0)), "format": "%d"},
-		{"label": "ROUNDS", "value": float(_game.get_score_for_slot(slot)), "format": "%d"},
+		{"label": "HITS", "value": float(hits), "format": "%d"},
 	]
 	return result
 

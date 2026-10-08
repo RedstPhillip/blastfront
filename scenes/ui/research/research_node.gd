@@ -17,7 +17,6 @@ const RING_RADIUS: float = 30.0
 const HOLD_SECONDS: float = 0.42
 const ICON_SIZE: float = 26.0
 
-const PLANNED: int = 0
 const LOCKED: int = 1
 const AVAILABLE: int = 2
 const RESEARCHED: int = 3
@@ -86,9 +85,7 @@ func refresh() -> void:
 	_max_mark = int(definition["max_mark"])
 	_cost = ResearchManager.get_next_cost(research_id)
 	_can_buy = ResearchManager.can_purchase(research_id)
-	if definition["available"] != true:
-		_state = PLANNED
-	elif _mark >= _max_mark:
+	if _mark >= _max_mark:
 		_state = MAXED
 	elif _mark > 0:
 		_state = RESEARCHED
@@ -96,7 +93,7 @@ func refresh() -> void:
 		_state = AVAILABLE
 	else:
 		_state = LOCKED
-	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if _state != PLANNED else Control.CURSOR_ARROW
+	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	set_process(true)
 	queue_redraw()
 
@@ -157,9 +154,6 @@ func _gui_input(event: InputEvent) -> void:
 
 
 func _press() -> void:
-	if _state == PLANNED:
-		research_selected.emit(research_id)
-		return
 	research_selected.emit(research_id)
 	if _can_buy:
 		_holding = true
@@ -208,10 +202,6 @@ func _draw() -> void:
 	var edge: Color = Color(1, 1, 1, 0.12)
 	var icon_alpha: float = 0.9
 	match _state:
-		PLANNED:
-			disc = Color(0.05, 0.05, 0.047, 0.7)
-			edge = Color(1, 1, 1, 0.07)
-			icon_alpha = 0.16
 		LOCKED:
 			disc = Color(0.055, 0.055, 0.052, 1.0)
 			edge = Color(1, 1, 1, 0.06)
@@ -228,10 +218,7 @@ func _draw() -> void:
 		edge = edge.lerp(Color(1, 1, 1, 0.06), 1.0 - _wake)
 	disc = disc.lerp(disc.lightened(0.12), hover)
 	draw_circle(Vector2.ZERO, RADIUS, disc, true, -1.0, true)
-	if _state == PLANNED:
-		_draw_dashed_circle(RADIUS, edge)
-	else:
-		draw_arc(Vector2.ZERO, RADIUS, 0.0, TAU, 48, edge.lerp(Color(1, 1, 1, 0.5), hover * 0.4), 1.2, true)
+	draw_arc(Vector2.ZERO, RADIUS, 0.0, TAU, 48, edge.lerp(Color(1, 1, 1, 0.5), hover * 0.4), 1.2, true)
 	if _flash > 0.0:
 		draw_circle(Vector2.ZERO, RADIUS, Color(1.0, 1.0, 1.0, _flash * 0.4), true, -1.0, true)
 
@@ -259,7 +246,7 @@ func _draw_ring(intel: Color, amber: Color) -> void:
 		var to: float = from + span - gap
 		var color: Color = Color(1, 1, 1, 0.1)
 		var width: float = 3.0
-		if _state == PLANNED or _state == LOCKED:
+		if _state == LOCKED:
 			color = Color(1, 1, 1, 0.06)
 		elif index < _mark:
 			color = intel
@@ -277,8 +264,6 @@ func _draw_ring(intel: Color, amber: Color) -> void:
 func _draw_labels(intel: Color) -> void:
 	var name_color: Color = LoadoutStyle.TEXT_SECONDARY
 	match _state:
-		PLANNED:
-			name_color = LoadoutStyle.with_alpha(LoadoutStyle.TEXT_MUTED, 0.22)
 		LOCKED:
 			name_color = LoadoutStyle.TEXT_MUTED
 		RESEARCHED, MAXED:
@@ -290,9 +275,6 @@ func _draw_labels(intel: Color) -> void:
 	for line in _name_lines:
 		draw_string(UiStyle.FONT_UI, Vector2(0.0, y), line, HORIZONTAL_ALIGNMENT_CENTER, size.x, 12, name_color)
 		y += 14.0
-	if _state == PLANNED:
-		draw_string(UiStyle.FONT_BOLD, Vector2(0.0, y + 1.0), "LATER", HORIZONTAL_ALIGNMENT_CENTER, size.x, 9, LoadoutStyle.with_alpha(LoadoutStyle.TEXT_MUTED, 0.22))
-		return
 	if _state == MAXED or _state == LOCKED:
 		return
 	var text: String = str(_cost)
@@ -302,12 +284,6 @@ func _draw_labels(intel: Color) -> void:
 	ResearchNodeButton.draw_rp_glyph(self, Vector2(start + 4.0, y - 3.5), 4.0, color)
 	draw_string(UiStyle.FONT_BOLD, Vector2(start + 11.0, y + 1.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, color)
 
-
-func _draw_dashed_circle(radius: float, color: Color) -> void:
-	var segments: int = 18
-	for index in range(segments):
-		var a: float = TAU * float(index) / float(segments)
-		draw_arc(Vector2.ZERO, radius, a, a + TAU / float(segments) * 0.5, 4, color, 1.0, true)
 
 
 func _wrap(text: String) -> PackedStringArray:

@@ -59,7 +59,7 @@ func _layout() -> void:
 	_subtitle.position = Vector2(0.0, h * 0.5 - 12.0)
 	_subtitle.pivot_offset = _subtitle.size * 0.5
 	_count.size = Vector2(w, 170.0)
-	_count.position = Vector2(0.0, h * 0.5 + 10.0)
+	_count.position = Vector2(0.0, h * 0.5 + 26.0)
 	_count.pivot_offset = _count.size * 0.5
 
 
@@ -97,6 +97,9 @@ func _pop_count(text: String, color: Color, is_final: bool) -> void:
 	_count.scale = Vector2.ONE * (1.8 if is_final else 1.5)
 	var tween: Tween = create_tween().set_ignore_time_scale(true)
 	tween.set_parallel(true)
+	# The subtitle has been read by the first digit; it makes room so the popping digit never sits on it.
+	if _subtitle.modulate.a > 0.0:
+		tween.tween_property(_subtitle, "modulate:a", 0.0, 0.12)
 	tween.tween_property(_count, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.tween_property(_count, "modulate:a", 0.0, 0.3).set_delay(0.55 if is_final else 0.3)
 	if is_final:

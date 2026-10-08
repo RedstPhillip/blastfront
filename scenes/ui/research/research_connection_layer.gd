@@ -88,13 +88,9 @@ func _powered(link: Dictionary) -> bool:
 func _draw() -> void:
 	var intel: Color = UiStyle.INTEL
 	for link in _links:
-		var target: ResearchNodeButton = link["target"]
 		var points: PackedVector2Array = _path(link)
 		var powered: bool = _powered(link)
-		var planned: bool = target.get_state() == ResearchNodeButton.PLANNED
 		var color: Color = LoadoutStyle.with_alpha(intel, 0.42) if powered else Color(1, 1, 1, 0.07)
-		if planned:
-			color = Color(1, 1, 1, 0.04)
 		draw_polyline(points, color, LINE_WIDTH, true)
 		if int(link["mark"]) > 1:
 			_draw_mark_tag(points, int(link["mark"]), powered)
