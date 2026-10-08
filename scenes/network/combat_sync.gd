@@ -39,6 +39,10 @@ func apply_hit(
 	var player: Player = _get_player(target_slot)
 	if player == null or player.health_component == null:
 		return
+	# Inside a protected dash nothing lands; the host judges that by the dash packet it got.
+	if player.is_dash_protected():
+		player.play_dash_dodge_feedback()
+		return
 
 	var source_position: Vector2 = player.global_position - Vector2(player.last_dir * 64.0, 0.0)
 	var source_player: Player = _get_player(source_slot)

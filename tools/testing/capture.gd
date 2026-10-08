@@ -433,6 +433,175 @@ func _build_script() -> void:
 					print("  ray y=", from.y, " hit=", space.intersect_ray(q))
 				print("  exposure fn=", WorldConditions.wind_exposure_at(space, p1.global_position, [p1.get_rid()])))
 			_at(5.2, "quit")
+		"dash_probe":
+			# Dashing per mark on flat Verdant ground: burst distance, cooldown (dash spammed every 0.1 s, the
+			# DASH start lines show when it actually fires), an air dash, Mk IV protection against a real round
+			# (with a control shot outside the dash) and the Mk III shockwave against a parked dummy (with a
+			# Mk II control). Shots only in render runs.
+			_at(0.1, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
+			_at(0.5, "call", func(): _main._on_sandbox_requested())
+			_at(1.6, "call", func():
+				if OS.has_environment("BF_SCOUT"):
+					_scout_floor()
+				_dash_spot = _build_test_floor(Vector2(300.0, 100.0), 800.0)
+				_freeze_camera_keep_players(Vector2(700.0, 120.0), 1.25)
+				var dummy = _stress_game().get_player_by_slot(2)
+				dummy.set_controls_enabled(false)
+				dummy.global_position = Vector2(_dash_spot.x + 1400.0, _dash_spot.y - 60.0)
+				_set_dash_mark(1)
+				_hooks.append(_watch_dashes))
+			# Mk I: one dash from standstill (facing right), then spammed; cooldown 2.4 s.
+			_at(2.0, "call", func(): _dash_reset_p1())
+			_at(2.2, "call", func(): print("PROBE mk1 ratio_before=%.2f" % _p1().get_dash_cooldown_ratio()))
+			for i in range(28):
+				_at(2.2 + i * 0.1, "press", "p1_dash")
+				_at(2.25 + i * 0.1, "release", "p1_dash")
+			_at(2.3, "crop", ["dash_mid", Rect2(120, 200, 420, 180), 2.5])
+			_at(2.36, "crop", ["dash_mid2", Rect2(120, 200, 420, 180), 2.5])
+			_at(2.42, "crop", ["dash_end", Rect2(120, 200, 420, 180), 2.5])
+			_at(2.9, "call", func(): print("PROBE mk1 t=2.9 ratio=%.2f x_after_glide=%.0f" % [_p1().get_dash_cooldown_ratio(), _p1().global_position.x - _dash_spot.x]); _dash_reset_p1())
+			_at(2.95, "crop", ["dash_hud", Rect2(0, 630, 340, 90), 3.0])
+			_at(2.15, "crop", ["dash_hud_ready", Rect2(0, 630, 340, 90), 3.0])
+			_at(4.75, "crop", ["dash_hud_pop", Rect2(0, 630, 340, 90), 3.0])
+			_at(4.45, "call", func(): _dash_reset_p1())
+			# Mk II: cooldown 1.4 s.
+			_at(5.2, "call", func(): _set_dash_mark(2); _dash_reset_p1())
+			# The Mk I cooldown from the 4.6 s dash runs out at 7.0 s: spam from there.
+			for i in range(19):
+				_at(7.0 + i * 0.1, "press", "p1_dash")
+				_at(7.05 + i * 0.1, "release", "p1_dash")
+			_at(8.4, "call", func(): _dash_reset_p1())
+			# Air dash: jump, then dash at the apex region; the burst should be flat.
+			_at(9.6, "call", func(): _dash_reset_p1())
+			_at(10.15, "press", "p1_jump")
+			_at(10.4, "press", "p1_dash")
+			_at(10.45, "release", "p1_dash")
+			_at(10.5, "release", "p1_jump")
+			_at(10.5, "crop", ["dash_air", Rect2(120, 120, 420, 260), 2.0])
+			# Mk IV protection: a round fired into the dash flies through; the same round later hits.
+			_at(11, "call", func(): _set_dash_mark(4); _dash_reset_p1(); _p1().health_component.health = 100)
+			_at(12, "press", "p1_dash")
+			_at(12.05, "release", "p1_dash")
+			_at(12.02, "call", func(): _fire_at_p1(110.0))
+			_at(12.06, "crop", ["dash_protected", Rect2(120, 200, 420, 180), 2.5])
+			_at(12.5, "call", func(): print("PROBE protected hp=%d (100 = no damage) round_alive=%s" % [_p1().health_component.health, is_instance_valid(_probe_round) and _probe_round.is_inside_tree()]))
+			_at(12.8, "call", func(): _dash_reset_p1(); _p1().health_component.health = 100)
+			_at(13, "call", func(): _fire_at_p1(110.0))
+			_at(13.4, "call", func(): print("PROBE control hp=%d (round fired while standing)" % _p1().health_component.health); _p1().health_component.health = 100)
+			_at(13.5, "call", func():
+				var hp_before: int = _p1().health_component.health
+				var applied: int = _p1().apply_incoming_damage(25, 2, _p1().global_position)
+				print("PROBE direct_damage_outside_dash applied=%d hp %d->%d" % [applied, hp_before, _p1().health_component.health])
+				_p1().health_component.health = 100)
+			# Mk III shockwave: dummy parked 130 px ahead on the same floor.
+			_at(14.5, "call", func(): _set_dash_mark(3); _dash_reset_p1(); _park_dummy(130.0))
+			_at(15, "press", "p1_dash")
+			_at(15.05, "release", "p1_dash")
+			_at(15.12, "crop", ["dash_shockwave", Rect2(120, 160, 520, 220), 2.0])
+			_at(15.2, "crop", ["dash_shockwave2", Rect2(120, 160, 520, 220), 2.0])
+			_at(15.6, "call", func(): _report_dummy("shockwave_mk3"))
+			# Mk II control: same setup, no shockwave.
+			_at(16.5, "call", func(): _set_dash_mark(2); _dash_reset_p1(); _park_dummy(130.0))
+			_at(17, "press", "p1_dash")
+			_at(17.05, "release", "p1_dash")
+			_at(17.6, "call", func(): _report_dummy("no_shockwave_mk2"))
+			# Wall: dash into the dummy without a shockwave stops at the body.
+			_at(18, "call", func(): print("PROBE done dashes=%d" % _dash_count))
+			_at(18.2, "quit")
+		"dash_online":
+			# The dash's online path without Steam (sends are no-ops): the sandbox is flipped into a hosted
+			# set with P2 as the remote client, and the movement module gets the packets a peer would send.
+			_at(0.1, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
+			_at(0.5, "call", func(): _main._on_sandbox_requested())
+			_at(1.6, "call", func():
+				_dash_spot = _build_test_floor(Vector2(300.0, 100.0), 800.0)
+				var g = _stress_game()
+				var session = root.get_node("NetworkSession")
+				session.mode = &"host"
+				session._match_active = true
+				session.local_player_slot = 1
+				root.get_node("OnlineMatch")._reset_current_set_stats()
+				root.get_node("OnlineMatch").phase = &"playing_set"
+				g.get_player_by_slot(2).configure_remote_control(2)
+				root.get_node("ResearchManager")._remote_marks_by_player[2] = {"dashing": 4}
+				g._game_sync.setup(g)
+				_hooks.append(_watch_dashes)
+				_dash_reset_p1()
+				_park_dummy(200.0)
+				g.get_player_by_slot(2).reset_network_state_to_current_transform())
+			# Host gets the client's dash: protection window on the host's copy, cooldown for the HUD.
+			_at(2.0, "call", func():
+				var p2 = _stress_game().get_player_by_slot(2)
+				_movement_packet(&"dash", 2, {"slot": 2, "direction": -1.0, "protected": true, "shockwave": true})
+				print("ONLINE host got dash: protected=%s cooldown_ratio=%.2f trail=%s" % [p2.is_dash_protected(), p2.get_dash_cooldown_ratio(), p2.is_dashing()])
+				var combat = _stress_game()._game_sync.get_module(&"combat")
+				combat.apply_hit(2, 1, 0, 25)
+				print("ONLINE hit during client's protected dash: hp=%d (100 = dodged)" % p2.health_component.health))
+			_at(2.6, "call", func():
+				var p2 = _stress_game().get_player_by_slot(2)
+				_stress_game()._game_sync.get_module(&"combat").apply_hit(2, 1, 0, 25)
+				print("ONLINE hit after the window: protected=%s hp=%d (75 = landed)" % [p2.is_dash_protected(), p2.health_component.health])
+				p2.health_component.health = 100)
+			# The client's shockwave goes off next to the host's player: the host throws its own player.
+			_at(3.0, "call", func():
+				var p1 = _p1()
+				_dash_reset_p1()
+				_movement_packet(&"dash_shockwave", 2, {"slot": 2, "origin": p1.global_position + Vector2(40.0, 0.0), "direction": -1.0})
+				print("ONLINE client's shockwave threw host player: velocity=%s stunned=%s" % [p1.velocity.round(), p1._stun_timer > 0.0]))
+			# A spoofed slot: the client claims to be slot 1; the host still applies it to slot 2.
+			_at(3.6, "call", func():
+				_dash_reset_p1()
+				_movement_packet(&"dash", 2, {"slot": 1, "direction": 1.0, "protected": true, "shockwave": false})
+				print("ONLINE spoofed dash: host player protected=%s (false = ignored)" % _p1().is_dash_protected()))
+			# The host's own dash with a shockwave next to the remote player: only feedback on the host's copy.
+			_at(4.0, "call", func():
+				_set_dash_mark(3)
+				_dash_reset_p1()
+				_park_dummy(130.0)
+				_stress_game().get_player_by_slot(2).reset_network_state_to_current_transform())
+			_at(4.2, "press", "p1_dash")
+			_at(4.25, "release", "p1_dash")
+			_at(4.6, "call", func():
+				var p2 = _stress_game().get_player_by_slot(2)
+				print("ONLINE host's shockwave on the client's copy: moved dx=%+.0f (0 = the client moves it)" % (p2.global_position.x - _dummy_start.x)))
+			# Client side: the host's knockback packet throws the local player.
+			_at(5.0, "call", func():
+				root.get_node("NetworkSession").mode = &"client"
+				_dash_reset_p1()
+				_movement_packet(&"knockback", 2, {"target_slot": 1, "velocity": Vector2(470.0, -290.0), "origin": _p1().global_position})
+				print("ONLINE client got knockback: velocity=%s" % _p1().velocity.round()))
+			_at(5.5, "call", func():
+				var session = root.get_node("NetworkSession")
+				session.mode = &"training"
+				session._match_active = false
+				root.get_node("OnlineMatch").phase = &"locker"
+				print("ONLINE done"))
+			_at(5.7, "quit")
+		"bot_dash":
+			# Two bots (BF_BOT_LEVEL, default hard: Dashing Mk IV) fight on BF_WORLD; every dash is logged.
+			_at(0.3, "call", func():
+				root.get_node("UserSettings").set_value(&"gameplay_bot_difficulty", int(OS.get_environment("BF_BOT_LEVEL")) if OS.has_environment("BF_BOT_LEVEL") else 2)
+				root.get_node("UserSettings").set_value(&"progress_bot_world", OS.get_environment("BF_WORLD") if OS.has_environment("BF_WORLD") else "verdant")
+				root.get_node("NetworkSession").start_bot_duel()
+				_main.start_game())
+			_at(0.8, "call", func():
+				_stress_game().get_player_by_slot(1).configure_ai_control(1, int(OS.get_environment("BF_BOT_LEVEL")) if OS.has_environment("BF_BOT_LEVEL") else 2)
+				_hooks.append(_watch_dashes))
+			for i in range(30):
+				_at(2.0 + i * 2.0, "call", func():
+					var g = _stress_game()
+					var parts: PackedStringArray = PackedStringArray()
+					for slot in [1, 2]:
+						var p = g.get_player_by_slot(slot)
+						parts.append("P%d %s hp=%d" % [slot, p.global_position.round(), p.health_component.health])
+					print("t=%.1f %s | score %d-%d dashes=%d" % [_time, " | ".join(parts), g.get_score_for_slot(1), g.get_score_for_slot(2), _dash_count]))
+			_at(3.0, "call", func():
+				var research = root.get_node("ResearchManager")
+				for slot in [1, 2]:
+					var p = _stress_game().get_player_by_slot(slot)
+					print("BOTDASH slot=%d mark=%d can_dash=%s grounded=%s local_slot=%d" % [slot, research.get_mark(&"dashing", slot), p.can_dash(), p.is_grounded(), root.get_node("NetworkSession").local_player_slot]))
+			_at(62.0, "call", func(): print("BOTDASH total dashes=%d" % _dash_count))
+			_at(62.2, "quit")
 		"bot_watch":
 			_at(0.3, "call", func():
 				root.get_node("UserSettings").set_value(&"progress_bot_world", OS.get_environment("BF_WORLD") if OS.has_environment("BF_WORLD") else "verdant")
@@ -563,6 +732,21 @@ func _build_script() -> void:
 			_at(3.2, "call", func(): _main.get_node("SceneRoot").get_child(-1)._set_page(-1))
 			_at(4.2, "shot", "inter_loadout")
 			_at(4.5, "quit")
+		"research_movement":
+			# The research page's Movement lane: Dashing selected fresh (four marks in the dock), then at Mk II.
+			_at(0.5, "call", func(): _main.change_scene(_main.get_scene("res://scenes/menus/intermission_menu.tscn")))
+			_at(2.0, "call", func(): _main.get_node("SceneRoot").get_child(-1)._set_page(1))
+			_at(2.3, "call", func(): _main.get_node("SceneRoot").get_child(-1).get("_research_page")._select(&"dashing"))
+			_at(3.0, "shot", "research_dash")
+			_at(3.1, "call", func():
+				var research = root.get_node("ResearchManager")
+				research.research_points = 30
+				research._local_marks["dashing"] = 2
+				research.research_changed.emit()
+				research.research_points_changed.emit(30)
+				_main.get_node("SceneRoot").get_child(-1).get("_research_page")._select(&"dashing"))
+			_at(3.8, "shot", "research_dash_mk2")
+			_at(4.0, "quit")
 		"aim_stability":
 			_at(0.1, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
 			_at(0.5, "call", func(): _main._on_sandbox_requested())
@@ -1285,6 +1469,8 @@ func _process(delta: float) -> bool:
 		_stress_events = ""
 		_stress_added_prev = _stress_added.duplicate()
 		_stress_added.clear()
+	for hook in _hooks:
+		(hook as Callable).call()
 	_frame += 1
 	var now: int = Time.get_ticks_usec()
 	if _last_tick > 0:
@@ -1308,6 +1494,16 @@ func _run(action: Dictionary) -> void:
 			var path: String = _out_dir.path_join(str(action["a"]) + ".png")
 			image.save_png(path)
 			print("CAPTURED ", path)
+		"crop":
+			# [name, Rect2 in viewport pixels, scale]: a close-up of one region, upscaled.
+			if DisplayServer.get_name() == "headless":
+				return
+			var spec: Array = action["a"]
+			var region: Image = _viewport.get_texture().get_image().get_region(Rect2i(spec[1]))
+			region.resize(int(region.get_width() * float(spec[2])), int(region.get_height() * float(spec[2])), Image.INTERPOLATE_LANCZOS)
+			var crop_path: String = _out_dir.path_join(str(spec[0]) + ".png")
+			region.save_png(crop_path)
+			print("CAPTURED ", crop_path)
 		"call":
 			(action["a"] as Callable).call()
 		"mouse":
@@ -1650,3 +1846,150 @@ func _sell_log(tag: String) -> void:
 		if not rri.get_offer(i).is_empty():
 			offers += 1
 	print("SELL %-28s coins=%d inventory=%d offers=%d ratio=%.2f" % [tag, root.get_node("OnlineMatch").get_local_coin_balance(), inv.get_inventory_for_local().size(), offers, rri.get_sell_ratio()])
+
+
+# --- Movement probes (dash) ------------------------------------------------------------------------
+
+## Callables run once per frame (probes that watch state continuously).
+var _hooks: Array = []
+var _dash_spot: Vector2 = Vector2.ZERO
+var _dash_was: Dictionary = {}
+var _dash_start: Dictionary = {}
+var _dash_count: int = 0
+var _probe_round: Variant = null
+var _dummy_start: Vector2 = Vector2.ZERO
+
+
+func _p1() -> Node:
+	return _stress_game().get_player_by_slot(1)
+
+
+func _set_dash_mark(mark: int) -> void:
+	root.get_node("ResearchManager")._local_marks["dashing"] = mark
+	print("PROBE dashing mark=%d cooldown=%.1f shockwave=%s protection=%s" % [mark, root.get_node("ResearchManager").get_dash_cooldown(1), root.get_node("ResearchManager").has_dash_shockwave(1), root.get_node("ResearchManager").has_dash_protection(1)])
+
+
+## Puts P1 at the start of the flat stretch, facing right, at rest.
+func _dash_reset_p1() -> void:
+	var p1 = _p1()
+	p1.global_position = Vector2(_dash_spot.x + 60.0, _dash_spot.y - 26.0)
+	p1.velocity = Vector2.ZERO
+	p1.last_dir = 1.0
+
+
+func _park_dummy(ahead: float) -> void:
+	var dummy = _stress_game().get_player_by_slot(2)
+	dummy.global_position = Vector2(_dash_spot.x + 60.0 + ahead, _dash_spot.y - 26.0)
+	dummy.velocity = Vector2.ZERO
+	_dummy_start = dummy.global_position
+
+
+func _report_dummy(label: String) -> void:
+	var dummy = _stress_game().get_player_by_slot(2)
+	var p1 = _p1()
+	print("PROBE %s dummy moved dx=%+.0f dy=%+.0f | p1 dx_from_start=%+.0f" % [label, dummy.global_position.x - _dummy_start.x, dummy.global_position.y - _dummy_start.y, p1.global_position.x - (_dash_spot.x + 60.0)])
+	dummy.global_position = Vector2(_dash_spot.x + 1400.0, _dash_spot.y - 60.0)
+
+
+## A straight, gravity-free round from the dummy's side, `ahead` px in front of P1, flying at P1.
+func _fire_at_p1(ahead: float) -> void:
+	var p1 = _p1()
+	var shot = load("res://scenes/projectiles/projectile.tscn").instantiate()
+	shot.configure_from_data(0, 2, Vector2.LEFT, {"muzzle_speed": 900.0, "gravity": 0.0, "damage": 25, "max_distance": 700.0})
+	_stress_game().spawn_projectile(shot, p1.global_position + Vector2(ahead, 0.0))
+	_probe_round = shot
+
+
+## A plain static floor for movement probes (top-left corner at `top_left`), drawn as a dark slab so it
+## shows in captures. Returns the top-left corner.
+func _build_test_floor(top_left: Vector2, width: float, height: float = 24.0) -> Vector2:
+	var body: StaticBody2D = StaticBody2D.new()
+	body.collision_layer = 1
+	body.collision_mask = 0
+	var shape: CollisionShape2D = CollisionShape2D.new()
+	var rect: RectangleShape2D = RectangleShape2D.new()
+	rect.size = Vector2(width, height)
+	shape.shape = rect
+	shape.position = Vector2(width, height) * 0.5
+	body.add_child(shape)
+	var slab: Polygon2D = Polygon2D.new()
+	slab.polygon = PackedVector2Array([Vector2.ZERO, Vector2(width, 0.0), Vector2(width, height), Vector2(0.0, height)])
+	slab.color = Color(0.16, 0.17, 0.15, 1.0)
+	body.add_child(slab)
+	body.position = top_left
+	_stress_game().add_child(body)
+	return top_left
+
+
+## The longest flat run of floor (constant height over `width` px, open above) seen from above.
+func _flat_spot(width: float) -> Vector2:
+	var space: PhysicsDirectSpaceState2D = _stress_game().get_world_2d().direct_space_state
+	var query: PhysicsRayQueryParameters2D = PhysicsRayQueryParameters2D.new()
+	query.collision_mask = 1
+	var bounds: Rect2 = Rect2(0.0, 0.0, 2262.0, 720.0)
+	var bounds_node = get_first_node_in_group(&"map_bounds")
+	if bounds_node != null and bounds_node.get("bounds") is Rect2:
+		bounds = bounds_node.get("bounds")
+	var run_start: float = INF
+	var run_y: float = INF
+	var step: float = 10.0
+	var x: float = bounds.position.x + 40.0
+	while x < bounds.end.x - 40.0:
+		query.from = Vector2(x, bounds.position.y - 300.0)
+		query.to = Vector2(x, bounds.end.y + 300.0)
+		var hit: Dictionary = space.intersect_ray(query)
+		var y: float = (hit["position"] as Vector2).y if not hit.is_empty() else INF
+		if y != INF and absf(y - run_y) <= 1.5:
+			if x - run_start >= width:
+				return Vector2(run_start, run_y)
+		else:
+			run_start = x
+			run_y = y
+		x += step
+	print("NO FLAT SPOT")
+	return Vector2(400.0, 480.0)
+
+
+func _scout_floor() -> void:
+	var space: PhysicsDirectSpaceState2D = _stress_game().get_world_2d().direct_space_state
+	var query: PhysicsRayQueryParameters2D = PhysicsRayQueryParameters2D.new()
+	query.collision_mask = 1
+	var line: PackedStringArray = PackedStringArray()
+	for i in range(0, 120):
+		var x: float = -100.0 + i * 25.0
+		query.from = Vector2(x, -600.0)
+		query.to = Vector2(x, 1600.0)
+		var hit: Dictionary = space.intersect_ray(query)
+		line.append("%d:%s" % [int(x), str(int((hit["position"] as Vector2).y)) if not hit.is_empty() else "-"])
+	print("SCOUT ", " ".join(line))
+	var bounds_node = get_first_node_in_group(&"map_bounds")
+	print("SCOUT bounds ", bounds_node.get("bounds") if bounds_node != null else null, " p1 ", _p1().global_position, " p2 ", _stress_game().get_player_by_slot(2).global_position)
+
+
+## Hands the movement sync module a packet as if it came from `from_slot`.
+func _movement_packet(packet_type: StringName, from_slot: int, payload: Dictionary) -> void:
+	var packet: Dictionary = {"type": str(packet_type), "seq": 0, "tick": 0, "from_slot": from_slot, "payload": payload}
+	_stress_game()._game_sync.get_module(&"movement").handle_packet(packet)
+
+
+## Logs every dash of either player: start, and at the end the burst distance and the largest vertical speed.
+func _watch_dashes() -> void:
+	var game = _stress_game()
+	if game == null:
+		return
+	for slot in [1, 2]:
+		var p = game.get_player_by_slot(slot)
+		if p == null:
+			continue
+		var now: bool = p._dashing
+		var was: bool = bool(_dash_was.get(slot, false))
+		if now and not was:
+			_dash_count += 1
+			_dash_start[slot] = [p.global_position, _time, 0.0]
+			print("DASH start slot=%d t=%.2f dir=%+.0f grounded=%s protected=%s" % [slot, _time, p.get_dash_direction(), p.is_grounded(), p.is_dash_protected()])
+		elif now:
+			_dash_start[slot][2] = maxf(float(_dash_start[slot][2]), absf(p.velocity.y))
+		elif was:
+			var start: Array = _dash_start[slot]
+			print("DASH end   slot=%d t=%.2f burst_dx=%+.0f dy=%+.0f took=%.3f max_vy=%.0f" % [slot, _time, p.global_position.x - (start[0] as Vector2).x, p.global_position.y - (start[0] as Vector2).y, _time - float(start[1]), float(start[2])])
+		_dash_was[slot] = now

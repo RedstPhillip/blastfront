@@ -289,6 +289,29 @@ func request_time_control(caster: Player) -> bool:
 	return true
 
 
+## A player started a dash (Movement research): online, the other side mirrors it.
+func request_dash(owner: Node, direction: float, protected: bool, shockwave: bool) -> void:
+	if not NetworkSession.is_steam_match_active() or _game_sync == null or owner == null:
+		return
+	var movement_sync: Variant = _game_sync.get_module(GameSettings.MODULE_MOVEMENT)
+	if movement_sync != null:
+		movement_sync.send_dash(int(owner.player_slot), direction, protected, shockwave)
+
+
+## A dash shockwave went off: online the host decides who it throws, offline it is resolved right here.
+func request_dash_shockwave(owner: Node, origin: Vector2, direction: float) -> void:
+	var dasher: Player = owner as Player
+	if dasher == null:
+		return
+	if NetworkSession.is_steam_match_active() and _game_sync != null:
+		var movement_sync: Variant = _game_sync.get_module(GameSettings.MODULE_MOVEMENT)
+		if movement_sync != null:
+			movement_sync.request_shockwave(dasher.player_slot, origin, direction)
+		return
+	for hit in dasher.get_dash_shockwave_hits(origin, direction):
+		(hit["target"] as Player).receive_knockback(hit["velocity"], origin)
+
+
 func build_authoritative_shot(owner_slot: int) -> Dictionary:
 	if NetworkSession.is_steam_match_active() and not OnlineMatch.is_playing_set():
 		return {}

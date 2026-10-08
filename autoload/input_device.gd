@@ -79,10 +79,10 @@ func is_reticle_active() -> bool:
 ## Short label for an action's binding on the active device, used in on-screen prompts.
 func prompt(action: StringName) -> String:
 	var gamepad: Dictionary = {
-		&"p1_shoot": "RT", &"p1_block": "LT", &"p1_jump": "A", &"p1_reload": "X", &"p1_time_control": "Y", &"ui_cancel": "B", &"pause": "START",
+		&"p1_shoot": "RT", &"p1_block": "LT", &"p1_jump": "A", &"p1_reload": "X", &"p1_time_control": "Y", &"p1_dash": "B", &"ui_cancel": "B", &"pause": "START",
 	}
 	var keyboard: Dictionary = {
-		&"p1_shoot": "LMB", &"p1_block": "RMB", &"p1_jump": "SPACE", &"p1_reload": "R", &"p1_time_control": "Q", &"ui_cancel": "ESC", &"pause": "ESC",
+		&"p1_shoot": "LMB", &"p1_block": "RMB", &"p1_jump": "SPACE", &"p1_reload": "R", &"p1_time_control": "Q", &"p1_dash": "SHIFT", &"ui_cancel": "ESC", &"pause": "ESC",
 	}
 	var table: Dictionary = gamepad if using_gamepad else keyboard
 	return str(table.get(action, ""))

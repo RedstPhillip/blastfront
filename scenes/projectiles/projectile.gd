@@ -168,6 +168,12 @@ func _on_collision(collision: KinematicCollision2D) -> void:
 			return
 		if hit_player != null and hit_player.try_reflect_projectile(self):
 			return
+		# A protected dash (Dashing Mk IV): the round flies on through the body.
+		if hit_player != null and hit_player.is_dash_protected():
+			add_collision_exception_with(hit_player)
+			hit_player.play_dash_dodge_feedback()
+			global_position += collision.get_remainder()
+			return
 
 	if _should_hover_over_collision(collision, collider):
 		_apply_hover_collision_avoidance(collision)

@@ -98,6 +98,7 @@ const NETWORK_LAST_SHOT_INITIAL_TIME: float = -1000000.0
 
 const MODULE_BLOCK: StringName = &"block"
 const MODULE_COMBAT: StringName = &"combat"
+const MODULE_MOVEMENT: StringName = &"movement"
 const MODULE_PLAYER: StringName = &"player"
 const MODULE_PROJECTILE: StringName = &"projectile"
 const MODULE_WORLD: StringName = &"world"
@@ -129,6 +130,9 @@ const PACKET_RESEARCH_QUEST_STATE: StringName = &"research_quest_state"
 const PACKET_RESEARCH_QUEST_EVENT: StringName = &"research_quest_event"
 const PACKET_RESEARCH_POINTS_AWARDED: StringName = &"research_points_awarded"
 const PACKET_AIRDROP_STATE: StringName = &"airdrop_state"
+const PACKET_DASH: StringName = &"dash"
+const PACKET_DASH_SHOCKWAVE: StringName = &"dash_shockwave"
+const PACKET_KNOCKBACK: StringName = &"knockback"
 
 const CONTROL_LOCAL: StringName = &"local"
 const CONTROL_REMOTE: StringName = &"remote"
@@ -141,6 +145,7 @@ const INPUT_P1_SHOOT: StringName = &"p1_shoot"
 const INPUT_P1_BLOCK: StringName = &"p1_block"
 const INPUT_P1_RELOAD: StringName = &"p1_reload"
 const INPUT_P1_TIME_CONTROL: StringName = &"p1_time_control"
+const INPUT_P1_DASH: StringName = &"p1_dash"
 const INPUT_PAUSE: StringName = &"pause"
 const INPUT_P2_MOVE_LEFT: StringName = &"p2_move_left"
 const INPUT_P2_MOVE_RIGHT: StringName = &"p2_move_right"
@@ -172,6 +177,19 @@ const PLAYER_WALL_JUMP_VELOCITY: Vector2 = Vector2(320.0, -500.0)
 const PLAYER_HOVER_DISTANCE: float = 24.0
 const PLAYER_HOVER_SNAP_SPEED: float = 30.0
 const PLAYER_EDGE_SLIDE_SPEED: float = 200.0
+## Dash (Movement research): a flat burst of PLAYER_DASH_SPEED for PLAYER_DASH_TIME (~150 px), leaving at a
+## little over run speed. Protection outlasts the burst by a short grace so a shot landing on the last
+## frame still misses; the shockwave at the end throws the nearest enemies away from the dasher.
+const PLAYER_DASH_SPEED: float = 880.0
+const PLAYER_DASH_TIME: float = 0.17
+const PLAYER_DASH_EXIT_SPEED_RATIO: float = 1.15
+const PLAYER_DASH_BUFFER_TIME: float = 0.1
+const PLAYER_DASH_PROTECTION_GRACE: float = 0.06
+const PLAYER_DASH_SHOCKWAVE_RADIUS: float = 96.0
+const PLAYER_DASH_SHOCKWAVE_KNOCKBACK: Vector2 = Vector2(470.0, -290.0)
+const PLAYER_DASH_SHOCKWAVE_STUN: float = 0.16
+## Highest lip a dash climbs instead of stopping at it.
+const PLAYER_DASH_STEP_HEIGHT: float = 18.0
 ## Player bodies are ~30 px round: centres closer than this mean they are stuck inside each other.
 const PLAYER_OVERLAP_DISTANCE: float = 22.0
 const PLAYER_OVERLAP_PUSH_SPEED: float = 360.0

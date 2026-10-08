@@ -1,8 +1,9 @@
 extends CharacterBody2D
 class_name Player
 
-## One fighter: movement (the State children run it), aim, block, ammo through its Gun, health, armor and
-## research effects, and all body feedback. Driven by local input, a BotBrain or network snapshots.
+## One fighter: movement (the State children run it, including the researched dash), aim, block, ammo
+## through its Gun, health, armor and research effects, and all body feedback. Driven by local input, a
+## BotBrain or network snapshots.
 
 const DEFAULT_BODY_TEXTURE: Texture2D = preload("res://assets/player/body/blue.png")
 const BODY_SHADER: Shader = preload("res://scenes/player/player_body.gdshader")
@@ -67,6 +68,7 @@ var shoot_action: StringName = GameSettings.INPUT_P1_SHOOT
 var block_action: StringName = GameSettings.INPUT_P1_BLOCK
 var reload_action: StringName = GameSettings.INPUT_P1_RELOAD
 var time_control_action: StringName = GameSettings.INPUT_P1_TIME_CONTROL
+var dash_action: StringName = GameSettings.INPUT_P1_DASH
 var shooting_enabled: bool = true
 var movement_enabled: bool = true
 var player_color_id: StringName = &""
@@ -152,6 +154,16 @@ var _face: PlayerFace = null
 var _halo: Sprite2D = null
 var _body_material: ShaderMaterial = null
 var _wall_slide_timer: float = 0.0
+## Dash (Movement research). The burst itself only runs on the owner; remote copies mirror its timers from
+## the dash packet so the host can honour the protection and the HUD can show the cooldown.
+var _dash_cooldown_timer: float = 0.0
+var _dash_buffer_timer: float = 0.0
+var _dash_timer: float = 0.0
+var _dash_direction: float = 1.0
+var _dash_protection_timer: float = 0.0
+var _dash_shockwave_armed: bool = false
+var _dashing: bool = false
+var _dash_fx: DashFx = null
 var ai_brain: BotBrain = null
 ## How fast this player's own clock runs (Time Control): movement, gun, block and bot thinking advance by
 ## delta * time_scale, and TimeFlow hands the same value to the rounds they fired. 1 is normal time.
@@ -223,6 +235,7 @@ func _process(delta: float) -> void:
 	_update_time_control(delta)
 	var own_delta: float = delta * time_scale
 	_update_block_timers(own_delta)
+	_update_dash_timers(own_delta)
 	_stun_timer = maxf(_stun_timer - own_delta, 0.0)
 	_adrenaline_timer = maxf(_adrenaline_timer - own_delta, 0.0)
 	_update_status_effect_feedback(own_delta)
@@ -244,6 +257,7 @@ func _physics_process(delta: float) -> void:
 	_update_time_control_input()
 	_update_block_input()
 	_update_movement_timers(own_delta)
+	_update_dash_input(own_delta)
 	update_wall_coyote(own_delta)
 	_update_wind_exposure(own_delta)
 	_push_out_of_players(own_delta)
@@ -297,6 +311,7 @@ func configure_local_control(slot: int, move_left: StringName, move_right: Strin
 	shoot_action = shoot
 	block_action = block
 	_can_shoot_when_controls_enabled = allow_shoot
+	ResearchManager.set_bot_marks(slot, {})
 	shooting_enabled = movement_enabled and _can_shoot_when_controls_enabled
 	_apply_control_mode()
 	_apply_player_palette()
@@ -307,6 +322,7 @@ func configure_local_control(slot: int, move_left: StringName, move_right: Strin
 func configure_remote_control(slot: int) -> void:
 	player_slot = slot
 	control_mode = GameSettings.CONTROL_REMOTE
+	ResearchManager.set_bot_marks(slot, {})
 	_can_shoot_when_controls_enabled = false
 	shooting_enabled = false
 	_block_active = false
@@ -333,6 +349,7 @@ func configure_ai_control(slot: int, bot_difficulty: int) -> void:
 		ai_brain.name = "BotBrain"
 		add_child(ai_brain)
 	ai_brain.setup(self, bot_difficulty)
+	ResearchManager.set_bot_marks(slot, BotBrain.research_marks(bot_difficulty))
 	_has_network_target = false
 	_apply_control_mode()
 	_apply_player_palette()
@@ -346,12 +363,15 @@ func set_controls_enabled(enabled: bool) -> void:
 	if not movement_enabled:
 		_block_active = false
 		_block_timer = 0.0
+		_dash_buffer_timer = 0.0
 
 
 func reset_research_round_state() -> void:
 	_phoenix_used = false
 	_passive_heal_progress = 0.0
 	_clear_time_slow()
+	_dash_cooldown_timer = 0.0
+	_dash_protection_timer = 0.0
 
 
 func reset_network_state_to_current_transform() -> void:
@@ -456,6 +476,9 @@ func apply_incoming_damage(
 	allow_delay: bool = true
 ) -> int:
 	if amount <= 0 or health_component == null:
+		return 0
+	if is_dash_protected():
+		play_dash_dodge_feedback()
 		return 0
 
 	var modified_damage: int = get_modified_incoming_damage(amount)
@@ -574,6 +597,8 @@ func set_eliminated(eliminated: bool) -> void:
 		_block_active = false
 		_block_timer = 0.0
 		_block_cooldown_timer = 0.0
+		_cancel_dash()
+		_dash_protection_timer = 0.0
 		if _state_machine != null:
 			_state_machine.process_mode = Node.PROCESS_MODE_DISABLED
 	else:
@@ -584,6 +609,9 @@ func set_eliminated(eliminated: bool) -> void:
 		_block_active = false
 		_block_timer = 0.0
 		_block_cooldown_timer = 0.0
+		_dash_cooldown_timer = 0.0
+		if _state_machine != null and _state_machine.current_state != null and _state_machine.current_state.name == &"DashState":
+			_state_machine.change_state("FallState")
 		if status_effect_manager != null:
 			status_effect_manager.clear_all()
 		_initialize_feet()
@@ -656,6 +684,10 @@ func is_block_pressed() -> bool:
 	return _is_action_available(block_action, movement_enabled, true)
 
 
+func is_dash_pressed() -> bool:
+	return _is_action_available(dash_action, movement_enabled, true)
+
+
 ## Held trigger keeps firing for local players; bots and remote players fire on discrete presses.
 func is_shoot_held() -> bool:
 	if control_mode != GameSettings.CONTROL_LOCAL:
@@ -688,6 +720,8 @@ func _is_ai_action_active(action: StringName, enabled: bool, just_pressed: bool)
 		return ai_brain.block_pressed
 	if action == time_control_action:
 		return ai_brain.time_control_pressed
+	if action == dash_action:
+		return ai_brain.dash_pressed
 	return false
 
 
@@ -795,7 +829,9 @@ func _physics_process_remote(delta: float) -> void:
 	if not _has_network_target:
 		return
 
-	var interpolation_weight: float = clampf(delta * remote_interpolation_speed, 0.0, 1.0)
+	# A mirrored dash covers ~150 px in a few snapshots; chase it harder so it reads as a burst, not a glide.
+	var chase: float = 2.5 if _dash_timer > 0.0 else 1.0
+	var interpolation_weight: float = clampf(delta * remote_interpolation_speed * chase, 0.0, 1.0)
 	var distance_to_target_squared: float = global_position.distance_squared_to(_network_target_position)
 	var snap_distance: float = GameSettings.PLAYER_REMOTE_SNAP_DISTANCE
 	if distance_to_target_squared > snap_distance * snap_distance:
@@ -861,6 +897,213 @@ func jump() -> void:
 	_coyote_timer = 0.0
 	consume_jump_buffer()
 	_emit_jump_feedback(Vector2.DOWN)
+
+
+# --- Dash (Movement research) ------------------------------------------------------------------------
+
+func has_dash() -> bool:
+	return ResearchManager.has_dash(player_slot)
+
+
+func is_dashing() -> bool:
+	return _dashing or _dash_timer > 0.0
+
+
+func is_dash_protected() -> bool:
+	return _dash_protection_timer > 0.0
+
+
+func get_dash_direction() -> float:
+	return _dash_direction
+
+
+## 1.0 when the dash is ready, filling up while it recharges.
+func get_dash_cooldown_ratio() -> float:
+	var cooldown: float = ResearchManager.get_dash_cooldown(player_slot)
+	if _dash_cooldown_timer <= 0.0 or cooldown <= 0.0:
+		return 1.0
+	return clampf(1.0 - _dash_cooldown_timer / cooldown, 0.0, 1.0)
+
+
+func can_dash() -> bool:
+	return has_dash() and movement_enabled and not _is_eliminated and _stun_timer <= 0.0 and _dash_cooldown_timer <= 0.0 and not _dashing
+
+
+## A press is remembered briefly, so tapping dash a moment before the cooldown ends still dashes.
+func _update_dash_input(delta: float) -> void:
+	if is_dash_pressed():
+		_dash_buffer_timer = GameSettings.PLAYER_DASH_BUFFER_TIME
+	else:
+		_dash_buffer_timer = maxf(_dash_buffer_timer - delta, 0.0)
+	if _dash_buffer_timer > 0.0 and can_dash() and _state_machine != null:
+		_dash_buffer_timer = 0.0
+		_state_machine.change_state("DashState")
+
+
+func _update_dash_timers(delta: float) -> void:
+	_dash_cooldown_timer = maxf(_dash_cooldown_timer - delta, 0.0)
+	_dash_protection_timer = maxf(_dash_protection_timer - delta, 0.0)
+	if control_mode == GameSettings.CONTROL_REMOTE and _dash_timer > 0.0:
+		_dash_timer = maxf(_dash_timer - delta, 0.0)
+		if _dash_timer <= 0.0 and _dash_fx != null:
+			_dash_fx.stop_trail()
+
+
+## Starts the burst (DashState.enter): along the stick, else the way the player faces. Cooldown, protection
+## and the shockwave come from this player's Dashing marks.
+func begin_dash() -> void:
+	var direction: float = signf(get_move_direction())
+	if direction == 0.0:
+		direction = signf(last_dir) if last_dir != 0.0 else 1.0
+	# Off a wall slide the stick still points into the wall: dash away from it instead of into it.
+	if is_on_wall() and signf(get_wall_normal().x) == -direction:
+		direction = -direction
+	var protected: bool = ResearchManager.has_dash_protection(player_slot)
+	_dash_direction = direction
+	last_dir = direction
+	_dashing = true
+	_dash_timer = GameSettings.PLAYER_DASH_TIME
+	_dash_cooldown_timer = ResearchManager.get_dash_cooldown(player_slot)
+	_dash_shockwave_armed = ResearchManager.has_dash_shockwave(player_slot)
+	if protected:
+		_dash_protection_timer = GameSettings.PLAYER_DASH_TIME + GameSettings.PLAYER_DASH_PROTECTION_GRACE
+	_external_launch = false
+	velocity = Vector2(direction * GameSettings.PLAYER_DASH_SPEED, 0.0)
+	_play_dash_feedback(direction, protected)
+	_notify_dash(direction, protected, _dash_shockwave_armed)
+
+
+## Lifts the dash over a low lip it ran into (up to PLAYER_DASH_STEP_HEIGHT), when the body fits above it
+## and is clear going on. True when it stepped.
+func try_dash_step_up() -> bool:
+	var rise: Vector2 = Vector2(0.0, -GameSettings.PLAYER_DASH_STEP_HEIGHT)
+	var ahead: Vector2 = Vector2(_dash_direction * 6.0, 0.0)
+	if test_move(global_transform, rise) or test_move(global_transform.translated(rise), ahead):
+		return false
+	global_position += rise
+	return true
+
+
+## One physics step of the burst; true once it has run its course.
+func advance_dash(delta: float) -> bool:
+	_dash_timer = maxf(_dash_timer - delta, 0.0)
+	return _dash_timer <= 0.0
+
+
+## Leaves the burst (DashState.exit, or a jump out of it): carries on at a little over run speed (stops
+## against a wall) and releases the shockwave. Safe to call twice.
+func end_dash() -> void:
+	if not _dashing:
+		return
+	_dashing = false
+	_dash_timer = 0.0
+	if _dash_fx != null:
+		_dash_fx.stop_trail()
+	velocity.x = 0.0 if is_on_wall() else _dash_direction * speed * GameSettings.PLAYER_DASH_EXIT_SPEED_RATIO
+	velocity.y = 0.0
+	_body_punch_scale = Vector2(0.9, 1.08)
+	if _dash_shockwave_armed:
+		_dash_shockwave_armed = false
+		_release_dash_shockwave()
+
+
+## Stops a dash without its exit: a knockback or an elimination took over.
+func _cancel_dash() -> void:
+	_dashing = false
+	_dash_timer = 0.0
+	_dash_shockwave_armed = false
+	if _dash_fx != null:
+		_dash_fx.stop_trail()
+
+
+func _release_dash_shockwave() -> void:
+	var origin: Vector2 = global_position
+	play_dash_shockwave_feedback(origin, _dash_direction)
+	var world: Node = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)
+	if world != null and world.has_method(&"request_dash_shockwave"):
+		world.request_dash_shockwave(self, origin, _dash_direction)
+
+
+## Who a dash shockwave released at origin throws, and how: every enemy in reach that is not itself inside a
+## protected dash, sent away from the blast (along the dash when straight above it). Offline and on the host.
+func get_dash_shockwave_hits(origin: Vector2, direction: float) -> Array[Dictionary]:
+	var hits: Array[Dictionary] = []
+	var knockback: Vector2 = GameSettings.PLAYER_DASH_SHOCKWAVE_KNOCKBACK
+	for target in _get_players_in_radius_from(origin, GameSettings.PLAYER_DASH_SHOCKWAVE_RADIUS, false):
+		if target.player_slot == player_slot or target.is_dash_protected():
+			continue
+		var side: float = signf(target.global_position.x - origin.x)
+		if absf(target.global_position.x - origin.x) < 4.0:
+			side = direction if direction != 0.0 else 1.0
+		hits.append({"target": target, "velocity": Vector2(side * knockback.x, knockback.y)})
+	return hits
+
+
+## Thrown by a dash shockwave. Only the side that moves this player applies the throw (with a short stun so
+## it is not steered straight back); everywhere else this is just the feedback.
+func receive_knockback(knockback: Vector2, _source_position: Vector2) -> void:
+	var away: Vector2 = Vector2(signf(knockback.x), -0.35).normalized()
+	GameJuice.spawn_burst(&"knockback", global_position, away, Color.WHITE)
+	_body_punch_scale = Vector2(1.22, 0.8)
+	if _face != null:
+		_face.set_expression(PlayerFace.Mood.SHOCKED, 0.4)
+	if _is_local_view_player():
+		GameJuice.shake(2.4, 0.1)
+		GameJuice.kick(away, 4.0)
+	if control_mode == GameSettings.CONTROL_REMOTE or _is_eliminated:
+		return
+	_cancel_dash()
+	velocity = knockback
+	_external_launch = true
+	_stun_timer = maxf(_stun_timer, GameSettings.PLAYER_DASH_SHOCKWAVE_STUN)
+	if _state_machine != null:
+		_state_machine.change_state("JumpState" if knockback.y < 0.0 else "FallState")
+
+
+## Mirrors a dash the other side started (dash packet): the trail and sound, the cooldown for the HUD and,
+## on the host, the protection window this player's hits are judged by.
+func apply_remote_dash(direction: float, protected: bool) -> void:
+	if direction != 0.0:
+		_dash_direction = signf(direction)
+	last_dir = _dash_direction
+	_dash_timer = GameSettings.PLAYER_DASH_TIME
+	_dash_cooldown_timer = ResearchManager.get_dash_cooldown(player_slot)
+	if protected:
+		_dash_protection_timer = GameSettings.PLAYER_DASH_TIME + GameSettings.PLAYER_DASH_PROTECTION_GRACE
+	_play_dash_feedback(_dash_direction, protected)
+
+
+func _play_dash_feedback(direction: float, protected: bool) -> void:
+	GameJuice.spawn_burst(&"dash", global_position + Vector2(-direction * 10.0, hover_dist * 0.5), Vector2(direction, 0.0), get_visual_tint())
+	AudioDirector.play_at(&"dash", global_position)
+	if protected:
+		AudioDirector.play_at(&"dash_dodge", global_position)
+	_body_punch_scale = Vector2(1.32, 0.74)
+	if _dash_fx != null:
+		_dash_fx.start_trail()
+	if _face != null:
+		_face.set_expression(PlayerFace.Mood.FOCUS, GameSettings.PLAYER_DASH_TIME + 0.1)
+	if _is_local_view_player():
+		GameJuice.kick(Vector2(direction, 0.0), 2.5)
+
+
+func play_dash_shockwave_feedback(origin: Vector2, direction: float) -> void:
+	GameJuice.spawn_burst(&"dash_shockwave", origin, Vector2(direction, 0.0), get_visual_tint())
+	AudioDirector.play_at(&"dash_shockwave", origin)
+	GameJuice.shockwave(origin, 0.45, 0.35)
+	if _is_local_view_player():
+		GameJuice.shake(1.8, 0.08)
+
+
+## A hit the dash's protection let through: a quick whiff instead of damage.
+func play_dash_dodge_feedback() -> void:
+	AudioDirector.play_at(&"dash_dodge", global_position)
+
+
+func _notify_dash(direction: float, protected: bool, shockwave: bool) -> void:
+	var world: Node = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)
+	if world != null and world.has_method(&"request_dash"):
+		world.request_dash(self, direction, protected, shockwave)
 
 
 func apply_horizontal_movement(delta: float, max_speed: float, acceleration: float, friction: float) -> float:
@@ -1696,6 +1939,9 @@ func _setup_visual_extras() -> void:
 	_halo.z_index = -1
 	_halo.show_behind_parent = true
 	add_child(_halo)
+	_dash_fx = DashFx.new()
+	_dash_fx.name = "DashFx"
+	add_child(_dash_fx)
 	var block_fx: BlockShieldFx = BlockShieldFx.new()
 	block_fx.name = "BlockShieldFx"
 	add_child(block_fx)

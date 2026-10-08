@@ -67,6 +67,8 @@ static func roman(mark: int) -> String:
 			return "II"
 		3:
 			return "III"
+		4:
+			return "IV"
 	return ""
 
 

@@ -18,6 +18,7 @@ const CONTROL_ROWS: Array[Array] = [
 	["Block", "RMB", "LT / LB"],
 	["Reload", "R", "X"],
 	["Time Control", "Q", "Y"],
+	["Dash", "SHIFT", "B"],
 	["Orders", "TAB", "BACK"],
 	["Pause", "ESC", "START"],
 ]
@@ -231,7 +232,7 @@ func _build_gameplay_tab() -> void:
 
 func _build_controls_tab() -> void:
 	var page: VBoxContainer = _make_page("CONTROLS")
-	page.add_theme_constant_override("separation", 4)
+	page.add_theme_constant_override("separation", 3)
 	# Column heads sit over the key columns, in the same section style as the other tabs.
 	var heads: HBoxContainer = _row(page, "")
 	heads.custom_minimum_size.y = 20.0
@@ -244,7 +245,7 @@ func _build_controls_tab() -> void:
 		heads.add_child(head)
 	for entry in CONTROL_ROWS:
 		var row: HBoxContainer = _row(page, str(entry[0]))
-		row.custom_minimum_size.y = 28.0
+		row.custom_minimum_size.y = 26.0
 		row.add_child(_key_chip(str(entry[1])))
 		row.add_child(_key_chip(str(entry[2])))
 

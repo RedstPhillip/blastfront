@@ -69,6 +69,33 @@ func _build() -> void:
 				"color": Color(0.36, 0.42, 0.3, 1.0), "spin": Vector2(-400, 400)})
 			if strength > 1.0:
 				FxLib.ring(self, Color(1, 1, 1, 0.3), 16.0, 90.0 * strength, 0.32, false)
+		&"dash":
+			# Kicked-up dust behind the dasher and a thin air wake ahead of the burst.
+			_emit({"amount": 6, "lifetime": 0.4, "direction": Vector2(-_direction.x, -0.25), "spread": 30.0,
+				"speed": Vector2(60.0, 160.0), "gravity": Vector2(0, -25), "size": Vector2(0.2, 0.34), "curve": &"puff",
+				"color": DUST_COLOR, "damping": Vector2(160, 260)})
+			_emit({"texture": FxLib.TEX_SPARK, "amount": 5, "lifetime": 0.18, "direction": Vector2(-_direction.x, 0.0),
+				"spread": 12.0, "speed": Vector2(260.0, 420.0), "size": Vector2(0.25, 0.45), "align": true,
+				"color": Color(_tint.lerp(Color.WHITE, 0.6), 0.75), "additive": true})
+			_track(0.4)
+		&"dash_shockwave":
+			FxLib.ring(self, Color(_tint.lerp(Color.WHITE, 0.55), 0.85), 16.0, GameSettings.PLAYER_DASH_SHOCKWAVE_RADIUS * 2.0, 0.3)
+			FxLib.ring(self, Color(1, 1, 1, 0.35), 8.0, GameSettings.PLAYER_DASH_SHOCKWAVE_RADIUS * 1.4, 0.22, false)
+			_emit({"amount": 10, "lifetime": 0.45, "direction": Vector2.RIGHT, "spread": 180.0,
+				"speed": Vector2(90.0, 220.0), "gravity": Vector2(0, -20), "size": Vector2(0.22, 0.4), "curve": &"puff",
+				"color": DUST_COLOR, "damping": Vector2(220, 340), "radius": 8.0})
+			_emit({"texture": FxLib.TEX_SPARK, "amount": 10, "lifetime": 0.24, "direction": Vector2(_direction.x, -0.2),
+				"spread": 60.0, "speed": Vector2(200.0, 380.0), "gravity": Vector2(0, 300), "size": Vector2(0.3, 0.5),
+				"align": true, "color": Color(_tint.lerp(Color.WHITE, 0.5), 0.9), "additive": true})
+			FxLib.glow_flash(self, Color(_tint.lerp(Color.WHITE, 0.5), 0.45), GameSettings.PLAYER_DASH_SHOCKWAVE_RADIUS * 2.2, 0.2)
+			_track(0.5)
+		&"knockback":
+			_emit({"texture": FxLib.TEX_SPARK, "amount": 7, "lifetime": 0.22, "direction": _direction, "spread": 35.0,
+				"speed": Vector2(160.0, 300.0), "gravity": Vector2(0, 400), "size": Vector2(0.25, 0.45), "align": true,
+				"color": Color(1, 1, 1, 0.9), "additive": true})
+			_emit({"amount": 4, "lifetime": 0.35, "direction": -_direction, "spread": 40.0, "speed": Vector2(30.0, 90.0),
+				"gravity": Vector2(0, -20), "size": Vector2(0.18, 0.3), "curve": &"puff", "color": DUST_COLOR})
+			_track(0.35)
 		&"hit":
 			_build_hit(clampf(_power, 1.0, 1.5))
 		&"hit_heavy":

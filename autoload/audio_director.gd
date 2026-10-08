@@ -105,6 +105,17 @@ const EVENTS: Dictionary = {
 	&"wall_slide": {"bus": &"SFX", "voices": 1, "cooldown": 0.12, "layers": [
 		{"files": ["step_grass_0", "step_grass_1", "step_grass_2", "step_grass_3", "step_grass_4"], "volume": -19.0, "pitch": Vector2(1.3, 1.6)},
 	]},
+	&"dash": {"bus": &"SFX", "voices": 2, "cooldown": 0.06, "layers": [
+		{"files": ["dash_0", "dash_1", "dash_2"], "volume": -5.0, "pitch": Vector2(0.92, 1.1)},
+		{"files": ["step_grass_0", "step_grass_2", "step_grass_4"], "volume": -13.0, "pitch": Vector2(0.75, 0.9)},
+	]},
+	&"dash_shockwave": {"bus": &"SFX", "voices": 2, "cooldown": 0.08, "layers": [
+		{"files": ["dash_shock"], "volume": -3.0, "pitch": Vector2(0.94, 1.06)},
+		{"files": ["land_thud_0", "land_thud_1", "land_thud_2", "land_thud_3", "land_thud_4"], "volume": -7.0, "pitch": Vector2(1.05, 1.2)},
+	]},
+	&"dash_dodge": {"bus": &"SFX", "voices": 2, "cooldown": 0.06, "layers": [
+		{"files": ["dash_0", "dash_1", "dash_2"], "volume": -12.0, "pitch": Vector2(1.5, 1.7)},
+	]},
 	&"spawn": {"bus": &"SFX", "voices": 3, "cooldown": 0.05, "layers": [
 		{"files": ["legacy:spawn.wav"], "volume": -4.0, "pitch": Vector2(0.96, 1.04)},
 		{"files": ["teleport_0", "teleport_1"], "volume": -13.0, "pitch": Vector2(0.9, 1.05)},

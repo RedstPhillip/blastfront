@@ -65,6 +65,8 @@ func _rebuild() -> void:
 		[InputDevice.prompt(&"p1_block"), "BLOCK"],
 		[InputDevice.prompt(&"p1_reload"), "RELOAD"],
 	]
+	if ResearchManager.has_dash():
+		entries.append([InputDevice.prompt(&"p1_dash"), "DASH"])
 	if gamepad:
 		entries.insert(1, ["R STICK", "AIM"])
 	var world: Node = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)

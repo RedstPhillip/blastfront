@@ -1,7 +1,7 @@
 extends Control
 class_name ResearchPage
 
-## Research between sets. The tree fills the left: two lanes (economy, field) read left to right from first
+## Research between sets. The tree fills the left: three lanes (economy, field, movement) read left to right from first
 ## project to last, every project named, its marks shown as ring segments, links light up in the intel
 ## colour once powered. Only projects that exist in the game are shown. The panel docked on the right holds
 ## the research points and the selected project in a fixed layout (name, a few words, what each mark is
@@ -15,6 +15,7 @@ const COLUMN_STEP: float = 116.0
 const LANES: Array[Dictionary] = [
 	{"branch": &"economy", "name": "ECONOMY", "rows": 2},
 	{"branch": &"miscellaneous", "name": "FIELD", "rows": 2},
+	{"branch": &"movement", "name": "MOVEMENT", "rows": 1},
 ]
 ## Grid position of every project: column and row inside its lane.
 const LAYOUT: Dictionary = {
@@ -25,8 +26,11 @@ const LAYOUT: Dictionary = {
 	&"time_control": Vector2i(5, 0), &"faster_capture": Vector2i(2, 1), &"capture_bonus": Vector2i(3, 1), &"capture_radius": Vector2i(4, 1),
 	&"dashing": Vector2i(0, 0), &"sliding": Vector2i(1, 0),
 }
-const ROW_STEP: float = 100.0
-const LANE_GAP: float = 64.0
+## Three lanes have to fit above the prompt bar at 720 px: a badge's labels end ~65 px under its centre and
+## the next row's ring starts ~66 px above its own, so rows cannot sit much closer than this.
+const TREE_TOP: float = 80.0
+const ROW_STEP: float = 96.0
+const LANE_GAP: float = 36.0
 
 var _top_inset: float = 0.0
 var _nodes_by_id: Dictionary = {}
@@ -108,7 +112,7 @@ func _layout() -> void:
 	_tree.position = Vector2.ZERO
 	_tree.size = size
 	_connections.size = size
-	var y: float = top + 92.0
+	var y: float = top + TREE_TOP
 	_lane_labels.clear()
 	for lane in LANES:
 		var lane_top: float = y
@@ -389,8 +393,9 @@ func _draw_dock() -> void:
 			_dock.draw_string(UiStyle.FONT_BOLD, Vector2(x + inner - cost_width, y), cost_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, cost_color)
 	var missing: String = _missing_requirement(definition) if mark == 0 else ""
 	if missing != "":
-		_dock.draw_string(UiStyle.FONT_BOLD, Vector2(x, 362.0), "NEEDS", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, LoadoutStyle.TEXT_MUTED)
-		_dock.draw_string(UiStyle.FONT_UI, Vector2(x + 56.0, 363.0), missing, HORIZONTAL_ALIGNMENT_LEFT, inner - 56.0, 14, LoadoutStyle.TEXT)
+		var needs_y: float = 250.0 + float(max_mark) * 30.0 + 22.0
+		_dock.draw_string(UiStyle.FONT_BOLD, Vector2(x, needs_y), "NEEDS", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, LoadoutStyle.TEXT_MUTED)
+		_dock.draw_string(UiStyle.FONT_UI, Vector2(x + 56.0, needs_y + 1.0), missing, HORIZONTAL_ALIGNMENT_LEFT, inner - 56.0, 14, LoadoutStyle.TEXT)
 
 
 func _section(x: float, y: float, width: float, text: String) -> void:

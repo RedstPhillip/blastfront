@@ -4,7 +4,8 @@ extends Control
 ## A player's status in a bottom corner, kept slim so the arena stays visible: the portrait with live eyes
 ## inside a thin ring that charges with the block (white while blocking), name and health, a segmented
 ## health bar with a delayed damage trail, status effects, the Time Control dial for whoever has it, and for
-## the opponent a reload tag (your own ammo lives at the crosshair). No panel: a soft shadow keeps it legible, and the whole strip steps back
+## the opponent a reload tag (your own ammo lives at the crosshair). Once Dashing is researched, a small
+## badge on the portrait's lower corner refills with the dash cooldown. No panel: a soft shadow keeps it legible, and the whole strip steps back
 ## whenever a player passes behind it.
 ## Every layer only redraws when its state changes; pulses and shakes run on modulate/position.
 
@@ -20,6 +21,9 @@ const HEALTH_SEGMENT: int = 25
 const LOW_HEALTH_RATIO: float = 0.3
 const RING_STEPS: float = 48.0
 const TIME_DIAL_STEPS: float = 24.0
+const DASH_STEPS: float = 24.0
+const DASH_BADGE_OFFSET: Vector2 = Vector2(17.0, 16.0)
+const DASH_BADGE_RADIUS: float = 9.0
 const OCCLUDED_ALPHA: float = 0.3
 const DOT_TEXTURE: Texture2D = preload("res://assets/fx/dot.png")
 const BODY_TEXTURE_PATH: String = "res://assets/player/body/%s.png"
@@ -46,6 +50,9 @@ var _charge_step: int = -1
 var _blocking: bool = false
 var _ability_ready: bool = false
 var _ready_pop: float = 0.0
+var _has_dash: bool = false
+var _dash_step: int = -1
+var _dash_pop: float = 0.0
 var _reload_signature: String = ""
 var _status_signature: String = ""
 var _time_signature: String = ""
@@ -60,6 +67,7 @@ var _shake_root: Control = null
 var _shadow: Control = null
 var _portrait_node: Control = null
 var _ring: Control = null
+var _dash_badge: Control = null
 var _bar: Control = null
 var _bar_flash: Control = null
 var _status: Control = null
@@ -100,6 +108,7 @@ func _build() -> void:
 	_shake_root = _layer(self)
 	_portrait_node = _layer(_shake_root, _draw_portrait)
 	_ring = _layer(_shake_root, _draw_ring)
+	_dash_badge = _layer(_shake_root, _draw_dash_badge)
 	_bar = _layer(_shake_root, _draw_bar)
 	_bar_flash = _layer(_shake_root, _draw_bar_flash)
 	_bar_flash.modulate.a = 0.0
@@ -156,7 +165,7 @@ func _refresh_labels() -> void:
 
 
 func _redraw_all() -> void:
-	for layer in [_shadow, _portrait_node, _ring, _bar, _bar_flash, _status, _time_chip]:
+	for layer in [_shadow, _portrait_node, _ring, _dash_badge, _bar, _bar_flash, _status, _time_chip]:
 		layer.queue_redraw()
 
 
@@ -175,6 +184,7 @@ func _process(delta: float) -> void:
 		_redraw_all()
 	_update_health(delta)
 	_update_ring(delta)
+	_update_dash(delta)
 	_update_reload()
 	_update_status()
 	_update_time_chip(delta)
@@ -248,6 +258,20 @@ func _update_ring(delta: float) -> void:
 	if _ready_pop > 0.0:
 		_ready_pop = maxf(_ready_pop - delta * 2.5, 0.0)
 		_ring.queue_redraw()
+
+
+func _update_dash(delta: float) -> void:
+	var has_dash: bool = _player.has_dash()
+	var step: int = int(round(_player.get_dash_cooldown_ratio() * DASH_STEPS)) if has_dash else -1
+	if has_dash != _has_dash or step != _dash_step:
+		if has_dash and _dash_step >= 0 and _dash_step < int(DASH_STEPS) and step >= int(DASH_STEPS):
+			_dash_pop = 1.0
+		_has_dash = has_dash
+		_dash_step = step
+		_dash_badge.queue_redraw()
+	if _dash_pop > 0.0:
+		_dash_pop = maxf(_dash_pop - delta * 3.0, 0.0)
+		_dash_badge.queue_redraw()
 
 
 ## Only the opponent's reload is shown here; your own lives at the crosshair.
@@ -388,6 +412,30 @@ func _draw_ring(layer: Control) -> void:
 		layer.draw_arc(center, RING_RADIUS, -PI * 0.5, -PI * 0.5 + TAU * charge, maxi(int(48.0 * charge), 4), color, 2.5, true)
 	if _ready_pop > 0.0:
 		layer.draw_arc(center, RING_RADIUS + 3.0 + (1.0 - _ready_pop) * 6.0, 0.0, TAU, 48, LoadoutStyle.with_alpha(UiStyle.SHIELD, _ready_pop * 0.7), 1.5, true)
+
+
+## The dash's cooldown: a dark pip on the portrait's lower corner with a double chevron, its rim filling as
+## the dash recharges; once ready the chevrons light up and a ring pops out once.
+func _draw_dash_badge(layer: Control) -> void:
+	if not _has_dash:
+		return
+	var side: float = -1.0 if mirrored else 1.0
+	var center: Vector2 = _portrait_center() + Vector2(DASH_BADGE_OFFSET.x * side, DASH_BADGE_OFFSET.y)
+	var ratio: float = clampf(float(maxi(_dash_step, 0)) / DASH_STEPS, 0.0, 1.0)
+	var ready: bool = ratio >= 1.0
+	layer.draw_circle(center, DASH_BADGE_RADIUS + 1.5, Color(0.02, 0.022, 0.024, 0.95), true, -1.0, true)
+	layer.draw_arc(center, DASH_BADGE_RADIUS, 0.0, TAU, 32, Color(1, 1, 1, 0.12), 2.0, true)
+	if ratio > 0.0:
+		var rim: Color = UiStyle.TEXT if ready else LoadoutStyle.with_alpha(UiStyle.TEXT, 0.6)
+		layer.draw_arc(center, DASH_BADGE_RADIUS, -PI * 0.5, -PI * 0.5 + TAU * ratio, maxi(int(32.0 * ratio), 3), rim, 2.0, true)
+	var glyph: Color = UiStyle.TEXT if ready else Color(1, 1, 1, 0.22)
+	for x in [-2.3, 2.1]:
+		var points: PackedVector2Array = PackedVector2Array()
+		for corner in [Vector2(-2.4, -4.0), Vector2(-0.4, -4.0), Vector2(2.6, 0.0), Vector2(-0.4, 4.0), Vector2(-2.4, 4.0), Vector2(0.6, 0.0)]:
+			points.append(center + Vector2((corner.x + x) * side, corner.y))
+		layer.draw_colored_polygon(points, glyph)
+	if _dash_pop > 0.0:
+		layer.draw_arc(center, DASH_BADGE_RADIUS + 2.0 + (1.0 - _dash_pop) * 6.0, 0.0, TAU, 32, LoadoutStyle.with_alpha(UiStyle.TEXT, _dash_pop * 0.75), 1.5, true)
 
 
 func _draw_bar(layer: Control) -> void:

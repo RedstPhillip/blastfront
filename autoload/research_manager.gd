@@ -1,7 +1,7 @@
 extends Node
 
 ## Research points and the research tree: definitions, levels per player and the gameplay effects they
-## grant (life steal, last stand, healing, capture bonuses, economy perks).
+## grant (life steal, last stand, healing, capture bonuses, economy perks, movement moves).
 
 signal research_changed
 signal research_points_changed(points: int)
@@ -36,6 +36,8 @@ const CAPTURE_RADIUS: StringName = &"capture_radius"
 var research_points: int = DEFAULT_RESEARCH_POINTS
 var _local_marks: Dictionary = {}
 var _remote_marks_by_player: Dictionary = {}
+## Marks the game hands to bots (they never visit the research page): slot -> {research_id: mark}.
+var _bot_marks_by_player: Dictionary = {}
 var _definitions: Dictionary = {}
 
 
@@ -149,6 +151,14 @@ func reset_points_for_big_round() -> void:
 	research_points_changed.emit(research_points)
 	research_changed.emit()
 	_publish_local_profile()
+
+
+## Gives a bot fixed marks for the moves it is allowed to use (empty clears them).
+func set_bot_marks(player_slot: int, marks: Dictionary) -> void:
+	if marks.is_empty():
+		_bot_marks_by_player.erase(player_slot)
+	else:
+		_bot_marks_by_player[player_slot] = marks.duplicate()
 
 
 func get_local_profile() -> Dictionary:
@@ -336,6 +346,30 @@ func get_time_control_profile(player_slot: int = 0) -> Dictionary:
 	return TIME_CONTROL_MARKS[mini(mark, TIME_CONTROL_MARKS.size()) - 1]
 
 
+## Dashing's mark for a player; like Time Control, the sandbox lets the dash be tried without research.
+func get_dash_mark(player_slot: int = 0) -> int:
+	var mark: int = get_mark(DASHING, player_slot)
+	if mark == 0 and NetworkSession.is_training():
+		return 1
+	return mark
+
+
+func has_dash(player_slot: int = 0) -> bool:
+	return get_dash_mark(player_slot) > 0
+
+
+func get_dash_cooldown(player_slot: int = 0) -> float:
+	return 2.4 if get_dash_mark(player_slot) <= 1 else 1.4
+
+
+func has_dash_shockwave(player_slot: int = 0) -> bool:
+	return get_dash_mark(player_slot) >= 3
+
+
+func has_dash_protection(player_slot: int = 0) -> bool:
+	return get_dash_mark(player_slot) >= 4
+
+
 # Players are handled untyped in this autoload on purpose: naming the Player class here would compile the
 # whole player (and everything it uses) at start-up, before the menu can appear.
 func apply_local_life_steal(source_slot: int, applied_damage: int) -> int:
@@ -374,6 +408,8 @@ func _marks_for_player(player_slot: int) -> Dictionary:
 	var effective_slot: int = player_slot
 	if effective_slot <= 0:
 		effective_slot = NetworkSession.local_player_slot
+	if _bot_marks_by_player.has(effective_slot):
+		return _bot_marks_by_player[effective_slot]
 	if effective_slot == NetworkSession.local_player_slot:
 		return _local_marks
 	var marks_variant: Variant = _remote_marks_by_player.get(effective_slot, {})
@@ -448,7 +484,7 @@ func _build_definitions() -> Dictionary:
 		_definition(BONUS_MARK, "Prototype Assembly", BRANCH_ECONOMY, "res://assets/ui/research/bonus_mark.svg", [3, 6, 10], Vector2(690, 130), [_require(COIN_INTEREST)], true, 70),
 		_definition(LUCK, "Quality Control", BRANCH_ECONOMY, "res://assets/ui/research/luck.svg", [2, 5, 9], Vector2(870, 130), [_require(CONDITION_WEAR)], true, 80),
 
-		_definition(DASHING, "Dashing", BRANCH_MOVEMENT, "res://assets/ui/research/dashing.svg", [4, 8, 14], Vector2(330, 260), [], false, 110),
+		_definition(DASHING, "Dashing", BRANCH_MOVEMENT, "res://assets/ui/research/dashing.svg", [4, 7, 11, 15], Vector2(330, 260), [], true, 110),
 		_definition(SLIDING, "Sliding", BRANCH_MOVEMENT, "res://assets/ui/research/sliding.svg", [4, 8, 13], Vector2(570, 260), [_require(DASHING)], false, 120),
 
 		_definition(LIFE_STEAL, "Life Steal", BRANCH_MISC, "res://assets/ui/research/life_steal.svg", [3, 7, 12], Vector2(270, 395), [], true, 210),
@@ -486,7 +522,7 @@ const PRESENTATION: Dictionary = {
 	RESEARCH_YIELD: {"summary": "More RP from orders", "label": "RP BONUS", "levels": ["+20%", "+40%", "+65%"]},
 	BONUS_MARK: {"summary": "Bought blueprints can arrive as MK II", "label": "CHANCE", "levels": ["6%", "14%", "26%"]},
 	LUCK: {"summary": "Better condition from the shop", "label": "EXTRA ROLLS", "levels": ["1", "2", "3"]},
-	DASHING: {"summary": "Dash", "label": "", "levels": ["Unlock", "Cooldown", "Shockwave"]},
+	DASHING: {"summary": "Burst sideways, on the ground or in the air", "label": "EACH MARK ADDS", "levels": ["Dash · 2.4 s", "Cooldown 1.4 s", "Shockwave", "No damage"]},
 	SLIDING: {"summary": "Slide", "label": "", "levels": ["Unlock", "Speed", "Control"]},
 	LIFE_STEAL: {"summary": "Heal from damage dealt", "label": "HEAL", "levels": ["5%", "10%", "16%"]},
 	RAGE: {"summary": "More damage below 20% health", "label": "DAMAGE", "levels": ["+15%", "+30%", "+50%"]},

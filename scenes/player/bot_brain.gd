@@ -2,7 +2,7 @@ class_name BotBrain
 extends Node
 
 ## AI controller for a Player in CONTROL_AI mode. Produces the same inputs a human would:
-## movement axis, jump press/hold, shoot press, block press and an aim position.
+## movement axis, jump press/hold, shoot press, block press, dash press and an aim position.
 ## Movement follows a LevelNavigation graph; firing positions are scored with real ballistic
 ## line-of-fire checks (including high lobs over cover), amortised across physics frames.
 
@@ -15,17 +15,17 @@ const PROFILES: Dictionary = {
 	Difficulty.EASY: {
 		"aim_error": 7.5, "reaction": 0.45, "fire_delay": 0.6, "block_chance": 0.18, "block_reaction": 0.3,
 		"lead": 0.35, "preferred_distance": 0.85, "dodge_chance": 0.12, "turn_rate": 4.0, "pressure": 0.35,
-		"use_lobs": false, "capture_drive": 2.2,
+		"use_lobs": false, "capture_drive": 2.2, "dash_dodge": 0.15, "dash_drive": 0.18,
 	},
 	Difficulty.NORMAL: {
 		"aim_error": 3.2, "reaction": 0.27, "fire_delay": 0.25, "block_chance": 0.48, "block_reaction": 0.17,
 		"lead": 0.75, "preferred_distance": 0.7, "dodge_chance": 0.28, "turn_rate": 7.5, "pressure": 0.6,
-		"use_lobs": true, "capture_drive": 3.6,
+		"use_lobs": true, "capture_drive": 3.6, "dash_dodge": 0.35, "dash_drive": 0.4,
 	},
 	Difficulty.HARD: {
 		"aim_error": 1.3, "reaction": 0.15, "fire_delay": 0.07, "block_chance": 0.78, "block_reaction": 0.09,
 		"lead": 1.0, "preferred_distance": 0.58, "dodge_chance": 0.42, "turn_rate": 13.0, "pressure": 0.85,
-		"use_lobs": true, "capture_drive": 4.6,
+		"use_lobs": true, "capture_drive": 4.6, "dash_dodge": 0.6, "dash_drive": 0.65,
 	},
 }
 
@@ -49,6 +49,15 @@ const TRAJECTORY_STEPS: int = 90
 const TRAJECTORY_RAY_STRIDE: int = 2
 const TARGET_HIT_RADIUS: float = 20.0
 const MUZZLE_REACH: float = 34.0
+## How far a dash carries (burst plus the glide after it) and how often the bot weighs dashing on purpose.
+const DASH_REACH: float = 160.0
+const DASH_THINK_INTERVAL: float = 0.35
+## Dashing Mk per difficulty: bots never visit the research page, so the game hands them these.
+const DASH_MARKS: Dictionary = {
+	Difficulty.EASY: 1,
+	Difficulty.NORMAL: 2,
+	Difficulty.HARD: 4,
+}
 
 var difficulty: int = Difficulty.NORMAL
 var move_direction: float = 0.0
@@ -57,6 +66,7 @@ var jump_held: bool = false
 var shoot_pressed: bool = false
 var block_pressed: bool = false
 var time_control_pressed: bool = false
+var dash_pressed: bool = false
 var aim_position: Vector2 = Vector2.ZERO
 
 var _player: Player = null
@@ -110,6 +120,18 @@ var _evaluated_threats: Dictionary = {}
 var _pending_block_time: float = -1.0
 var _block_focus: Node2D = null
 var _block_focus_timer: float = 0.0
+var _dash_think_timer: float = 0.0
+var _pending_dash_time: float = -1.0
+var _pending_dash_direction: float = 0.0
+## Set after a dash along the path: the waypoints it flew past are skipped instead of walked back to.
+var _skip_passed_points: bool = false
+
+
+## Research marks a bot of this difficulty fights with.
+static func research_marks(bot_difficulty: int) -> Dictionary:
+	if not DASH_MARKS.has(bot_difficulty):
+		return {}
+	return {str(ResearchManager.DASHING): int(DASH_MARKS[bot_difficulty])}
 
 
 func setup(player: Player, bot_difficulty: int) -> void:
@@ -163,6 +185,7 @@ func _physics_process(delta: float) -> void:
 	shoot_pressed = false
 	block_pressed = false
 	time_control_pressed = false
+	dash_pressed = false
 	if _player == null or not is_instance_valid(_player) or _player.is_eliminated() or not _player.movement_enabled:
 		move_direction = 0.0
 		jump_held = false
@@ -179,6 +202,7 @@ func _physics_process(delta: float) -> void:
 		return
 	_update_threats(delta)
 	_update_movement(delta)
+	_update_dash(delta)
 	_update_aim_and_fire(delta)
 
 
@@ -202,6 +226,9 @@ func _update_movement(delta: float) -> void:
 	_continue_goal_search(feet, grounded)
 	if grounded:
 		_air_target_x = INF
+		if _skip_passed_points and not _player.is_dashing():
+			_skip_passed_points = false
+			_skip_walked_points(feet)
 		if _path_index >= _path.size() and _goal_point >= 0 and _nav.nearest_point(feet, 60.0) != _goal_point:
 			_plan_path(feet)
 
@@ -465,6 +492,126 @@ func _wall_ahead(direction: float) -> bool:
 	return not hit.is_empty() and absf((hit["normal"] as Vector2).x) > 0.7
 
 
+# --- Dash ------------------------------------------------------------------------------
+
+## Fires a planned dodge on time, otherwise now and then dashes on purpose: away when hurt and pressed,
+## into a shockwave poke when the target stands close, or along a flat stretch of the path to close the
+## gap. Never off a ledge or into a wall.
+func _update_dash(delta: float) -> void:
+	if _pending_dash_time >= 0.0:
+		_pending_dash_time -= delta
+		if _pending_dash_time < 0.0:
+			if _player.can_dash() and _player.is_grounded() and _dash_is_safe(_pending_dash_direction):
+				_press_dash(_pending_dash_direction)
+			return
+	_dash_think_timer -= delta
+	if _dash_think_timer > 0.0 or not _player.can_dash() or not _player.is_grounded():
+		return
+	_dash_think_timer = DASH_THINK_INTERVAL
+	if randf() >= float(_profile.get("dash_drive", 0.0)):
+		return
+	var me: Vector2 = _player.global_position
+	if _target != null and _player.health_component != null:
+		var away: float = signf(me.x - _target.global_position.x)
+		var hurt: bool = _player.health_component.health * 3 <= _player.health_component.max_health
+		if hurt and away != 0.0 and absf(_target.global_position.x - me.x) < 180.0 and _dash_is_safe(away):
+			_press_dash(away)
+			return
+	if _target != null and ResearchManager.has_dash_shockwave(_player.player_slot):
+		var offset: Vector2 = _target.global_position - me
+		if absf(offset.x) > 50.0 and absf(offset.x) < 140.0 and absf(offset.y) < 40.0 and _dash_is_safe(signf(offset.x), absf(offset.x)):
+			_press_dash(signf(offset.x))
+			return
+	var direction: float = move_direction
+	if direction == 0.0 or _walk_ahead(direction) < DASH_REACH:
+		return
+	var closing: bool = _target == null or absf(_target.global_position.x - me.x) > _weapon_range() * float(_profile["preferred_distance"]) + 120.0
+	if (closing or not _search_capture.is_empty()) and _dash_is_safe(direction):
+		_press_dash(direction)
+		_skip_passed_points = true
+
+
+func _press_dash(direction: float) -> void:
+	dash_pressed = true
+	move_direction = direction
+	_dash_think_timer = DASH_THINK_INTERVAL
+
+
+## Times a dash against a round about to land; false when no dash fits. With protection the bot dashes
+## through it (towards the shooter); without, it only sidesteps rounds coming down from above, since a
+## flat shot follows it.
+func _plan_dash_dodge(projectile: Projectile, me: Vector2, impact_time: float) -> bool:
+	var velocity: Vector2 = projectile.velocity
+	var direction: float = 0.0
+	if ResearchManager.has_dash_protection(_player.player_slot):
+		direction = signf(projectile.global_position.x - me.x)
+	elif absf(velocity.y) > absf(velocity.x) * 0.6:
+		direction = -signf(velocity.x) if absf(velocity.x) > 20.0 else (1.0 if randf() < 0.5 else -1.0)
+	if direction == 0.0 or not _player.is_grounded() or not _dash_is_safe(direction):
+		return false
+	var reaction: float = float(_profile["block_reaction"]) * randf_range(0.8, 1.25)
+	if reaction >= impact_time:
+		return false
+	_pending_dash_time = maxf(impact_time - GameSettings.PLAYER_DASH_TIME * 0.6, reaction)
+	_pending_dash_direction = direction
+	return true
+
+
+## Floor all the way (no pit, no step down deeper than a hop, no lip taller than the dash climbs) and
+## nothing in the way for a dash of `reach` px.
+func _dash_is_safe(direction: float, reach: float = DASH_REACH) -> bool:
+	if direction == 0.0:
+		return false
+	var me: Vector2 = _player.global_position
+	if _ray_blocked(me, me + Vector2(direction * (reach + 16.0), 0.0)):
+		return false
+	var depth: float = _player.hover_dist + 30.0
+	var floor_hit: Dictionary = _ray(me, me + Vector2(0.0, depth))
+	var max_drop: float = 60.0
+	if floor_hit.is_empty():
+		return false
+	var floor_y: float = (floor_hit["position"] as Vector2).y
+	var steps: int = int(ceil(reach / 40.0))
+	for step in range(1, steps + 1):
+		var x: float = me.x + direction * minf(float(step) * 40.0, reach)
+		var hit: Dictionary = _ray(Vector2(x, me.y - GameSettings.PLAYER_DASH_STEP_HEIGHT), Vector2(x, me.y + depth + max_drop))
+		if hit.is_empty():
+			return false
+		var rise: float = floor_y - (hit["position"] as Vector2).y
+		if rise > GameSettings.PLAYER_DASH_STEP_HEIGHT - 2.0 or rise < -max_drop:
+			return false
+	return true
+
+
+## How far the path runs on as plain walking in `direction` from here.
+func _walk_ahead(direction: float) -> float:
+	if _nav == null or _path_index >= _path.size():
+		return 0.0
+	var from_x: float = _player.global_position.x
+	var reach: float = 0.0
+	for index in range(_path_index, _path.size()):
+		if index > 0 and int(_nav.get_move(int(_path[index - 1]), int(_path[index]))["move"]) != LevelNavigation.Move.WALK:
+			break
+		var along: float = (_nav.points[int(_path[index])].x - from_x) * direction
+		if along < reach:
+			break
+		reach = along
+	return reach
+
+
+## After a dash the feet are past some waypoints: drop the ones behind on the walk ahead, so the bot does
+## not turn round to touch them.
+func _skip_walked_points(feet: Vector2) -> void:
+	while _path_index + 1 < _path.size():
+		var current: Vector2 = _nav.points[int(_path[_path_index])]
+		var next: Vector2 = _nav.points[int(_path[_path_index + 1])]
+		if int(_nav.get_move(int(_path[_path_index]), int(_path[_path_index + 1]))["move"]) != LevelNavigation.Move.WALK:
+			return
+		if (feet.x - current.x) * signf(next.x - current.x) <= 0.0:
+			return
+		_path_index += 1
+
+
 # --- Combat ---------------------------------------------------------------------------
 
 func _update_aim_and_fire(delta: float) -> void:
@@ -670,7 +817,11 @@ func _update_threats(delta: float) -> void:
 		impact_time *= _player.time_scale / maxf(TimeFlow.scale_for(projectile.owner_slot), 0.05)
 		_evaluated_threats[id] = true
 		var block_ready: bool = _player.get_block_cooldown_ratio() >= 0.999 and not _player.is_blocking()
-		if block_ready and randf() < float(_profile["block_chance"]):
+		# A protected dash beats a block (it also moves); without protection the dash only sidesteps lobs.
+		var dash_odds: float = float(_profile.get("dash_dodge", 0.0)) * (1.0 if ResearchManager.has_dash_protection(_player.player_slot) else 0.5)
+		if _pending_dash_time < 0.0 and _player.can_dash() and randf() < dash_odds and _plan_dash_dodge(projectile, me, impact_time):
+			pass
+		elif block_ready and randf() < float(_profile["block_chance"]):
 			var reaction: float = float(_profile["block_reaction"]) * randf_range(0.8, 1.25)
 			if reaction < impact_time:
 				_block_focus = projectile
