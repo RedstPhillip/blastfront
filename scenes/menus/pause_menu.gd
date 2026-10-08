@@ -4,6 +4,7 @@ extends Control
 ## Online matches keep simulating; only local controls are suspended.
 
 const BLUR_SHADER: Shader = preload("res://scenes/menus/pause_blur.gdshader")
+const MENU_WIDTH: float = 300.0
 
 var _is_paused: bool = false
 # Typed as plain Control on purpose: naming SettingsMenu / LoadoutPage here would compile both pages with
@@ -74,7 +75,7 @@ func _add_button(text: String, callback: Callable) -> Button:
 	var button: Button = Button.new()
 	button.text = text
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	button.custom_minimum_size = Vector2(300.0, 48.0)
+	button.custom_minimum_size = Vector2(MENU_WIDTH, 48.0)
 	button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	UiStyle.style_button(button, false, 20)
 	var lit: StyleBoxFlat = UiStyle.with_margins(UiStyle.panel(UiStyle.ACCENT), 26, 10)
@@ -96,18 +97,25 @@ func _add_button(text: String, callback: Callable) -> Button:
 ## Sandbox only: pick the world. The other world loads behind the usual cover transition and the loadout
 ## carries over.
 func _build_world_row() -> void:
+	# Same width as the menu entries, the caption on their text edge, the worlds splitting the rest.
 	_world_row = HBoxContainer.new()
-	_world_row.add_theme_constant_override("separation", 8)
+	_world_row.add_theme_constant_override("separation", 6)
+	_world_row.custom_minimum_size = Vector2(MENU_WIDTH, 0.0)
+	_world_row.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	var caption: Label = Label.new()
 	UiStyle.style_label(caption, UiStyle.FONT_BOLD, 14, UiStyle.TEXT_DIM)
 	caption.text = "WORLD"
-	caption.custom_minimum_size = Vector2(70.0, 0.0)
+	caption.custom_minimum_size = Vector2(82.0, 0.0)
 	caption.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_world_row.add_child(caption)
+	var indent: MarginContainer = MarginContainer.new()
+	indent.add_theme_constant_override("margin_left", 26)
+	indent.add_child(caption)
+	_world_row.add_child(indent)
 	for world_id in WorldCatalog.ids():
 		var button: Button = Button.new()
 		button.text = WorldCatalog.display_name(world_id).to_upper()
-		button.custom_minimum_size = Vector2(110.0, 44.0)
+		button.custom_minimum_size = Vector2(0.0, 42.0)
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.pressed.connect(_on_world_pressed.bind(world_id))
 		_world_row.add_child(button)
 		_world_buttons[world_id] = button
@@ -119,10 +127,13 @@ func _refresh_world_row() -> void:
 	var current: StringName = WorldCatalog.sandbox_world_id()
 	for world_id in _world_buttons.keys():
 		var button: Button = _world_buttons[world_id]
-		UiStyle.style_button(button, false, 16)
+		UiStyle.style_button(button, false, 15)
+		for state in ["normal", "hover", "focus", "pressed", "disabled"]:
+			(button.get_theme_stylebox(state) as StyleBoxFlat).content_margin_left = 10.0
+			(button.get_theme_stylebox(state) as StyleBoxFlat).content_margin_right = 10.0
 		if world_id == current:
 			# The world you are on reads as selected (light fill), not as a second call to action.
-			var selected: StyleBoxFlat = UiStyle.with_margins(UiStyle.panel(UiStyle.TEXT), 26, 10)
+			var selected: StyleBoxFlat = UiStyle.with_margins(UiStyle.panel(UiStyle.TEXT), 10, 10)
 			for state in ["normal", "hover", "focus", "pressed"]:
 				button.add_theme_stylebox_override(state, selected)
 			for color_name in ["font_color", "font_hover_color", "font_focus_color", "font_pressed_color"]:

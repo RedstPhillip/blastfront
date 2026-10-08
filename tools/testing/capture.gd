@@ -607,6 +607,30 @@ func _build_script() -> void:
 			_at(3.5, "call", func(): _equip(["laser_scope_mk1", "poison_rounds_mk1", "heavy_barrel_mk1"]))
 			_at(3.9, "shot", "loadout_equipped")
 			_at(4.0, "quit")
+		"merge_look":
+			# The merge band in the sandbox loadout: first without coins (inspector says why), then with.
+			_at(0.5, "call", func(): _main._on_sandbox_requested())
+			_at(2.0, "call", func(): get_first_node_in_group(&"game_world").get_node("HUD/PauseMenu").pause_game())
+			_at(2.3, "call", func(): get_first_node_in_group(&"game_world").get_node("HUD/PauseMenu")._on_loadout_pressed())
+			_at(3.0, "call", func():
+				var inv = root.get_node("ExtensionInventory")
+				var first = null
+				for item in inv.get_inventory_for_player(1):
+					if str(item.get_definition_id()) == "heavy_barrel_mk1" and item.mark == 1:
+						first = item
+				var twin = WeaponExtensionItem.create(first.definition, 64.0, 1)
+				inv.add_item_for_player(1, twin)
+				_merge_pair = [first, twin]
+				root.get_node("OnlineMatch").coin_balances[1] = 0)
+			_at(3.4, "call", func(): _loadout_page()._on_merge_requested(_merge_pair[0], _merge_pair[1]))
+			_at(3.9, "shot", "merge_no_coins")
+			_at(4.0, "call", func():
+				root.get_node("OnlineMatch").coin_balances[1] = 99
+				_loadout_page()._on_merge_requested(_merge_pair[0], _merge_pair[1]))
+			_at(4.6, "shot", "merge_band")
+			_at(4.7, "call", func(): _loadout_page()._merge_dialog.confirm())
+			_at(5.6, "shot", "merge_done")
+			_at(5.7, "quit")
 		"loadout_inter":
 			_at(0.3, "call", func():
 				root.get_node("UserSettings").set_value(&"gameplay_bot_phase_shop", true)
@@ -957,6 +981,11 @@ func _equip(ids: Array) -> void:
 
 
 var _tracker = null
+var _merge_pair: Array = []
+
+
+func _loadout_page() -> Node:
+	return get_first_node_in_group(&"game_world").get_node("HUD/PauseMenu")._loadout_instance
 var _last_tick: int = 0
 
 
