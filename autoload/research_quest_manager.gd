@@ -322,7 +322,7 @@ func _on_packet_received(packet: Dictionary, _sender_id: int) -> void:
 	var payload: Dictionary = NetworkSession.get_payload(packet)
 	if packet_type == GameSettings.PACKET_RESEARCH_QUEST_EVENT and _has_authority():
 		var event_name: StringName = StringName(str(payload.get("event", "")))
-		var source_slot: int = int(packet.get("from_slot", 0))
+		var source_slot: int = NetworkSession.get_remote_slot()
 		if _is_allowed_client_event(event_name) and _accept_client_event(source_slot, event_name):
 			_apply_progress(source_slot, event_name, clampf(float(payload.get("amount", 1.0)), 0.0, 1.0))
 	elif packet_type == GameSettings.PACKET_RESEARCH_QUEST_STATE and not _has_authority():

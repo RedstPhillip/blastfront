@@ -824,32 +824,32 @@ func _on_packet_received(packet: Dictionary, _sender_id: int) -> void:
 		if not _has_authority():
 			_apply_state(payload)
 	elif packet_type == GameSettings.PACKET_ONLINE_PLAYER_COLOR and _has_authority():
-		var color_slot: int = _slot_from_packet(packet)
+		var color_slot: int = _requesting_slot()
 		var color_id: StringName = StringName(str(payload.get("color_id", "")))
 		set_player_color(color_slot, color_id)
 	elif packet_type == GameSettings.PACKET_ONLINE_EXTENSION_LOADOUT and _has_authority():
 		var loadout_variant: Variant = payload.get("loadout", {})
 		if loadout_variant is Dictionary:
 			var loadout_data: Dictionary = loadout_variant
-			set_extension_loadout(_slot_from_packet(packet), loadout_data)
+			set_extension_loadout(_requesting_slot(), loadout_data)
 	elif packet_type == GameSettings.PACKET_ONLINE_ARMOR_LOADOUT and _has_authority():
 		var loadout_variant: Variant = payload.get("loadout", {})
 		if loadout_variant is Dictionary:
 			var loadout_data: Dictionary = loadout_variant
-			set_armor_loadout(_slot_from_packet(packet), loadout_data)
+			set_armor_loadout(_requesting_slot(), loadout_data)
 	elif packet_type == GameSettings.PACKET_ONLINE_LOCKER_READY and _has_authority():
-		set_locker_ready(_slot_from_packet(packet), payload.get("ready", false) == true)
+		set_locker_ready(_requesting_slot(), payload.get("ready", false) == true)
 	elif packet_type == GameSettings.PACKET_ONLINE_INTERMISSION_READY and _has_authority():
-		set_intermission_ready(_slot_from_packet(packet), payload.get("ready", false) == true)
+		set_intermission_ready(_requesting_slot(), payload.get("ready", false) == true)
 	elif packet_type == GameSettings.PACKET_ONLINE_COIN_SPEND and _has_authority():
-		_apply_coin_spend_request(_slot_from_packet(packet), int(payload.get("cost", 0)))
+		_apply_coin_spend_request(_requesting_slot(), int(payload.get("cost", 0)))
 	elif packet_type == GameSettings.PACKET_ONLINE_RESEARCH_PROFILE and _has_authority():
 		var profile_variant: Variant = payload.get("profile", {})
 		if profile_variant is Dictionary:
 			var profile: Dictionary = profile_variant
-			set_research_profile(_slot_from_packet(packet), profile)
+			set_research_profile(_requesting_slot(), profile)
 	elif packet_type == GameSettings.PACKET_ONLINE_COIN_ADD and _has_authority():
-		_apply_coin_add_request(_slot_from_packet(packet), int(payload.get("amount", 0)))
+		_apply_coin_add_request(_requesting_slot(), int(payload.get("amount", 0)))
 
 
 func _apply_coin_spend_request(slot: int, cost: int) -> void:
@@ -892,10 +892,9 @@ func _on_lobby_ready() -> void:
 		_broadcast_state()
 
 
-func _slot_from_packet(packet: Dictionary) -> int:
-	var slot: int = int(packet.get("from_slot", 0))
-	if _is_player_slot(slot):
-		return slot
+## Requests reach the host only from the other player, so they always act on the remote slot; a packet
+## claiming the host's own slot (stale or spoofed) cannot change the host's colour, loadout or coins.
+func _requesting_slot() -> int:
 	return NetworkSession.get_remote_slot()
 
 
