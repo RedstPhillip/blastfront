@@ -5,12 +5,14 @@ extends "res://tools/map_builder.gd"
 ##
 ## Layout: two colonnades (spawns) with a lower stair each, a chasm on either side and the sunken
 ## courtyard between them with a low altar dais in the middle. Ruin blocks, broken arches and fallen
-## column capitals step up to the temple pediment floating above the dais. The tide is meant to flood the
-## courtyard and chasms at high tide and the lower stairs, the courtyard walls and the capitals at a spring
-## tide; the blocks, arches, pediment and spawns stay dry.
+## column capitals step up to the temple pediment floating above the dais. The tide (TidewaterTide) floods
+## the courtyard and the chasms at high tide (FLOOD_LEVEL) and also the lower stairs, the courtyard walls
+## and the capitals at a spring tide (SPRING_LEVEL); the blocks, arches, pediment and spawns stay dry.
 
 const WIDTH: float = 2240.0
 const HEIGHT: float = 800.0
+const FLOOD_LEVEL: float = 600.0
+const SPRING_LEVEL: float = 506.0
 
 
 func _configure() -> void:
@@ -26,6 +28,7 @@ func _build() -> void:
 	_build_markers()
 	_build_geometry()
 	_add_airdrops()
+	_build_tide()
 	_build_skin()
 
 
@@ -101,6 +104,16 @@ func _build_geometry() -> void:
 		"RightCapital": _mirror(capital),
 		"Pediment": pediment,
 	})
+
+
+func _build_tide() -> void:
+	var tide: Node2D = Node2D.new()
+	tide.set_script(load("res://scenes/maps/tidewater/tidewater_tide.gd"))
+	tide.set(&"arena_rect", Rect2(0.0, 0.0, WIDTH, HEIGHT))
+	tide.set(&"ebb_level", HEIGHT + 12.0)
+	tide.set(&"flood_level", FLOOD_LEVEL)
+	tide.set(&"spring_level", SPRING_LEVEL)
+	_add(_root, tide, "Tide")
 
 
 func _build_skin() -> void:

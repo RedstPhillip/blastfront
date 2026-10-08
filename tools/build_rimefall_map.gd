@@ -4,13 +4,13 @@ extends "res://tools/map_builder.gd"
 ## Run headless: godot --headless --path . -s res://tools/build_rimefall_map.gd
 ##
 ## Layout: two snowy cliffs (spawns) with a lower step each, chasms with a rock crag above them, and a
-## frozen lake in a rock basin between them with a snow-capped rock island in its middle. Ice floes and a
+## frozen lake between two rock banks with a snow-capped rock island in its middle. Ice floes and a
 ## broad ice arch float above the lake. Bodies in the ice group (the lake, the floes, the arch) are glassy
 ## ice; everything else is snow on rock.
 
 const WIDTH: float = 2200.0
 const HEIGHT: float = 800.0
-const ICE_GROUP: StringName = &"ice_surface"
+const ICE_GROUP: StringName = WorldConditions.ICE_GROUP
 
 
 func _configure() -> void:
@@ -26,6 +26,7 @@ func _build() -> void:
 	_build_markers()
 	_build_geometry()
 	_add_airdrops()
+	_build_notice()
 	_build_skin()
 
 
@@ -68,15 +69,15 @@ func _build_geometry() -> void:
 		Vector2(466, 438), Vector2(478, 432), Vector2(544, 432), Vector2(556, 440), Vector2(548, 458),
 		Vector2(512, 466), Vector2(480, 458),
 	]
-	# The rock basin holding the lake: banks at 548 sloping down to the lake bed.
-	var basin_half: Array = [
+	# Rock banks either side of the lake, sloping down to its shore.
+	var bank: Array = [
 		Vector2(600, 960), Vector2(600, 556), Vector2(612, 548), Vector2(690, 548), Vector2(704, 556),
-		Vector2(728, 594), Vector2(756, 630), Vector2(782, 648), Vector2(1080, 650),
+		Vector2(728, 594), Vector2(756, 630), Vector2(782, 642), Vector2(782, 960),
 	]
-	var basin: Array = basin_half + _mirror(basin_half)
+	# The frozen lake: one deep body of ice from shore to shore.
 	var lake: Array = [
-		Vector2(768, 640), Vector2(778, 634), Vector2(WIDTH - 778, 634), Vector2(WIDTH - 768, 640),
-		Vector2(WIDTH - 776, 652), Vector2(776, 652),
+		Vector2(778, 640), Vector2(788, 634), Vector2(WIDTH - 788, 634), Vector2(WIDTH - 778, 640),
+		Vector2(WIDTH - 778, 960), Vector2(778, 960),
 	]
 	# Snow-capped rock island standing in the ice: grip and cover in the middle of the rink.
 	var island: Array = [
@@ -93,7 +94,8 @@ func _build_geometry() -> void:
 	]
 	_add_bodies({
 		"LeftCliff": cliff,
-		"Basin": basin,
+		"LeftBank": bank,
+		"RightBank": _mirror(bank),
 		"RightCliff": _mirror(cliff),
 		"Lake": lake,
 		"Island": island,
@@ -110,9 +112,19 @@ func _build_geometry() -> void:
 	})
 
 
+## The ice is always there, so no warning ever teaches it: name it once when the match starts.
+func _build_notice() -> void:
+	var notice: Node = Node.new()
+	notice.set_script(load("res://scenes/maps/world_notice.gd"))
+	notice.set(&"title", "GLARE ICE")
+	notice.set(&"detail", "Blue ice keeps your momentum, snow grips")
+	notice.set(&"color", Color(0.66, 0.88, 1.0))
+	_add(_root, notice, "IceNotice")
+
+
 func _build_skin() -> void:
 	var skin: Node2D = Node2D.new()
-	skin.set_script(load("res://scenes/maps/environment/platform_skin.gd"))
+	skin.set_script(load("res://scenes/maps/rimefall/rimefall_skin.gd"))
 	var settings: Dictionary = {
 		&"map_top_y": 360.0,
 		&"map_bottom_y": 720.0,

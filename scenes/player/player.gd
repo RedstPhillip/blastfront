@@ -21,6 +21,33 @@ const WIND_AIR_SHARE: float = 0.62
 const TIME_RAMP_SECONDS: float = 0.18
 ## Online: how far (s) a Time Control timer may drift from the host's before the snapshot moves it.
 const TIME_SYNC_TOLERANCE: float = 0.25
+## Rimefall ice: the share of ground grip (acceleration, friction) left on it, the faster glide it allows,
+## and how much further hits shove you while you stand on it.
+const ICE_ACCELERATION_SCALE: float = 0.16
+const ICE_FRICTION_SCALE: float = 0.07
+const ICE_SPEED_SCALE: float = 1.15
+const ICE_KNOCKBACK_SCALE: float = 1.8
+const ICE_SLIDE_MIN_SPEED: float = 60.0
+const ICE_SPRAY_INTERVAL: float = 0.07
+## Tidewater water. Wading (feet under) slows you; once the water closes over the body you swim: slower,
+## buoyant, floating with the head out. Depths are of the body centre below the surface, in px.
+const WADE_SPEED_SCALE: float = 0.72
+const SWIM_SPEED_SCALE: float = 0.56
+const SWIM_ACCELERATION: float = 1500.0
+const SWIM_FRICTION: float = 700.0
+const SWIM_ENTER_DEPTH: float = 8.0
+const SWIM_FLOAT_DEPTH: float = 2.0
+## A jump this close to the surface leaps out of the water; deeper down it is a stroke upward.
+const SWIM_LEAP_DEPTH: float = 18.0
+## Feet on the ground with the centre this shallow (or out of the water entirely): back on foot.
+const SWIM_WADE_DEPTH: float = 4.0
+const SWIM_EXIT_DEPTH: float = -10.0
+## A kick off the water carries further than a jump on land, so every ledge near the tide line is in reach.
+const SWIM_LEAP_SCALE: float = 1.18
+const SWIM_STROKE_SPEED: float = 260.0
+const BUOYANCY_SPRING: float = 70.0
+const WATER_DRAG: float = 7.0
+const SWIM_RIPPLE_INTERVAL: float = 0.32
 
 static var _body_texture_cache: Dictionary = {}
 static var _body_texture_exists_cache: Dictionary = {}
@@ -119,6 +146,13 @@ var _hit_flash_timer: float = 0.0
 var _hit_feedback_guard_timer: float = 0.0
 ## How much of the wind reaches the player (terrain upwind gives shelter; Mars storms).
 var _wind_exposure: float = 1.0
+## Share of the feet standing on ice (Rimefall), kept from the last ground contact while airborne.
+var _ice_contact: float = 0.0
+var _ice_sliding: bool = false
+var _ice_spray_timer: float = 0.0
+var _last_ground_speed: float = 0.0
+var _last_water_depth: float = -INF
+var _ripple_timer: float = 0.0
 ## Hits landing in the same frame (shotgun pellets, multi-barrel volleys, splash) are gathered here and
 ## played as one combined hit at the end of the frame: one burst, one sound, one shove sized by the total.
 var _pending_hit_damage: int = 0
@@ -263,6 +297,7 @@ func _physics_process(delta: float) -> void:
 	if _is_eliminated:
 		return
 	_update_ground_rays()
+	_update_ice_contact()
 	if control_mode == GameSettings.CONTROL_REMOTE:
 		_step_clock += delta
 		_physics_process_remote(delta)
@@ -277,6 +312,97 @@ func _physics_process(delta: float) -> void:
 	_update_wind_exposure(own_delta)
 	_push_out_of_players(own_delta)
 	_slide_off_unsupported_floor()
+	_update_water()
+
+
+## The water closing over the body hands movement to SwimState (Tidewater's tide); it hands it back.
+func _update_water() -> void:
+	if WorldConditions.water_level == INF or _state_machine == null or _state_machine.current_state == null:
+		return
+	# A leap on its way out of the water is not pulled back in.
+	if velocity.y < -SWIM_STROKE_SPEED:
+		return
+	if get_water_depth() > SWIM_ENTER_DEPTH and _state_machine.current_state.name != &"SwimState":
+		_state_machine.change_state("SwimState")
+
+
+## Depth of the body centre below the water surface; -INF on a map without water.
+func get_water_depth() -> float:
+	if WorldConditions.water_level == INF:
+		return -INF
+	return global_position.y - WorldConditions.water_level
+
+
+func is_swimming() -> bool:
+	if control_mode == GameSettings.CONTROL_REMOTE or _state_machine == null or _state_machine.current_state == null:
+		return get_water_depth() > SWIM_ENTER_DEPTH
+	return _state_machine.current_state.name == &"SwimState"
+
+
+## Water reaches the feet (wading or swimming).
+func is_in_water() -> bool:
+	return get_water_depth() > -hover_dist
+
+
+## Floats the body at the surface: a spring towards the floating depth against strong water drag.
+func apply_buoyancy(delta: float) -> void:
+	var lift: float = -BUOYANCY_SPRING * (get_water_depth() - SWIM_FLOAT_DEPTH)
+	velocity.y += clampf(lift, -gravity * 1.2, gravity * 0.6) * delta
+	velocity.y *= exp(-WATER_DRAG * delta)
+
+
+func swim_leap() -> void:
+	velocity.y = -jump_velocity * SWIM_LEAP_SCALE
+	_coyote_timer = 0.0
+	consume_jump_buffer()
+	_body_punch_scale = Vector2(0.8, 1.2)
+	if control_mode == GameSettings.CONTROL_LOCAL:
+		ResearchQuestManager.record_local_action(ResearchQuestManager.EVENT_JUMP)
+	AudioDirector.play_at(&"splash", global_position, -4.0)
+
+
+func swim_stroke() -> void:
+	velocity.y = minf(velocity.y, -SWIM_STROKE_SPEED)
+	consume_jump_buffer()
+	AudioDirector.play_at(&"swim", global_position)
+
+
+func _update_ice_contact() -> void:
+	var feet: int = 0
+	var on_ice: int = 0
+	for ray in [_ray_l, _ray_r]:
+		if _is_floor_ray(ray):
+			feet += 1
+			if WorldConditions.is_ice(ray.get_collider()):
+				on_ice += 1
+	if feet > 0:
+		_ice_contact = float(on_ice) / float(feet)
+
+
+## Standing on ice (Rimefall): at least half of the feet are on it.
+func is_on_ice() -> bool:
+	return _ice_contact >= 0.5 and is_grounded()
+
+
+## Ground movement for RunState: ice keeps your momentum (little grip, a slightly faster glide), water
+## at the feet slows you down.
+func apply_ground_movement(delta: float) -> float:
+	var ice: float = _ice_contact if is_grounded() else 0.0
+	var max_speed: float = speed * lerpf(1.0, ICE_SPEED_SCALE, ice)
+	if is_in_water():
+		max_speed *= WADE_SPEED_SCALE
+	return apply_horizontal_movement(
+		delta,
+		max_speed,
+		ground_acceleration * lerpf(1.0, ICE_ACCELERATION_SCALE, ice),
+		ground_friction * lerpf(1.0, ICE_FRICTION_SCALE, ice)
+	)
+
+
+## Ground friction the player has right now (bots plan their braking with it).
+func get_ground_friction() -> float:
+	var ice: float = _ice_contact if is_grounded() else 0.0
+	return ground_friction * lerpf(1.0, ICE_FRICTION_SCALE, ice) * get_status_speed_multiplier()
 
 
 ## Two players that end up inside each other (a remote player's position catching up into you) would each
@@ -1255,6 +1381,11 @@ func _wind_lean() -> float:
 	return (-signf(WorldConditions.wind.x) * 0.14 + buffet) * strength
 
 
+## Braced against a slide on ice: leaning back from the way the body skates.
+func _slide_lean() -> float:
+	return -signf(velocity.x) * 0.12 if _ice_sliding else 0.0
+
+
 func _update_wind_exposure(delta: float) -> void:
 	if not WorldConditions.has_wind():
 		_wind_exposure = 1.0
@@ -1397,7 +1528,10 @@ func update_visual_movement(delta: float) -> void:
 			_step_t_r = minf(_step_t_r + delta / step_duration, 1.0)
 			foot_pos_r = _arc(_step_from_r, _step_to_r, _step_t_r, step_arc_h)
 
-		if changed_direction:
+		if _ice_sliding:
+			# Gliding on ice: the feet stay planted and skate along under the body.
+			_set_feet(ideal_l, ideal_r)
+		elif changed_direction:
 			_set_feet(ideal_l, ideal_r)
 		elif _step_t_l >= 1.0 and _step_t_r >= 1.0:
 			var dl: float = foot_pos_l.distance_to(ideal_l)
@@ -1446,7 +1580,7 @@ func update_visual_movement(delta: float) -> void:
 		visual_direction = clampf(velocity.x / maxf(speed, 1.0), -1.0, 1.0)
 	rotation = lerp_angle(
 		rotation,
-		visual_direction * GameSettings.PLAYER_VISUAL_ROTATION_SCALE + _wind_lean(),
+		visual_direction * GameSettings.PLAYER_VISUAL_ROTATION_SCALE + _wind_lean() + _slide_lean(),
 		delta * GameSettings.PLAYER_VISUAL_ROTATION_LERP_SPEED
 	)
 	_update_body_sprite_direction()
@@ -1525,7 +1659,8 @@ func _flush_hit_feedback() -> void:
 		_face.set_expression(PlayerFace.Mood.HURT, 0.38)
 
 	if control_mode != GameSettings.CONTROL_REMOTE and movement_enabled:
-		velocity.x += hit_direction.x * GameSettings.PLAYER_HIT_KNOCKBACK_X * damage_ratio
+		var ice_shove: float = ICE_KNOCKBACK_SCALE if is_on_ice() else 1.0
+		velocity.x += hit_direction.x * GameSettings.PLAYER_HIT_KNOCKBACK_X * damage_ratio * ice_shove
 		velocity.y -= GameSettings.PLAYER_HIT_KNOCKBACK_Y * damage_ratio
 
 	GameJuice.spawn_burst(&"hit_heavy" if heavy else &"hit", global_position, hit_direction, tint, 1.0 + 0.12 * float(hits - 1))
@@ -2173,7 +2308,7 @@ func _get_body_sprite_base_modulate(color_id: StringName) -> Color:
 
 func _begin_step(is_left: bool, target: Vector2) -> void:
 	if absf(velocity.x) > GameSettings.PLAYER_VISUAL_SPEED_THRESHOLD:
-		AudioDirector.play_at(&"step", target)
+		AudioDirector.play_at(&"step_ice" if is_on_ice() else &"step", target)
 	if is_left:
 		_step_from_l = foot_pos_l
 		_step_to_l = target
@@ -2198,6 +2333,8 @@ func _emit_jump_feedback(direction: Vector2) -> void:
 
 
 func _update_surface_feedback(delta: float, grounded: bool, speed_ratio: float) -> void:
+	_update_ice_slide(delta, grounded)
+	_update_water_feedback(delta)
 	if grounded and not _last_feedback_grounded:
 		var land_speed: float = maxf(_last_feedback_velocity_y, 0.0)
 		if land_speed >= GameSettings.PLAYER_LAND_EFFECT_MIN_SPEED:
@@ -2217,7 +2354,9 @@ func _update_surface_feedback(delta: float, grounded: bool, speed_ratio: float) 
 		_step_sound_timer -= delta
 		if _run_dust_timer <= 0.0:
 			var move_direction: Vector2 = Vector2(signf(velocity.x), 0.0)
-			GameJuice.spawn_burst(&"run_dust", global_position + Vector2(0.0, hover_dist - 2.0), move_direction, Color(0.76, 0.68, 0.50, 0.5))
+			# Ice kicks up no dust and water has its own ripples.
+			if not is_on_ice() and not is_in_water():
+				GameJuice.spawn_burst(&"run_dust", global_position + Vector2(0.0, hover_dist - 2.0), move_direction, Color(0.76, 0.68, 0.50, 0.5))
 			_run_dust_timer = GameSettings.PLAYER_RUN_DUST_INTERVAL
 	else:
 		_run_dust_timer = minf(_run_dust_timer, GameSettings.PLAYER_RUN_DUST_INTERVAL)
@@ -2225,6 +2364,49 @@ func _update_surface_feedback(delta: float, grounded: bool, speed_ratio: float) 
 
 	_last_feedback_grounded = grounded
 	_last_feedback_velocity_y = velocity.y
+
+
+## Skidding on ice: braking or turning while the body keeps gliding throws up a spray of ice and scrapes.
+func _update_ice_slide(delta: float, grounded: bool) -> void:
+	var ground_speed: float = absf(velocity.x)
+	var braking: bool = ground_speed < _last_ground_speed - 0.5
+	_last_ground_speed = ground_speed
+	var input: float = get_move_direction() if control_mode != GameSettings.CONTROL_REMOTE else 0.0
+	var opposing: bool = input != 0.0 and signf(input) != signf(velocity.x)
+	var was_sliding: bool = _ice_sliding
+	_ice_sliding = grounded and is_on_ice() and ground_speed > ICE_SLIDE_MIN_SPEED and (opposing or (braking and input == 0.0))
+	if not _ice_sliding:
+		_ice_spray_timer = 0.0
+		return
+	var feet: Vector2 = global_position + Vector2(0.0, hover_dist - 2.0)
+	if not was_sliding:
+		AudioDirector.play_at(&"ice_skid", feet)
+	_ice_spray_timer -= delta
+	if _ice_spray_timer <= 0.0:
+		_ice_spray_timer = ICE_SPRAY_INTERVAL
+		GameJuice.spawn_burst(&"ice_spray", feet, Vector2(signf(velocity.x), 0.0), Color.WHITE, clampf(ground_speed / 250.0, 0.5, 1.3))
+
+
+## Splashes where the body breaks the surface, ripples and strokes while wading or swimming.
+func _update_water_feedback(delta: float) -> void:
+	var depth: float = get_water_depth()
+	if depth == -INF:
+		return
+	var surface: Vector2 = Vector2(global_position.x, WorldConditions.water_level)
+	if _last_water_depth != -INF:
+		if _last_water_depth <= 0.0 and depth > 0.0 and velocity.y > 120.0:
+			GameJuice.spawn_burst(&"splash", surface, Vector2.UP, Color.WHITE, clampf(velocity.y / 500.0, 0.5, 1.6))
+			AudioDirector.play_at(&"splash", surface)
+		elif _last_water_depth > 0.0 and depth <= 0.0 and velocity.y < -200.0:
+			GameJuice.spawn_burst(&"splash", surface, Vector2.UP, Color.WHITE, 0.6)
+	_last_water_depth = depth
+	if depth > -hover_dist and absf(velocity.x) > 40.0:
+		_ripple_timer -= delta
+		if _ripple_timer <= 0.0:
+			_ripple_timer = SWIM_RIPPLE_INTERVAL
+			GameJuice.spawn_burst(&"ripple", surface, Vector2(signf(velocity.x), 0.0), Color.WHITE)
+			if depth > SWIM_ENTER_DEPTH * 0.5:
+				AudioDirector.play_at(&"swim", global_position, -6.0)
 
 
 func _update_feedback_visuals(delta: float) -> void:

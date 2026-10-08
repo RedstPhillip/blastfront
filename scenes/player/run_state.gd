@@ -1,7 +1,7 @@
 extends State
 
 func physics_update(delta: float) -> void:
-	player.apply_horizontal_movement(delta, player.speed, player.ground_acceleration, player.ground_friction)
+	player.apply_ground_movement(delta)
 
 	if player.has_buffered_jump() and player.can_jump():
 		player.jump()

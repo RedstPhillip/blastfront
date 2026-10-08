@@ -26,6 +26,8 @@ func _enter_tree() -> void:
 	WorldConditions.wind = Vector2.ZERO
 	WorldConditions.storm = 0.0
 	WorldConditions.visibility = 1.0
+	WorldConditions.water_level = INF
+	WorldConditions.water_forecast = INF
 
 
 func _exit_tree() -> void:

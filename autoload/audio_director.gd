@@ -102,6 +102,18 @@ const EVENTS: Dictionary = {
 	&"step": {"bus": &"SFX", "voices": 3, "cooldown": 0.06, "layers": [
 		{"files": ["step_grass_0", "step_grass_1", "step_grass_2", "step_grass_3", "step_grass_4"], "volume": -15.0, "pitch": Vector2(0.95, 1.15)},
 	]},
+	&"step_ice": {"bus": &"SFX", "voices": 3, "cooldown": 0.06, "layers": [
+		{"files": ["step_ice_0", "step_ice_1", "step_ice_2"], "volume": -12.0, "pitch": Vector2(0.92, 1.12)},
+	]},
+	&"ice_skid": {"bus": &"SFX", "voices": 2, "cooldown": 0.25, "layers": [
+		{"files": ["ice_skid"], "volume": -6.0, "pitch": Vector2(0.9, 1.12)},
+	]},
+	&"splash": {"bus": &"SFX", "voices": 3, "cooldown": 0.08, "layers": [
+		{"files": ["splash_0", "splash_1", "splash_2"], "volume": -4.0, "pitch": Vector2(0.9, 1.1)},
+	]},
+	&"swim": {"bus": &"SFX", "voices": 2, "cooldown": 0.2, "layers": [
+		{"files": ["swim_0", "swim_1", "swim_2"], "volume": -8.0, "pitch": Vector2(0.9, 1.1)},
+	]},
 	&"wall_slide": {"bus": &"SFX", "voices": 1, "cooldown": 0.12, "layers": [
 		{"files": ["step_grass_0", "step_grass_1", "step_grass_2", "step_grass_3", "step_grass_4"], "volume": -19.0, "pitch": Vector2(1.3, 1.6)},
 	]},
@@ -238,6 +250,15 @@ const EVENTS: Dictionary = {
 	]},
 	&"storm_warning": {"bus": &"Ambience", "voices": 1, "cooldown": 3.0, "layers": [
 		{"files": ["storm_warning"], "volume": -2.0, "pitch": Vector2(0.96, 1.04)},
+	]},
+	&"tide_horn": {"bus": &"Ambience", "voices": 1, "cooldown": 3.0, "layers": [
+		{"files": ["tide_horn"], "volume": -1.0, "pitch": Vector2(0.98, 1.02)},
+	]},
+	&"tide_surge": {"bus": &"Ambience", "voices": 1, "cooldown": 3.0, "layers": [
+		{"files": ["tide_surge"], "volume": -3.0, "pitch": Vector2(0.95, 1.05)},
+	]},
+	&"tide_drain": {"bus": &"Ambience", "voices": 1, "cooldown": 3.0, "layers": [
+		{"files": ["tide_drain"], "volume": -5.0, "pitch": Vector2(0.95, 1.05)},
 	]},
 	&"geyser_rumble": {"bus": &"SFX", "voices": 2, "cooldown": 0.3, "layers": [
 		{"files": ["geyser_rumble"], "volume": -6.0, "pitch": Vector2(0.9, 1.08)},

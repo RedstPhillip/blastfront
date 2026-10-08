@@ -49,7 +49,7 @@ bash tools/testing/regress.sh         # should print OK for every scenario
 | `run_headless.sh <scenario>` | One scenario headless, full (filtered) output. Good for scenarios that `print` measurements. |
 | `run_capture.sh <scenario> [out_dir]` | One scenario with real rendering, invisible; PNG per `shot` action (default `$WORK_DIR/captures/<scenario>`). `BF_FULLHD=1` for 1920x1080, `BF_SIZE=1280x800` for the logical size on 16:10 / Steam Deck (the project uses the `keep_width` stretch aspect, so taller screens get more height and ultrawide gets side bars). `PROJ_OVERRIDE=$WORK_DIR/mirror_base` renders the old version for before/after comparisons. |
 | `import.sh` | Sync + headless import. |
-| `run_probe.sh <probe.gd> <headless\|render> [args]` | Runs one of the probe scripts (see below) in the mirror. |
+| `run_probe.sh <probe.gd> <headless\|sim\|render> [args]` | Runs one of the probe scripts (see below) in the mirror. `sim` is headless with `--fixed-fps 60`: gameplay probes need it, or they run in real time. |
 | `sync_mirror.sh` | Sync only. |
 
 Look at the PNGs yourself (an image-capable model can read them) and diff before/after captures with
@@ -75,6 +75,10 @@ Pillow (`ImageChops.difference`) when a change should be pixel-identical.
   longest time stuck in the air; plus a platform lip and a cling that must end in a slide), `bot_climb`
   (a bot of `BF_BOT_LEVEL` sent up a 160 px step and a 400 px wall; only the marks that reach may climb)
 - **Mars weather:** `mars`, `mars_storm`, `mars_close`, `mars_duel_look`, `shelter_probe`, `ledge_test`
+- **Tidewater and Rimefall:** `tidewater` / `rimefall` (overview and close-ups), `tide_play` (a flood lifts
+  P1 out of the courtyard: warning, rise, swim, leap out, a round into the water, a spring tide; prints
+  `TIDE` lines), `tide_sync` (a second tide set up as the online client follows the host's states; prints the
+  level difference), `ice_play` (glide and skid distances on the frozen lake against snow; prints `ICE` lines)
 - **Time Control:** `time_probe` (bot duel: run and projectile speed before/during/after the slow, refusals in
   the intro and on cooldown, the reverse cast; prints `TIME_PROBE PASS/FAIL` lines), `time_sandbox`,
   `time_freeze` (Mk III: rounds hang, inputs blocked, 35% damage cap, last point kept, no cast during the kill
@@ -95,7 +99,8 @@ anything handled in `_input`/`_unhandled_input` such as pause), `press`/`release
 only polled input sees it), `key_down`/`key_up` (an action through `Input.parse_input_event`, so
 `is_action_just_pressed` in physics sees it even in render runs), `quit`. Helpers: `_stress_game()` (the running Game node), `_equip([ids])`,
 `_freeze_camera(at, zoom)` (hides players and HUD), `_freeze_camera_keep_players`, `_place_p1(pos)`,
-`_weather()` (Mars weather, `skip_to_storm(...)`), `_lo_mouse_to_tile(id, offset)` / `_lo_press(down)`
+`_weather()` (Mars weather, `skip_to_storm(...)`), `_tide()` (Tidewater, `skip_to_tide(spring, with_warning)`,
+`hold_flood(spring)`), `_lo_mouse_to_tile(id, offset)` / `_lo_press(down)`
 (real drag & drop in the loadout), `_build_test_floor(top_left, width)` (a plain slab for movement probes;
 the arenas have no long flat floor; `_clear_terrain()` removes the arena's own), `_hooks` (callables run every frame, e.g. `_watch_dashes`),
 `_movement_packet(type, from_slot, payload)` (feed the movement sync module like a peer would).
@@ -150,6 +155,12 @@ How to read it honestly:
 - `run_probe.sh gpuablate.gd render world=mars` – hides one part of a running AI duel at a time and prints
   draws / render CPU / GPU / frame per configuration (`BF_DRAW_ABLATE=1`: players, HUD, arena, border,
   projectiles; `BF_HUD_ABLATE=1`: each HUD widget).
+- World layouts and movement (`sim` mode, `world=<id>`): `nav_probe.gd` (the bots' graph reaches every
+  terrain body from both spawns and back), `edge_probe.gd` (every open platform corner, ~2600 fall/jump/
+  run-off cases; nobody may hang on an edge), `stuck_probe.gd` (player-on-player cases on a flat test floor;
+  `floor_group=ice_surface` runs them on ice; compare failure counts with `world=verdant`), `swim_probe.gd`
+  (Tidewater: the bot dropped into the water every 40 px at high and spring tide must get out; `only=<x>`
+  traces one drop).
 - Load time: `run_probe.sh bootprobe.gd headless` (engine+autoloads vs. scene loads),
   `run_probe.sh depprobe.gd headless target=res://scenes/game.tscn` (every dependency, slowest first),
   `run_probe.sh scriptprobe.gd headless order=res://a.gd,res://b.gd` (compile cost in a given order).

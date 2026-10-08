@@ -11,6 +11,7 @@ const PAUSE_BLUR_SHADER: Shader = preload("res://scenes/menus/pause_blur.gdshade
 const BURST_KINDS: Array[StringName] = [
 	&"run_dust", &"wall_dust", &"jump", &"land", &"hit", &"hit_heavy", &"impact", &"block", &"reflect",
 	&"freeze", &"shock", &"poison", &"spawn", &"death", &"explosion", &"capture", &"border",
+	&"ice_spray", &"splash", &"ripple",
 ]
 const FRAMES_ALIVE: int = 4
 

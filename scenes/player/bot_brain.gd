@@ -43,8 +43,12 @@ const MIN_SEARCH_INTERVAL: float = 0.35
 const MIN_AIR_STEER: float = 0.2
 ## Ground speed (px/s) a jump tolerates beyond what its arc needs, or against it, before the bot brakes.
 const TAKEOFF_SPEED_TOLERANCE: float = 110.0
-## Longest the bot brakes before a jump; on a slope or in a storm it may never get slow enough.
+## Longest the bot brakes before a jump; on a slope or in a storm it may never get slow enough. Ice
+## takes far longer to shed speed.
 const MAX_TAKEOFF_BRAKE: float = 0.25
+const MAX_ICE_TAKEOFF_BRAKE: float = 0.9
+## Sideways distance from which a swimming bot leaps for its exit.
+const SWIM_LEAP_RANGE: float = 100.0
 const TRAJECTORY_STEPS: int = 90
 const TRAJECTORY_RAY_STRIDE: int = 2
 const TARGET_HIT_RADIUS: float = 20.0
@@ -110,6 +114,12 @@ var _air_target_x: float = INF
 ## Sideways speed of the jump or drop in progress, as the navigation validated it.
 var _air_speed_x: float = 0.0
 var _takeoff_brake_timer: float = 0.0
+## The tide forecast the current goal was chosen under (Tidewater); a new one triggers a fresh search.
+var _known_forecast: float = INF
+## Leaping out of the water: no sideways steering until the rise is nearly spent.
+var _swim_leap: bool = false
+## Side a swimming bot is heading to get out from under a ledge; kept until it has open sky above.
+var _swim_escape_side: float = 0.0
 var _stuck_timer: float = 0.0
 ## Candidate goal points for the running search with their cheap (raycast-free) scores, best last.
 var _search_queue: Array[int] = []
@@ -251,6 +261,11 @@ func _update_movement(delta: float) -> void:
 	var me: Vector2 = _player.global_position
 	var feet: Vector2 = me + Vector2(0.0, _player.hover_dist)
 	var grounded: bool = _player.is_grounded()
+	_nav.set_flood_level(WorldConditions.water_level)
+	_watch_tide()
+	if _player.is_swimming() or (_player.is_in_water() and LevelNavigation.is_flooded(feet.y, WorldConditions.water_level)):
+		_update_swimming(me)
+		return
 	if grounded and _player.is_time_slowed() and _target != null:
 		_back_off_in_slowed_time(me)
 		return
@@ -272,11 +287,15 @@ func _update_movement(delta: float) -> void:
 		if _skip_passed_points and not _player.is_dashing():
 			_skip_passed_points = false
 			_skip_walked_points(feet)
+		_swim_leap = false
 		if _path_index >= _path.size() and _goal_point >= 0 and _nav.nearest_point(feet, 60.0) != _goal_point:
 			_plan_path(feet)
 
 	var direction: float = 0.0
 	if not grounded:
+		if _swim_leap and _player.velocity.y < -120.0:
+			move_direction = 0.0
+			return
 		if _air_target_x != INF:
 			var to_target: float = _air_target_x - me.x
 			if absf(to_target) > 6.0:
@@ -301,17 +320,19 @@ func _update_movement(delta: float) -> void:
 	if _path_index < _path.size():
 		var current_id: int = int(_path[_path_index])
 		var current: Vector2 = _nav.points[current_id]
-		var arrive_distance: float = 16.0 if _path_index == 0 else 9.0
+		var arrive_distance: float = 16.0 if _path_index == 0 or _player.is_on_ice() else 9.0
 		if absf(feet.x - current.x) <= arrive_distance:
 			if _path_index + 1 < _path.size():
 				var next_id: int = int(_path[_path_index + 1])
 				var next: Vector2 = _nav.points[next_id]
 				var move: Dictionary = _nav.get_move(current_id, next_id)
 				var air_speed: float = float(move.get("vx", 0.0))
-				if int(move["move"]) == LevelNavigation.Move.JUMP and _too_fast_for_takeoff(air_speed) and _takeoff_brake_timer < MAX_TAKEOFF_BRAKE:
-					# Still running the wrong way (or too fast) for this jump: brake on the spot first.
+				var max_brake: float = MAX_ICE_TAKEOFF_BRAKE if _player.is_on_ice() else MAX_TAKEOFF_BRAKE
+				if int(move["move"]) == LevelNavigation.Move.JUMP and _too_fast_for_takeoff(air_speed) and _takeoff_brake_timer < max_brake:
+					# Still running the wrong way (or too fast) for this jump: brake on the spot first (on ice
+					# by pushing against the slide, which bites harder than letting it coast).
 					_takeoff_brake_timer += delta
-					move_direction = 0.0
+					move_direction = -signf(_player.velocity.x) if _player.is_on_ice() else 0.0
 					_stuck_timer = 0.0
 					return
 				_takeoff_brake_timer = 0.0
@@ -332,10 +353,10 @@ func _update_movement(delta: float) -> void:
 			else:
 				_path_index += 1
 		else:
-			direction = signf(current.x - feet.x)
+			direction = _steer_to(current.x, feet.x, _path_index >= _path.size() - 1 or _next_move_is_jump())
 	elif _target != null and absf(_target.global_position.x - me.x) < 120.0:
 		direction = signf(me.x - _target.global_position.x)
-		if not _has_ground_below(me + Vector2(direction * 34.0, 0.0), SAFE_DROP_DEPTH):
+		if not _has_ground_below(me + Vector2(direction * (34.0 + _stopping_distance()), 0.0), SAFE_DROP_DEPTH):
 			direction = 0.0
 
 	if direction != 0.0 and absf(_player.velocity.x) < 10.0:
@@ -347,6 +368,92 @@ func _update_movement(delta: float) -> void:
 	else:
 		_stuck_timer = 0.0
 	move_direction = direction
+
+
+## Steering towards a path point. On ice the bot cannot stop on the spot: where it has to stop (the end of
+## its path, a jump) it pushes against the slide early enough to come to rest on the point instead of
+## sailing past it and turning back and forth.
+func _steer_to(target_x: float, from_x: float, must_stop: bool) -> float:
+	var direction: float = signf(target_x - from_x)
+	if not must_stop or not _player.is_on_ice() or signf(_player.velocity.x) != direction:
+		return direction
+	var brake: float = _player.ground_acceleration * Player.ICE_ACCELERATION_SCALE
+	var stopping: float = _player.velocity.x * _player.velocity.x / (2.0 * maxf(brake, 1.0))
+	return -direction if stopping >= absf(target_x - from_x) - 6.0 else direction
+
+
+func _next_move_is_jump() -> bool:
+	if _path_index + 1 >= _path.size():
+		return false
+	return int(_nav.get_move(int(_path[_path_index]), int(_path[_path_index + 1]))["move"]) == LevelNavigation.Move.JUMP
+
+
+## How far the bot would still slide if it let go now (only ice makes this more than a step).
+func _stopping_distance() -> float:
+	if not _player.is_on_ice():
+		return 0.0
+	return _player.velocity.x * _player.velocity.x / (2.0 * maxf(_player.get_ground_friction(), 1.0))
+
+
+## In the water: swim for the nearest ledge a leap reaches and leap out once it is close. Bots never
+## stay in the sea; it makes them slow targets.
+func _update_swimming(me: Vector2) -> void:
+	_path = PackedInt64Array()
+	_path_index = 0
+	var level: float = WorldConditions.water_level
+	var exit_id: int = _nav.nearest_swim_exit(me, level)
+	if exit_id < 0:
+		move_direction = 0.0
+		return
+	var exit: Vector2 = _nav.points[exit_id]
+	var to_exit: float = exit.x - me.x
+	var direction: float = signf(to_exit) if absf(to_exit) > 6.0 else 0.0
+	var headroom: bool = _has_headroom(me)
+	if not headroom:
+		# Under a ledge or an arch: swim out into open water before leaping, committed to one side so it
+		# does not dither back and forth under the ledge.
+		if _swim_escape_side == 0.0:
+			_swim_escape_side = _open_side(me, signf(to_exit) if to_exit != 0.0 else 1.0)
+		direction = _swim_escape_side
+	else:
+		_swim_escape_side = 0.0
+	move_direction = direction
+	var can_leap: bool = _player.is_grounded() or _player.get_water_depth() < Player.SWIM_LEAP_DEPTH
+	if headroom and can_leap and absf(to_exit) < SWIM_LEAP_RANGE and exit.y > level - LevelNavigation.SWIM_EXIT_REACH:
+		_request_jump(0.4)
+		_air_target_x = exit.x
+		# Rise first, then steer over onto the ledge: steering at once runs into its side.
+		_air_speed_x = _player.speed
+		_swim_leap = true
+
+
+## Nothing overhead for a leap out of the water.
+func _has_headroom(me: Vector2) -> bool:
+	for offset in [-20.0, 0.0, 20.0]:
+		if _ray_blocked(me + Vector2(offset, 0.0), me + Vector2(offset, -110.0)):
+			return false
+	return true
+
+
+## The side (preferred one first) with open sky above it within a short swim.
+func _open_side(me: Vector2, preferred: float) -> float:
+	for offset in [40.0, 80.0, 130.0, 190.0]:
+		for side in [preferred, -preferred]:
+			if _has_headroom(me + Vector2(side * offset, 0.0)):
+				return side
+	return preferred
+
+
+## A new tide forecast (a flood announced, the water draining) sends the bot looking for a fresh goal
+## when its current one is going under.
+func _watch_tide() -> void:
+	var forecast: float = WorldConditions.water_forecast
+	if forecast == _known_forecast or (forecast != INF and _known_forecast != INF and absf(forecast - _known_forecast) < 20.0):
+		return
+	_known_forecast = forecast
+	if _goal_point >= 0 and LevelNavigation.is_flooded(_nav.points[_goal_point].y, forecast):
+		_replan_timer = 0.0
+		_search_cooldown = 0.0
 
 
 func _too_fast_for_takeoff(air_speed: float) -> bool:
@@ -471,6 +578,8 @@ func _cheap_score(candidate: int, feet: Vector2) -> float:
 		score += -2.0 if arrived and _blocked_time >= 1.2 else 0.6
 	if int(_bad_goals.get(candidate, 0)) > Time.get_ticks_msec():
 		score -= 3.0
+	if LevelNavigation.is_flooded(point.y, WorldConditions.water_forecast):
+		score -= 4.0
 	score += _capture_bonus(point)
 	score += randf() * 0.15
 	return score

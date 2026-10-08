@@ -96,6 +96,30 @@ func _build() -> void:
 			_emit({"amount": 4, "lifetime": 0.35, "direction": -_direction, "spread": 40.0, "speed": Vector2(30.0, 90.0),
 				"gravity": Vector2(0, -20), "size": Vector2(0.18, 0.3), "curve": &"puff", "color": DUST_COLOR})
 			_track(0.35)
+		&"ice_spray":
+			# Shaved ice thrown off a skidding boot: glittering chips low along the ice and a frost puff.
+			_emit({"texture": FxLib.TEX_DOT, "amount": int(8 * _power), "lifetime": 0.38, "direction": Vector2(_direction.x, -0.5),
+				"spread": 24.0, "speed": Vector2(90.0, 210.0) * _power, "gravity": Vector2(0, 700), "size": Vector2(0.09, 0.17),
+				"curve": &"shrink", "color": Color(0.9, 0.98, 1.0, 1.0)})
+			_emit({"amount": 3, "lifetime": 0.45, "direction": Vector2(_direction.x, -0.25), "spread": 20.0,
+				"speed": Vector2(40.0, 90.0), "gravity": Vector2(0, -10), "size": Vector2(0.2, 0.34), "curve": &"puff",
+				"color": Color(0.88, 0.96, 1.0, 0.6), "damping": Vector2(60, 120)})
+		&"splash":
+			var strength: float = clampf(_power, 0.4, 1.8)
+			_emit({"texture": FxLib.TEX_DOT, "amount": int(14 * strength), "lifetime": 0.6, "direction": Vector2.UP, "spread": 38.0,
+				"speed": Vector2(120.0, 330.0) * strength, "gravity": Vector2(0, 980), "size": Vector2(0.08, 0.18),
+				"curve": &"shrink", "color": Color(0.82, 1.0, 0.97, 0.9)})
+			_emit({"amount": int(5 * strength), "lifetime": 0.5, "direction": Vector2.UP, "spread": 70.0,
+				"speed": Vector2(30.0, 90.0) * strength, "gravity": Vector2(0, 60), "size": Vector2(0.2, 0.36) * strength,
+				"curve": &"puff", "color": Color(0.85, 1.0, 0.97, 0.45), "damping": Vector2(80, 160)})
+			FxLib.ring(self, Color(0.8, 1.0, 0.96, 0.45), 10.0, 70.0 * strength, 0.4, false)
+			_track(0.6)
+		&"ripple":
+			FxLib.ring(self, Color(0.8, 1.0, 0.96, 0.32), 6.0, 46.0, 0.5, false)
+			_emit({"texture": FxLib.TEX_DOT, "amount": 3, "lifetime": 0.35, "direction": Vector2(-_direction.x, -1.0), "spread": 30.0,
+				"speed": Vector2(40.0, 90.0), "gravity": Vector2(0, 600), "size": Vector2(0.05, 0.1), "curve": &"shrink",
+				"color": Color(0.82, 1.0, 0.97, 0.85)})
+			_track(0.5)
 		&"hit":
 			_build_hit(clampf(_power, 1.0, 1.5))
 		&"hit_heavy":

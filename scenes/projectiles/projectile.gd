@@ -6,6 +6,11 @@ class_name Projectile
 
 signal despawn_requested(projectile: Node, reason: StringName, collider)
 
+## Under water (Tidewater) a round loses most of its speed within a fraction of a second, and every
+## pixel it travels there uses up this many pixels of its range, so it fizzles out close to the surface.
+const WATER_DRAG: float = 6.0
+const WATER_RANGE_COST: float = 8.0
+
 @export var muzzle_speed: float = GameSettings.PROJECTILE_MUZZLE_SPEED
 @export var gravity: float = GameSettings.PROJECTILE_GRAVITY
 @export var max_distance: float = GameSettings.PROJECTILE_MAX_DISTANCE
@@ -37,6 +42,7 @@ var _wind_response: float = 1.0
 var _impact_tint: Color = Color(0.98, 0.55, 0.18, 0.9)
 ## Speed of the clock this round flies on: its shooter's (Time Control slows both).
 var _time_scale: float = 1.0
+var _in_water: bool = false
 
 
 func configure_from_data(
@@ -111,6 +117,13 @@ func _physics_process(delta: float) -> void:
 	velocity += WorldConditions.projectile_wind_acceleration(_wind_response) * delta
 	if linear_damping > 0.0:
 		velocity = velocity.move_toward(Vector2.ZERO, linear_damping * delta)
+	var in_water: bool = global_position.y > WorldConditions.water_level
+	if in_water:
+		velocity *= exp(-WATER_DRAG * delta)
+		if not _in_water:
+			GameJuice.spawn_burst(&"ripple", Vector2(global_position.x, WorldConditions.water_level), Vector2(signf(velocity.x), 0.0), Color.WHITE)
+			AudioDirector.play_at(&"splash", global_position, -10.0, 1.4)
+	_in_water = in_water
 	_update_rotation()
 
 	var motion: Vector2 = velocity * delta
@@ -121,7 +134,7 @@ func _physics_process(delta: float) -> void:
 		_update_drill_visual(delta)
 		return
 
-	_distance_travelled += motion.length()
+	_distance_travelled += motion.length() * (WATER_RANGE_COST if in_water else 1.0)
 	_update_drill_wall_mask(motion.length())
 	_update_drill_visual(delta)
 	_check_bullet_whiz()

@@ -153,8 +153,10 @@ func _process(_delta: float) -> bool:
 	var rel: Vector2 = p1.global_position - corner
 	var moved: float = p1.global_position.distance_to(_last)
 	_last = p1.global_position
-	# "Stuck": not moving, near the corner, and not standing on top (standing sits ~24 above).
-	if _case_frame > 3 and moved < 0.3 and rel.length() < 40.0 and rel.y > -20.0:
+	# "Stuck": not moving, near the corner, and not standing on top (standing sits ~24 above). Floating
+	# still in the water (Tidewater) is fine when nothing is held.
+	var floating_idle: bool = hold == "-" and p1.is_swimming()
+	if _case_frame > 3 and moved < 0.3 and rel.length() < 40.0 and rel.y > -20.0 and not floating_idle:
 		_still += 1
 		_max_still = maxi(_max_still, _still)
 	else:

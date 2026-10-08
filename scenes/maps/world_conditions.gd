@@ -11,6 +11,8 @@ const PROJECTILE_WIND_ACCEL: float = 2.4
 const SHELTER_DISTANCE: float = 170.0
 const SHELTERED_EXPOSURE: float = 0.18
 const WORLD_MASK: int = 1
+## Terrain bodies in this group are ice (Rimefall): little grip, so players keep their momentum.
+const ICE_GROUP: StringName = &"ice_surface"
 
 static var gravity_scale: float = 1.0
 static var projectile_gravity_scale: float = 1.0
@@ -21,6 +23,12 @@ static var wind: Vector2 = Vector2.ZERO
 static var storm: float = 0.0
 ## 1 = clear air, towards 0 = whiteout. Scales how far players (and the bot) can see.
 static var visibility: float = 1.0
+## The sea's surface (world y) on Tidewater; INF where there is no water. Below it players swim and
+## rounds drag to a stop.
+static var water_level: float = INF
+## Where the water will stand at the top of the tide that is announced or running (INF without water):
+## what the bot keeps clear of.
+static var water_forecast: float = INF
 
 
 static func reset() -> void:
@@ -30,6 +38,13 @@ static func reset() -> void:
 	wind = Vector2.ZERO
 	storm = 0.0
 	visibility = 1.0
+	water_level = INF
+	water_forecast = INF
+
+
+static func is_ice(collider: Object) -> bool:
+	var node: Node = collider as Node
+	return node != null and node.is_in_group(ICE_GROUP)
 
 
 static func has_wind() -> bool:

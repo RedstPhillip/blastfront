@@ -1381,6 +1381,82 @@ func _build_script() -> void:
 				_at(3.95 + i * 0.4, "shot", "%s_close_%d" % [world_id, i])
 			_at(6.2, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
 			_at(6.3, "quit")
+		"tide_play":
+			# A flood with P1 standing in the courtyard: the warning, the rise lifting P1, swimming, a leap out.
+			_at(0.2, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "tidewater"))
+			_at(0.5, "call", func(): _main._on_sandbox_requested())
+			_at(2.0, "call", func(): _place_p1(Vector2(900, 630)))
+			_at(2.2, "call", func(): _tide().skip_to_tide(false, true))
+			_at(3.0, "shot", "tide_warning")
+			for i in range(30):
+				_at(2.4 + i * 0.4, "call", func():
+					var p1 = _stress_game().get_player_by_slot(1)
+					print("TIDE t=%.1f phase=%d level=%.0f forecast=%.0f p1=%s state=%s depth=%.0f" % [_time, _tide()._phase, WorldConditions.water_level, WorldConditions.water_forecast, p1.global_position.round(), p1._state_machine.current_state.name, p1.get_water_depth()]))
+			_at(8.0, "shot", "tide_rising")
+			_at(10.5, "shot", "tide_swim")
+			_at(10.6, "press", "p1_move_left")
+			_at(12.0, "press", "p1_jump")
+			_at(12.3, "release", "p1_jump")
+			_at(13.0, "release", "p1_move_left")
+			_at(13.5, "shot", "tide_out")
+			_at(13.6, "mouse", Vector2(900, 600))
+			_at(13.7, "press", "p1_shoot")
+			_at(13.75, "release", "p1_shoot")
+			_at(14.0, "shot", "tide_round_in_water")
+			_at(14.4, "call", func(): _tide().hold_flood(true))
+			_at(15.5, "shot", "tide_spring")
+			_at(16.0, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
+			_at(16.1, "quit")
+		"tide_sync":
+			# Online: a second tide set up as the client follows the host's states (reliable phase events plus
+			# the regular snapshot, the way WorldSync delivers them) and must stand at the same level.
+			_at(0.2, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "tidewater"))
+			_at(0.5, "call", func(): _main._on_sandbox_requested())
+			_at(2.0, "call", func():
+				var client: Node2D = load("res://scenes/maps/tidewater/tidewater_tide.gd").new()
+				client.name = "ClientTide"
+				client.set(&"ebb_level", _tide().ebb_level)
+				client.set(&"flood_level", _tide().flood_level)
+				client.set(&"spring_level", _tide().spring_level)
+				client.set(&"arena_rect", _tide().arena_rect)
+				_stress_game().get_node("Arena").add_child(client)
+				client.remove_from_group(&"net_world")
+				client._follow_host = true
+				_tide().skip_to_tide(true, true))
+			for i in range(80):
+				_at(2.1 + i * 0.25, "call", func():
+					var host: Node = _tide()
+					var client: Node = _stress_game().get_node("Arena/ClientTide")
+					var state: Dictionary = host.net_state()
+					# Phase events go out the moment they happen; snapshots arrive ~10 times a second.
+					if state["step"] != client._step or i % 2 == 0:
+						client.apply_net_state(state)
+					print("SYNC t=%.2f phase=%d/%d level host=%.1f client=%.1f diff=%.1f" % [_time, host._phase, client._phase, host.get_level(), client.get_level(), absf(host.get_level() - client.get_level())]))
+			_at(22.5, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
+			_at(22.6, "quit")
+		"ice_play":
+			# P1 runs across the frozen lake and lets go: the glide, the skid spray, the stop distance.
+			_at(0.2, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "rimefall"))
+			_at(0.5, "call", func(): _main._on_sandbox_requested())
+			_at(2.0, "call", func(): _place_p1(Vector2(800, 600)))
+			_at(2.5, "press", "p1_move_right")
+			_at(2.85, "release", "p1_move_right")
+			_at(3.0, "shot", "ice_skid")
+			_at(3.25, "shot", "ice_skid_late")
+			_at(4.2, "press", "p1_move_left")
+			_at(4.3, "shot", "ice_turn")
+			_at(4.9, "release", "p1_move_left")
+			for i in range(24):
+				_at(2.4 + i * 0.15, "call", func():
+					var p1 = _stress_game().get_player_by_slot(1)
+					print("ICE t=%.2f x=%.0f vx=%.0f on_ice=%s sliding=%s" % [_time, p1.global_position.x, p1.velocity.x, p1.is_on_ice(), p1._ice_sliding]))
+			_at(6.0, "call", func(): _place_p1(Vector2(250, 390)))
+			_at(6.3, "press", "p1_move_right")
+			_at(6.7, "release", "p1_move_right")
+			_at(6.75, "call", func(): print("SNOW stop from vx=", _stress_game().get_player_by_slot(1).velocity.x))
+			_at(7.0, "call", func(): print("SNOW x=", _stress_game().get_player_by_slot(1).global_position.x, " vx=", _stress_game().get_player_by_slot(1).velocity.x))
+			_at(7.2, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
+			_at(7.3, "quit")
 		"mars_play":
 			_at(0.2, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "mars"))
 			_at(0.5, "call", func(): _main._on_sandbox_requested())
@@ -2136,6 +2212,10 @@ func _tp_report() -> void:
 
 func _weather() -> Node:
 	return _stress_game().get_node("Arena/Weather")
+
+
+func _tide() -> Node:
+	return _stress_game().get_node("Arena/Tide")
 
 
 func _place_p1(at: Vector2) -> void:

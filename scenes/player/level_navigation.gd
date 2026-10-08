@@ -29,6 +29,10 @@ const CLIMB_STRONG_KICK_RISE: float = 80.0
 const CLIMB_MARGIN: float = 10.0
 const MAX_WALL_CLIMB: float = 420.0
 const WORLD_MASK: int = 1
+## A point counts as flooded once the water stands this far over the feet (wading is still fine).
+const FLOOD_MARGIN: float = 10.0
+## Highest a leap out of the water lands, feet above the surface (Player.SWIM_LEAP_SCALE jump, with margin).
+const SWIM_EXIT_REACH: float = 96.0
 
 static var _cache: Dictionary = {}
 
@@ -44,6 +48,7 @@ var _gravity: float = GRAVITY
 var _max_climb: float = MAX_CLIMB
 var _max_reach: float = MAX_HORIZONTAL_REACH
 var _gravity_scale: float = 1.0
+var _flood_level: float = INF
 
 
 static func get_for(map_root: Node, space: PhysicsDirectSpaceState2D, bounds: Rect2) -> LevelNavigation:
@@ -66,10 +71,47 @@ func is_valid() -> bool:
 	return points.size() > 1
 
 
+## Leaves every point the water covers out of the paths (Tidewater's tide); INF opens them all again.
+## The graph is shared by both bots, and so is the sea.
+func set_flood_level(level: float) -> void:
+	if level == _flood_level or (level != INF and _flood_level != INF and absf(level - _flood_level) < 3.0):
+		return
+	_flood_level = level
+	for index in range(points.size()):
+		_astar.set_point_disabled(index, is_flooded(points[index].y, level))
+
+
+static func is_flooded(feet_y: float, level: float) -> bool:
+	return level != INF and feet_y > level + FLOOD_MARGIN
+
+
+## The dry point a swimmer at `from` should make for: a leap out of the water reaches it, the nearest
+## sideways wins. Falls back to the nearest dry point at all.
+func nearest_swim_exit(from: Vector2, level: float) -> int:
+	var best: int = -1
+	var best_cost: float = INF
+	var fallback: int = -1
+	var fallback_cost: float = INF
+	for index in range(points.size()):
+		var point: Vector2 = points[index]
+		if is_flooded(point.y, level):
+			continue
+		var cost: float = absf(point.x - from.x) + absf(point.y - level) * 0.5
+		if point.y > level - SWIM_EXIT_REACH and cost < best_cost:
+			best_cost = cost
+			best = index
+		if cost < fallback_cost:
+			fallback_cost = cost
+			fallback = index
+	return best if best >= 0 else fallback
+
+
 func nearest_point(world_feet: Vector2, max_distance: float = 140.0) -> int:
 	var best: int = -1
 	var best_distance: float = max_distance * max_distance
 	for index in range(points.size()):
+		if _astar.is_point_disabled(index):
+			continue
 		var offset: Vector2 = points[index] - world_feet
 		var distance: float = offset.x * offset.x + offset.y * offset.y * 2.5
 		if distance < best_distance:
