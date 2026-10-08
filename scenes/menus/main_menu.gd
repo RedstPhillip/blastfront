@@ -16,6 +16,7 @@ const DIFFICULTY_NAMES: Array[String] = ["EASY", "NORMAL", "HARD"]
 const SHOP_NAMES: Array[String] = ["OFF", "ON"]
 const BOT_PANEL_X: float = 470.0
 const BOT_LABEL_WIDTH: float = 112.0
+const OPTION_HEIGHT: float = 44.0
 
 @onready var _background: TextureRect = $Background
 @onready var _menu_root: Control = $MenuRoot
@@ -264,8 +265,10 @@ func _add_option_row(box: VBoxContainer, label_text: String, names: Array[String
 	var label: Label = Label.new()
 	UiStyle.style_label(label, UiStyle.FONT_BOLD, 14, UiStyle.TEXT_DIM)
 	label.text = label_text
-	label.custom_minimum_size = Vector2(BOT_LABEL_WIDTH, 0.0)
-	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	# Level with the first line of options, also when they wrap into a second line.
+	label.custom_minimum_size = Vector2(BOT_LABEL_WIDTH, OPTION_HEIGHT)
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	row.add_child(label)
 	var group: ButtonGroup = ButtonGroup.new()
 	var buttons: Array[Button] = []
@@ -274,13 +277,12 @@ func _add_option_row(box: VBoxContainer, label_text: String, names: Array[String
 		option.text = names[index]
 		option.toggle_mode = true
 		option.button_group = group
-		option.custom_minimum_size = Vector2(0.0, 44.0)
-		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		option.custom_minimum_size = Vector2(0.0, OPTION_HEIGHT)
 		UiStyle.style_option(option, 16)
 		option.set_pressed_no_signal(index == selected)
 		option.toggled.connect(on_toggled.bind(index))
-		row.add_child(option)
 		buttons.append(option)
+	row.add_child(UiStyle.option_grid(buttons))
 	return buttons
 
 

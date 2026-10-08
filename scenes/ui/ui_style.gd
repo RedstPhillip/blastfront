@@ -145,6 +145,29 @@ static func style_option(button: Button, font_size: int = 17) -> void:
 	button.add_theme_color_override("font_hover_pressed_color", INK)
 
 
+## Lays toggle options out in rows of at most three, all as wide as the widest, so a row of four worlds
+## becomes a 2 x 2 block instead of a strip of uneven buttons. Returns the container to add to a row.
+static func option_grid(options: Array[Button], horizontal_padding: float = 12.0) -> GridContainer:
+	var grid: GridContainer = GridContainer.new()
+	grid.columns = options.size() if options.size() <= 3 else 2
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 8)
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var widest: float = 0.0
+	for option in options:
+		for state in ["normal", "hover", "pressed", "disabled"]:
+			var style: StyleBoxFlat = option.get_theme_stylebox(state) as StyleBoxFlat
+			if style != null:
+				style.content_margin_left = horizontal_padding
+				style.content_margin_right = horizontal_padding
+		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		widest = maxf(widest, option.get_combined_minimum_size().x)
+		grid.add_child(option)
+	for option in options:
+		option.custom_minimum_size.x = widest
+	return grid
+
+
 ## Focus overlay for controls whose fill already means something (selected options): an accent frame only.
 static func focus_frame() -> StyleBoxFlat:
 	var style: StyleBoxFlat = panel(Color(0, 0, 0, 0), ACCENT, 2, 2)
