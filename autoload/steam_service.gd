@@ -1,6 +1,10 @@
 extends Node
 
-## Steam start-up through GodotSteam when it is present; the game runs offline without it.
+## Steam start-up through GodotSteam when it is present; the game runs offline without it. The project
+## setting blastfront/steam/disabled (set by the test toolkit's override.cfg) keeps Steam off entirely, so
+## automated runs never touch the Steam client of whoever is logged in.
+
+const DISABLED_SETTING: String = "blastfront/steam/disabled"
 
 signal initialized
 signal initialization_failed(message: String)
@@ -19,11 +23,18 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	if _has_steam():
+	if steam_enabled:
 		Steam.run_callbacks()
 
 
 func initialize_steam() -> void:
+	if ProjectSettings.get_setting(DISABLED_SETTING, false) == true:
+		steam_enabled = false
+		initialization_status = -1
+		initialization_message = "Steam disabled by " + DISABLED_SETTING
+		status_changed.emit(initialization_message)
+		initialization_failed.emit(initialization_message)
+		return
 	if not _has_steam():
 		steam_enabled = false
 		initialization_status = -1

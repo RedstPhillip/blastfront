@@ -248,6 +248,13 @@ func _neutralize_backdrop() -> void:
 	var root: Control = get_node_or_null(^"BackgroundLayer/BackgroundRoot") as Control
 	if root == null:
 		return
+	# The painting is 16:9; on taller screens (16:10, Steam Deck) the floor continues as plain ink below it.
+	var floor_fill: ColorRect = ColorRect.new()
+	floor_fill.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	floor_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	floor_fill.color = Color(0.004, 0.006, 0.006)
+	root.add_child(floor_fill)
+	root.move_child(floor_fill, 0)
 	var material: ShaderMaterial = ShaderMaterial.new()
 	material.shader = BACKDROP_SHADER
 	for child in root.get_children():

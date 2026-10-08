@@ -8,7 +8,7 @@ extends SceneTree
 ## Headless runs skip screenshots and are used for error checks (regress.sh greps the output).
 ## Environment knobs: BF_FULLHD / BF_SMALL (viewport size), BF_ONSCREEN (park the 1px window at the screen
 ## corner instead of off-screen; off-screen windows get throttled), BF_OPAQUE, BF_WORLD (verdant|mars),
-## BF_STRESS_SECONDS, BF_UNCAPPED, BF_NOHITCH.
+## BF_STRESS_SECONDS, BF_UNCAPPED, BF_NOHITCH, BF_SIZE (e.g. 1280x800).
 ## Each scenario is a case in _build_script(); _at(time_seconds, kind, arg) queues an action.
 
 var _scenario: String = "menu"
@@ -46,6 +46,11 @@ func _initialize() -> void:
 	if OS.has_environment("BF_FULLHD"):
 		_viewport.size_2d_override = Vector2i(1280, 720)
 		_viewport.size_2d_override_stretch = true
+	# BF_SIZE=1280x800 renders the logical size the game gets on other aspect ratios (16:10 with the
+	# "expand" stretch aspect, e.g. Steam Deck).
+	if OS.has_environment("BF_SIZE"):
+		var parts: PackedStringArray = OS.get_environment("BF_SIZE").split("x")
+		_viewport.size = Vector2i(int(parts[0]), int(parts[1]))
 	_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	_viewport.handle_input_locally = true
 	root.add_child(_viewport)

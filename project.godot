@@ -38,6 +38,7 @@ window/size/viewport_width=1280
 window/size/viewport_height=720
 window/size/mode=2
 window/stretch/mode="canvas_items"
+window/stretch/aspect="keep_width"
 mouse_cursor/custom_image="res://ui/theme/icons/cursor_arrow.png"
 mouse_cursor/custom_image_hotspot=Vector2(4, 3)
 window/size/mode.template=4

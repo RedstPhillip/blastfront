@@ -20,6 +20,8 @@ Linux/macOS work with `rsync` instead of `robocopy`) plus Python 3 (Pillow for i
   `.godot` import cache, so syncing is cheap and the developer's editor state is never touched.
 - Tests write to a separate user dir (`user://` = `blastfront_tests`, set by the `overrides/*.cfg` files that
   get copied in as `override.cfg` for the run), so saved settings/progress of the real game stay untouched.
+  The same overrides set `blastfront/steam/disabled=true`: test runs never touch the Steam client of whoever
+  is logged in (no lobbies, no persona lookups), even when Steam is running.
 - After pulling a collaborator's work that adds assets or new `class_name` scripts, run `import.sh` first.
   A stale class cache makes every run fail with hundreds of "Identifier not declared" errors, and any
   benchmark taken in that state is garbage.
@@ -45,7 +47,7 @@ bash tools/testing/regress.sh         # should print OK for every scenario
 |---|---|
 | `regress.sh [scenario...]` | Syncs the mirror, compiles every script once (`parse_all.gd`, catches errors in files no scenario loads), runs the 13 regression scenarios headless, prints `OK` / `FAIL` + distinct errors. Run before every commit. |
 | `run_headless.sh <scenario>` | One scenario headless, full (filtered) output. Good for scenarios that `print` measurements. |
-| `run_capture.sh <scenario> [out_dir]` | One scenario with real rendering, invisible; PNG per `shot` action (default `$WORK_DIR/captures/<scenario>`). `BF_FULLHD=1` for 1920x1080. `PROJ_OVERRIDE=$WORK_DIR/mirror_base` renders the old version for before/after comparisons. |
+| `run_capture.sh <scenario> [out_dir]` | One scenario with real rendering, invisible; PNG per `shot` action (default `$WORK_DIR/captures/<scenario>`). `BF_FULLHD=1` for 1920x1080, `BF_SIZE=1280x800` for the logical size on 16:10 / Steam Deck (the project uses the `keep_width` stretch aspect, so taller screens get more height and ultrawide gets side bars). `PROJ_OVERRIDE=$WORK_DIR/mirror_base` renders the old version for before/after comparisons. |
 | `import.sh` | Sync + headless import. |
 | `run_probe.sh <probe.gd> <headless\|render> [args]` | Runs one of the probe scripts (see below) in the mirror. |
 | `sync_mirror.sh` | Sync only. |

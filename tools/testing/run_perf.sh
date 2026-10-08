@@ -10,6 +10,7 @@
 # The project copy defaults to the mirror (not synced here: run sync_mirror.sh or import.sh first).
 source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
 PROJ="${3:-$MIRROR}"
+mkdir -p "$(dirname "$2")"
 RESULT="$(native_path "$2")"
 cleanup() { rm -f "$PROJ/override.cfg"; }
 trap cleanup EXIT
