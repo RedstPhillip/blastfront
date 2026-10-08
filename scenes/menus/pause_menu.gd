@@ -131,10 +131,11 @@ func _refresh_world_row() -> void:
 		for state in ["normal", "hover", "focus", "pressed", "disabled"]:
 			(button.get_theme_stylebox(state) as StyleBoxFlat).content_margin_left = 10.0
 			(button.get_theme_stylebox(state) as StyleBoxFlat).content_margin_right = 10.0
+		button.add_theme_stylebox_override("focus", UiStyle.focus_frame())
 		if world_id == current:
 			# The world you are on reads as selected (light fill), not as a second call to action.
 			var selected: StyleBoxFlat = UiStyle.with_margins(UiStyle.panel(UiStyle.TEXT), 10, 10)
-			for state in ["normal", "hover", "focus", "pressed"]:
+			for state in ["normal", "hover", "pressed"]:
 				button.add_theme_stylebox_override(state, selected)
 			for color_name in ["font_color", "font_hover_color", "font_focus_color", "font_pressed_color"]:
 				button.add_theme_color_override(color_name, UiStyle.INK)
@@ -269,10 +270,14 @@ func _on_loadout_pressed() -> void:
 
 
 func _close_loadout() -> void:
-	if _loadout_instance != null and is_instance_valid(_loadout_instance):
+	var was_open: bool = _loadout_instance != null and is_instance_valid(_loadout_instance)
+	if was_open:
 		_loadout_instance.queue_free()
 		_loadout_instance = null
 	_menu_container.show()
+	# Back from the loadout lands on its entry again, so a pad keeps a cursor in the menu.
+	if was_open and _is_paused:
+		_loadout_button.grab_focus.call_deferred()
 
 
 func _close_settings() -> void:

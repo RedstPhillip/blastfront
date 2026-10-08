@@ -258,6 +258,22 @@ func _build_script() -> void:
 				_at(1.6 + i * 0.35, "shot", "pad_%02d" % i)
 			_at(1.6 + steps.size() * 0.35, "shot", "pad_nav_end")
 			_at(1.8 + steps.size() * 0.35, "quit")
+		"pad_nav_game":
+			# Pause menu and the sandbox loadout driven only by ui_* actions.
+			_at(0.5, "call", func(): _main._on_sandbox_requested())
+			_at(1.8, "call", func(): root.get_node("InputDevice")._set_gamepad(true))
+			_at(2.0, "action", "pause")
+			var game_steps: Array = [
+				"ui_down", "ui_down", "ui_accept", "ui_down", "ui_right", "ui_right", "ui_down", "ui_accept",
+				"ui_left", "ui_up", "ui_up", "ui_up", "ui_cancel", "ui_down", "ui_down", "ui_right", "ui_cancel",
+			]
+			_at(2.4, "call", func(): _log_focus("paused"))
+			for i in range(game_steps.size()):
+				var game_step: String = game_steps[i]
+				_at(2.6 + i * 0.35, "action", game_step)
+				_at(2.75 + i * 0.35, "call", func(): _log_focus(game_step))
+				_at(2.8 + i * 0.35, "shot", "padg_%02d" % i)
+			_at(3.0 + game_steps.size() * 0.35, "quit")
 		"botshop":
 			_at(0.3, "call", func():
 				root.get_node("UserSettings").set_value(&"gameplay_bot_phase_shop", true)
