@@ -84,6 +84,24 @@ func _build() -> void:
 	_add({"name": "duel_mars", "frames": _len(2700), "warmup": 120, "setup": func() -> void:
 		_ai_both()
 		_game().get_node("Arena/Weather").skip_to_storm(true, 1.0, false), "tick": _mars_tick})
+	# Tidewater's per-frame cost is worst while the water is up: the sea and tide line shaders run, the spray
+	# particles emit and the players swim. Force floods so the phase measures that, not the calm before them.
+	_add({"name": "load_tidewater", "load": true, "setup": func() -> void:
+		settings.set_value(&"progress_bot_world", "tidewater")
+		root.get_node("NetworkSession").start_bot_duel(false)
+		_main.start_game(),
+		"until": func() -> bool: return _game() != null and _game().has_node("Arena/Tide")})
+	_add({"name": "duel_tidewater", "frames": _len(2700), "warmup": 120, "setup": func() -> void:
+		_ai_both()
+		_tide().skip_to_tide(true, false), "tick": _tide_tick})
+	# Rimefall has no timed condition, so its phase is just the ice shader and the skin's per-frame upkeep.
+	_add({"name": "load_rimefall", "load": true, "setup": func() -> void:
+		settings.set_value(&"progress_bot_world", "rimefall")
+		root.get_node("NetworkSession").start_bot_duel(false)
+		_main.start_game(),
+		"until": func() -> bool: return _game() != null and _game().has_node("Arena/PlatformSkin")})
+	_add({"name": "duel_rimefall", "frames": _len(2700), "warmup": 120, "setup": func() -> void:
+		_ai_both(), "tick": _duel_tick})
 	if _mode == "cpu":
 		_add({"name": "load_sandbox", "load": true, "setup": func() -> void:
 			settings.set_value(&"progress_sandbox_world", "verdant")
@@ -269,6 +287,19 @@ func _mars_tick() -> void:
 	var game: Node = _game()
 	if game != null and _phase_frame % 900 == 450 and game.has_node("Arena/Weather"):
 		game.get_node("Arena/Weather").skip_to_storm(true, 1.0, false)
+
+
+## Tidewater: the duel driver, plus a spring tide every 15 s so ebb, rise and flood all get measured.
+func _tide_tick() -> void:
+	_duel_tick()
+	var game: Node = _game()
+	if game != null and _phase_frame % 900 == 300 and game.has_node("Arena/Tide"):
+		game.get_node("Arena/Tide").skip_to_tide(_phase_frame % 1800 == 300, false)
+
+
+func _tide() -> Node:
+	var game: Node = _game()
+	return game.get_node_or_null(^"Arena/Tide") if game != null else null
 
 
 func _sandbox_tick() -> void:

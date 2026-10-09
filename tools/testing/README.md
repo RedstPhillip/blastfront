@@ -115,8 +115,10 @@ random loadout every 6 s, a scripted sandbox stress, a pointer sweeping across t
 pages). It prints `R <metric> <value>`:
 
 - `boot_ms` (process start until the main menu exists), `boot_full_ms` (until the background scene loads are done)
-- `load_duel_ms`, `load_mars_ms`, `load_sandbox_ms`, `load_loadout_ms` (scene swap to playable)
-- per phase (`menu`, `duel_verdant`, `duel_mars` with forced storms, `sandbox_stress`, `loadout`, `research`):
+- `load_duel_ms`, `load_mars_ms`, `load_tidewater_ms`, `load_rimefall_ms`, `load_sandbox_ms`, `load_loadout_ms`
+  (scene swap to playable)
+- per phase (`menu`, `duel_verdant`, `duel_mars` with forced storms, `duel_tidewater` with forced spring tides,
+  `duel_rimefall`, `sandbox_stress`, `loadout`, `research`):
   `_mean _p95 _p99 _max` frame ms, `_nodes` (CPU mode); in render mode also `_gpu`, `_rcpu` (render-thread CPU), `_draws`
 - `mem_static_mb`, `mem_peak_mb`, `objects`, `resources`, and in render mode `vram_*`
 
