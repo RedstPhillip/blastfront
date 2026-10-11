@@ -318,7 +318,7 @@ script = ExtResource("8_2t45f")
 [node name="IceNotice" type="Node" parent="." unique_id=747853999]
 script = ExtResource("9_rxnnx")
 title = "GLARE ICE"
-detail = "Blue ice keeps your momentum, snow grips"
+detail = "Ice slides  ·  snow grips"
 color = Color(0.66, 0.88, 1, 1)
 
 [node name="PlatformSkin" type="Node2D" parent="." unique_id=1909267619]
