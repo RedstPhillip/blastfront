@@ -105,9 +105,3 @@ func physics_sync_tick(_delta: float) -> void:
 		var player: Player = _get_player(slot)
 		if player != null:
 			player.reset_time_control_state()
-
-
-func _get_player(slot: int) -> Player:
-	if game == null:
-		return null
-	return game.get_player_by_slot(slot)

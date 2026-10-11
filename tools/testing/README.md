@@ -169,6 +169,11 @@ How to read it honestly:
 - Load time: `run_probe.sh bootprobe.gd headless` (engine+autoloads vs. scene loads),
   `run_probe.sh depprobe.gd headless target=res://scenes/game.tscn` (every dependency, slowest first),
   `run_probe.sh scriptprobe.gd headless order=res://a.gd,res://b.gd` (compile cost in a given order).
+- Refactors of the world dressing: `run_probe.sh skin_probe.gd headless` prints one checksum per arena over
+  every generated line, polygon and detail mesh; run it on the old copy (`PROJ_OVERRIDE=`) and the new one,
+  identical checksums mean the skins build exactly the same geometry.
+- `perfsuite.gd` skips the phases of worlds a copy does not have, so a baseline from before Tidewater and
+  Rimefall still measures (compare the common metrics).
 - `compile_probe.py inject <copy>` + run the copy headless with `--quit-after 3` + `compile_probe.py report <log>`:
   timeline of which scripts compile before the menu (static-init markers; inherited classes may not report).
 

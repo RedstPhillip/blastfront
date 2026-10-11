@@ -339,9 +339,3 @@ func _apply_remote_status_effect(target_slot: int, effect_name: StringName, effe
 	if target_player == null or target_player.status_effect_manager == null:
 		return
 	target_player.status_effect_manager.apply_effect(effect_name, effect_data)
-
-
-func _get_player(slot: int) -> Player:
-	if game == null:
-		return null
-	return game.get_player_by_slot(slot)

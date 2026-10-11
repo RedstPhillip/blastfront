@@ -38,16 +38,7 @@ func _process(_delta: float) -> void:
 
 
 func _decorate_top_chain(chain: Array, decorations: Node2D) -> void:
-	var path: PackedVector2Array = PackedVector2Array()
-	var rim_path: PackedVector2Array = PackedVector2Array()
-	path.append((chain[0]["a"] as Vector2) + (chain[0]["normal"] as Vector2) * 0.8)
-	rim_path.append((chain[0]["a"] as Vector2) + (chain[0]["normal"] as Vector2) * 2.2)
-	for edge in chain:
-		var normal: Vector2 = edge["normal"]
-		path.append((edge["b"] as Vector2) + normal * 0.8)
-		rim_path.append((edge["b"] as Vector2) + normal * 2.2)
-	decorations.add_child(_make_line(path, moss_color, 4.0))
-	decorations.add_child(_make_line(rim_path, rim_color, 1.2))
+	_add_cap_lines(chain, decorations, 0.8, 4.0, 2.2, 1.2)
 
 	for edge in chain:
 		var a: Vector2 = edge["a"]
@@ -171,32 +162,10 @@ func _scaled(points: PackedVector2Array, center: Vector2, factor: float) -> Pack
 	return result
 
 
-func _push_fan(points: PackedVector2Array, color: Color) -> void:
-	if points.size() < 3:
-		return
-	var center: Vector2 = Vector2.ZERO
-	for point in points:
-		center += point
-	center /= float(points.size())
-	for index in range(points.size()):
-		_push_tri(center, points[index], points[(index + 1) % points.size()], color, color, color, 0.0, 0.0, 0.0)
-
-
 func _commit_mesh(decorations: Node2D) -> void:
 	if _verts.is_empty():
 		return
-	var arrays: Array = []
-	arrays.resize(Mesh.ARRAY_MAX)
-	arrays[Mesh.ARRAY_VERTEX] = _verts
-	arrays[Mesh.ARRAY_COLOR] = _colors
-	arrays[Mesh.ARRAY_TEX_UV] = _uvs
-	var mesh: ArrayMesh = ArrayMesh.new()
-	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-	var instance: MeshInstance2D = MeshInstance2D.new()
-	instance.name = "DetailMesh"
-	instance.mesh = mesh
-	instance.light_mask = GEOMETRY_LIGHT_MASK
-	decorations.add_child(instance)
+	_add_detail_mesh(decorations, "DetailMesh", null)
 	if not _pennant_anchors.is_empty():
 		# Windsocks on the beacon masts: the quickest read of where a storm is blowing.
 		var pennants: WindPennant = WindPennant.new()

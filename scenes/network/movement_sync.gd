@@ -96,9 +96,3 @@ func _get_remote_player(slot: int) -> Player:
 	if slot == 0 or slot == game_sync.get_local_slot():
 		return null
 	return _get_player(slot)
-
-
-func _get_player(slot: int) -> Player:
-	if game == null:
-		return null
-	return game.get_player_by_slot(slot)

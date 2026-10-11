@@ -12,6 +12,13 @@ signal device_changed(using_gamepad: bool)
 const STICK_DEADZONE: float = 0.28
 const TRIGGER_DEADZONE: float = 0.35
 const AIM_SMOOTHING: float = 22.0
+## Short labels for the on-screen prompts (prompt()); HUD cards ask every frame, so the tables are built once.
+const PAD_PROMPTS: Dictionary = {
+	&"p1_shoot": "RT", &"p1_block": "LT", &"p1_jump": "A", &"p1_reload": "X", &"p1_time_control": "Y", &"p1_dash": "B", &"p1_move_down": "DOWN", &"ui_cancel": "B", &"pause": "START",
+}
+const KEY_PROMPTS: Dictionary = {
+	&"p1_shoot": "LMB", &"p1_block": "RMB", &"p1_jump": "SPACE", &"p1_reload": "R", &"p1_time_control": "Q", &"p1_dash": "SHIFT", &"p1_move_down": "S", &"ui_cancel": "ESC", &"pause": "ESC",
+}
 
 var using_gamepad: bool = false
 var aim_direction: Vector2 = Vector2.RIGHT
@@ -78,14 +85,7 @@ func is_reticle_active() -> bool:
 
 ## Short label for an action's binding on the active device, used in on-screen prompts.
 func prompt(action: StringName) -> String:
-	var gamepad: Dictionary = {
-		&"p1_shoot": "RT", &"p1_block": "LT", &"p1_jump": "A", &"p1_reload": "X", &"p1_time_control": "Y", &"p1_dash": "B", &"p1_move_down": "DOWN", &"ui_cancel": "B", &"pause": "START",
-	}
-	var keyboard: Dictionary = {
-		&"p1_shoot": "LMB", &"p1_block": "RMB", &"p1_jump": "SPACE", &"p1_reload": "R", &"p1_time_control": "Q", &"p1_dash": "SHIFT", &"p1_move_down": "S", &"ui_cancel": "ESC", &"pause": "ESC",
-	}
-	var table: Dictionary = gamepad if using_gamepad else keyboard
-	return str(table.get(action, ""))
+	return str((PAD_PROMPTS if using_gamepad else KEY_PROMPTS).get(action, ""))
 
 
 func _set_gamepad(value: bool) -> void:

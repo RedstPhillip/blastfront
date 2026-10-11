@@ -34,3 +34,10 @@ func apply_snapshot(_data: Dictionary) -> void:
 
 func physics_sync_tick(_delta: float) -> void:
 	return
+
+
+## The game's player in this slot, or null (also before setup and while the world is going away).
+func _get_player(slot: int) -> Player:
+	if game == null:
+		return null
+	return game.get_player_by_slot(slot)

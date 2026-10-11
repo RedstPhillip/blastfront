@@ -56,6 +56,7 @@ var _dash_pop: float = 0.0
 var _reload_signature: String = ""
 var _status_signature: String = ""
 var _time_signature: String = ""
+var _time_key: Vector3i = Vector3i(-1, 0, 0)
 var _time_pop: float = 0.0
 var _time_chip_width: float = 0.0
 var _portrait: Texture2D = null
@@ -293,10 +294,14 @@ func _update_reload() -> void:
 
 
 func _update_status() -> void:
-	var signature: String = ",".join(_status_names())
-	if _player.is_time_slowed():
-		# The slowed chip counts down in tenths.
-		signature += ":" + _slowed_chip_text()
+	var slowed: bool = _player.is_time_slowed()
+	var effects: int = _player.status_effect_manager.get_active_count() if _player.status_effect_manager != null else 0
+	# Nothing to show is the usual case and needs no string at all; the slowed chip counts down in tenths.
+	var signature: String = ""
+	if slowed or effects > 0:
+		signature = ",".join(_status_names())
+		if slowed:
+			signature += ":" + _slowed_chip_text()
 	if signature != _status_signature:
 		_status_signature = signature
 		_status.queue_redraw()
@@ -318,17 +323,11 @@ func _slowed_chip_text() -> String:
 ## Time Control: the dial charges back after a cast, turns amber when ready and drains while the cast holds
 ## the opponent slowed. Shown on both cards, so you can see when theirs is up too.
 func _update_time_chip(delta: float) -> void:
-	var signature: String = ""
-	if _player.has_time_control():
-		var active: float = _player.get_time_control_active_ratio()
-		var charge: float = _player.get_time_control_charge()
-		if active > 0.0:
-			signature = "active:%d" % int(ceil(active * TIME_DIAL_STEPS))
-		elif charge >= 1.0:
-			signature = "ready:%s" % InputDevice.prompt(GameSettings.INPUT_P1_TIME_CONTROL)
-		else:
-			signature = "charge:%d:%d" % [int(charge * TIME_DIAL_STEPS), int(ceil(_player.get_time_control_cooldown_left()))]
-	if signature != _time_signature:
+	# Compared as numbers every frame; the text the chip draws from is only built when they change.
+	var key: Vector3i = _time_chip_key()
+	if key != _time_key:
+		_time_key = key
+		var signature: String = _time_chip_signature(key)
 		if signature.begins_with("ready") and _time_signature.begins_with("charge"):
 			_time_pop = 1.0
 		_time_signature = signature
@@ -338,6 +337,31 @@ func _update_time_chip(delta: float) -> void:
 	if _time_pop > 0.0:
 		_time_pop = maxf(_time_pop - delta * 2.5, 0.0)
 		_time_chip.queue_redraw()
+
+
+## (state, dial step, extra): 0 no Time Control, 1 holding the opponent, 2 ready (extra: pad in use),
+## 3 recharging (extra: whole seconds left).
+func _time_chip_key() -> Vector3i:
+	if not _player.has_time_control():
+		return Vector3i.ZERO
+	var active: float = _player.get_time_control_active_ratio()
+	if active > 0.0:
+		return Vector3i(1, int(ceil(active * TIME_DIAL_STEPS)), 0)
+	var charge: float = _player.get_time_control_charge()
+	if charge >= 1.0:
+		return Vector3i(2, 0, int(InputDevice.using_gamepad))
+	return Vector3i(3, int(charge * TIME_DIAL_STEPS), int(ceil(_player.get_time_control_cooldown_left())))
+
+
+func _time_chip_signature(key: Vector3i) -> String:
+	match key.x:
+		1:
+			return "active:%d" % key.y
+		2:
+			return "ready:%s" % InputDevice.prompt(GameSettings.INPUT_P1_TIME_CONTROL)
+		3:
+			return "charge:%d:%d" % [key.y, key.z]
+	return ""
 
 
 func _update_blink(delta: float) -> void:

@@ -149,9 +149,3 @@ func _apply_player_snapshot(slot: int, snapshot: Dictionary, packet_tick: int = 
 		return
 
 	player.apply_remote_snapshot(snapshot)
-
-
-func _get_player(slot: int) -> Player:
-	if game == null:
-		return null
-	return game.get_player_by_slot(slot)

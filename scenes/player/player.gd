@@ -386,15 +386,18 @@ func swim_stroke() -> void:
 
 
 func _update_ice_contact() -> void:
-	var feet: int = 0
-	var on_ice: int = 0
-	for ray in [_ray_l, _ray_r]:
-		if _is_floor_ray(ray):
-			feet += 1
-			if WorldConditions.is_ice(ray.get_collider()):
-				on_ice += 1
+	var left: int = _foot_on_ice(_ray_l)
+	var right: int = _foot_on_ice(_ray_r)
+	var feet: int = int(left >= 0) + int(right >= 0)
 	if feet > 0:
-		_ice_contact = float(on_ice) / float(feet)
+		_ice_contact = float(maxi(left, 0) + maxi(right, 0)) / float(feet)
+
+
+## 1 when this foot ray stands on ice, 0 on other ground, -1 in the air.
+func _foot_on_ice(ray: RayCast2D) -> int:
+	if not _is_floor_ray(ray):
+		return -1
+	return 1 if WorldConditions.is_ice(ray.get_collider()) else 0
 
 
 ## Standing on ice (Rimefall): at least half of the feet are on it.
