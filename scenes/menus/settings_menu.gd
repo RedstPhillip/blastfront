@@ -301,7 +301,7 @@ func _chip_cell(actions: Array, kind: StringName, row: Dictionary) -> Control:
 	if actions.is_empty():
 		cell.add_child(_fixed_chip(str(row.get(str(kind), ""))))
 		return cell
-	var width: float = KEY_CHIP_WIDTH if actions.size() == 1 else KEY_CHIP_WIDTH / float(actions.size) - 3.0
+	var width: float = KEY_CHIP_WIDTH if actions.size() == 1 else KEY_CHIP_WIDTH / float(actions.size()) - 3.0
 	for action in actions:
 		cell.add_child(_binding_chip(action, kind, width))
 	return cell

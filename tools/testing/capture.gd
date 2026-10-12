@@ -254,11 +254,11 @@ func _build_script() -> void:
 			_at(3.1, "raw_key", KEY_V)
 			_at(3.4, "call", func():
 				_print_bindings("after V")
-				_check("dash rebound to V", InputDevice.prompt(&"p1_dash") == "V", InputDevice.prompt(&"p1_dash"))
-				_check("dash map is V", _input_map_has(&"p1_dash", InputDevice.KEYBOARD, "V"), InputDevice.describe_event(InputDevice.binding_for(&"p1_dash", InputDevice.KEYBOARD)))
-				_check("pad dash untouched", InputDevice.prompt_for(&"p1_dash", InputDevice.GAMEPAD) == "B", InputDevice.prompt_for(&"p1_dash", InputDevice.GAMEPAD))
-				_check("marked modified", InputDevice.is_modified(&"p1_dash"), "modified=%s" % InputDevice.is_modified(&"p1_dash"))
-				_check("other actions kept", InputDevice.prompt(&"p1_jump") == "SPACE" or InputDevice.using_gamepad, InputDevice.prompt(&"p1_jump")))
+				_check("dash rebound to V", _input_device().prompt(&"p1_dash") == "V", _input_device().prompt(&"p1_dash"))
+				_check("dash map is V", _input_map_has(&"p1_dash", _input_device().KEYBOARD, "V"), _input_device().describe_event(_input_device().binding_for(&"p1_dash", _input_device().KEYBOARD)))
+				_check("pad dash untouched", _input_device().prompt_for(&"p1_dash", _input_device().GAMEPAD) == "B", _input_device().prompt_for(&"p1_dash", _input_device().GAMEPAD))
+				_check("marked modified", _input_device().is_modified(&"p1_dash"), "modified=%s" % _input_device().is_modified(&"p1_dash"))
+				_check("other actions kept", _input_device().prompt(&"p1_jump") == "SPACE" or _input_device().using_gamepad, _input_device().prompt(&"p1_jump")))
 			_at(3.6, "shot", "rebind_dash_v")
 			# A key that another action already owns must be flagged, not silently accepted.
 			_at(3.8, "call", func():
@@ -266,7 +266,7 @@ func _build_script() -> void:
 				menu._on_chip_pressed(&"p1_reload", &"keyboard"))
 			_at(3.9, "raw_key", KEY_V)
 			_at(4.1, "call", func():
-				var shared: bool = InputDevice.conflicts_with(&"p1_reload", InputDevice.binding_for(&"p1_reload", InputDevice.KEYBOARD))
+				var shared: bool = _input_device().conflicts_with(&"p1_reload", _input_device().binding_for(&"p1_reload", _input_device().KEYBOARD))
 				_check("duplicate flagged", shared, "conflicts=%s" % shared))
 			# ESC must cancel a capture instead of taking the binding.
 			_at(4.3, "call", func():
@@ -274,7 +274,7 @@ func _build_script() -> void:
 				menu._on_chip_pressed(&"p1_reload", &"keyboard"))
 			_at(4.4, "raw_key", KEY_ESCAPE)
 			_at(4.6, "call", func():
-				_check("esc cancels capture", InputDevice.prompt(&"p1_reload") == "V", InputDevice.prompt(&"p1_reload")))
+				_check("esc cancels capture", _input_device().prompt(&"p1_reload") == "V", _input_device().prompt(&"p1_reload")))
 			# UNDO puts the row back.
 			_at(4.8, "call", func():
 				var menu = _main.get_node("SceneRoot").get_child(0)._settings_instance
@@ -283,15 +283,15 @@ func _build_script() -> void:
 						button.pressed.emit()
 						break)
 			_at(5.0, "call", func():
-				_check("undo restores row", InputDevice.prompt(&"p1_reload") == "R" and not InputDevice.is_modified(&"p1_reload"), InputDevice.prompt(&"p1_reload")))
+				_check("undo restores row", _input_device().prompt(&"p1_reload") == "R" and not _input_device().is_modified(&"p1_reload"), _input_device().prompt(&"p1_reload")))
 			# RESET DEFAULTS clears every override and the InputMap.
 			_at(5.2, "call", func():
 				var menu = _main.get_node("SceneRoot").get_child(0)._settings_instance
 				menu._on_reset_pressed())
 			_at(5.5, "call", func():
 				_print_bindings("after reset")
-				_check("reset restores dash", InputDevice.prompt(&"p1_dash") == "SHIFT", InputDevice.prompt(&"p1_dash"))
-				_check("reset clears overrides", UserSettings.get_value(UserSettings.INPUT_BINDINGS).is_empty(), str(UserSettings.get_value(UserSettings.INPUT_BINDINGS))))
+				_check("reset restores dash", _input_device().prompt(&"p1_dash") == "SHIFT", _input_device().prompt(&"p1_dash"))
+				_check("reset clears overrides", _user_settings().get_value(_user_settings().INPUT_BINDINGS).is_empty(), str(_user_settings().get_value(_user_settings().INPUT_BINDINGS))))
 			_at(5.7, "shot", "rebind_reset")
 			_at(5.9, "quit")
 		"settings_reset":
@@ -1919,6 +1919,15 @@ func _push_pad_button(button: JoyButton) -> void:
 		_viewport.push_input(event)
 
 
+## Autoloads are not global identifiers yet when a -s script compiles, so the harness reaches them by node.
+func _input_device() -> Node:
+	return root.get_node("InputDevice")
+
+
+func _user_settings() -> Node:
+	return root.get_node("UserSettings")
+
+
 func _log_focus(label: String) -> void:
 	var owner: Control = _viewport.gui_get_focus_owner()
 	var text: String = "none"
@@ -2208,13 +2217,13 @@ func _stress_game() -> Node:
 
 ## Every row as the InputMap currently holds it: both device columns, plus which rows are off-default.
 func _print_bindings(label: String) -> void:
-	print("BIND %s gamepad=%s overrides=%d" % [label, InputDevice.using_gamepad, (UserSettings.get_value(UserSettings.INPUT_BINDINGS) as Dictionary).size()])
-	for row in InputDevice.CONTROL_ROWS:
+	print("BIND %s gamepad=%s overrides=%d" % [label, _input_device().using_gamepad, (_user_settings().get_value(_user_settings().INPUT_BINDINGS) as Dictionary).size()])
+	for row in _input_device().CONTROL_ROWS:
 		var cells: PackedStringArray = PackedStringArray()
 		for action in (row["actions"] as Array):
 			cells.append("%s kb=%s pad=%s" % [action,
-				InputDevice.describe_event(InputDevice.binding_for(action, InputDevice.KEYBOARD)),
-				InputDevice.describe_event(InputDevice.binding_for(action, InputDevice.GAMEPAD))])
+				_input_device().describe_event(_input_device().binding_for(action, _input_device().KEYBOARD)),
+				_input_device().describe_event(_input_device().binding_for(action, _input_device().GAMEPAD))])
 		print("  %-20s %s" % [str(row["label"]), " | ".join(cells) if not cells.is_empty() else "(fixed)"])
 
 
@@ -2228,8 +2237,8 @@ func _print_chip(menu: Node, action: StringName, kind: StringName) -> void:
 func _input_map_has(action: StringName, kind: StringName, label: String) -> bool:
 	var from_map: String = ""
 	for event in InputMap.action_get_events(action):
-		if InputDevice.event_kind(event) == kind:
-			from_map = InputDevice.describe_event(event)
+		if _input_device().event_kind(event) == kind:
+			from_map = _input_device().describe_event(event)
 			break
 	return from_map == label
 
