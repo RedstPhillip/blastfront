@@ -133,9 +133,3 @@ func _apply_block_state(slot: int, active: bool, direction_variant: Variant, coo
 			_block_direction.get(slot, Vector2.ZERO),
 			_block_cooldown_ratio.get(slot, GameSettings.PLAYER_BLOCK_REMOTE_COOLDOWN_RATIO)
 		)
-
-
-func _get_player(slot: int) -> Player:
-	if game == null:
-		return null
-	return game.get_player_by_slot(slot)

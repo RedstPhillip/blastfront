@@ -14,7 +14,7 @@
 [ext_resource type="Script" uid="uid://cwc1n0ffnm1h2" path="res://scenes/network/world_sync.gd" id="15_world_sync"]
 [ext_resource type="Script" uid="uid://cok1hx015eifm" path="res://scenes/network/movement_sync.gd" id="16_movement_sync"]
 [ext_resource type="Script" path="res://scenes/network/time_sync.gd" id="17_time_sync"]
-[ext_resource type="Script" path="res://scenes/game_camera.gd" id="13_camera"]
+[ext_resource type="Script" uid="uid://21inhgy4llv3" path="res://scenes/game_camera.gd" id="13_camera"]
 [ext_resource type="PackedScene" path="res://scenes/effects/screen_fx.tscn" id="14_screen_fx"]
 
 [node name="Game" type="Node2D" unique_id=679544362]
@@ -55,7 +55,7 @@ script = ExtResource("16_movement_sync")
 [node name="TimeSync" type="Node" parent="GameSync"]
 script = ExtResource("17_time_sync")
 
-[node name="ScreenFx" parent="." instance=ExtResource("14_screen_fx")]
+[node name="ScreenFx" parent="." unique_id=666909195 instance=ExtResource("14_screen_fx")]
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=597088379]
 layer = 10

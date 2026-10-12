@@ -395,14 +395,10 @@ func get_slide_mark(player_slot: int = 0) -> int:
 ## What a slide does at the player's mark: {speed (px/s at the start), time (s), steer, carry}, or {} without
 ## the research. Mk II is faster and longer; Mk III steers and carries its speed into a jump.
 func get_slide_profile(player_slot: int = 0) -> Dictionary:
-	match get_slide_mark(player_slot):
-		0:
-			return {}
-		1:
-			return {"speed": 380.0, "time": 0.42, "steer": false, "carry": false}
-		2:
-			return {"speed": 470.0, "time": 0.6, "steer": false, "carry": false}
-	return {"speed": 470.0, "time": 0.6, "steer": true, "carry": true}
+	var mark: int = get_slide_mark(player_slot)
+	if mark <= 0:
+		return {}
+	return SLIDE_MARKS[mini(mark, SLIDE_MARKS.size()) - 1]
 
 
 # Players are handled untyped in this autoload on purpose: naming the Player class here would compile the
@@ -551,6 +547,12 @@ const TIME_CONTROL_MARKS: Array[Dictionary] = [
 	{"scale": 0.35, "duration": 3.0, "cooldown": 26.0, "freeze": 1.5},
 ]
 const TIME_FREEZE_DAMAGE_SHARE: float = 0.35
+## Sliding per mark: start speed, length, steering (Mk III) and a jump out that keeps the speed (Mk III).
+const SLIDE_MARKS: Array[Dictionary] = [
+	{"speed": 380.0, "time": 0.42, "steer": false, "carry": false},
+	{"speed": 470.0, "time": 0.6, "steer": false, "carry": false},
+	{"speed": 470.0, "time": 0.6, "steer": true, "carry": true},
+]
 
 
 ## How each project reads on the research screen: a few words, and what every mark is worth.

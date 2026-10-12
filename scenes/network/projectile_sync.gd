@@ -423,12 +423,6 @@ func _apply_area_damage(origin: Vector2, owner_slot: int, radius: float, damage:
 		combat_sync.apply_hit(target_slot, owner_slot, 0, final_damage)
 
 
-func _get_player(slot: int) -> Player:
-	if game == null:
-		return null
-	return game.get_player_by_slot(slot)
-
-
 func _on_projectile_tree_exited(net_id: int) -> void:
 	_projectiles.erase(net_id)
 

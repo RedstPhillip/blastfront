@@ -4,7 +4,8 @@ extends Control
 ## Online matches keep simulating; only local controls are suspended.
 
 const BLUR_SHADER: Shader = preload("res://scenes/menus/pause_blur.gdshader")
-const MENU_WIDTH: float = 300.0
+const MENU_WIDTH: float = 312.0
+const WORLD_BUTTON_HEIGHT: float = 40.0
 
 var _is_paused: bool = false
 # Typed as plain Control on purpose: naming SettingsMenu / LoadoutPage here would compile both pages with
@@ -18,7 +19,7 @@ var _panel: VBoxContainer = null
 var _buttons: Array[Button] = []
 var _loadout_button: Button = null
 var _restart_button: Button = null
-var _world_row: HBoxContainer = null
+var _world_row: MarginContainer = null
 var _settings_button: Button = null
 var _world_buttons: Dictionary = {}
 var _subtitle: Label = null
@@ -48,7 +49,7 @@ func _build() -> void:
 	add_child(_menu_container)
 
 	_panel = VBoxContainer.new()
-	_panel.position = Vector2(96.0, 108.0)
+	_panel.position = Vector2(96.0, 76.0)
 	_panel.add_theme_constant_override("separation", 12)
 	_menu_container.add_child(_panel)
 	var title: Label = Label.new()
@@ -59,7 +60,7 @@ func _build() -> void:
 	UiStyle.style_label(_subtitle, UiStyle.FONT_BOLD, 15, UiStyle.TEXT_DIM)
 	_panel.add_child(_subtitle)
 	var spacer: Control = Control.new()
-	spacer.custom_minimum_size = Vector2(0.0, 26.0)
+	spacer.custom_minimum_size = Vector2(0.0, 20.0)
 	_panel.add_child(spacer)
 	_add_button("RESUME", resume_game)
 	_restart_button = _add_button("RESTART", _on_restart_pressed)
@@ -97,29 +98,25 @@ func _add_button(text: String, callback: Callable) -> Button:
 ## Sandbox only: pick the world. The other world loads behind the usual cover transition and the loadout
 ## carries over.
 func _build_world_row() -> void:
-	# Same width as the menu entries, the caption on their text edge, the worlds splitting the rest.
-	_world_row = HBoxContainer.new()
-	_world_row.add_theme_constant_override("separation", 6)
+	# The worlds as a block on the entries' text edge, as wide as the entries; the names say what they are
+	# (the subtitle names the current one), so no caption.
+	_world_row = MarginContainer.new()
+	_world_row.add_theme_constant_override("margin_left", 26)
+	_world_row.add_theme_constant_override("margin_top", 2)
+	_world_row.add_theme_constant_override("margin_bottom", 4)
 	_world_row.custom_minimum_size = Vector2(MENU_WIDTH, 0.0)
 	_world_row.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	var caption: Label = Label.new()
-	UiStyle.style_label(caption, UiStyle.FONT_BOLD, 14, UiStyle.TEXT_DIM)
-	caption.text = "WORLD"
-	caption.custom_minimum_size = Vector2(82.0, 0.0)
-	caption.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	var indent: MarginContainer = MarginContainer.new()
-	indent.add_theme_constant_override("margin_left", 26)
-	indent.add_child(caption)
-	_world_row.add_child(indent)
+	var options: Array[Button] = []
 	for world_id in WorldCatalog.ids():
 		var button: Button = Button.new()
 		button.text = WorldCatalog.display_name(world_id).to_upper()
-		button.custom_minimum_size = Vector2(0.0, 42.0)
-		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.custom_minimum_size = Vector2(0.0, WORLD_BUTTON_HEIGHT)
 		button.pressed.connect(_on_world_pressed.bind(world_id))
-		_world_row.add_child(button)
 		_world_buttons[world_id] = button
 		_buttons.append(button)
+		options.append(button)
+	_refresh_world_row()
+	_world_row.add_child(UiStyle.option_grid(options, 8.0))
 	_panel.add_child(_world_row)
 
 
@@ -127,14 +124,14 @@ func _refresh_world_row() -> void:
 	var current: StringName = WorldCatalog.sandbox_world_id()
 	for world_id in _world_buttons.keys():
 		var button: Button = _world_buttons[world_id]
-		UiStyle.style_button(button, false, 15)
-		for state in ["normal", "hover", "focus", "pressed", "disabled"]:
-			(button.get_theme_stylebox(state) as StyleBoxFlat).content_margin_left = 10.0
-			(button.get_theme_stylebox(state) as StyleBoxFlat).content_margin_right = 10.0
+		UiStyle.style_button(button, false, 14)
+		for state in ["normal", "hover", "pressed", "disabled"]:
+			(button.get_theme_stylebox(state) as StyleBoxFlat).content_margin_left = 8.0
+			(button.get_theme_stylebox(state) as StyleBoxFlat).content_margin_right = 8.0
 		button.add_theme_stylebox_override("focus", UiStyle.focus_frame())
 		if world_id == current:
 			# The world you are on reads as selected (light fill), not as a second call to action.
-			var selected: StyleBoxFlat = UiStyle.with_margins(UiStyle.panel(UiStyle.TEXT), 10, 10)
+			var selected: StyleBoxFlat = UiStyle.with_margins(UiStyle.panel(UiStyle.TEXT), 8, 10)
 			for state in ["normal", "hover", "pressed"]:
 				button.add_theme_stylebox_override(state, selected)
 			for color_name in ["font_color", "font_hover_color", "font_focus_color", "font_pressed_color"]:

@@ -199,18 +199,7 @@ func _chains(edges: Array[Dictionary], kind: StringName) -> Array:
 
 
 func _decorate_top_chain(chain: Array, decorations: Node2D) -> void:
-	var path: PackedVector2Array = PackedVector2Array()
-	var rim_path: PackedVector2Array = PackedVector2Array()
-	path.append((chain[0]["a"] as Vector2) + (chain[0]["normal"] as Vector2) * 1.2)
-	rim_path.append((chain[0]["a"] as Vector2) + (chain[0]["normal"] as Vector2) * 3.4)
-	for edge in chain:
-		var normal: Vector2 = edge["normal"]
-		path.append((edge["b"] as Vector2) + normal * 1.2)
-		rim_path.append((edge["b"] as Vector2) + normal * 3.4)
-	var moss: Line2D = _make_line(path, moss_color, 6.0)
-	decorations.add_child(moss)
-	var rim: Line2D = _make_line(rim_path, rim_color, 1.5)
-	decorations.add_child(rim)
+	_add_cap_lines(chain, decorations, 1.2, 6.0, 3.4, 1.5)
 
 	var total_length: float = 0.0
 	for edge in chain:
@@ -334,6 +323,34 @@ func _add_vine(root: Vector2, length: float) -> void:
 		previous_t = t
 
 
+## The cover along a walkable top (moss, dust, snow: moss_color, `width` px, `offset` px over the surface)
+## and the thin lit rim above it (rim_color). Shared by every world's skin.
+func _add_cap_lines(chain: Array, decorations: Node2D, offset: float, width: float, rim_offset: float, rim_width: float) -> void:
+	decorations.add_child(_make_line(_offset_chain(chain, offset), moss_color, width))
+	decorations.add_child(_make_line(_offset_chain(chain, rim_offset), rim_color, rim_width))
+
+
+## The chain's points pushed `distance` px out along each edge's normal.
+func _offset_chain(chain: Array, distance: float) -> PackedVector2Array:
+	var path: PackedVector2Array = PackedVector2Array()
+	path.append((chain[0]["a"] as Vector2) + (chain[0]["normal"] as Vector2) * distance)
+	for edge in chain:
+		path.append((edge["b"] as Vector2) + (edge["normal"] as Vector2) * distance)
+	return path
+
+
+## A filled outline (pebble, drift, stone) as a fan of triangles around its centre, in one colour.
+func _push_fan(points: PackedVector2Array, color: Color) -> void:
+	if points.size() < 3:
+		return
+	var center: Vector2 = Vector2.ZERO
+	for point in points:
+		center += point
+	center /= float(points.size())
+	for index in range(points.size()):
+		_push_tri(center, points[index], points[(index + 1) % points.size()], color, color, color, 0.0, 0.0, 0.0)
+
+
 func _push_tri(a: Vector2, b: Vector2, c: Vector2, ca: Color, cb: Color, cc: Color, ta: float, tb: float, tc: float) -> void:
 	_verts.append_array(PackedVector2Array([a, b, c]))
 	_colors.append_array(PackedColorArray([ca, cb, cc]))
@@ -341,6 +358,11 @@ func _push_tri(a: Vector2, b: Vector2, c: Vector2, ca: Color, cb: Color, cc: Col
 
 
 func _commit_mesh(decorations: Node2D) -> void:
+	_add_detail_mesh(decorations, "GrassMesh", _grass_material)
+
+
+## Everything pushed with _push_tri as one mesh under `decorations` (nothing when nothing was pushed).
+func _add_detail_mesh(decorations: Node2D, mesh_name: String, mesh_material: Material) -> void:
 	if _verts.is_empty():
 		return
 	var arrays: Array = []
@@ -351,9 +373,9 @@ func _commit_mesh(decorations: Node2D) -> void:
 	var mesh: ArrayMesh = ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	var instance: MeshInstance2D = MeshInstance2D.new()
-	instance.name = "GrassMesh"
+	instance.name = mesh_name
 	instance.mesh = mesh
-	instance.material = _grass_material
+	instance.material = mesh_material
 	instance.light_mask = GEOMETRY_LIGHT_MASK
 	decorations.add_child(instance)
 
