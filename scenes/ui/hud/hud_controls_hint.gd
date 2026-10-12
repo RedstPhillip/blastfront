@@ -19,6 +19,7 @@ func _ready() -> void:
 	modulate.a = 0.0
 	visible = false
 	InputDevice.device_changed.connect(_on_device_changed)
+	InputDevice.bindings_changed.connect(_on_device_changed)
 
 
 static func should_show() -> bool:
@@ -46,6 +47,7 @@ func _row_y() -> float:
 
 
 func _on_device_changed(_using_gamepad: bool) -> void:
+	# Bindings_changed reuses this: a rebound key has to reach the hint too.
 	if visible:
 		_rebuild()
 
@@ -59,8 +61,8 @@ func _rebuild() -> void:
 	add_child(_row)
 	var gamepad: bool = InputDevice.using_gamepad
 	var entries: Array = [
-		["L STICK" if gamepad else "A  D", "MOVE"],
-		["A" if gamepad else "SPACE", "JUMP"],
+		["L STICK" if gamepad else "%s  %s" % [InputDevice.prompt(&"p1_move_left"), InputDevice.prompt(&"p1_move_right")], "MOVE"],
+		[InputDevice.prompt(&"p1_jump"), "JUMP"],
 		[InputDevice.prompt(&"p1_shoot"), "SHOOT"],
 		[InputDevice.prompt(&"p1_block"), "BLOCK"],
 		[InputDevice.prompt(&"p1_reload"), "RELOAD"],

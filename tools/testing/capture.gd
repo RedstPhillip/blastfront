@@ -235,6 +235,65 @@ func _build_script() -> void:
 						tabs[0].current_tab = tab)
 				_at(2.9 + tab * 0.4, "shot", "settings_tab_%d" % tab)
 			_at(3.8, "quit")
+		"rebind":
+			# Every chip is a live view of the InputMap, so the whole feature is checked by reading
+			# InputMap + InputDevice back, not by looking at the screenshot.
+			_at(1.5, "call", func(): _main.get_node("SceneRoot").get_child(0)._on_settings_pressed())
+			_at(2.0, "call", func():
+				var menu = _main.get_node("SceneRoot").get_child(0)
+				menu._settings_instance._tabs.current_tab = 3)
+			_at(2.4, "call", func(): _print_bindings("default"))
+			_at(2.6, "shot", "rebind_default")
+			# Rebind Dash (keyboard) to V.
+			_at(2.8, "call", func():
+				var menu = _main.get_node("SceneRoot").get_child(0)._settings_instance
+				menu._on_chip_pressed(&"p1_dash", &"keyboard"))
+			_at(2.9, "call", func():
+				var menu = _main.get_node("SceneRoot").get_child(0)._settings_instance
+				_print_chip(menu, &"p1_dash", &"keyboard"))
+			_at(3.1, "raw_key", KEY_V)
+			_at(3.4, "call", func():
+				_print_bindings("after V")
+				_check("dash rebound to V", InputDevice.prompt(&"p1_dash") == "V", InputDevice.prompt(&"p1_dash"))
+				_check("dash map is V", _input_map_has(&"p1_dash", InputDevice.KEYBOARD, "V"), InputDevice.describe_event(InputDevice.binding_for(&"p1_dash", InputDevice.KEYBOARD)))
+				_check("pad dash untouched", InputDevice.prompt_for(&"p1_dash", InputDevice.GAMEPAD) == "B", InputDevice.prompt_for(&"p1_dash", InputDevice.GAMEPAD))
+				_check("marked modified", InputDevice.is_modified(&"p1_dash"), "modified=%s" % InputDevice.is_modified(&"p1_dash"))
+				_check("other actions kept", InputDevice.prompt(&"p1_jump") == "SPACE" or InputDevice.using_gamepad, InputDevice.prompt(&"p1_jump")))
+			_at(3.6, "shot", "rebind_dash_v")
+			# A key that another action already owns must be flagged, not silently accepted.
+			_at(3.8, "call", func():
+				var menu = _main.get_node("SceneRoot").get_child(0)._settings_instance
+				menu._on_chip_pressed(&"p1_reload", &"keyboard"))
+			_at(3.9, "raw_key", KEY_V)
+			_at(4.1, "call", func():
+				var shared: bool = InputDevice.conflicts_with(&"p1_reload", InputDevice.binding_for(&"p1_reload", InputDevice.KEYBOARD))
+				_check("duplicate flagged", shared, "conflicts=%s" % shared))
+			# ESC must cancel a capture instead of taking the binding.
+			_at(4.3, "call", func():
+				var menu = _main.get_node("SceneRoot").get_child(0)._settings_instance
+				menu._on_chip_pressed(&"p1_reload", &"keyboard"))
+			_at(4.4, "raw_key", KEY_ESCAPE)
+			_at(4.6, "call", func():
+				_check("esc cancels capture", InputDevice.prompt(&"p1_reload") == "V", InputDevice.prompt(&"p1_reload")))
+			# UNDO puts the row back.
+			_at(4.8, "call", func():
+				var menu = _main.get_node("SceneRoot").get_child(0)._settings_instance
+				for button in menu._row_reset:
+					if button.visible:
+						button.pressed.emit()
+						break)
+			_at(5.0, "call", func():
+				_check("undo restores row", InputDevice.prompt(&"p1_reload") == "R" and not InputDevice.is_modified(&"p1_reload"), InputDevice.prompt(&"p1_reload")))
+			# RESET DEFAULTS clears every override and the InputMap.
+			_at(5.2, "call", func():
+				var menu = _main.get_node("SceneRoot").get_child(0)._settings_instance
+				menu._on_reset_pressed())
+			_at(5.5, "call", func():
+				_print_bindings("after reset")
+				_check("reset restores dash", InputDevice.prompt(&"p1_dash") == "SHIFT", InputDevice.prompt(&"p1_dash"))
+				_check("reset clears overrides", UserSettings.get_value(UserSettings.INPUT_BINDINGS).is_empty(), str(UserSettings.get_value(UserSettings.INPUT_BINDINGS))))
+			_at(5.7, "shot", "rebind_reset")
+			_at(5.9, "quit")
 		"settings_reset":
 			_at(1.5, "call", func(): _main.get_node("SceneRoot").get_child(0)._on_settings_pressed())
 			_at(2.0, "call", func():
@@ -2055,6 +2114,12 @@ func _run(action: Dictionary) -> void:
 			key_event.action = StringName(action["a"])
 			key_event.pressed = action["k"] == "key_down"
 			Input.parse_input_event(key_event)
+		"raw_key":
+			# A real InputEventKey (not an action), which is what a rebinding chip captures.
+			var raw: InputEventKey = InputEventKey.new()
+			raw.physical_keycode = int(action["a"])
+			raw.pressed = bool(action.get("up", false)) == false
+			Input.parse_input_event(raw)
 		"press":
 			Input.action_press(StringName(action["a"]))
 		"release":
@@ -2137,6 +2202,40 @@ func _stress_hook() -> void:
 
 func _stress_game() -> Node:
 	return get_first_node_in_group(&"game_world")
+
+
+## --- Rebinding (rebind) -------------------------------------------------------------------------------------
+
+## Every row as the InputMap currently holds it: both device columns, plus which rows are off-default.
+func _print_bindings(label: String) -> void:
+	print("BIND %s gamepad=%s overrides=%d" % [label, InputDevice.using_gamepad, (UserSettings.get_value(UserSettings.INPUT_BINDINGS) as Dictionary).size()])
+	for row in InputDevice.CONTROL_ROWS:
+		var cells: PackedStringArray = PackedStringArray()
+		for action in (row["actions"] as Array):
+			cells.append("%s kb=%s pad=%s" % [action,
+				InputDevice.describe_event(InputDevice.binding_for(action, InputDevice.KEYBOARD)),
+				InputDevice.describe_event(InputDevice.binding_for(action, InputDevice.GAMEPAD))])
+		print("  %-20s %s" % [str(row["label"]), " | ".join(cells) if not cells.is_empty() else "(fixed)"])
+
+
+## The text on one chip, read straight off the button the menu is showing.
+func _print_chip(menu: Node, action: StringName, kind: StringName) -> void:
+	var chip: Button = menu.call("_chip_for", action, kind) as Button
+	print("CHIP %s/%s text=%s" % [action, kind, chip.text if chip != null else "<missing>"])
+
+
+## True when the InputMap really carries `label` on that action, not just what InputDevice reports.
+func _input_map_has(action: StringName, kind: StringName, label: String) -> bool:
+	var from_map: String = ""
+	for event in InputMap.action_get_events(action):
+		if InputDevice.event_kind(event) == kind:
+			from_map = InputDevice.describe_event(event)
+			break
+	return from_map == label
+
+
+func _check(what: String, ok: bool, detail: String = "") -> void:
+	print("REBIND %s %s %s" % ["PASS" if ok else "FAIL", what, detail])
 
 
 func _stress_tick() -> void:

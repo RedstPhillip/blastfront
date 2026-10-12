@@ -61,7 +61,9 @@ Pillow (`ImageChops.difference`) when a change should be pixel-identical.
 - **Screens:** `menu` (main menu, bot panel, settings), `pad_nav` (menus driven only by ui_* actions,
   prints the focused control after every step and shoots each one), `pad_nav_game` (pause menu and sandbox
   loadout as a pad user), `pad_nav_inter` (LB / RB through the between-set pages, d-pad inside them), `controls_tab`, `settings_reset` (prints the tab
-  titles after RESET DEFAULTS), `summary_look`, `research_look`, `research_movement` (Movement lane,
+  titles after RESET DEFAULTS), `rebind` (opens the CONTROLS tab, dumps every row from the InputMap, then
+  rebinds Dash to V and checks the InputMap, the untouched pad binding, the duplicate-key warning, ESC
+  cancelling a capture, UNDO and RESET DEFAULTS; prints `REBIND PASS/FAIL` lines), `summary_look`, `research_look`, `research_movement` (Movement lane,
   Dashing's four marks in the dock), `online_pages`,
   `loadout`, `pause`, `hud`, `victory`, `bg_look`, `art` / `armor_art` (sheets of every weapon part and
   armor piece, ideal for pixel diffs of the procedural art)

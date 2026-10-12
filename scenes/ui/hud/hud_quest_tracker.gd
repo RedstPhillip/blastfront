@@ -63,11 +63,9 @@ func _exit_tree() -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if always_open or not is_visible_in_tree() or not event.is_pressed() or event.is_echo():
+	if always_open or not is_visible_in_tree():
 		return
-	var key: InputEventKey = event as InputEventKey
-	var pad: InputEventJoypadButton = event as InputEventJoypadButton
-	if (key != null and key.keycode == KEY_TAB) or (pad != null and pad.button_index == JOY_BUTTON_BACK):
+	if event.is_action_pressed(&"orders_toggle"):
 		pinned = not pinned
 		# Folding by hand also drops a pending auto-open, otherwise the list would stay up.
 		if not pinned:
@@ -234,7 +232,7 @@ func _draw_counter() -> void:
 		_canvas.draw_rect(Rect2(bar.position, Vector2(bar.size.x * fill, bar.size.y)), fill_color.lerp(Color.WHITE, flash * 0.6))
 		x += MINI_BAR.x + 6.0
 	if not always_open and not _quests.is_empty():
-		LoadoutStyle.draw_key_chip(_canvas, Vector2(x + 6.0, LINE_HEIGHT * 0.5 - 8.0), "BACK" if InputDevice.using_gamepad else "TAB", 16.0, LoadoutStyle.with_alpha(LoadoutStyle.TEXT_MUTED, 0.5 + 0.5 * (1.0 - _open)))
+		LoadoutStyle.draw_key_chip(_canvas, Vector2(x + 6.0, LINE_HEIGHT * 0.5 - 8.0), InputDevice.prompt(&"orders_toggle"), 16.0, LoadoutStyle.with_alpha(LoadoutStyle.TEXT_MUTED, 0.5 + 0.5 * (1.0 - _open)))
 
 
 func _draw_row(quest: Dictionary, y: float, alpha: float) -> void:

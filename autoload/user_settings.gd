@@ -29,6 +29,8 @@ const MENU_LAST_CHOICE: StringName = &"progress_menu_last_choice"
 const LOCKER_HELP_SEEN: StringName = &"progress_locker_help_seen"
 const SANDBOX_WORLD: StringName = &"progress_sandbox_world"
 const BOT_WORLD: StringName = &"progress_bot_world"
+## Rebound input events, encoded by InputDevice. Cleared by RESET DEFAULTS like any other option.
+const INPUT_BINDINGS: StringName = &"input_bindings"
 const REVISION: StringName = &"settings_revision"
 ## Revision 2 made exclusive fullscreen the default (direct flip, steadier frame pacing on Windows).
 const CURRENT_REVISION: int = 2
@@ -163,6 +165,7 @@ func _defaults() -> Dictionary:
 		LOCKER_HELP_SEEN: 0,
 		SANDBOX_WORLD: "verdant",
 		BOT_WORLD: "verdant",
+		INPUT_BINDINGS: {},
 		REVISION: CURRENT_REVISION,
 	}
 
