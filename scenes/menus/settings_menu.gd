@@ -8,11 +8,15 @@ signal back_pressed
 const PARTICLE_LEVELS: Array[float] = [0.0, 0.33, 0.66, 1.0]
 const PARTICLE_NAMES: Array[String] = ["Off", "Low", "Medium", "High"]
 const WINDOW_MODE_NAMES: Array[String] = ["Windowed", "Borderless Fullscreen", "Exclusive Fullscreen"]
-const KEY_CHIP_WIDTH: float = 132.0
 const LISTENING_TEXT: String = "PRESS…"
 ## While a chip is listening the menu must swallow the next key, including ESC (cancel) and the
 ## ui_accept press that would otherwise re-trigger the very button under the cursor.
 const LISTEN_TIMEOUT: float = 8.0
+## Controls tab grid: label column, two key columns of equal width, the undo slot.
+const CONTROL_LABEL_WIDTH: float = 200.0
+const CONTROL_COLUMN_WIDTH: float = 172.0
+const CONTROL_ROW_HEIGHT: float = 24.0
+const UNDO_SLOT_WIDTH: float = 58.0
 
 var _tabs: TabContainer = null
 var _listening: Dictionary = {}
@@ -246,31 +250,41 @@ func _build_controls_tab() -> void:
 	page.add_theme_constant_override("separation", 2)
 	_chips.clear()
 	_row_reset.clear()
-	var hint: Label = Label.new()
-	UiStyle.style_label(hint, UiStyle.FONT_UI, 13, UiStyle.TEXT_MUTED)
-	hint.text = "Click a key to rebind it. ESC cancels."
-	hint.custom_minimum_size = Vector2(250.0, 18.0)
-	page.add_child(hint)
-	# Column heads sit over the key columns, in the same section style as the other tabs.
-	var heads: HBoxContainer = _row(page, "")
+	# Column heads over the key columns (same widths as the cells below, and the undo slot); the label
+	# column carries the one-line how-to.
+	var heads: HBoxContainer = _row(page, "CLICK TO REBIND  ·  ESC CANCELS")
 	heads.custom_minimum_size.y = 20.0
+	var how_to: Label = heads.get_child(0) as Label
+	UiStyle.style_label(how_to, UiStyle.FONT_BOLD, 11, UiStyle.TEXT_MUTED)
+	how_to.custom_minimum_size.x = CONTROL_LABEL_WIDTH
 	for text in ["KEYBOARD & MOUSE", "GAMEPAD"]:
 		var head: Label = Label.new()
 		UiStyle.style_label(head, UiStyle.FONT_BOLD, 13, UiStyle.ACCENT)
 		head.text = text
-		head.custom_minimum_size = Vector2(KEY_CHIP_WIDTH, 0.0)
+		head.custom_minimum_size.x = CONTROL_COLUMN_WIDTH
 		head.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		heads.add_child(head)
+	heads.add_child(_undo_slot(null))
 	for row in InputDevice.CONTROL_ROWS:
 		var actions: Array = row["actions"]
 		var line: HBoxContainer = _row(page, str(row["label"]))
-		line.custom_minimum_size.y = 26.0
-		(line.get_child(0) as Label).add_theme_font_size_override(&"font_size", 16)
+		line.custom_minimum_size.y = CONTROL_ROW_HEIGHT
+		var label: Label = line.get_child(0) as Label
+		label.add_theme_font_size_override(&"font_size", 16)
+		label.custom_minimum_size.x = CONTROL_LABEL_WIDTH
 		line.add_child(_chip_cell(actions, InputDevice.KEYBOARD, row))
 		line.add_child(_chip_cell(actions, InputDevice.GAMEPAD, row))
-		var undo: Button = _row_reset_button(actions)
-		line.add_child(undo)
+		line.add_child(_undo_slot(_row_reset_button(actions)))
 	_refresh_chips()
+
+
+## A fixed-width slot at the end of a row, so a row's cells keep their width whether UNDO shows or not.
+func _undo_slot(undo: Button) -> Control:
+	var slot: CenterContainer = CenterContainer.new()
+	slot.custom_minimum_size = Vector2(UNDO_SLOT_WIDTH, 0.0)
+	if undo != null:
+		slot.add_child(undo)
+	return slot
 
 
 ## Puts one row's bindings back to the project's own; only visible while that row is off-default.
@@ -278,9 +292,10 @@ func _row_reset_button(actions: Array) -> Button:
 	var undo: Button = Button.new()
 	undo.text = "UNDO"
 	undo.tooltip_text = "Back to the default bindings"
-	undo.custom_minimum_size = Vector2(52.0, 22.0)
+	undo.custom_minimum_size = Vector2(UNDO_SLOT_WIDTH - 4.0, CONTROL_ROW_HEIGHT - 2.0)
 	undo.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	UiStyle.style_button(undo, false, 12)
+	UiStyle.style_button(undo, false, 11)
+	_compact(undo)
 	undo.add_theme_stylebox_override("focus", UiStyle.focus_frame())
 	undo.visible = false
 	undo.pressed.connect(func() -> void:
@@ -297,22 +312,36 @@ func _row_reset_button(actions: Array) -> Button:
 func _chip_cell(actions: Array, kind: StringName, row: Dictionary) -> Control:
 	var cell: HBoxContainer = HBoxContainer.new()
 	cell.add_theme_constant_override("separation", 6)
-	cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cell.custom_minimum_size.x = CONTROL_COLUMN_WIDTH
 	if actions.is_empty():
 		cell.add_child(_fixed_chip(str(row.get(str(kind), ""))))
 		return cell
-	var width: float = KEY_CHIP_WIDTH if actions.size() == 1 else KEY_CHIP_WIDTH / float(actions.size()) - 3.0
 	for action in actions:
-		cell.add_child(_binding_chip(action, kind, width))
+		cell.add_child(_binding_chip(action, kind))
 	return cell
 
 
-func _binding_chip(action: StringName, kind: StringName, width: float) -> Button:
+## Small padding for the grid's buttons, so the text decides nothing about a column's width.
+static func _compact(button: Button) -> void:
+	for state in ["normal", "hover", "pressed", "disabled"]:
+		var style: StyleBoxFlat = button.get_theme_stylebox(state) as StyleBoxFlat
+		style.content_margin_left = 6.0
+		style.content_margin_right = 6.0
+		style.content_margin_top = 2.0
+		style.content_margin_bottom = 2.0
+
+
+## Each chip knows the binding it shows (action + column), so labels and captures never depend on the
+## order the chips were built in (a row like Move holds two actions per column).
+func _binding_chip(action: StringName, kind: StringName) -> Button:
 	var chip: Button = Button.new()
-	chip.custom_minimum_size = Vector2(width, 24.0)
+	chip.custom_minimum_size = Vector2(0.0, CONTROL_ROW_HEIGHT - 2.0)
 	chip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	UiStyle.style_button(chip, false, 13)
+	_compact(chip)
 	chip.add_theme_stylebox_override("focus", UiStyle.focus_frame())
+	chip.set_meta(&"action", action)
+	chip.set_meta(&"kind", kind)
 	chip.pressed.connect(_on_chip_pressed.bind(action, kind))
 	_chips.append(chip)
 	return chip
@@ -326,7 +355,7 @@ func _fixed_chip(text: String) -> PanelContainer:
 	var chip: PanelContainer = PanelContainer.new()
 	chip.add_theme_stylebox_override("panel", UiStyle.with_margins(UiStyle.panel(UiStyle.PANEL_RAISED), 10, 2))
 	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	chip.custom_minimum_size = Vector2(KEY_CHIP_WIDTH, 0.0)
+	chip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	chip.add_child(key)
 	return chip
 
@@ -334,32 +363,32 @@ func _fixed_chip(text: String) -> PanelContainer:
 ## Repaints every chip from the InputMap: the label, a red tint where the binding clashes with another
 ## action, and the amber "listening" state for the chip waiting for a press.
 func _refresh_chips() -> void:
-	var index: int = 0
-	var row_index: int = 0
-	for row in InputDevice.CONTROL_ROWS:
+	# A row reads as changed (amber, UNDO shown) as soon as one of its actions is off its default.
+	var touched_rows: Dictionary = {}
+	for row_index in range(InputDevice.CONTROL_ROWS.size()):
+		var actions: Array = InputDevice.CONTROL_ROWS[row_index]["actions"]
 		var touched: bool = false
-		for action in (row["actions"] as Array):
+		for action in actions:
 			touched = touched or InputDevice.is_modified(action)
-			for kind in [InputDevice.KEYBOARD, InputDevice.GAMEPAD]:
-				if index >= _chips.size():
-					break
-				var chip: Button = _chips[index]
-				index += 1
-				if _listening.get("chip") == chip:
-					chip.text = LISTENING_TEXT
-					chip.add_theme_color_override("font_color", UiStyle.ACCENT_HOT)
-					chip.add_theme_color_override("font_hover_color", UiStyle.ACCENT_HOT)
-					continue
-				var event: InputEvent = InputDevice.binding_for(action, kind)
-				chip.text = InputDevice.describe_event(event)
-				var clash: bool = InputDevice.conflicts_with(action, event)
-				var color: Color = UiStyle.DANGER if clash else (UiStyle.ACCENT if touched else UiStyle.TEXT_DIM)
-				chip.add_theme_color_override("font_color", color)
-				chip.add_theme_color_override("font_hover_color", UiStyle.TEXT)
-				chip.tooltip_text = ("%s is already bound to another action" % chip.text) if clash else ""
+		for action in actions:
+			touched_rows[action] = touched
 		if row_index < _row_reset.size():
 			_row_reset[row_index].visible = touched
-		row_index += 1
+	for chip in _chips:
+		var action: StringName = chip.get_meta(&"action")
+		var kind: StringName = chip.get_meta(&"kind")
+		if _listening.get("chip") == chip:
+			chip.text = LISTENING_TEXT
+			chip.add_theme_color_override("font_color", UiStyle.ACCENT_HOT)
+			chip.add_theme_color_override("font_hover_color", UiStyle.ACCENT_HOT)
+			continue
+		var event: InputEvent = InputDevice.binding_for(action, kind)
+		chip.text = InputDevice.describe_event(event)
+		var clash: bool = InputDevice.conflicts_with(action, event)
+		var color: Color = UiStyle.DANGER if clash else (UiStyle.ACCENT if touched_rows.get(action, false) else UiStyle.TEXT_DIM)
+		chip.add_theme_color_override("font_color", color)
+		chip.add_theme_color_override("font_hover_color", UiStyle.TEXT)
+		chip.tooltip_text = "Also bound to another action" if clash else ""
 
 
 func _on_chip_pressed(action: StringName, kind: StringName) -> void:
@@ -373,13 +402,9 @@ func _on_chip_pressed(action: StringName, kind: StringName) -> void:
 
 
 func _chip_for(action: StringName, kind: StringName) -> Button:
-	var index: int = 0
-	for row in InputDevice.CONTROL_ROWS:
-		for row_action in (row["actions"] as Array):
-			for row_kind in [InputDevice.KEYBOARD, InputDevice.GAMEPAD]:
-				if row_action == action and row_kind == kind and index < _chips.size():
-					return _chips[index]
-				index += 1
+	for chip in _chips:
+		if chip.get_meta(&"action") == action and chip.get_meta(&"kind") == kind:
+			return chip
 	return null
 
 

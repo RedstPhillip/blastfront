@@ -2128,7 +2128,8 @@ func _run(action: Dictionary) -> void:
 			var raw: InputEventKey = InputEventKey.new()
 			raw.physical_keycode = int(action["a"])
 			raw.pressed = bool(action.get("up", false)) == false
-			Input.parse_input_event(raw)
+			# Into the game's SubViewport: Input.parse_input_event would only reach the hidden root window.
+			_viewport.push_input(raw)
 		"press":
 			Input.action_press(StringName(action["a"]))
 		"release":
