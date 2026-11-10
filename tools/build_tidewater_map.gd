@@ -44,6 +44,8 @@ func _build_profile() -> void:
 	profile.display_name = "Tidewater"
 	profile.ambience = &"ambience_tidewater"
 	profile.footstep = &"step_stone"
+	profile.dust_color = Color(0.7, 0.82, 0.82, 0.42)
+	profile.debris_color = Color(0.33, 0.39, 0.4, 1.0)
 	profile.gravity_scale = 1.0
 	profile.projectile_gravity_scale = 1.0
 	profile.projectile_range_scale = 1.0

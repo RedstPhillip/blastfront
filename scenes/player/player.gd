@@ -2773,6 +2773,10 @@ func _update_surface_feedback(delta: float, grounded: bool, speed_ratio: float) 
 			_body_punch_scale = Vector2(1.16 + land_ratio * 0.1, 0.86 - land_ratio * 0.08)
 			GameJuice.spawn_burst(&"land", global_position + Vector2(0.0, hover_dist - 3.0), Vector2.UP, Color(0.78, 0.70, 0.54, 0.7), land_ratio)
 			AudioDirector.play_at(&"land_heavy" if land_ratio > 1.0 else &"land", global_position)
+			# The thud is the same everywhere; what gives under the feet is the world's own ground.
+			var ground_event: StringName = &"step_ice" if is_on_ice() else WorldConditions.footstep
+			if ground_event != &"step":
+				AudioDirector.play_at(ground_event, global_position, 2.0 + 3.0 * land_ratio, 0.82)
 			if _is_local_view_player():
 				GameJuice.shake(1.1 * land_ratio, 0.07)
 

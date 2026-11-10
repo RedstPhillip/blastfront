@@ -31,6 +31,10 @@ static var water_level: float = INF
 static var water_forecast: float = INF
 ## The sound of a footstep on this world's ground (ice has its own, see Player).
 static var footstep: StringName = &"step"
+## What the ground throws up when something lands on it, runs over it or shoots it: the soft puff (dust,
+## spray, powder snow) and the solid bits (soil clods, stone chips, snow).
+static var dust_color: Color = Color(0.78, 0.76, 0.64, 0.5)
+static var debris_color: Color = Color(0.3, 0.36, 0.26, 1.0)
 
 
 static func reset() -> void:
@@ -43,6 +47,8 @@ static func reset() -> void:
 	water_level = INF
 	water_forecast = INF
 	footstep = &"step"
+	dust_color = Color(0.78, 0.76, 0.64, 0.5)
+	debris_color = Color(0.3, 0.36, 0.26, 1.0)
 
 
 static func is_ice(collider: Object) -> bool:

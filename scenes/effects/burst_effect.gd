@@ -3,7 +3,6 @@ extends Node2D
 ## One-shot composite effect. Built from FxLib emitters, glow flashes, rings and light flashes;
 ## frees itself once every child has finished.
 
-const DUST_COLOR: Color = Color(0.78, 0.76, 0.64, 0.5)
 const SPARK_COLOR: Color = Color(1.0, 0.78, 0.36, 1.0)
 const SHIELD_COLOR: Color = Color(0.55, 0.95, 1.0, 1.0)
 
@@ -45,35 +44,35 @@ func _build() -> void:
 		&"run_dust":
 			_emit({"amount": 3, "lifetime": 0.42, "direction": Vector2(-_direction.x, -0.35), "spread": 25.0,
 				"speed": Vector2(20.0, 60.0), "gravity": Vector2(0, -18), "size": Vector2(0.18, 0.3), "curve": &"puff",
-				"color": DUST_COLOR, "damping": Vector2(40, 90)})
+				"color": WorldConditions.dust_color, "damping": Vector2(40, 90)})
 		&"wall_dust":
 			_emit({"amount": 2, "lifetime": 0.35, "direction": Vector2(_direction.x, -0.6), "spread": 30.0,
 				"speed": Vector2(20.0, 50.0), "gravity": Vector2(0, 30), "size": Vector2(0.12, 0.22), "curve": &"puff",
-				"color": DUST_COLOR})
+				"color": WorldConditions.dust_color})
 			_emit({"texture": FxLib.TEX_DOT, "amount": 2, "lifetime": 0.3, "direction": Vector2(_direction.x, -0.4),
 				"spread": 35.0, "speed": Vector2(40.0, 90.0), "gravity": Vector2(0, 500), "size": Vector2(0.07, 0.12),
-				"color": Color(0.55, 0.62, 0.45, 0.9)})
+				"color": WorldConditions.debris_color.lightened(0.3)})
 		&"jump":
 			_emit({"amount": 7, "lifetime": 0.45, "direction": Vector2(0.0, 0.2), "spread": 95.0,
 				"speed": Vector2(50.0, 130.0), "gravity": Vector2(0, -30), "size": Vector2(0.2, 0.36), "curve": &"puff",
-				"color": DUST_COLOR, "damping": Vector2(120, 220)})
+				"color": WorldConditions.dust_color, "damping": Vector2(120, 220)})
 			FxLib.ring(self, Color(1, 1, 1, 0.22), 10.0, 54.0, 0.28, false)
 			_track(0.3)
 		&"land":
 			var strength: float = clampf(_power, 0.4, 1.6)
 			_emit({"amount": int(8 * strength), "lifetime": 0.5, "direction": Vector2.RIGHT, "spread": 180.0,
 				"speed": Vector2(60.0, 170.0) * strength, "gravity": Vector2(0, -20), "size": Vector2(0.22, 0.42) * strength,
-				"curve": &"puff", "color": DUST_COLOR, "damping": Vector2(180, 300), "radius": 6.0})
+				"curve": &"puff", "color": WorldConditions.dust_color, "damping": Vector2(180, 300), "radius": 6.0})
 			_emit({"texture": FxLib.TEX_DEBRIS, "amount": int(5 * strength), "lifetime": 0.45, "direction": Vector2.UP,
 				"spread": 70.0, "speed": Vector2(90.0, 200.0) * strength, "gravity": Vector2(0, 900), "size": Vector2(0.12, 0.24),
-				"color": Color(0.36, 0.42, 0.3, 1.0), "spin": Vector2(-400, 400)})
+				"color": WorldConditions.debris_color.lightened(0.1), "spin": Vector2(-400, 400)})
 			if strength > 1.0:
 				FxLib.ring(self, Color(1, 1, 1, 0.3), 16.0, 90.0 * strength, 0.32, false)
 		&"dash":
 			# Kicked-up dust behind the dasher and a thin air wake ahead of the burst.
 			_emit({"amount": 6, "lifetime": 0.4, "direction": Vector2(-_direction.x, -0.25), "spread": 30.0,
 				"speed": Vector2(60.0, 160.0), "gravity": Vector2(0, -25), "size": Vector2(0.2, 0.34), "curve": &"puff",
-				"color": DUST_COLOR, "damping": Vector2(160, 260)})
+				"color": WorldConditions.dust_color, "damping": Vector2(160, 260)})
 			_emit({"texture": FxLib.TEX_SPARK, "amount": 5, "lifetime": 0.18, "direction": Vector2(-_direction.x, 0.0),
 				"spread": 12.0, "speed": Vector2(260.0, 420.0), "size": Vector2(0.25, 0.45), "align": true,
 				"color": Color(_tint.lerp(Color.WHITE, 0.6), 0.75), "additive": true})
@@ -83,7 +82,7 @@ func _build() -> void:
 			FxLib.ring(self, Color(1, 1, 1, 0.35), 8.0, GameSettings.PLAYER_DASH_SHOCKWAVE_RADIUS * 1.4, 0.22, false)
 			_emit({"amount": 10, "lifetime": 0.45, "direction": Vector2.RIGHT, "spread": 180.0,
 				"speed": Vector2(90.0, 220.0), "gravity": Vector2(0, -20), "size": Vector2(0.22, 0.4), "curve": &"puff",
-				"color": DUST_COLOR, "damping": Vector2(220, 340), "radius": 8.0})
+				"color": WorldConditions.dust_color, "damping": Vector2(220, 340), "radius": 8.0})
 			_emit({"texture": FxLib.TEX_SPARK, "amount": 10, "lifetime": 0.24, "direction": Vector2(_direction.x, -0.2),
 				"spread": 60.0, "speed": Vector2(200.0, 380.0), "gravity": Vector2(0, 300), "size": Vector2(0.3, 0.5),
 				"align": true, "color": Color(_tint.lerp(Color.WHITE, 0.5), 0.9), "additive": true})
@@ -93,17 +92,17 @@ func _build() -> void:
 			# Grit sprayed ahead of the sliding feet and a low dust wash behind.
 			_emit({"texture": FxLib.TEX_DEBRIS, "amount": 5, "lifetime": 0.35, "direction": Vector2(_direction.x, -0.6),
 				"spread": 25.0, "speed": Vector2(80.0, 170.0), "gravity": Vector2(0, 700), "size": Vector2(0.08, 0.16),
-				"color": Color(0.42, 0.44, 0.34, 1.0), "spin": Vector2(-400, 400)})
+				"color": WorldConditions.debris_color.lightened(0.18), "spin": Vector2(-400, 400)})
 			_emit({"amount": 5, "lifetime": 0.45, "direction": Vector2(-_direction.x, -0.2), "spread": 30.0,
 				"speed": Vector2(40.0, 110.0), "gravity": Vector2(0, -20), "size": Vector2(0.2, 0.34), "curve": &"puff",
-				"color": DUST_COLOR, "damping": Vector2(120, 220)})
+				"color": WorldConditions.dust_color, "damping": Vector2(120, 220)})
 			_track(0.45)
 		&"knockback":
 			_emit({"texture": FxLib.TEX_SPARK, "amount": 7, "lifetime": 0.22, "direction": _direction, "spread": 35.0,
 				"speed": Vector2(160.0, 300.0), "gravity": Vector2(0, 400), "size": Vector2(0.25, 0.45), "align": true,
 				"color": Color(1, 1, 1, 0.9), "additive": true})
 			_emit({"amount": 4, "lifetime": 0.35, "direction": -_direction, "spread": 40.0, "speed": Vector2(30.0, 90.0),
-				"gravity": Vector2(0, -20), "size": Vector2(0.18, 0.3), "curve": &"puff", "color": DUST_COLOR})
+				"gravity": Vector2(0, -20), "size": Vector2(0.18, 0.3), "curve": &"puff", "color": WorldConditions.dust_color})
 			_track(0.35)
 		&"ice_spray":
 			# Shaved ice thrown off a skidding boot: glittering chips low along the ice and a frost puff.
@@ -113,6 +112,19 @@ func _build() -> void:
 			_emit({"amount": 3, "lifetime": 0.45, "direction": Vector2(_direction.x, -0.25), "spread": 20.0,
 				"speed": Vector2(40.0, 90.0), "gravity": Vector2(0, -10), "size": Vector2(0.2, 0.34), "curve": &"puff",
 				"color": Color(0.88, 0.96, 1.0, 0.6), "damping": Vector2(60, 120)})
+		&"ice_chip":
+			# A round biting into ice: bright shards off the surface, a frost puff, a cold glint.
+			_emit({"texture": FxLib.TEX_SPARK, "amount": 8, "lifetime": 0.3, "direction": _direction, "spread": 58.0,
+				"speed": Vector2(150.0, 340.0), "gravity": Vector2(0, 760), "size": Vector2(0.2, 0.4), "align": true,
+				"color": Color(0.86, 0.96, 1.0, 1.0), "additive": true})
+			_emit({"texture": FxLib.TEX_DOT, "amount": 6, "lifetime": 0.5, "direction": _direction, "spread": 70.0,
+				"speed": Vector2(60.0, 170.0), "gravity": Vector2(0, 800), "size": Vector2(0.08, 0.15), "curve": &"shrink",
+				"color": Color(0.92, 0.98, 1.0, 1.0)})
+			_emit({"amount": 3, "lifetime": 0.5, "direction": _direction, "spread": 35.0, "speed": Vector2(20.0, 60.0),
+				"gravity": Vector2(0, -12), "size": Vector2(0.2, 0.34), "curve": &"puff", "color": Color(0.88, 0.96, 1.0, 0.5),
+				"damping": Vector2(40, 90)})
+			FxLib.glow_flash(self, Color(0.7, 0.9, 1.0, 0.45), 40.0, 0.12)
+			_track(0.6)
 		&"splash":
 			var strength: float = clampf(_power, 0.4, 1.8)
 			_emit({"texture": FxLib.TEX_DOT, "amount": int(14 * strength), "lifetime": 0.6, "direction": Vector2.UP, "spread": 38.0,
@@ -231,11 +243,11 @@ func _build_impact() -> void:
 		"speed": Vector2(180.0, 420.0), "gravity": Vector2(0, 820), "size": Vector2(0.22, 0.42), "align": true,
 		"color": spark, "additive": true, "damping": Vector2(0, 40)})
 	_emit({"amount": 3, "lifetime": 0.55, "direction": normal, "spread": 40.0, "speed": Vector2(25.0, 70.0),
-		"gravity": Vector2(0, -25), "size": Vector2(0.22, 0.38), "curve": &"puff", "color": Color(0.7, 0.72, 0.64, 0.42),
+		"gravity": Vector2(0, -25), "size": Vector2(0.22, 0.38), "curve": &"puff", "color": WorldConditions.dust_color,
 		"damping": Vector2(40, 90)})
 	_emit({"texture": FxLib.TEX_DEBRIS, "amount": 4, "lifetime": 0.5, "direction": normal, "spread": 55.0,
 		"speed": Vector2(90.0, 220.0), "gravity": Vector2(0, 980), "size": Vector2(0.1, 0.2), "spin": Vector2(-600, 600),
-		"color": Color(0.24, 0.3, 0.22, 1.0), "fade": &"late"})
+		"color": WorldConditions.debris_color.darkened(0.12), "fade": &"late"})
 	FxLib.glow_flash(self, Color(spark.r, spark.g * 0.9, spark.b * 0.8, 0.5), 46.0, 0.12)
 	_track(0.6)
 
@@ -304,7 +316,7 @@ func _build_explosion() -> void:
 		"color": Color(1.0, 0.75, 0.3, 1.0), "additive": true, "damping": Vector2(0, 30)})
 	_emit({"texture": FxLib.TEX_DEBRIS, "amount": 12, "lifetime": 0.9, "direction": Vector2.UP, "spread": 120.0,
 		"speed": Vector2(200.0, 520.0) * p, "gravity": Vector2(0, 1300), "size": Vector2(0.15, 0.35), "spin": Vector2(-720, 720),
-		"color": Color(0.12, 0.13, 0.12, 1.0), "fade": &"late"})
+		"color": WorldConditions.debris_color.lerp(Color(0.12, 0.13, 0.12, 1.0), 0.45), "fade": &"late"})
 	FxLib.ring(self, Color(1.0, 0.85, 0.6, 0.95), 20.0, 230.0 * p, 0.42)
 	FxLib.ring(self, Color(1.0, 1.0, 1.0, 0.5), 10.0, 150.0 * p, 0.25)
 	FxLib.glow_flash(self, Color(1.0, 0.8, 0.45, 1.0), 300.0 * p, 0.4)

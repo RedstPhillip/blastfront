@@ -42,6 +42,8 @@ func _build_profile() -> void:
 	profile.display_name = "Rimefall"
 	profile.ambience = &"ambience_rimefall"
 	profile.footstep = &"step_snow"
+	profile.dust_color = Color(0.95, 0.97, 1.0, 0.6)
+	profile.debris_color = Color(0.82, 0.9, 1.0, 1.0)
 	profile.gravity_scale = 1.0
 	profile.projectile_gravity_scale = 1.0
 	profile.projectile_range_scale = 1.0

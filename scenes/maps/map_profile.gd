@@ -11,6 +11,9 @@ const GROUP: StringName = &"map_profile"
 @export var ambience: StringName = &"ambience_wind"
 ## Audio event for a footstep on this world's ground (grass, stone, dust, snow).
 @export var footstep: StringName = &"step"
+## What the ground throws up under feet and rounds: the puff, and the solid bits.
+@export var dust_color: Color = Color(0.78, 0.76, 0.64, 0.5)
+@export var debris_color: Color = Color(0.3, 0.36, 0.26, 1.0)
 @export_range(0.3, 1.5, 0.01) var gravity_scale: float = 1.0
 @export_range(0.3, 1.5, 0.01) var projectile_gravity_scale: float = 1.0
 ## Thin air lets rounds carry further before they fade out.
@@ -31,6 +34,8 @@ func _enter_tree() -> void:
 	WorldConditions.water_level = INF
 	WorldConditions.water_forecast = INF
 	WorldConditions.footstep = footstep
+	WorldConditions.dust_color = dust_color
+	WorldConditions.debris_color = debris_color
 
 
 func _exit_tree() -> void:

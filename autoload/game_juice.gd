@@ -289,6 +289,14 @@ func spawn_casing(world_position: Vector2, eject_direction: Vector2, tint: Color
 func spawn_explosion(world_position: Vector2, radius: float = 80.0, tint: Color = Color(1.0, 0.55, 0.18, 1.0)) -> void:
 	var power: float = clampf(radius / 80.0, 0.6, 2.2)
 	spawn_burst(&"explosion", world_position, Vector2.UP, tint, power)
+	# A blast in or just over the water throws the sea up with it.
+	var water: float = WorldConditions.water_level
+	if world_position.y > water - radius * 0.6:
+		var surface: Vector2 = Vector2(world_position.x, water)
+		spawn_burst(&"splash", surface, Vector2.UP, Color.WHITE, 1.8)
+		spawn_burst(&"splash", surface + Vector2(-radius * 0.45, 0.0), Vector2.UP, Color.WHITE, 1.1)
+		spawn_burst(&"splash", surface + Vector2(radius * 0.45, 0.0), Vector2.UP, Color.WHITE, 1.1)
+		AudioDirector.play_at(&"splash", surface, 2.0, 0.8)
 	ImpactDecals.add_scorch(world_position, radius * 0.75)
 	AudioDirector.play_at(&"explosion", world_position)
 	add_trauma(0.32 * power)

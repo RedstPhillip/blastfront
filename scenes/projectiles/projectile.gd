@@ -854,11 +854,16 @@ func _play_collision_feedback(collision: KinematicCollision2D, collider: Object)
 	if hit_player != null:
 		return
 
-	_play_world_impact(collision_position, impact_direction)
+	_play_world_impact(collision_position, impact_direction, WorldConditions.is_ice(collider))
 
 
-func _play_world_impact(impact_position: Vector2, normal: Vector2) -> void:
-	GameJuice.spawn_burst(&"impact", impact_position, normal, _impact_tint, projectile_scale)
+## Ice answers a round with shards and a glassy crack instead of soil and sparks.
+func _play_world_impact(impact_position: Vector2, normal: Vector2, on_ice: bool = false) -> void:
+	if on_ice:
+		GameJuice.spawn_burst(&"ice_chip", impact_position, normal, _impact_tint, projectile_scale)
+		AudioDirector.play_at(&"step_ice", impact_position, 3.0, 1.35)
+	else:
+		GameJuice.spawn_burst(&"impact", impact_position, normal, _impact_tint, projectile_scale)
 	AudioDirector.play_at(&"impact", impact_position)
 	GameJuice.shake(GameSettings.PROJECTILE_IMPACT_SHAKE_STRENGTH, GameSettings.PROJECTILE_IMPACT_SHAKE_TIME)
 	ImpactDecals.add_hole(impact_position, normal)

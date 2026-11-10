@@ -1934,6 +1934,67 @@ func _build_script() -> void:
 			_at(15.5, "shot", "tide_spring")
 			_at(16.0, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
 			_at(16.1, "quit")
+		"fx_close":
+			# Combat feedback up close: P1 next to the sandbox dummy (the game's own camera: aiming goes through it,
+			# so a frozen one shoots past the pointer; crop the frames instead). Frame-by-frame
+			# shots of a round leaving the barrel and landing, of the kill, and of a round hitting the ground.
+			_at(0.1, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
+			_at(0.5, "call", func(): _main._on_sandbox_requested())
+			_at(1.6, "call", func():
+				var dummy = _stress_game()._dummy_players[0]
+				_place_p1(dummy.global_position + Vector2(-190.0, -6.0)))
+			# Rounds drop about 45 px over this distance: hold over.
+			_at(1.9, "call", func(): _aim_at(_stress_game()._dummy_players[0].global_position + Vector2(0.0, -20.0)))
+			_at(2.0, "press", "p1_shoot")
+			for i in range(14):
+				_at(2.0 + float(i + 1) / 60.0, "shot", "hit_%02d" % i)
+			# The dummy takes 29 a round: the fourth one kills.
+			_hooks.append(func():
+				if _stress_game() == null or _stress_game()._dummy_players.is_empty():
+					return
+				var dummy = _stress_game()._dummy_players[0]
+				var health: int = dummy.health_component.health
+				if health != _fx_last_health:
+					print("FX t=%.3f dummy health %d -> %d" % [_time, _fx_last_health, health])
+					_fx_last_health = health)
+			_at(2.6, "release", "p1_shoot")
+			# One round from death, standing where it started: the next shot is the kill.
+			_at(3.9, "call", func():
+				var dummy = _stress_game()._dummy_players[0]
+				dummy.health_component.health = 10
+				_place_p1(dummy.global_position + Vector2(-190.0, -6.0)))
+			_at(4.15, "call", func(): _aim_at(_stress_game()._dummy_players[0].global_position + Vector2(0.0, -20.0)))
+			_at(4.2, "press", "p1_shoot")
+			for i in range(30):
+				_at(4.25 + float(i) / 60.0, "shot", "kill_%02d" % i)
+			for i in range(8):
+				_at(4.8 + float(i) / 10.0, "shot", "after_%02d" % i)
+			_at(6.0, "release", "p1_shoot")
+			_at(6.4, "call", func(): _aim_at(_p1().global_position + Vector2(90.0, 46.0)))
+			_at(6.6, "press", "p1_shoot")
+			_at(6.65, "release", "p1_shoot")
+			for i in range(10):
+				_at(6.6 + float(i + 1) / 60.0, "shot", "ground_%02d" % i)
+			_at(7.2, "quit")
+		"ground_fx":
+			# What each world's ground throws up: a round into the ground beside P1, then a jump and its landing.
+			# BF_WORLD picks the world; on Rimefall P1 stands on the lake, so the round bites into ice.
+			var ground_world: String = OS.get_environment("BF_WORLD") if OS.has_environment("BF_WORLD") else "rimefall"
+			_at(0.1, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", ground_world))
+			_at(0.5, "call", func(): _main._on_sandbox_requested())
+			if ground_world == "rimefall":
+				_at(1.6, "call", func(): _place_p1(Vector2(800, 600)))
+			_at(2.4, "call", func(): _aim_at(_p1().global_position + Vector2(110.0, 60.0)))
+			_at(2.5, "press", "p1_shoot")
+			_at(2.55, "release", "p1_shoot")
+			for i in range(5):
+				_at(2.5 + float(i * 2 + 6) / 60.0, "shot", "%s_shot_%d" % [ground_world, i])
+			_at(3.2, "press", "p1_jump")
+			_at(3.3, "release", "p1_jump")
+			for i in range(8):
+				_at(3.75 + float(i) / 20.0, "shot", "%s_land_%d" % [ground_world, i])
+			_at(4.4, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
+			_at(4.5, "quit")
 		"tide_look":
 			# The looks of Tidewater's weather: a held flood in the rain, then a spring tide in the storm.
 			_at(0.2, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "tidewater"))
@@ -2280,6 +2341,7 @@ func _equip(ids: Array) -> void:
 			print("equipped ", item.get_definition_id())
 
 
+var _fx_last_health: int = -1
 var _tracker = null
 var _merge_pair: Array = []
 
@@ -2817,6 +2879,15 @@ func _weather() -> Node:
 
 func _tide() -> Node:
 	return _stress_game().get_node("Arena/Tide")
+
+
+## Moves the pointer onto a world position (through the canvas transform, so it holds under a frozen camera).
+func _aim_at(world_position: Vector2) -> void:
+	var motion: InputEventMouseMotion = InputEventMouseMotion.new()
+	motion.position = _stress_game().get_viewport().get_canvas_transform() * world_position
+	motion.global_position = motion.position
+	print("AIM screen=%s p1=%s target=%s" % [motion.position.round(), _p1().global_position.round(), world_position.round()])
+	_viewport.push_input(motion, true)
 
 
 func _place_p1(at: Vector2) -> void:
