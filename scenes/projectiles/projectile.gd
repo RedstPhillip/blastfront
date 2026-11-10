@@ -235,6 +235,9 @@ func _on_collision(collision: KinematicCollision2D) -> void:
 		_apply_range_bonus()
 		if is_network_authority:
 			take_mark_bonus(collider as Player)
+		var pierced: Player = collider as Player
+		if pierced != null and get_armor_pierce() > 0.0 and pierced.get_armor_reduction() > 0.0:
+			pierced.show_trait_callout("ARMOR PIERCED", Color(0.8, 0.86, 0.95, 1.0))
 	_play_collision_feedback(collision, collider)
 	_play_payload_feedback(collision.get_position())
 	if net_id == 0:
@@ -295,6 +298,16 @@ func get_impact_knockback() -> Vector2:
 ## How long a hit with the impact trait stuns (Big Bullets MK III, Sniper Barrel MK II).
 func get_impact_stagger() -> float:
 	return float(get_effect("impact").get("stagger", 0.0))
+
+
+## Armor Piercing: the share of the target's armor this round ignores (0 without the part).
+func get_armor_pierce() -> float:
+	return clampf(float(get_effect("pierce").get("armor", 0.0)), 0.0, 1.0)
+
+
+## Armor Piercing MK III: the hit is not spread out by delayed armor.
+func ignores_delayed_armor() -> bool:
+	return float(get_effect("pierce").get("no_delay", 0.0)) > 0.0
 
 
 ## Sniper Barrel MK III: a hit on a target this round's owner marked spends the mark for +bonus damage.
@@ -590,6 +603,39 @@ func _get_projectile_visual_style() -> Dictionary:
 				0.11,
 				5.0
 			)
+		"armor_piercing_mk1":
+			return _make_projectile_style(
+				Color(0.78, 0.84, 0.92, 1.0),
+				Color(0.06, 0.07, 0.09, 1.0),
+				Color(0.6, 0.7, 0.85, 0.36),
+				PackedVector2Array([Vector2(11.5, 0.0), Vector2(1.0, -2.0), Vector2(-5.5, -2.0), Vector2(-5.5, 2.0), Vector2(1.0, 2.0)]),
+				PackedVector2Array([Vector2(14.5, 0.0), Vector2(1.0, -3.4), Vector2(-8.0, -3.4), Vector2(-8.0, 3.4), Vector2(1.0, 3.4)]),
+				14,
+				0.10,
+				6.0
+			)
+		"fire_rounds_mk1":
+			return _make_projectile_style(
+				Color(1.0, 0.5, 0.14, 1.0),
+				Color(0.2, 0.04, 0.01, 1.0),
+				Color(1.0, 0.35, 0.08, 0.55),
+				PackedVector2Array([Vector2(8.4, 0.0), Vector2(1.0, -3.6), Vector2(-5.6, -2.4), Vector2(-7.4, 0.0), Vector2(-5.6, 2.4), Vector2(1.0, 3.6)]),
+				PackedVector2Array([Vector2(11.4, 0.0), Vector2(1.4, -5.2), Vector2(-8.2, -3.6), Vector2(-10.6, 0.0), Vector2(-8.2, 3.6), Vector2(1.4, 5.2)]),
+				24,
+				0.18,
+				30.0
+			)
+		"homing_mk1":
+			return _make_projectile_style(
+				Color(0.4, 0.92, 1.0, 1.0),
+				Color(0.02, 0.1, 0.13, 1.0),
+				Color(0.36, 0.85, 1.0, 0.42),
+				PackedVector2Array([Vector2(8.6, 0.0), Vector2(-0.6, -3.0), Vector2(-5.4, 0.0), Vector2(-0.6, 3.0)]),
+				PackedVector2Array([Vector2(11.6, 0.0), Vector2(-1.0, -4.5), Vector2(-8.0, 0.0), Vector2(-1.0, 4.5)]),
+				18,
+				0.16,
+				14.0
+			)
 		"extended_barrel_mk1":
 			return _make_projectile_style(
 				Color(0.9, 0.9, 0.82, 1.0),
@@ -616,6 +662,8 @@ func _get_projectile_visual_style() -> Dictionary:
 func _get_visual_extension_id() -> String:
 	var priority: Array[String] = [
 		"big_bullets_mk1",
+		"fire_rounds_mk1",
+		"armor_piercing_mk1",
 		"bouncy_bullets_mk1",
 		"drill_bullets_mk1",
 		"explosive_bullet_mk1",
@@ -631,6 +679,7 @@ func _get_visual_extension_id() -> String:
 		"lighter_barrel_mk1",
 		"multi_barrel_mk1",
 		"ground_hover_mk1",
+		"homing_mk1",
 		"laser_scope_mk1",
 		"reload_improver_mk1",
 	]
@@ -756,7 +805,7 @@ func _set_time_scale(flow: float) -> void:
 func _apply_local_collision_damage(collider: Object) -> void:
 	var player: Player = collider as Player
 	if player != null:
-		var applied_damage: int = player.apply_incoming_damage(damage, owner_slot, global_position)
+		var applied_damage: int = player.apply_incoming_damage(damage, owner_slot, global_position, not ignores_delayed_armor(), get_armor_pierce())
 		_apply_local_life_steal(applied_damage)
 		_note_source_damage_dealt(applied_damage)
 
@@ -825,6 +874,10 @@ func _play_payload_feedback(impact_position: Vector2) -> void:
 		if float((explosive as Dictionary).get("aftershock", 0.0)) > 0.0 and is_inside_tree():
 			get_tree().create_timer(ExtensionEffectRegistry.AFTERSHOCK_DELAY, false).timeout.connect(
 				ExtensionEffectRegistry.show_aftershock.bind(impact_position, owner_slot, blast_radius))
+	# Fire Rounds: the ground under the impact catches fire (FirePatch judges the burns where hits are judged).
+	var fire: Dictionary = get_effect("fire")
+	if not fire.is_empty() and is_inside_tree():
+		FirePatch.ignite(get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP), impact_position, owner_slot, fire)
 	var grenade: Variant = extension_effects.get("grenade", extension_effects.get(&"grenade"))
 	if grenade is Dictionary:
 		var fx: GrenadeFx = GrenadeFx.new()

@@ -258,7 +258,7 @@ func _scale_projectile_effect_value(parameter: StringName, value: Variant, facto
 	if value is float or value is int:
 		var numeric_value: float = float(value)
 		match parameter:
-			&"delay", &"tick_interval", &"full_distance", &"range", &"through_shield", &"after_bounce", &"horizontal", &"boost_cap", &"stagger":
+			&"delay", &"tick_interval", &"tick", &"full_distance", &"range", &"through_shield", &"after_bounce", &"horizontal", &"boost_cap", &"stagger":
 				return value
 			&"speed_multiplier":
 				return clampf(lerpf(1.0, numeric_value, factor), 0.05, 1.0)

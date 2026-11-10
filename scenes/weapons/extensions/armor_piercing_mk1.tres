@@ -1,0 +1,46 @@
+[gd_resource type="Resource" script_class="WeaponExtensionDefinition" format=3]
+
+[ext_resource type="Script" uid="uid://vd1xlgf7df4b" path="res://scenes/weapons/extensions/weapon_extension_definition.gd" id="1_definition"]
+
+[resource]
+script = ExtResource("1_definition")
+extension_id = "armor_piercing_mk1"
+display_name = "Armor Piercing MK1"
+slot_key = "ammo"
+description = "Rounds ignore part of the target's armor."
+default_condition = 100.0
+minimum_condition_factor = 0.25
+attribute_modifiers = {
+"damage": -2.0,
+"projectile_speed": 80.0
+}
+mk2_attribute_modifiers = {
+"damage": -1.0,
+"projectile_speed": 120.0
+}
+mk3_attribute_modifiers = {
+"damage": 0.0,
+"projectile_speed": 160.0
+}
+projectile_tags = Array[String](["pierce"])
+projectile_effects = {
+"pierce": {
+"armor": 0.25
+}
+}
+mk2_projectile_effects = {
+"pierce": {
+"armor": 0.5,
+"no_reflect": 1.0
+}
+}
+mk3_projectile_effects = {
+"pierce": {
+"armor": 0.75,
+"no_reflect": 1.0,
+"no_delay": 1.0
+}
+}
+mk2_trait = "Ignores {pierce.armor%} of armor; reflective armor can't bounce them."
+mk3_trait = "Ignores {pierce.armor%} of armor; delayed armor can't spread the hit."
+icon_color = Color(0.72, 0.78, 0.86, 1)

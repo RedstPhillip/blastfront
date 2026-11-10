@@ -947,6 +947,8 @@ func _build_script() -> void:
 				["explosive_aftershock", {"explosive": {"radius": 130.0, "splash_damage": 20, "knockback": 400.0, "aftershock": 0.5}}, ["explosive"]],
 				["grenade_stun", {"grenade": {"delay": 0.2, "radius": 130.0, "damage_per_hit": 20, "knockback": 400.0, "stun": 0.35}}, ["grenade"]],
 				["mark", {"mark": {"duration": 3.0, "bonus": 0.3}}, []],
+				["pierce", {"pierce": {"armor": 0.75, "no_delay": 1.0}}, ["pierce"]],
+				["fire", {"fire": {"width": 90.0, "duration": 3.0, "damage": 3.0, "tick": 0.4, "afterburn": 1.5}}, ["fire"]],
 			]
 			for i in range(online_trials.size()):
 				var trial: Array = online_trials[i]
@@ -958,11 +960,15 @@ func _build_script() -> void:
 					p1.health_component.health = 100
 					p1._stun_timer = 0.0
 					p1.status_effect_manager.clear_all()
+					p1._armor_attributes = {&"damage_reduction": 8.0} if label == "pierce" else {}
 					_dummy_start = p1.global_position
 					pass)
 				_at(t0 + 0.1, "call", func():
 					var sync = _stress_game()._game_sync.get_module(&"projectile")
 					var data: Dictionary = {"muzzle_speed": 900.0, "gravity": 0.0, "damage": 20, "max_distance": 1400.0, "extension_tags": trial[2], "extension_effects": trial[1]}
+					if label == "fire":
+						sync._spawn_projectile(9000 + i, 2, _p1().global_position + Vector2(30.0, -60.0), Vector2.DOWN, data, true)
+						return
 					if label == "guard_chip":
 						# The host's own shield follows the (absent) mouse here, so hand the module a blocked round.
 						var shot = sync._spawn_projectile(9000 + i, 2, _p1().global_position + Vector2(400.0, -200.0), Vector2.LEFT, data, true)
@@ -977,12 +983,99 @@ func _build_script() -> void:
 						var data: Dictionary = {"muzzle_speed": 900.0, "gravity": 0.0, "damage": 20, "max_distance": 1400.0, "extension_tags": [], "extension_effects": trial[1]}
 						sync._spawn_projectile(9100, 2, _p1().global_position + Vector2(120.0, -6.0), Vector2.LEFT, data, true))
 				_at(t0 + 1.2, "call", func(): print("ONLINE_TRAIT %s late hp=%d dx=%+.0f" % [label, _p1().health_component.health, _p1().global_position.x - _dummy_start.x]))
-			_at(9.6, "call", func():
+			_at(12.6, "call", func():
 				var session = root.get_node("NetworkSession")
 				session.mode = &"training"
 				session._match_active = false
 				root.get_node("OnlineMatch").phase = &"locker")
-			_at(9.8, "quit")
+			_at(12.8, "quit")
+		"new_parts":
+			# Armor Piercing, Fire Rounds and Homing on the sandbox dummy (offline): damage through 8 armor per
+			# mark, a fire patch burning the dummy and the MK II afterburn after it steps out, and homing rounds
+			# fired past the dummy (with and without the MK II no-drop).
+			_at(0.1, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
+			_at(0.2, "call", func(): root.get_node("UserSettings").set_value(&"gameplay_hitstop", false))
+			_at(0.5, "call", func(): _main._on_sandbox_requested())
+			_at(1.6, "call", func():
+				_build_slide_rig()
+				_freeze_camera_keep_players(Vector2(650.0, 560.0), 1.0)
+				_stress_game().get_player_by_slot(2).set_controls_enabled(false)
+				_air_reset(Vector2(200.0, 616.0)))
+			var pierce_trials: Array = [["no_pierce", {}], ["pierce_mk1", {"pierce": {"armor": 0.25}}], ["pierce_mk2", {"pierce": {"armor": 0.5, "no_reflect": 1.0}}], ["pierce_mk3", {"pierce": {"armor": 0.75, "no_reflect": 1.0, "no_delay": 1.0}}]]
+			for i in range(pierce_trials.size()):
+				var trial: Array = pierce_trials[i]
+				var t0: float = 2.0 + float(i) * 0.8
+				_at(t0, "call", func():
+					_trait_setup(trial[0])
+					_stress_game().get_player_by_slot(2)._armor_attributes = {&"damage_reduction": 8.0})
+				_at(t0 + 0.1, "call", func(): _trait_fire(trial[1], ["pierce"] if not (trial[1] as Dictionary).is_empty() else [], 120.0))
+				_at(t0 + 0.5, "call", func(): print("PARTS %s damage=%d (20 round, 8 armor)" % [trial[0], 60 - _stress_game().get_player_by_slot(2).health_component.health]))
+			# Reflective armor can't turn MK II rounds.
+			_at(5.4, "call", func():
+				_trait_setup("reflect")
+				_stress_game().get_player_by_slot(2)._armor_attributes = {&"reflect_chance": 0.95})
+			_at(5.5, "call", func(): _trait_fire({"pierce": {"armor": 0.5, "no_reflect": 1.0}}, ["pierce"], 120.0))
+			_at(5.9, "call", func(): print("PARTS no_reflect damage=%d (20 = not reflected)" % (60 - _stress_game().get_player_by_slot(2).health_component.health)))
+			# Fire: a round into the floor beside the dummy; after 1.2 s the dummy steps out of the patch.
+			_at(6.2, "call", func():
+				_trait_setup("fire")
+				_stress_game().get_player_by_slot(2)._armor_attributes = {}
+				var shot = load("res://scenes/projectiles/projectile.tscn").instantiate()
+				shot.configure_from_data(0, 1, Vector2.DOWN, {"muzzle_speed": 900.0, "gravity": 0.0, "damage": 20, "max_distance": 1400.0, "extension_tags": ["fire"], "extension_effects": {"fire": {"width": 90.0, "duration": 3.0, "damage": 3.0, "tick": 0.4, "afterburn": 1.5}}})
+				_stress_game().spawn_projectile(shot, Vector2(640.0 + 30.0, 560.0)))
+			_at(7.4, "call", func():
+				var dummy = _stress_game().get_player_by_slot(2)
+				print("PARTS fire in_patch damage=%d patches=%d burning=%s" % [60 - dummy.health_component.health, get_nodes_in_group(&"fire_patches").size(), dummy.status_effect_manager.has_effect(&"burn")])
+				_air_stats["hp_out"] = dummy.health_component.health
+				dummy.global_position = Vector2(400.0, 616.0))
+			_at(8.9, "call", func():
+				var dummy = _stress_game().get_player_by_slot(2)
+				print("PARTS fire afterburn damage_after_leaving=%d" % (int(_air_stats["hp_out"]) - dummy.health_component.health)))
+			# Shotgun-style: five fire rounds at one spot make one patch.
+			_at(9.2, "call", func():
+				for k in range(5):
+					var shot = load("res://scenes/projectiles/projectile.tscn").instantiate()
+					shot.configure_from_data(0, 1, Vector2.DOWN, {"muzzle_speed": 900.0, "gravity": 0.0, "damage": 20, "max_distance": 1400.0, "extension_tags": ["fire"], "extension_effects": {"fire": {"width": 90.0, "duration": 3.0, "damage": 3.0, "tick": 0.4}}})
+					_stress_game().spawn_projectile(shot, Vector2(300.0 + float(k) * 8.0, 560.0)))
+			_at(9.6, "call", func(): print("PARTS fire volley patches=%d (old one still burning + 1 new)" % get_nodes_in_group(&"fire_patches").size()))
+			# Homing: a round flying 70 px above the dummy, with and without seek.
+			var homing_trials: Array = [["no_seek", {}, []], ["seek_mk1", {"seek": {"turn_rate": 70.0, "range": 320.0}}, ["seek"]], ["seek_mk3", {"seek": {"turn_rate": 110.0, "range": 440.0, "no_drop": 1.0, "lock_boost": 0.3}}, ["seek"]]]
+			for i in range(homing_trials.size()):
+				var trial: Array = homing_trials[i]
+				var t0: float = 10.0 + float(i) * 1.0
+				_at(t0, "call", func():
+					_trait_setup(trial[0])
+					var shot = load("res://scenes/projectiles/projectile.tscn").instantiate()
+					shot.configure_from_data(0, 1, Vector2.RIGHT, {"muzzle_speed": 900.0, "gravity": 0.0, "damage": 20, "max_distance": 1400.0, "extension_tags": trial[2], "extension_effects": trial[1]})
+					var dummy = _stress_game().get_player_by_slot(2)
+					_stress_game().spawn_projectile(shot, dummy.global_position + Vector2(-300.0, -70.0)))
+				_at(t0 + 0.8, "call", func(): print("PARTS homing %s damage=%d (20 = curved into the dummy)" % [trial[0], 60 - _stress_game().get_player_by_slot(2).health_component.health]))
+			_at(13.4, "call", func(): print("PARTS callouts=%s" % str(root.get_node("GameJuice")._callout_times.keys())))
+			_at(13.6, "quit")
+		"parts_look":
+			# The three newest parts in the loadout (MK II), the gun with all three, and a fire patch in play.
+			_at(0.5, "call", func(): _main._on_sandbox_requested())
+			_at(2.0, "action", "pause")
+			_at(2.4, "call", func(): _open_sandbox_loadout())
+			_at(3.2, "call", func(): _inspect_part("armor_piercing_mk1", 2))
+			_at(3.6, "shot", "part_armor_piercing")
+			_at(3.7, "call", func(): _inspect_part("fire_rounds_mk1", 3))
+			_at(4.1, "shot", "part_fire_rounds")
+			_at(4.2, "call", func(): _inspect_part("homing_mk1", 2))
+			_at(4.6, "shot", "part_homing")
+			_at(4.7, "call", func():
+				_equip(["homing_mk1", "fire_rounds_mk1"])
+				_lo_mouse_to(Vector2(640.0, 700.0))
+				_loadout_page()._show_overview())
+			_at(5.2, "shot", "parts_build")
+			_at(5.3, "call", func(): get_first_node_in_group(&"game_world").get_node("HUD/PauseMenu").resume_game())
+			_at(5.8, "call", func(): print("PAUSED=%s" % paused))
+			_at(5.9, "call", func():
+				var shot = load("res://scenes/projectiles/projectile.tscn").instantiate()
+				shot.configure_from_data(0, 2, Vector2.DOWN, {"muzzle_speed": 900.0, "gravity": 0.0, "damage": 20, "max_distance": 1400.0, "extension_tags": ["fire"], "extension_effects": {"fire": {"width": 130.0, "duration": 4.0, "damage": 4.0, "tick": 0.4}}, "source_extensions": ["fire_rounds_mk1"]})
+				_stress_game().spawn_projectile(shot, _p1().global_position + Vector2(140.0, -80.0)))
+			_at(6.6, "shot", "fire_patch")
+			_at(6.8, "quit")
 		"slide_probe":
 			# Sliding on a private rig (arena terrain removed): floor top 640, a low tunnel at x 700-900 (its
 			# ceiling 30 px above the floor: too low to stand, high enough to slide) and a dead-end pocket at

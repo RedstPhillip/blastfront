@@ -1,0 +1,46 @@
+[gd_resource type="Resource" script_class="WeaponExtensionDefinition" format=3]
+
+[ext_resource type="Script" uid="uid://vd1xlgf7df4b" path="res://scenes/weapons/extensions/weapon_extension_definition.gd" id="1_definition"]
+
+[resource]
+script = ExtResource("1_definition")
+extension_id = "homing_mk1"
+display_name = "Homing MK1"
+slot_key = "middle"
+description = "Rounds curve toward an enemy close by."
+default_condition = 100.0
+minimum_condition_factor = 0.25
+attribute_modifiers = {
+"damage": -4.0
+}
+mk2_attribute_modifiers = {
+"damage": -3.0
+}
+mk3_attribute_modifiers = {
+"damage": -2.0
+}
+projectile_tags = Array[String](["seek"])
+projectile_effects = {
+"seek": {
+"turn_rate": 70.0,
+"range": 320.0
+}
+}
+mk2_projectile_effects = {
+"seek": {
+"turn_rate": 90.0,
+"range": 380.0,
+"no_drop": 1.0
+}
+}
+mk3_projectile_effects = {
+"seek": {
+"turn_rate": 110.0,
+"range": 440.0,
+"no_drop": 1.0,
+"lock_boost": 0.3
+}
+}
+mk2_trait = "Locked-on rounds stop dropping."
+mk3_trait = "Locked-on rounds speed up {seek.lock_boost%}."
+icon_color = Color(0.4, 0.9, 1, 1)

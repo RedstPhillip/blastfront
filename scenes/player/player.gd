@@ -650,7 +650,8 @@ func apply_incoming_damage(
 	amount: int,
 	source_slot: int = 0,
 	source_position: Vector2 = Vector2.ZERO,
-	allow_delay: bool = true
+	allow_delay: bool = true,
+	armor_pierce: float = 0.0
 ) -> int:
 	if amount <= 0 or health_component == null:
 		return 0
@@ -658,7 +659,7 @@ func apply_incoming_damage(
 		play_dash_dodge_feedback()
 		return 0
 
-	var modified_damage: int = get_modified_incoming_damage(amount)
+	var modified_damage: int = get_modified_incoming_damage(amount, armor_pierce)
 	var delay_duration: float = _get_armor_attribute(&"delayed_damage_duration")
 	if allow_delay and delay_duration > 0.0 and modified_damage > 1:
 		_run_delayed_damage(modified_damage, delay_duration, source_slot, source_position)
@@ -692,14 +693,21 @@ func apply_resolved_damage(amount: int, source_position: Vector2 = Vector2.ZERO)
 	return old_health - health_component.health
 
 
-func get_modified_incoming_damage(amount: int) -> int:
-	var reduction: float = _get_armor_attribute(&"damage_reduction")
-	if _is_stationary_for_armor():
-		reduction += _get_armor_attribute(&"stationary_damage_reduction")
+## armor_pierce (Armor Piercing rounds) is the share of the armor's reduction the hit ignores.
+func get_modified_incoming_damage(amount: int, armor_pierce: float = 0.0) -> int:
+	var reduction: float = get_armor_reduction() * (1.0 - clampf(armor_pierce, 0.0, 1.0))
 	var reduced_damage: int = int(roundf(float(amount) - reduction))
 	if amount > 0:
 		return maxi(1, reduced_damage)
 	return 0
+
+
+## Flat damage this player's armor takes off a hit right now (the stationary bonus included).
+func get_armor_reduction() -> float:
+	var reduction: float = _get_armor_attribute(&"damage_reduction")
+	if _is_stationary_for_armor():
+		reduction += _get_armor_attribute(&"stationary_damage_reduction")
+	return reduction
 
 
 func get_delayed_damage_duration() -> float:
@@ -723,6 +731,9 @@ func adjust_status_effect_data(effect_name: StringName, params: Dictionary) -> D
 
 func try_reflect_projectile(projectile: Projectile) -> bool:
 	if projectile == null or projectile.owner_slot == player_slot:
+		return false
+	# Armor Piercing MK II / III: reflective armor cannot turn these rounds.
+	if float(projectile.get_effect("pierce").get("no_reflect", 0.0)) > 0.0:
 		return false
 	var chance: float = clampf(_get_armor_attribute(&"reflect_chance"), 0.0, 0.95)
 	if chance <= 0.0 or randf() > chance:
@@ -2103,6 +2114,8 @@ func _spawn_status_feedback(effect_name: StringName, world_position: Vector2, di
 			AudioDirector.play_at(&"poison", world_position)
 		&"stagger":
 			GameJuice.spawn_burst(&"knockback", world_position, direction, Color.WHITE)
+		&"burn":
+			GameJuice.spawn_burst(&"hit", world_position, direction, Color(1.0, 0.5, 0.18, 0.9), 0.8)
 		&"frozen":
 			GameJuice.spawn_burst(&"freeze", world_position, direction, Color(0.7, 0.92, 1.0, 1.0), 1.4)
 			AudioDirector.play_at(&"freeze", world_position, 3.0, 0.8)

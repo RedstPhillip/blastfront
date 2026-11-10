@@ -27,7 +27,9 @@ func apply_hit(
 	damage: int = GameSettings.PROJECTILE_DAMAGE,
 	allow_delay: bool = true,
 	source_position_override: Variant = null,
-	knockback_velocity: Vector2 = Vector2.ZERO
+	knockback_velocity: Vector2 = Vector2.ZERO,
+	armor_pierce: float = 0.0,
+	ignore_delay: bool = false
 ) -> void:
 	if game_sync == null or not game_sync.is_host():
 		return
@@ -53,8 +55,9 @@ func apply_hit(
 
 	var modified_damage: int = damage
 	if allow_delay:
-		modified_damage = player.get_modified_incoming_damage(damage)
-	var delay_duration: float = player.get_delayed_damage_duration()
+		modified_damage = player.get_modified_incoming_damage(damage, armor_pierce)
+	# Armor Piercing MK III: the hit lands at once even through delayed armor.
+	var delay_duration: float = 0.0 if ignore_delay else player.get_delayed_damage_duration()
 	if allow_delay and delay_duration > 0.0 and modified_damage > 1:
 		_run_delayed_hit(target_slot, source_slot, projectile_id, modified_damage, delay_duration)
 		return

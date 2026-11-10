@@ -527,6 +527,10 @@ func _build_fire_profile() -> Dictionary:
 		profile["flash_tint"] = Color(0.6, 0.9, 1.0, 1.0)
 	elif sources.has("poison_rounds_mk1"):
 		profile["flash_tint"] = Color(0.55, 1.0, 0.45, 1.0)
+	elif sources.has("fire_rounds_mk1"):
+		profile["flash_tint"] = Color(1.0, 0.55, 0.2, 1.0)
+	elif sources.has("armor_piercing_mk1"):
+		profile["flash_tint"] = Color(0.82, 0.88, 1.0, 1.0)
 	elif sources.has("shocking_rounds_mk1"):
 		profile["flash_tint"] = Color(1.0, 0.95, 0.45, 1.0)
 		profile["layer"] = &"shock"

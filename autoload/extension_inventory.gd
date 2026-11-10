@@ -25,6 +25,9 @@ const EXTENSION_DEFINITION_PATHS: Array[String] = [
 	"res://scenes/weapons/extensions/lighter_barrel_mk1.tres",
 	"res://scenes/weapons/extensions/ground_hover_mk1.tres",
 	"res://scenes/weapons/extensions/laser_scope_mk1.tres",
+	"res://scenes/weapons/extensions/homing_mk1.tres",
+	"res://scenes/weapons/extensions/armor_piercing_mk1.tres",
+	"res://scenes/weapons/extensions/fire_rounds_mk1.tres",
 ]
 
 var _definitions_by_id: Dictionary = {}

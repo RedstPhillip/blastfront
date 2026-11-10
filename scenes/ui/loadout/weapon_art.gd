@@ -47,6 +47,8 @@ const AMMO_COLORS: Dictionary = {
 	&"drill_bullets_mk1": Color(0.78, 0.82, 0.88),
 	&"bouncy_bullets_mk1": Color(0.78, 1.0, 0.42),
 	&"big_bullets_mk1": Color(1.0, 0.58, 0.2),
+	&"fire_rounds_mk1": Color(1.0, 0.42, 0.12),
+	&"armor_piercing_mk1": Color(0.76, 0.82, 0.92),
 }
 
 static var _part_cache: Dictionary = {}
@@ -217,6 +219,10 @@ static func draw_fx(canvas: CanvasItem, xform: Transform2D, config: Dictionary, 
 			var phase: float = fmod(time * 0.9 + float(ring) / 3.0, 1.0)
 			var center: Vector2 = Vector2(56.0, 8.0 + phase * 14.0)
 			canvas.draw_arc(center, 5.0 + phase * 9.0, PI * 0.12, PI * 0.88, 14, Color(0.4, 1.0, 0.85, (1.0 - phase) * 0.5 * intensity), 1.2, true)
+	if top_id == &"homing_mk1":
+		var dish: Vector2 = SOCKET_POSITIONS[SLOT_TOP] + Vector2(-7.0, -19.5)
+		var sweep: float = fmod(time * 0.8, 1.0)
+		canvas.draw_arc(dish, 3.0 + sweep * 10.0, -PI * 0.9, -PI * 0.1, 12, Color(0.45, 0.95, 1.0, (1.0 - sweep) * 0.55 * intensity), 1.0, true)
 	if front_id == &"kinetic_amplifier_mk1":
 		var socket: Vector2 = SOCKET_POSITIONS[SLOT_FRONT]
 		for coil in range(3):
@@ -245,6 +251,11 @@ static func draw_fx(canvas: CanvasItem, xform: Transform2D, config: Dictionary, 
 				for step in range(5):
 					points.append(start + Vector2(float(step + 1) * rng.randf_range(2.5, 5.0), rng.randf_range(-4.0, 3.0)))
 				canvas.draw_polyline(points, Color(1.0, 0.95, 0.45, 0.85 * intensity), 0.9, true)
+		&"fire_rounds_mk1":
+			for ember in range(5):
+				var phase: float = fmod(time * 0.7 + float(ember) * 0.2, 1.0)
+				var pos: Vector2 = SOCKET_POSITIONS[SLOT_AMMO] + Vector2(-3.0 + float(ember) * 1.5 + sin(phase * 7.0 + float(ember)) * 2.0, 14.0 - phase * 26.0)
+				canvas.draw_circle(pos, 1.1 * (1.0 - phase) + 0.3, Color(1.0, 0.55 + 0.3 * (1.0 - phase), 0.2, (1.0 - phase) * 0.8 * intensity), true, -1.0, true)
 		&"explosive_bullet_mk1":
 			for ember in range(4):
 				var phase: float = fmod(time * 0.6 + float(ember) * 0.27, 1.0)
@@ -552,6 +563,18 @@ static func _top_part(id: StringName) -> Array:
 				_poly([Vector2(-16, -16), Vector2(-12, -16), Vector2(-12, -12.5), Vector2(-16, -12.5)], STEEL_DARK),
 			]
 			return loader
+		&"homing_mk1":
+			return [
+				_poly([Vector2(-8, 0), Vector2(10, 0), Vector2(8, -4), Vector2(-6, -4)], STEEL_DARK),
+				_poly([Vector2(-14, -4), Vector2(12, -4), Vector2(15, -7), Vector2(15, -10), Vector2(12, -12), Vector2(-14, -12)], STEEL),
+				_poly([Vector2(-13, -11), Vector2(12, -11), Vector2(13.5, -10), Vector2(-13, -10)], STEEL_LIGHT, false),
+				_line([Vector2(-4, -12), Vector2(-7, -19)], STEEL_DARK, 1.4),
+				_poly([Vector2(-13, -18), Vector2(-1, -22), Vector2(-3, -17)], STEEL_MID),
+				_circle(Vector2(-7, -19.5), 1.3, Color(0.45, 0.95, 1.0), false),
+				_poly([Vector2(14.5, -9.5), Vector2(18, -9), Vector2(18, -7.5), Vector2(14.5, -7)], Color(0.45, 0.95, 1.0)),
+				_circle(Vector2(2, -8), 2.2, Color(0.06, 0.12, 0.14), false),
+				_circle(Vector2(2, -8), 1.1, Color(0.45, 0.95, 1.0), false),
+			]
 		&"ground_hover_mk1":
 			return [
 				_poly([Vector2(-9, 0), Vector2(11, 0), Vector2(9, -4), Vector2(-7, -4)], STEEL_DARK),
@@ -597,6 +620,10 @@ static func _ammo_part(id: StringName) -> Array:
 			body_color = Color(0.26, 0.31, 0.22)
 		&"drill_bullets_mk1":
 			body_color = STEEL_MID
+		&"fire_rounds_mk1":
+			body_color = Color(0.36, 0.2, 0.15)
+		&"armor_piercing_mk1":
+			body_color = Color(0.32, 0.35, 0.4)
 	var mag: Array = [
 		_poly([Vector2(-7, 0), Vector2(7, 0), Vector2(10, 22), Vector2(-2, 24)], body_color),
 		_poly([Vector2(-3.5, 22.5), Vector2(10.5, 20.5), Vector2(11.5, 25), Vector2(-2.5, 27)], STEEL_DARK),
@@ -635,6 +662,12 @@ static func _ammo_part(id: StringName) -> Array:
 			mag.append(_line([Vector2(-3, 16.8), Vector2(-1.5, 19.2)], STEEL_DARK, 0.7))
 		&"bouncy_bullets_mk1":
 			mag.append(_ring(Vector2(-1.5, 19.0), 2.3, Color(0.8, 1.0, 0.45), 1.1))
+		&"fire_rounds_mk1":
+			mag.append(_poly([Vector2(-4, 22), Vector2(-1.5, 15.5), Vector2(1, 22)], Color(1.0, 0.45, 0.12), false))
+			mag.append(_poly([Vector2(-2.7, 22), Vector2(-1.5, 18.5), Vector2(-0.3, 22)], Color(1.0, 0.85, 0.4), false))
+		&"armor_piercing_mk1":
+			mag.append(_poly([Vector2(-4, 21), Vector2(-1.5, 14.5), Vector2(1, 21)], STEEL_EDGE, false))
+			mag.append(_line([Vector2(-1.5, 15.5), Vector2(-1.5, 20.5)], STEEL_DARK, 0.7))
 	return mag
 
 

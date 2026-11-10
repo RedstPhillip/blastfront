@@ -1,8 +1,9 @@
 class_name SeekBehavior
 extends ExtensionBehavior
 
-## Rounds that turn toward the nearest enemy in reach (Bouncy Bullets MK III after their first bounce, Ground
-## Hover MK III while skimming). It runs on every peer like the hover; the host's snapshots keep the copies
+## Rounds that turn toward the nearest enemy in reach (Homing, and Ground Hover MK III along the floor). Once
+## a round has a target it is locked on: Homing MK II stops its drop (no_drop) and MK III gives it a one-off
+## burst of speed (lock_boost). It runs on every peer like the hover; the host's snapshots keep the copies
 ## together and only the host's round decides the hit. A round keeps its speed and turns at most turn_rate
 ## degrees a second; "horizontal" rounds only turn back along the floor toward an enemy they flew past.
 
@@ -18,6 +19,14 @@ func update(projectile: Projectile, delta: float, effect_data: Dictionary = {}) 
 	var target: Player = _nearest_enemy(projectile, float(effect_data.get("range", DEFAULT_RANGE)))
 	if target == null:
 		return
+	if not projectile.has_meta(&"seek_locked"):
+		projectile.set_meta(&"seek_locked", true)
+		var boost: float = float(effect_data.get("lock_boost", 0.0))
+		if boost > 0.0:
+			projectile.velocity *= 1.0 + boost
+	if float(effect_data.get("no_drop", 0.0)) > 0.0:
+		# Cancels the gravity the round gets right after its behaviours this step.
+		projectile.velocity.y -= projectile.gravity * WorldConditions.projectile_gravity_scale * delta
 	var turn: float = deg_to_rad(float(effect_data.get("turn_rate", DEFAULT_TURN_RATE))) * delta
 	var to_target: Vector2 = target.global_position - projectile.global_position
 	if effect_data.get("horizontal", false) == true:

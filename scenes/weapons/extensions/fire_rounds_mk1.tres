@@ -1,0 +1,54 @@
+[gd_resource type="Resource" script_class="WeaponExtensionDefinition" format=3]
+
+[ext_resource type="Script" uid="uid://vd1xlgf7df4b" path="res://scenes/weapons/extensions/weapon_extension_definition.gd" id="1_definition"]
+
+[resource]
+script = ExtResource("1_definition")
+extension_id = "fire_rounds_mk1"
+display_name = "Fire Rounds MK1"
+slot_key = "ammo"
+description = "Impacts set the ground on fire."
+default_condition = 100.0
+minimum_condition_factor = 0.25
+attribute_modifiers = {
+"damage": -5.0,
+"reload_time": 0.1
+}
+mk2_attribute_modifiers = {
+"damage": -4.0,
+"reload_time": 0.08
+}
+mk3_attribute_modifiers = {
+"damage": -3.0,
+"reload_time": 0.05
+}
+projectile_tags = Array[String](["fire"])
+projectile_effects = {
+"fire": {
+"width": 80.0,
+"duration": 2.5,
+"damage": 3.0,
+"tick": 0.4
+}
+}
+mk2_projectile_effects = {
+"fire": {
+"width": 90.0,
+"duration": 3.0,
+"damage": 3.0,
+"tick": 0.4,
+"afterburn": 1.5
+}
+}
+mk3_projectile_effects = {
+"fire": {
+"width": 130.0,
+"duration": 4.0,
+"damage": 4.0,
+"tick": 0.4,
+"afterburn": 2.0
+}
+}
+mk2_trait = "Targets keep burning {fire.afterburn} s after leaving the fire."
+mk3_trait = "Fire spreads {fire.width} px wide and burns {fire.duration} s."
+icon_color = Color(1, 0.45, 0.12, 1)

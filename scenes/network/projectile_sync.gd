@@ -329,7 +329,8 @@ func _on_projectile_despawn_requested(projectile: Node, reason: StringName, coll
 			combat_sync.apply_hit(hit_player.player_slot, shot.owner_slot, net_id, chip)
 	if hit_player != null and reason != &"blocked" and hit_player.player_slot != shot.owner_slot:
 		if combat_sync != null:
-			combat_sync.apply_hit(hit_player.player_slot, shot.owner_slot, net_id, shot.damage)
+			combat_sync.apply_hit(hit_player.player_slot, shot.owner_slot, net_id, shot.damage, true, null, Vector2.ZERO,
+				shot.get_armor_pierce(), shot.ignores_delayed_armor())
 			_throw(hit_player, shot.get_impact_knockback(), shot.global_position)
 			var stagger: float = shot.get_impact_stagger()
 			if stagger > 0.0:

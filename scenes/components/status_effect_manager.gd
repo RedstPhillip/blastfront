@@ -28,6 +28,8 @@ func apply_effect(name: StringName, params: Dictionary) -> void:
 			player.show_trait_callout("NO HEALING", Color(0.5, 1.0, 0.5, 1.0))
 		if name == &"marked":
 			player.show_trait_callout("MARKED", Color(1.0, 0.5, 0.45, 1.0))
+		if name == &"burn":
+			player.show_trait_callout("BURNING", Color(1.0, 0.6, 0.25, 1.0))
 
 	var instance: Dictionary = {
 		"time_remaining": duration,
@@ -44,7 +46,7 @@ func apply_effect(name: StringName, params: Dictionary) -> void:
 		"no_heal": float(adjusted_params.get("no_heal", 0.0)) > 0.0,
 	}
 
-	if name == &"poison" or name == &"marked":
+	if name == &"poison" or name == &"marked" or name == &"burn":
 		_active_effects[name] = [instance]
 	else:
 		if not _active_effects.has(name):
