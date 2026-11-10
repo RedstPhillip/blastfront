@@ -55,6 +55,6 @@ mk3_projectile_effects = {
 }
 }
 mk2_trait = "Blasts throw the target."
-mk3_trait = "Blasts also stun."
+mk3_trait = "Blasts also stun {grenade.stun} s."
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.55, 0.8, 0.2, 1)

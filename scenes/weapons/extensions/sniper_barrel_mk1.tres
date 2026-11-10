@@ -49,7 +49,7 @@ mk3_projectile_effects = {
 }
 }
 mk3_projectile_tags = Array[String](["drill"])
-mk2_trait = "Hits stagger the target."
+mk2_trait = "Hits stagger {impact.stagger} s."
 mk3_trait = "Rounds punch through one wall."
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.3, 0.55, 0.8, 1)

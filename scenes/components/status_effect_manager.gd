@@ -21,6 +21,11 @@ func apply_effect(name: StringName, params: Dictionary) -> void:
 		return
 	if name == &"freeze":
 		_apply_freeze_root(player, adjusted_params)
+	if player != null:
+		if float(adjusted_params.get("breaks_guard", 0.0)) > 0.0:
+			player.show_trait_callout("GUARD BROKEN", Color(1.0, 0.9, 0.3, 1.0))
+		if float(adjusted_params.get("no_heal", 0.0)) > 0.0:
+			player.show_trait_callout("NO HEALING", Color(0.5, 1.0, 0.5, 1.0))
 
 	var instance: Dictionary = {
 		"time_remaining": duration,
@@ -72,6 +77,7 @@ func _apply_freeze_root(player: Player, params: Dictionary) -> void:
 	})
 	if player != null:
 		player.apply_stun(root)
+		player.show_trait_callout("FROZEN", Color(0.72, 0.92, 1.0, 1.0))
 	effect_added.emit(&"frozen")
 
 

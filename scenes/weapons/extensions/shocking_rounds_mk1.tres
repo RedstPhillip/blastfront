@@ -58,6 +58,6 @@ mk3_projectile_effects = {
 }
 }
 mk2_trait = "Shocked targets can't block."
-mk3_trait = "Every shock tick deals 4 damage."
+mk3_trait = "Every shock tick deals {shock.damage_per_tick} damage."
 visual_scene = ExtResource("2_visual")
 icon_color = Color(1.0, 0.9, 0.3, 1)

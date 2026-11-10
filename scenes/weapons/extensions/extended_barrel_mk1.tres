@@ -35,6 +35,6 @@ mk3_projectile_effects = {
 }
 }
 mk2_trait = "Rounds reach much farther."
-mk3_trait = "Hits grow stronger with range."
+mk3_trait = "Long-range hits deal up to {range_bonus.max_bonus%} more."
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.6, 0.6, 0.7, 1)

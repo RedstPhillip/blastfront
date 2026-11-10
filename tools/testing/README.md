@@ -86,7 +86,7 @@ Pillow (`ImageChops.difference`) when a change should be pixel-identical.
   the sandbox dummy offline: shove, stagger, range bonus, guard chip, shield drill, freeze root, no healing
   under poison, broken guard, growth after a ricochet; prints `EXT` / `TRAIT` lines), `traits_online` (the
   host's side of shove, stagger, guard chip, blast throw and the second blast in a faked hosted set; prints
-  `ONLINE_TRAIT` lines), `loadout_traits` (the inspector's trait lines at MK I-III), `research_movement2`
+  `ONLINE_TRAIT` lines), `loadout_traits` (the inspector's perk lines at MK I-III, the build overview's perk list and the merge band's NEW perk), `research_movement2`
   (Air Jump and Ground Slam on the research page)
 - **Mars weather:** `mars`, `mars_storm`, `mars_close`, `mars_duel_look`, `shelter_probe`, `ledge_test`
 - **Tidewater and Rimefall:** `tidewater` / `rimefall` (overview and close-ups), `tide_play` (a flood lifts

@@ -49,7 +49,7 @@ mk3_projectile_effects = {
 "wall": 0.25
 }
 }
-mk2_trait = "Each wall passed adds 25% damage."
+mk2_trait = "Each wall passed adds {growth.wall%} damage."
 mk3_trait = "Drills through a raised shield."
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.55, 0.55, 0.6, 1)

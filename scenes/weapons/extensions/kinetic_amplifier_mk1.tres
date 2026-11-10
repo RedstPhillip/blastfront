@@ -47,6 +47,6 @@ mk3_projectile_effects = {
 }
 mk2_projectile_tags = Array[String](["bouncy"])
 mk2_trait = "Rounds ricochet once."
-mk3_trait = "Ricochets hit 40% harder."
+mk3_trait = "Ricochets hit {growth.bounce%} harder."
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.7, 0.35, 0.7, 1)

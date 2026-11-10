@@ -754,6 +754,16 @@ func _show_overview() -> void:
 		if ArmorInventory.get_equipped_item(category) != null:
 			armor_count += 1
 	_inspector.show_overview(subtitle, WeaponArt.config_from_equipped(equipped), rows)
+	var perks: Array = []
+	for slot in [&"front", &"middle", &"ammo"]:
+		var part: WeaponExtensionItem = equipped.get(slot, null) as WeaponExtensionItem
+		if part == null:
+			continue
+		for mark in range(2, part.mark + 1):
+			var text: String = part.definition.get_mark_trait(mark, part.condition)
+			if text != "":
+				perks.append({"tag": "%s %s" % [_base_name(part.get_display_name()).to_upper(), LoadoutStyle.roman(mark)], "text": text})
+	_inspector.set_overview_perks(perks)
 	_inspector.set_summary("%d / 3 MODS   ·   %d / 3 ARMOR" % [mods, armor_count])
 	_inspector.set_hint(_default_hint())
 

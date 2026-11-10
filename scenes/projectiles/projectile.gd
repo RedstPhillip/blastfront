@@ -182,7 +182,10 @@ func _on_collision(collision: KinematicCollision2D) -> void:
 		if blocking_player != null:
 			blocking_player.apply_block_feedback(collision.get_position())
 		# Drill MK III: a raised shield costs a wall pass and the round carries on into the body.
-		if not _try_drill_through_shield():
+		if _try_drill_through_shield():
+			if blocking_player != null:
+				blocking_player.show_trait_callout("SHIELD PIERCED", Color(0.72, 0.86, 1.0, 1.0))
+		else:
 			if net_id == 0 and blocking_player != null:
 				_apply_local_guard_chip(blocking_player)
 			_request_despawn(&"blocked", collider)
@@ -218,6 +221,10 @@ func _on_collision(collision: KinematicCollision2D) -> void:
 		_has_bounced = true
 		_growth_steps_bounce += 1
 		_apply_growth()
+		# Bouncy Bullets MK III: every bounce sends the round on faster.
+		var speed_gain: float = float(get_effect("bouncy").get("speed_gain", 0.0))
+		if speed_gain > 0.0:
+			velocity *= 1.0 + speed_gain
 		var normal: Vector2 = collision.get_normal()
 		velocity = velocity.bounce(normal)
 		global_position += normal * maxf(2.0, projectile_scale * 2.5)

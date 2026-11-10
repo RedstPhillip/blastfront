@@ -39,19 +39,14 @@ mk2_projectile_effects = {
 }
 mk3_projectile_effects = {
 "bouncy": {
-"bounces": 3.0
+"bounces": 3.0,
+"speed_gain": 0.2
 },
 "growth": {
 "bounce": 0.25
-},
-"seek": {
-"turn_rate": 150.0,
-"range": 420.0,
-"after_bounce": true
 }
 }
-mk3_projectile_tags = Array[String](["seek"])
-mk2_trait = "Each bounce adds 25% damage."
-mk3_trait = "After a bounce, rounds seek the enemy."
+mk2_trait = "Each bounce adds {growth.bounce%} damage."
+mk3_trait = "Rounds speed up {bouncy.speed_gain%} per bounce."
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.7, 0.9, 0.5, 1)

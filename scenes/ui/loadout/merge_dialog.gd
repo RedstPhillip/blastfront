@@ -222,9 +222,19 @@ func _draw() -> void:
 	var pop: float = 1.0 + sin(clampf(_flash, 0.0, 1.0) * PI) * 0.08
 	_draw_item(_result, result_center, RESULT_ICON * lerpf(0.86, 1.0, _result_in) * pop, content_alpha * clampf(_result_in, 0.0, 1.0), true)
 
-	# What the upgrade changes on the weapon / operator, in the inspector's words.
+	# What the upgrade changes on the weapon / operator, in the inspector's words: first the perk the new
+	# mark unlocks (weapon parts), then the stat changes.
 	var rows_alpha: float = content_alpha * (1.0 - fuse)
 	var row_y: float = center.y + 54.0 + lift
+	var unlocked: String = _unlocked_perk()
+	if unlocked != "":
+		var tag: String = "NEW  MK %s" % LoadoutStyle.roman(int(info.get("mark", 1)))
+		var tag_width: float = UiStyle.FONT_BOLD.get_string_size(tag, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x
+		var accent: Color = LoadoutStyle.with_alpha(LoadoutStyle.ACCENT, rows_alpha)
+		draw_string(UiStyle.FONT_BOLD, Vector2(center.x - 150.0, row_y), tag, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, accent)
+		draw_string(UiStyle.FONT_BODY, Vector2(center.x - 150.0 + tag_width + 10.0, row_y), unlocked, HORIZONTAL_ALIGNMENT_LEFT,
+			300.0 - tag_width - 10.0, 13, accent)
+		row_y += 24.0
 	for row in _rows:
 		var entry: Dictionary = row
 		var name_color: Color = entry.get("name_color", LoadoutStyle.TEXT_SECONDARY)
@@ -309,6 +319,14 @@ func _draw_item(item: Variant, center: Vector2, icon_size: Vector2, alpha: float
 		wear = LoadoutStyle.TEXT
 	draw_rect(Rect2(left, bar_y, bar_width, 2.0), Color(1.0, 1.0, 1.0, 0.08 * alpha))
 	draw_rect(Rect2(left, bar_y, bar_width * condition, 2.0), LoadoutStyle.with_alpha(wear, wear.a * alpha))
+
+
+## The trait the merged weapon part gains with its new mark (at the result's condition), or "".
+func _unlocked_perk() -> String:
+	var part: WeaponExtensionItem = _result as WeaponExtensionItem
+	if part == null or part.definition == null:
+		return ""
+	return part.definition.get_mark_trait(part.mark, part.condition)
 
 
 func _draw_plus(at: Vector2, color: Color) -> void:

@@ -42,7 +42,7 @@ mk3_projectile_effects = {
 "knockback": 300.0
 }
 }
-mk2_trait = "Blocked rounds still deal 30%."
-mk3_trait = "Blocks let 50% through; hits shove."
+mk2_trait = "Blocked rounds still deal {guard_chip.share%}."
+mk3_trait = "Blocks let {guard_chip.share%} through; hits shove."
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.45, 0.45, 0.5, 1)

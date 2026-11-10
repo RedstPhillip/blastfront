@@ -51,7 +51,7 @@ mk3_projectile_effects = {
 "root_if_slowed": 1.0
 }
 }
-mk2_trait = "Hits on slowed targets freeze solid."
-mk3_trait = "Every hit freezes solid for a moment."
+mk2_trait = "Slowed targets freeze solid {freeze.root_if_slowed} s."
+mk3_trait = "Hits freeze {freeze.root} s, slowed ones {freeze.root_if_slowed} s."
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.4, 0.7, 1, 1)

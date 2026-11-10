@@ -850,7 +850,35 @@ func _build_script() -> void:
 				shot.configure_from_data(0, 1, Vector2.RIGHT, {"muzzle_speed": 900.0, "gravity": 0.0, "damage": 20, "max_distance": 1400.0, "extension_tags": ["bouncy"], "extension_effects": {"bouncy": {"bounces": 1.0}, "growth": {"bounce": 0.4}}})
 				_stress_game().spawn_projectile(shot, Vector2(1000.0, 626.0)))
 			_at(17.9, "call", func(): _trait_report("growth_after_bounce"))
-			_at(18.2, "quit")
+			# Bouncy MK III: a round's speed before and after one bounce off the far wall.
+			_at(18.2, "call", func():
+				var shot = load("res://scenes/projectiles/projectile.tscn").instantiate()
+				shot.configure_from_data(0, 1, Vector2.RIGHT, {"muzzle_speed": 600.0, "gravity": 0.0, "damage": 20, "max_distance": 1400.0, "extension_tags": ["bouncy"], "extension_effects": {"bouncy": {"bounces": 1.0, "speed_gain": 0.2}}})
+				_stress_game().spawn_projectile(shot, Vector2(1000.0, 626.0))
+				_air_stats["bounce_shot"] = shot)
+			_at(18.5, "call", func():
+				var shot = _air_stats.get("bounce_shot")
+				print("TRAIT bounce_speed after=%.0f (600 before; 720 = +20%%) bounced=%s" % [shot.velocity.length() if is_instance_valid(shot) else -1.0, shot.has_bounced() if is_instance_valid(shot) else false]))
+			# Lighter Barrel MK III: an empty reload against a part-empty one.
+			_at(18.7, "call", func():
+				for item in root.get_node("ExtensionInventory").get_inventory_for_player(1):
+					if str(item.get_definition_id()) == "lighter_barrel_mk1":
+						item.mark = 3
+						item.condition = 100.0
+				_equip(["lighter_barrel_mk1"]))
+			_at(18.9, "call", func():
+				var gun = _p1().get_gun()
+				gun._refresh_extension_loadout()
+				gun._current_ammo = 1
+				gun._start_reload()
+				var partial: float = gun._reload_total
+				gun._finish_reload()
+				gun._current_ammo = 0
+				gun._start_reload()
+				print("TRAIT empty_reload partial=%.2f s empty=%.2f s (45%% faster)" % [partial, gun._reload_total])
+				gun._finish_reload())
+			_at(19.1, "call", func(): print("TRAIT callouts=%s" % str(root.get_node("GameJuice")._callout_times.keys())))
+			_at(19.3, "quit")
 		"research_movement2":
 			# The Movement lane with the two new projects: Air Jump and Ground Slam selected in turn.
 			_at(0.5, "call", func(): _main.change_scene(_main.get_scene("res://scenes/menus/intermission_menu.tscn")))
@@ -881,7 +909,31 @@ func _build_script() -> void:
 			_at(4.6, "shot", "traits_mk3")
 			_at(4.7, "call", func(): _inspect_part("ground_hover_mk1", 3))
 			_at(5.1, "shot", "traits_mk3_long")
-			_at(5.3, "quit")
+			_at(5.2, "call", func(): _inspect_part("freeze_rounds_mk1", 1))
+			_at(5.6, "shot", "traits_mk1_freeze")
+			# The build overview lists the installed parts' perks.
+			_at(5.7, "call", func():
+				for item in root.get_node("ExtensionInventory").get_inventory_for_player(1):
+					if str(item.get_definition_id()) == "freeze_rounds_mk1":
+						item.mark = 3
+				_equip(["freeze_rounds_mk1", "heavy_barrel_mk1", "ground_hover_mk1"])
+				_lo_mouse_to(Vector2(640.0, 700.0))
+				_loadout_page()._show_overview())
+			_at(6.2, "shot", "overview_perks")
+			# The merge band names the perk the new mark unlocks.
+			_at(6.3, "call", func():
+				var inv = root.get_node("ExtensionInventory")
+				var first = null
+				for item in inv.get_inventory_for_player(1):
+					if str(item.get_definition_id()) == "shocking_rounds_mk1":
+						first = item
+				first.mark = 1
+				var twin = WeaponExtensionItem.create(first.definition, 70.0, 1)
+				inv.add_item_for_player(1, twin)
+				root.get_node("OnlineMatch").coin_balances[1] = 99
+				_loadout_page()._on_merge_requested(first, twin))
+			_at(6.9, "shot", "merge_perk")
+			_at(7.1, "quit")
 		"traits_online":
 			# The host's side of the mark traits without Steam: a faked hosted set, P2 the remote client. Rounds
 			# from P2 (owner 2) are spawned through the projectile module at the host's own player (P1).

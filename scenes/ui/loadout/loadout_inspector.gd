@@ -6,6 +6,10 @@ extends PanelContainer
 ## across the inventory never makes anything jump.
 
 const ROW_COUNT: int = 6
+## Fixed heights of the description and of the mark perks under it (three wrapped lines of 11 px).
+const DESCRIPTION_HEIGHT: float = 34.0
+const TRAITS_HEIGHT: float = 46.0
+const COLUMN_SEPARATION: float = 6.0
 ## Widest a row's name may get before it trims, leaving the value at least the rest of the row.
 const NAME_MAX_WIDTH: float = 140.0
 
@@ -24,6 +28,7 @@ var _description: Label = null
 ## Weapon parts: what their marks add (the ones this copy has in the accent, the next one muted).
 var _traits: RichTextLabel = null
 var _rows_caption: Label = null
+var _rows_box: VBoxContainer = null
 var _rows: Array[Dictionary] = []
 var _hint: Label = null
 var _kind: StringName = &""
@@ -39,7 +44,7 @@ func _ready() -> void:
 	add_theme_stylebox_override("panel", _panel_style())
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var column: VBoxContainer = VBoxContainer.new()
-	column.add_theme_constant_override("separation", 6)
+	column.add_theme_constant_override("separation", int(COLUMN_SEPARATION))
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(column)
 
@@ -70,7 +75,7 @@ func _ready() -> void:
 	column.add_child(_condition_track)
 	_description = _label(UiStyle.FONT_BODY, 13, LoadoutStyle.TEXT_SECONDARY)
 	_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_description.custom_minimum_size = Vector2(10.0, 34.0)
+	_description.custom_minimum_size = Vector2(10.0, DESCRIPTION_HEIGHT)
 	_description.max_lines_visible = 4
 	_description.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_description.vertical_alignment = VERTICAL_ALIGNMENT_TOP
@@ -78,10 +83,10 @@ func _ready() -> void:
 	_traits = RichTextLabel.new()
 	_traits.bbcode_enabled = true
 	_traits.scroll_active = false
-	_traits.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_traits.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_traits.clip_contents = true
 	_traits.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_traits.custom_minimum_size = Vector2(10.0, 30.0)
+	_traits.custom_minimum_size = Vector2(10.0, TRAITS_HEIGHT)
 	_traits.add_theme_font_override("normal_font", UiStyle.FONT_BODY)
 	_traits.add_theme_font_override("bold_font", UiStyle.FONT_BOLD)
 	_traits.add_theme_font_size_override("normal_font_size", 11)
@@ -94,6 +99,7 @@ func _ready() -> void:
 	rows.add_theme_constant_override("separation", 0)
 	rows.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(rows)
+	_rows_box = rows
 	for index in range(row_count):
 		var row: HBoxContainer = HBoxContainer.new()
 		row.custom_minimum_size = Vector2(0.0, 21.0)
@@ -142,6 +148,7 @@ func show_overview(subtitle: String, config: Dictionary, rows: Array) -> void:
 	_set_condition(-1.0, Color.WHITE)
 	_description.text = ""
 	_traits.text = ""
+	_set_wide_traits(false)
 	_set_rows("", rows)
 	_hint.text = ""
 
@@ -152,34 +159,58 @@ func show_extension(item: WeaponExtensionItem, description: String, caption: Str
 	_title.text = _strip_mark(item.get_display_name())
 	_set_grade(item.mark, item.condition, item.get_condition_tier_name(), item.get_condition_color())
 	_description.text = description
+	_set_wide_traits(false)
 	_traits.text = _mark_traits_text(item)
 	_set_rows(caption, rows)
 	_hint.text = hint
 
 
-## Two lines at most: the highest mark's trait this copy has and the one before it, or (below MK III) the
-## next mark's trait as a muted preview of what merging adds.
+## Every mark's trait, MK II then MK III: the marks this copy has in the accent, the rest muted, with the
+## numbers this copy (its condition) really gets.
 func _mark_traits_text(item: WeaponExtensionItem) -> String:
 	if item == null or item.definition == null:
 		return ""
 	var lines: PackedStringArray = PackedStringArray()
-	for mark in [3, 2]:
-		if mark <= item.mark:
-			lines.append(_trait_line(item.definition, mark, LoadoutStyle.ACCENT))
-	if item.mark < GameSettings.EXTENSION_MAX_MARK:
-		lines.append(_trait_line(item.definition, item.mark + 1, LoadoutStyle.TEXT_MUTED))
-	var shown: PackedStringArray = PackedStringArray()
-	for line in lines:
-		if line != "" and shown.size() < 2:
-			shown.append(line)
-	return "\n".join(shown)
+	for mark in range(2, GameSettings.EXTENSION_MAX_MARK + 1):
+		var owned: bool = mark <= item.mark
+		var line: String = _trait_line("MK " + LoadoutStyle.roman(mark), item.definition.get_mark_trait(mark, item.condition),
+			LoadoutStyle.ACCENT if owned else LoadoutStyle.TEXT_MUTED)
+		if line != "":
+			lines.append(line)
+	return "\n".join(lines)
 
 
-func _trait_line(definition: WeaponExtensionDefinition, mark: int, color: Color) -> String:
-	var text: String = definition.get_mark_trait(mark)
+func _trait_line(tag: String, text: String, color: Color) -> String:
 	if text == "":
 		return ""
-	return "[color=#%s][b]MK %s[/b]  %s[/color]" % [color.to_html(true), LoadoutStyle.roman(mark), text.replace("[", "(")]
+	return "[color=#%s][b]%s[/b]  %s[/color]" % [color.to_html(true), tag, text.replace("[", "(")]
+
+
+## The build overview's perk list: every trait the installed parts have, named by part and mark. With any
+## perk it takes the place of the description and of the build list (the sockets already name the parts),
+## so the panel keeps its height; without one the build list stays.
+func set_overview_perks(perks: Array) -> void:
+	if perks.is_empty():
+		return
+	var lines: PackedStringArray = PackedStringArray(["[color=#%s][b]PERKS[/b][/color]" % LoadoutStyle.TEXT_MUTED.to_html(true)])
+	for perk in perks:
+		var entry: Dictionary = perk
+		lines.append(_trait_line(str(entry["tag"]), str(entry["text"]), LoadoutStyle.ACCENT))
+	_set_wide_traits(true)
+	_traits.text = "\n".join(lines)
+
+
+## Overview with perks: the perk list spreads over the description, the rows caption and the rows; everywhere
+## else they sit apart at their fixed heights.
+func _set_wide_traits(wide: bool) -> void:
+	var extra: float = 0.0
+	if wide:
+		extra = DESCRIPTION_HEIGHT + _rows_caption.get_combined_minimum_size().y + _rows_box.get_combined_minimum_size().y \
+			+ COLUMN_SEPARATION * 3.0
+	_description.visible = not wide
+	_rows_caption.visible = not wide
+	_rows_box.visible = not wide
+	_traits.custom_minimum_size.y = TRAITS_HEIGHT + extra
 
 
 func show_armor(item: ArmorItemData, description: String, caption: String, rows: Array, hint: String) -> void:
@@ -189,6 +220,7 @@ func show_armor(item: ArmorItemData, description: String, caption: String, rows:
 	_set_grade(item.get_mark(), item.condition, item.get_condition_name(), item.get_condition_color())
 	_description.text = description
 	_traits.text = ""
+	_set_wide_traits(false)
 	_set_rows(caption, rows)
 	_hint.text = hint
 
@@ -201,6 +233,7 @@ func show_slot(slot: StringName, description: String, rows: Array, hint: String)
 	_set_condition(-1.0, Color.WHITE)
 	_description.text = description
 	_traits.text = ""
+	_set_wide_traits(false)
 	_set_rows("", rows)
 	_hint.text = hint
 
@@ -211,6 +244,7 @@ func show_message(title: String, subtitle: String, body: String, color: Color) -
 	_grade.text = ""
 	_description.text = body
 	_traits.text = ""
+	_set_wide_traits(false)
 	_set_condition(-1.0, color)
 	_set_rows("", [])
 	_hint.text = ""

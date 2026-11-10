@@ -38,6 +38,6 @@ mk3_projectile_effects = {
 }
 }
 mk2_trait = "Hits shove the target."
-mk3_trait = "Hits shove harder and stagger."
+mk3_trait = "Harder shove; hits stagger {impact.stagger} s."
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.9, 0.4, 0.1, 1)

@@ -132,14 +132,26 @@ func get_projectile_tags_for_mark(item_mark: int) -> Array[String]:
 	return result
 
 
-## The trait a mark adds ("" for MK I, or when that mark only raises the numbers).
-func get_mark_trait(item_mark: int) -> String:
+## The trait a mark adds ("" for MK I). Numbers in it come from the mark's effects at the given condition,
+## written as {effect.key} (a plain number) or {effect.key%} (a share as a percentage), so a worn copy
+## reads what it really does: "Each bounce adds {growth.bounce%} damage." → "Each bounce adds 19% damage."
+func get_mark_trait(item_mark: int, condition: float = 100.0) -> String:
+	var text: String = ""
 	match item_mark:
 		2:
-			return mk2_trait
+			text = mk2_trait
 		3:
-			return mk3_trait
-	return ""
+			text = mk3_trait
+	if text.find("{") < 0:
+		return text
+	var effects: Dictionary = get_effective_projectile_effects(condition, item_mark)
+	var pattern: RegEx = RegEx.create_from_string("\\{([a-z_]+)\\.([a-z_]+)(%?)\\}")
+	for found in pattern.search_all(text):
+		var effect: Variant = effects.get(found.get_string(1), {})
+		var value: float = float((effect as Dictionary).get(found.get_string(2), 0.0)) if effect is Dictionary else 0.0
+		var shown: String = "%d%%" % roundi(value * 100.0) if found.get_string(3) == "%" else String.num(value, 1)
+		text = text.replace(found.get_string(0), shown)
+	return text
 
 
 func get_projectile_effects_for_mark(item_mark: int) -> Dictionary:
@@ -231,7 +243,7 @@ func _scale_projectile_effect_value(parameter: StringName, value: Variant, facto
 	if value is float or value is int:
 		var numeric_value: float = float(value)
 		match parameter:
-			&"delay", &"tick_interval", &"full_distance", &"range", &"through_shield", &"after_bounce", &"horizontal", &"every", &"boost_cap":
+			&"delay", &"tick_interval", &"full_distance", &"range", &"through_shield", &"after_bounce", &"horizontal", &"boost_cap", &"stagger":
 				return value
 			&"speed_multiplier":
 				return clampf(lerpf(1.0, numeric_value, factor), 0.05, 1.0)

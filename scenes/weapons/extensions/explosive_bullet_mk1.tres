@@ -52,6 +52,6 @@ mk3_projectile_effects = {
 }
 }
 mk2_trait = "Blasts throw the target."
-mk3_trait = "A second blast follows the target."
+mk3_trait = "A {explosive.aftershock%} second blast hits the target."
 visual_scene = ExtResource("2_visual")
 icon_color = Color(1.0, 0.5, 0.1, 1)

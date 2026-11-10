@@ -384,6 +384,53 @@ func _animate_damage_label(label: Label, is_merge: bool) -> void:
 	tween.chain().tween_callback(label.queue_free)
 
 
+## A short word over a fighter when a weapon part's trait kicks in that would otherwise go unseen ("GUARD
+## BROKEN", "FROZEN"): small caps in the trait's colour, rising and fading above the damage numbers. The
+## same word on the same fighter is not repeated within CALLOUT_REPEAT_MSEC.
+const CALLOUT_REPEAT_MSEC: int = 900
+var _callout_times: Dictionary = {}
+var _callout_settings: Dictionary = {}
+
+
+func spawn_callout(world_position: Vector2, text: String, color: Color, target_key: int = 0) -> void:
+	var now: int = Time.get_ticks_msec()
+	var key: String = "%d|%s" % [target_key, text]
+	if now - int(_callout_times.get(key, -CALLOUT_REPEAT_MSEC)) < CALLOUT_REPEAT_MSEC:
+		return
+	_callout_times[key] = now
+	var label: Label = Label.new()
+	label.text = text
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.size = Vector2(180, 24)
+	label.pivot_offset = label.size * 0.5
+	label.z_index = 61
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var settings: LabelSettings = _callout_settings.get(color.to_rgba32()) as LabelSettings
+	if settings == null:
+		settings = LabelSettings.new()
+		settings.font = DAMAGE_FONT
+		settings.font_size = 15
+		settings.font_color = color
+		settings.outline_size = 6
+		settings.outline_color = Color(0.03, 0.03, 0.03, 1.0)
+		_callout_settings[color.to_rgba32()] = settings
+	label.label_settings = settings
+	var root: Node = _effect_root()
+	var spawn_pos: Vector2 = world_position
+	var root_2d: Node2D = root as Node2D
+	if root_2d != null:
+		spawn_pos = root_2d.to_local(world_position)
+	label.position = spawn_pos + Vector2(0.0, -62.0) - label.pivot_offset
+	root.add_child(label)
+	label.scale = Vector2.ONE * 0.6
+	var tween: Tween = label.create_tween().set_parallel(true)
+	tween.tween_property(label, "scale", Vector2.ONE, 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(label, "position:y", label.position.y - 26.0, 1.0).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(label, "modulate:a", 0.0, 0.35).set_delay(0.75)
+	tween.chain().tween_callback(label.queue_free)
+
+
 # --- UI feedback ------------------------------------------------------------------------
 
 var _last_hover_msec: int = -1000

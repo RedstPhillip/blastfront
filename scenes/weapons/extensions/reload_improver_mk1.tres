@@ -33,7 +33,7 @@ mk3_projectile_effects = {
 "delay": 0.35
 }
 }
-mk2_trait = "Reloads itself when you stop firing."
-mk3_trait = "Reloads itself almost at once."
+mk2_trait = "Auto-reloads {auto_reload.delay} s after you stop firing."
+mk3_trait = "Auto-reloads {auto_reload.delay} s after you stop firing."
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.85, 0.7, 0.15, 1)

@@ -1446,6 +1446,11 @@ func get_dash_shockwave_hits(origin: Vector2, direction: float, slam: bool = fal
 	return hits
 
 
+## A weapon part's trait just took hold on this fighter (see GameJuice.spawn_callout).
+func show_trait_callout(text: String, color: Color) -> void:
+	GameJuice.spawn_callout(global_position, text, color, get_instance_id())
+
+
 ## Shocking Rounds MK II: while their shock lasts, no shield goes up (and a raised one drops).
 func is_guard_broken() -> bool:
 	return status_effect_manager != null and status_effect_manager.has_flag(&"breaks_guard")

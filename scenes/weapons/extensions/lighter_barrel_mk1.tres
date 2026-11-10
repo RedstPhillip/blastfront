@@ -30,16 +30,16 @@ mk3_attribute_modifiers = {
 "reload_time": -0.22
 }
 mk2_projectile_effects = {
-"free_round": {
-"every": 4.0
+"empty_reload": {
+"faster": 0.25
 }
 }
 mk3_projectile_effects = {
-"free_round": {
-"every": 3.0
+"empty_reload": {
+"faster": 0.45
 }
 }
-mk2_trait = "Every fourth round is free."
-mk3_trait = "Every third round is free."
+mk2_trait = "Empty reloads are {empty_reload.faster%} faster."
+mk3_trait = "Empty reloads are {empty_reload.faster%} faster."
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.7, 0.7, 0.75, 1)
