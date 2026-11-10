@@ -18,6 +18,8 @@ func apply(target: Player, effect_data: Dictionary, projectile: Projectile) -> v
 	detonator.radius = radius
 	detonator.damage = damage
 	detonator.owner_slot = projectile.owner_slot
+	detonator.push = float(effect_data.get("knockback", 0.0))
+	detonator.stun = float(effect_data.get("stun", 0.0))
 	var effect_parent: Node = tree.current_scene
 	if effect_parent == null:
 		effect_parent = tree.root

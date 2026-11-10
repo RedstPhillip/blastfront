@@ -78,7 +78,16 @@ Pillow (`ImageChops.difference`) when a change should be pixel-identical.
   (a bot of `BF_BOT_LEVEL` sent up a 160 px step and a 400 px wall; only the marks that reach may climb),
   `slide_probe` (Sliding per mark on a rig with a low tunnel and a dead-end pocket: length and speed,
   standing-height rounds vs a slide with controls, never standing up without room, Mk III steer and the
-  carried jump, and a hard bot sliding under flat fire); `bot_dash` also counts slides
+  carried jump, and a hard bot sliding under flat fire); `bot_dash` also counts slides; `air_probe` (Air Jump
+  and Ground Slam on the slide rig: jump peaks per mark, the Mk II turn, a press just above the floor staying
+  the ground jump, slam dive time and how far it throws a parked dummy per mark, the Mk III spring; prints
+  `AIR` / `SLAM` lines)
+- **Weapon part marks:** `ext_traits` (every part's tags, effect keys and trait per mark, then each hit trait on
+  the sandbox dummy offline: shove, stagger, range bonus, guard chip, shield drill, freeze root, no healing
+  under poison, broken guard, growth after a ricochet; prints `EXT` / `TRAIT` lines), `traits_online` (the
+  host's side of shove, stagger, guard chip, blast throw and the second blast in a faked hosted set; prints
+  `ONLINE_TRAIT` lines), `loadout_traits` (the inspector's trait lines at MK I-III), `research_movement2`
+  (Air Jump and Ground Slam on the research page)
 - **Mars weather:** `mars`, `mars_storm`, `mars_close`, `mars_duel_look`, `shelter_probe`, `ledge_test`
 - **Tidewater and Rimefall:** `tidewater` / `rimefall` (overview and close-ups), `tide_play` (a flood lifts
   P1 out of the courtyard: warning, rise, swim, leap out, a round into the water, a spring tide; prints

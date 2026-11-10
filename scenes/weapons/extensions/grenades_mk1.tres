@@ -41,15 +41,20 @@ mk2_projectile_effects = {
 "grenade": {
 "delay": 0.5,
 "radius": 105.0,
-"damage_per_hit": 34
+"damage_per_hit": 34,
+"knockback": 420.0
 }
 }
 mk3_projectile_effects = {
 "grenade": {
 "delay": 0.5,
 "radius": 130.0,
-"damage_per_hit": 45
+"damage_per_hit": 45,
+"knockback": 460.0,
+"stun": 0.35
 }
 }
+mk2_trait = "Blasts throw the target."
+mk3_trait = "Blasts also stun."
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.55, 0.8, 0.2, 1)

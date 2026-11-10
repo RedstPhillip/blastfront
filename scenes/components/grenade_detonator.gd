@@ -6,6 +6,9 @@ var delay: float = 0.5
 var radius: float = 80.0
 var damage: int = GameSettings.PROJECTILE_DAMAGE
 var owner_slot: int = 0
+## Grenades MK II / III: the blast's throw (px/s) and stun (s).
+var push: float = 0.0
+var stun: float = 0.0
 var _elapsed: float = 0.0
 
 
@@ -39,5 +42,6 @@ func _explode() -> void:
 		var old_health: int = player.health_component.health
 		player.health_component.damage(final_damage)
 		player.apply_hit_feedback(origin, final_damage)
+		ExtensionEffectRegistry.apply_blast_extras(player, origin, push, stun)
 		if player.player_slot != owner_slot:
 			ResearchManager.apply_local_life_steal(owner_slot, mini(final_damage, old_health))

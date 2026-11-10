@@ -28,6 +28,8 @@ var _fire_cooldown: float = 0.0
 var _shot_buffer: float = 0.0
 var _recoil_offset: float = 0.0
 var _recoil_rotation: float = 0.0
+var _rounds_fired: int = 0
+var _trigger_rest_time: float = 0.0
 var _extension_stats: Dictionary = {}
 var _extension_player_slot: int = -1
 var _has_laser_scope: bool = false
@@ -104,7 +106,7 @@ func _build_laser_trajectory(world_start: Vector2, direction: Vector2) -> Packed
 	var points: PackedVector2Array = PackedVector2Array([Vector2.ZERO])
 	_laser_hit_point = Vector2.INF
 	var speed: float = _get_modified_float(&"projectile_speed", projectile_speed, 1.0)
-	var gravity_value: float = (projectile_gravity + _get_extension_attribute(&"projectile_gravity")) * WorldConditions.projectile_gravity_scale
+	var gravity_value: float = maxf(0.0, projectile_gravity + _get_extension_attribute(&"projectile_gravity")) * WorldConditions.projectile_gravity_scale
 	var extension_tags: Array[String] = _get_extension_tags()
 	var linear_damping_value: float = maxf(
 		0.0,
@@ -234,16 +236,40 @@ func _physics_process(delta: float) -> void:
 		_shot_buffer = maxf(_shot_buffer - delta, 0.0)
 	if _player.is_reload_pressed() and not _is_reloading and _current_ammo < _get_effective_max_ammo():
 		_start_reload()
+	_update_auto_reload(delta, pressed or _player.is_shoot_held())
 	var wants_fire: bool = _shot_buffer > 0.0 or _player.is_shoot_held()
 	if wants_fire and _fire_cooldown <= 0.0 and _current_ammo > 0 and not _is_reloading:
 		_shot_buffer = 0.0
 		_shoot()
-		_current_ammo -= 1
+		if not _is_free_round():
+			_current_ammo -= 1
 		_fire_cooldown = _get_modified_fire_interval()
 		if _current_ammo <= 0:
 			_start_reload()
 	elif pressed and _is_reloading:
 		AudioDirector.play_at(&"dry_fire", get_muzzle_global_position())
+
+## Reload Improver MK II / III: a magazine that is not full reloads by itself once the trigger has rested
+## for the auto_reload effect's delay.
+func _update_auto_reload(delta: float, trigger_down: bool) -> void:
+	if trigger_down or _is_reloading or _player.control_mode == GameSettings.CONTROL_REMOTE:
+		_trigger_rest_time = 0.0
+		return
+	_trigger_rest_time += delta
+	var delay: float = float(_get_effect_data(_extension_stats.projectile_effects, &"auto_reload").get("delay", 0.0))
+	if delay > 0.0 and _trigger_rest_time >= delay and _current_ammo < _get_effective_max_ammo():
+		_trigger_rest_time = 0.0
+		_start_reload()
+
+
+## Lighter Barrel MK II / III: every Nth round (its free_round effect) costs no ammo.
+func _is_free_round() -> bool:
+	var every: int = int(roundf(float(_get_effect_data(_extension_stats.projectile_effects, &"free_round").get("every", 0.0))))
+	if every <= 1:
+		return false
+	_rounds_fired += 1
+	return _rounds_fired % every == 0
+
 
 func _shoot() -> void:
 	var base_direction: Vector2 = get_shot_direction()
@@ -385,7 +411,7 @@ func _update_visual_transform() -> void:
 
 func _build_projectile_data(direction: Vector2) -> Dictionary:
 	var muzzle_speed: float = _get_modified_float(&"projectile_speed", projectile_speed, 1.0)
-	var gravity: float = projectile_gravity + _get_extension_attribute(&"projectile_gravity")
+	var gravity: float = maxf(0.0, projectile_gravity + _get_extension_attribute(&"projectile_gravity"))
 	var linear_damping: float = maxf(0.0, projectile_linear_damping + _get_extension_attribute(&"projectile_linear_damping"))
 	var max_distance: float = maxf(50.0, projectile_max_distance + _get_extension_attribute(&"projectile_max_distance"))
 	return {
@@ -552,7 +578,7 @@ func is_ready_to_fire() -> bool:
 func get_ballistics() -> Dictionary:
 	return {
 		"speed": _get_modified_float(&"projectile_speed", projectile_speed, 1.0),
-		"gravity": (projectile_gravity + _get_extension_attribute(&"projectile_gravity")) * WorldConditions.projectile_gravity_scale,
+		"gravity": maxf(0.0, projectile_gravity + _get_extension_attribute(&"projectile_gravity")) * WorldConditions.projectile_gravity_scale,
 		"wind": WorldConditions.projectile_wind_acceleration(_get_wind_response()).x,
 	}
 

@@ -39,7 +39,8 @@ mk2_projectile_effects = {
 "duration": 4.0,
 "tick_count": 5,
 "tick_interval": 1.0,
-"tint_color": Color(0.45, 1.0, 0.45, 1)
+"tint_color": Color(0.45, 1.0, 0.45, 1),
+"no_heal": 1.0
 }
 }
 mk3_projectile_effects = {
@@ -48,8 +49,12 @@ mk3_projectile_effects = {
 "duration": 5.0,
 "tick_count": 6,
 "tick_interval": 1.0,
-"tint_color": Color(0.45, 1.0, 0.45, 1)
+"tint_color": Color(0.45, 1.0, 0.45, 1),
+"no_heal": 1.0,
+"speed_multiplier": 0.8
 }
 }
+mk2_trait = "Poisoned targets can't heal."
+mk3_trait = "Poison also slows."
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.18, 0.82, 0.18, 1)

@@ -1,8 +1,10 @@
 extends CharacterBody2D
 class_name Projectile
 
-## One round in flight: gravity, wind, drag and the behaviours of its extensions (bounce, drill, hover),
-## hits on players and walls, and the impact feedback. Only the authority applies damage.
+## One round in flight: gravity, wind, drag and the behaviours of its extensions (bounce, drill, hover,
+## seek), hits on players and walls, and the impact feedback. Only the authority applies damage. The higher
+## marks' hit traits live here too: damage that grows per bounce / wall passed or with range, shoves and
+## staggers on a hit, rounds that chip through a raised shield or drill through it.
 
 signal despawn_requested(projectile: Node, reason: StringName, collider)
 
@@ -43,6 +45,11 @@ var _impact_tint: Color = Color(0.98, 0.55, 0.18, 0.9)
 ## Speed of the clock this round flies on: its shooter's (Time Control slows both).
 var _time_scale: float = 1.0
 var _in_water: bool = false
+## Damage as fired, before the growth traits (see _apply_growth); bounces and walls passed so far.
+var _base_damage: int = 0
+var _growth_steps_bounce: int = 0
+var _growth_steps_wall: int = 0
+var _has_bounced: bool = false
 
 
 func configure_from_data(
@@ -103,6 +110,7 @@ func _ready() -> void:
 		_bounces_left = _get_bouncy_bounces()
 	if extension_tags.has("drill"):
 		_drill_walls_left = _get_drill_wall_passes()
+	_base_damage = damage
 	_update_rotation()
 
 
@@ -173,8 +181,12 @@ func _on_collision(collision: KinematicCollision2D) -> void:
 		var blocking_player: Player = collider as Player
 		if blocking_player != null:
 			blocking_player.apply_block_feedback(collision.get_position())
-		_request_despawn(&"blocked", collider)
-		return
+		# Drill MK III: a raised shield costs a wall pass and the round carries on into the body.
+		if not _try_drill_through_shield():
+			if net_id == 0 and blocking_player != null:
+				_apply_local_guard_chip(blocking_player)
+			_request_despawn(&"blocked", collider)
+			return
 
 	var is_player: bool = collider is Player
 	if is_player:
@@ -197,22 +209,119 @@ func _on_collision(collision: KinematicCollision2D) -> void:
 
 	if _should_drill_through_collision(collider):
 		_apply_drill_wall_pass(collision)
+		_growth_steps_wall += 1
+		_apply_growth()
 		return
 
 	if not is_player and _bounces_left > 0:
 		_bounces_left -= 1
+		_has_bounced = true
+		_growth_steps_bounce += 1
+		_apply_growth()
 		var normal: Vector2 = collision.get_normal()
 		velocity = velocity.bounce(normal)
 		global_position += normal * maxf(2.0, projectile_scale * 2.5)
 		_play_collision_feedback(collision, collider)
 		return
 
+	if is_player:
+		_apply_range_bonus()
 	_play_collision_feedback(collision, collider)
 	_play_payload_feedback(collision.get_position())
 	if net_id == 0:
 		_apply_local_collision_damage(collider)
+		_apply_local_impact(collider as Player)
 		ExtensionEffectRegistry.apply_projectile_effects(collider as Player, self)
 	_request_despawn(&"collision", collider)
+
+
+func has_bounced() -> bool:
+	return _has_bounced
+
+
+## Data of one of this round's effects, or {} (keys may arrive as String or StringName over the network).
+func get_effect(effect_name: String) -> Dictionary:
+	var effect_variant: Variant = extension_effects.get(effect_name, extension_effects.get(StringName(effect_name)))
+	return effect_variant if effect_variant is Dictionary else {}
+
+
+## Bouncy / Drill MK II, Kinetic Amplifier MK III: every bounce or wall passed adds a share of the damage
+## as fired (additive, so three bounces at 25% hit for 175%).
+func _apply_growth() -> void:
+	var growth: Dictionary = get_effect("growth")
+	if growth.is_empty():
+		return
+	var bonus: float = float(growth.get("bounce", 0.0)) * float(_growth_steps_bounce) \
+		+ float(growth.get("wall", 0.0)) * float(_growth_steps_wall)
+	damage = maxi(1, int(roundf(float(_base_damage) * (1.0 + bonus))))
+
+
+## Extended Barrel MK III: a hit grows stronger the farther the round flew, up to max_bonus at
+## full_distance. Runs on the authority right before the hit is judged.
+func _apply_range_bonus() -> void:
+	var range_bonus: Dictionary = get_effect("range_bonus")
+	if range_bonus.is_empty():
+		return
+	var full: float = maxf(float(range_bonus.get("full_distance", 900.0)), 1.0)
+	var bonus: float = float(range_bonus.get("max_bonus", 0.0)) * clampf(_distance_travelled / full, 0.0, 1.0)
+	damage = maxi(1, int(roundf(float(damage) * (1.0 + bonus))))
+
+
+## The shove a hit with the impact trait gives (Big Bullets, Heavy Barrel, Shotgun, Kinetic): along the
+## round's flight, a little upwards. Zero without the trait.
+func get_impact_knockback() -> Vector2:
+	var impact: Dictionary = get_effect("impact")
+	var strength: float = float(impact.get("knockback", 0.0))
+	if strength <= 0.0:
+		return Vector2.ZERO
+	var side: float = signf(velocity.x) if absf(velocity.x) > 1.0 else signf(direction.x)
+	if side == 0.0:
+		side = 1.0
+	return Vector2(side * strength, -strength * 0.45)
+
+
+## How long a hit with the impact trait stuns (Big Bullets MK III, Sniper Barrel MK II).
+func get_impact_stagger() -> float:
+	return float(get_effect("impact").get("stagger", 0.0))
+
+
+## Damage a raised shield lets through (Heavy Barrel MK II / III), as a share of the round's damage.
+func get_guard_chip_damage() -> int:
+	var share: float = float(get_effect("guard_chip").get("share", 0.0))
+	if share <= 0.0:
+		return 0
+	return maxi(1, int(roundf(float(damage) * share)))
+
+
+func _try_drill_through_shield() -> bool:
+	if not extension_tags.has("drill") or _drill_walls_left <= 0:
+		return false
+	if float(get_effect("drill").get("through_shield", 0.0)) <= 0.0:
+		return false
+	_drill_walls_left -= 1
+	_growth_steps_wall += 1
+	_apply_growth()
+	_drill_visual_timer = 0.16
+	return true
+
+
+func _apply_local_guard_chip(target: Player) -> void:
+	var chip: int = get_guard_chip_damage()
+	if chip <= 0 or target.player_slot == owner_slot:
+		return
+	var applied: int = target.apply_incoming_damage(chip, owner_slot, global_position)
+	_note_source_damage_dealt(applied)
+
+
+func _apply_local_impact(target: Player) -> void:
+	if target == null or target.player_slot == owner_slot or target.is_eliminated():
+		return
+	var knockback: Vector2 = get_impact_knockback()
+	if knockback != Vector2.ZERO:
+		target.receive_hit_knockback(knockback)
+	var stagger: float = get_impact_stagger()
+	if stagger > 0.0:
+		target.apply_stun(stagger)
 
 
 func _apply_projectile_scale() -> void:
@@ -692,7 +801,12 @@ func _play_world_impact(impact_position: Vector2, normal: Vector2) -> void:
 func _play_payload_feedback(impact_position: Vector2) -> void:
 	var explosive: Variant = extension_effects.get("explosive", extension_effects.get(&"explosive"))
 	if explosive is Dictionary:
-		GameJuice.spawn_explosion(impact_position, float((explosive as Dictionary).get("radius", 80.0)))
+		var blast_radius: float = float((explosive as Dictionary).get("radius", 80.0))
+		GameJuice.spawn_explosion(impact_position, blast_radius)
+		# Explosive Bullet MK III: the second blast, shown on every peer.
+		if float((explosive as Dictionary).get("aftershock", 0.0)) > 0.0 and is_inside_tree():
+			get_tree().create_timer(ExtensionEffectRegistry.AFTERSHOCK_DELAY, false).timeout.connect(
+				ExtensionEffectRegistry.show_aftershock.bind(impact_position, owner_slot, blast_radius))
 	var grenade: Variant = extension_effects.get("grenade", extension_effects.get(&"grenade"))
 	if grenade is Dictionary:
 		var fx: GrenadeFx = GrenadeFx.new()

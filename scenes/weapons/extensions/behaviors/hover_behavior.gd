@@ -12,6 +12,7 @@ const MAX_CORRECTION_SPEED: float = 420.0
 func update(projectile: Projectile, delta: float, effect_data: Dictionary = {}) -> void:
 	if projectile == null or delta <= 0.0 or not projectile.is_inside_tree():
 		return
+	var before: Vector2 = projectile.velocity
 	projectile.velocity = adjust_velocity_for_ground(
 		projectile.global_position,
 		projectile.velocity,
@@ -25,6 +26,13 @@ func update(projectile: Projectile, delta: float, effect_data: Dictionary = {}) 
 		float(effect_data.get("vertical_damping", VERTICAL_DAMPING)),
 		float(effect_data.get("max_correction_speed", MAX_CORRECTION_SPEED))
 	)
+	# Ground Hover MK II: a round skimming the ground (the hover is holding it up) speeds up, to boost_cap
+	# times its muzzle speed.
+	var boost: float = float(effect_data.get("boost", 0.0))
+	if boost > 0.0 and projectile.velocity != before and absf(projectile.velocity.x) > 1.0:
+		var cap: float = projectile.muzzle_speed * float(effect_data.get("boost_cap", 1.5))
+		var side: float = signf(projectile.velocity.x)
+		projectile.velocity.x = side * minf(absf(projectile.velocity.x) + boost * delta, cap)
 
 
 static func adjust_velocity_for_ground(

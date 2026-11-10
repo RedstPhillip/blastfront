@@ -32,5 +32,21 @@ mk3_attribute_modifiers = {
 "damage": 5.0,
 "reload_time": 0.02
 }
+mk2_projectile_effects = {
+"bouncy": {
+"bounces": 1.0
+}
+}
+mk3_projectile_effects = {
+"bouncy": {
+"bounces": 1.0
+},
+"growth": {
+"bounce": 0.4
+}
+}
+mk2_projectile_tags = Array[String](["bouncy"])
+mk2_trait = "Rounds ricochet once."
+mk3_trait = "Ricochets hit 40% harder."
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.7, 0.35, 0.7, 1)

@@ -29,5 +29,20 @@ mk3_attribute_modifiers = {
 "projectile_speed": -20.0,
 "reload_time": 0.08
 }
+mk2_projectile_effects = {
+"guard_chip": {
+"share": 0.3
+}
+}
+mk3_projectile_effects = {
+"guard_chip": {
+"share": 0.5
+},
+"impact": {
+"knockback": 300.0
+}
+}
+mk2_trait = "Blocked rounds still deal 30%."
+mk3_trait = "Blocks let 50% through; hits shove."
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.45, 0.45, 0.5, 1)

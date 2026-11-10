@@ -44,5 +44,10 @@ func damage(amount: int) -> void:
 
 
 func heal(amount: int) -> void:
-	if amount > 0:
-		health += amount
+	if amount <= 0:
+		return
+	# Poison Rounds MK II: a poisoned fighter heals from nothing while the poison lasts.
+	var owner_node: Node = get_parent()
+	if owner_node != null and owner_node.has_method(&"is_healing_blocked") and owner_node.is_healing_blocked():
+		return
+	health += amount

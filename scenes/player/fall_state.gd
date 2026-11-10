@@ -13,6 +13,11 @@ func physics_update(delta: float) -> void:
 		state_machine.change_state("JumpState")
 		return
 
+	if player.can_air_jump():
+		player.air_jump()
+		state_machine.change_state("JumpState")
+		return
+
 	player.move_and_slide_scaled()
 	player.update_visual_movement(delta)
 

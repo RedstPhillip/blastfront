@@ -331,17 +331,18 @@ func request_dash(owner: Node, direction: float, protected: bool, shockwave: boo
 		movement_sync.send_dash(int(owner.player_slot), direction, protected, shockwave)
 
 
-## A dash shockwave went off: online the host decides who it throws, offline it is resolved right here.
-func request_dash_shockwave(owner: Node, origin: Vector2, direction: float) -> void:
+## A dash shockwave (or a Ground Slam landing) went off: online the host decides who it throws, offline it
+## is resolved right here.
+func request_dash_shockwave(owner: Node, origin: Vector2, direction: float, slam: bool = false) -> void:
 	var dasher: Player = owner as Player
 	if dasher == null:
 		return
 	if NetworkSession.is_steam_match_active() and _game_sync != null:
 		var movement_sync: Variant = _game_sync.get_module(GameSettings.MODULE_MOVEMENT)
 		if movement_sync != null:
-			movement_sync.request_shockwave(dasher.player_slot, origin, direction)
+			movement_sync.request_shockwave(dasher.player_slot, origin, direction, slam)
 		return
-	for hit in dasher.get_dash_shockwave_hits(origin, direction):
+	for hit in dasher.get_dash_shockwave_hits(origin, direction, slam):
 		(hit["target"] as Player).receive_knockback(hit["velocity"], origin)
 
 

@@ -35,5 +35,21 @@ mk3_attribute_modifiers = {
 "ammo_max": -1.0,
 "reload_time": 0.05
 }
+mk2_projectile_effects = {
+"impact": {
+"stagger": 0.2
+}
+}
+mk3_projectile_effects = {
+"impact": {
+"stagger": 0.2
+},
+"drill": {
+"wall_passes": 1.0
+}
+}
+mk3_projectile_tags = Array[String](["drill"])
+mk2_trait = "Hits stagger the target."
+mk3_trait = "Rounds punch through one wall."
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.3, 0.55, 0.8, 1)

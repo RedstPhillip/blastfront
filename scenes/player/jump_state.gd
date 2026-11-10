@@ -3,6 +3,9 @@ func physics_update(delta: float) -> void:
 	player.apply_horizontal_movement(delta, player.speed, player.air_acceleration, player.air_friction)
 	player.apply_better_jump_gravity(delta)
 
+	if player.can_air_jump():
+		player.air_jump()
+
 	player.move_and_slide_scaled()
 	player.update_visual_movement(delta)
 

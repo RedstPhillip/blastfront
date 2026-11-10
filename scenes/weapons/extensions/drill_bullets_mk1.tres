@@ -35,12 +35,21 @@ projectile_effects = {
 mk2_projectile_effects = {
 "drill": {
 "wall_passes": 2.0
+},
+"growth": {
+"wall": 0.25
 }
 }
 mk3_projectile_effects = {
 "drill": {
-"wall_passes": 3.0
+"wall_passes": 3.0,
+"through_shield": 1.0
+},
+"growth": {
+"wall": 0.25
 }
 }
+mk2_trait = "Each wall passed adds 25% damage."
+mk3_trait = "Drills through a raised shield."
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.55, 0.55, 0.6, 1)

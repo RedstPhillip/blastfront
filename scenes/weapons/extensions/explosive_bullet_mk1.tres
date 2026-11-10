@@ -39,14 +39,19 @@ projectile_effects = {
 mk2_projectile_effects = {
 "explosive": {
 "radius": 105.0,
-"splash_damage": 34
+"splash_damage": 34,
+"knockback": 380.0
 }
 }
 mk3_projectile_effects = {
 "explosive": {
 "radius": 130.0,
-"splash_damage": 45
+"splash_damage": 45,
+"knockback": 420.0,
+"aftershock": 0.5
 }
 }
+mk2_trait = "Blasts throw the target."
+mk3_trait = "A second blast follows the target."
 visual_scene = ExtResource("2_visual")
 icon_color = Color(1.0, 0.5, 0.1, 1)

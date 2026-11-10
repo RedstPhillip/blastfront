@@ -1299,7 +1299,9 @@ func _weapon_display_value(attribute: StringName, modifiers: Dictionary) -> floa
 		&"projectile_speed":
 			return maxf(1.0, GameSettings.GUN_PROJECTILE_SPEED + modifier)
 		&"projectile_gravity":
-			return GameSettings.GUN_PROJECTILE_GRAVITY + modifier
+			return maxf(0.0, GameSettings.GUN_PROJECTILE_GRAVITY + modifier)
+		&"shot_spread_degrees", &"shot_random_spread_degrees":
+			return maxf(0.0, modifier)
 		&"projectile_linear_damping":
 			return maxf(0.0, GameSettings.GUN_PROJECTILE_LINEAR_DAMPING + modifier)
 		&"projectile_max_distance":

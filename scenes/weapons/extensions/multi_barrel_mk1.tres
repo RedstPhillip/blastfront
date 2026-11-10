@@ -35,5 +35,7 @@ mk3_attribute_modifiers = {
 "shot_random_spread_degrees": 2.5,
 "reload_time": 0.1
 }
+mk2_trait = "Three rounds per shot."
+mk3_trait = "Four rounds per shot."
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.35, 0.35, 0.38, 1)

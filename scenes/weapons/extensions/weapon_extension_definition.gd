@@ -2,7 +2,8 @@ class_name WeaponExtensionDefinition
 extends Resource
 
 ## One weapon part type (a .tres): slot, display data, stat modifiers per mark and its projectile
-## tags and effects.
+## tags and effects. Every mark past the first also adds a trait of its own (mk2_trait / mk3_trait, shown in
+## the loadout): a new behaviour from the extra tags and effect keys of that mark, not only bigger numbers.
 
 const MAX_CONDITION_DRAWBACK_PENALTY: float = 1.25
 
@@ -26,6 +27,12 @@ const SLOT_FRONT: StringName = &"front"
 @export var projectile_effects: Dictionary = {}
 @export var mk2_projectile_effects: Dictionary = {}
 @export var mk3_projectile_effects: Dictionary = {}
+## Tags a mark adds on top of the ones before it (MK II's stay at MK III).
+@export var mk2_projectile_tags: Array[String] = []
+@export var mk3_projectile_tags: Array[String] = []
+## What MK II / MK III add, in a few words ("Hits shove the target.").
+@export var mk2_trait: String = ""
+@export var mk3_trait: String = ""
 @export var visual_scene: PackedScene = null
 @export var icon_color: Color = Color.WHITE
 
@@ -110,8 +117,29 @@ func get_attribute_modifiers_for_mark(item_mark: int) -> Dictionary:
 	return attribute_modifiers
 
 
-func get_projectile_tags_for_mark(_item_mark: int) -> Array[String]:
-	return projectile_tags
+func get_projectile_tags_for_mark(item_mark: int) -> Array[String]:
+	var mark_value: int = clampi(item_mark, 1, GameSettings.EXTENSION_MAX_MARK)
+	if mark_value < 2 or (mk2_projectile_tags.is_empty() and mk3_projectile_tags.is_empty()):
+		return projectile_tags
+	var result: Array[String] = projectile_tags.duplicate()
+	for tag in mk2_projectile_tags:
+		if not result.has(tag):
+			result.append(tag)
+	if mark_value >= 3:
+		for tag in mk3_projectile_tags:
+			if not result.has(tag):
+				result.append(tag)
+	return result
+
+
+## The trait a mark adds ("" for MK I, or when that mark only raises the numbers).
+func get_mark_trait(item_mark: int) -> String:
+	match item_mark:
+		2:
+			return mk2_trait
+		3:
+			return mk3_trait
+	return ""
 
 
 func get_projectile_effects_for_mark(item_mark: int) -> Dictionary:
@@ -203,7 +231,7 @@ func _scale_projectile_effect_value(parameter: StringName, value: Variant, facto
 	if value is float or value is int:
 		var numeric_value: float = float(value)
 		match parameter:
-			&"delay", &"tick_interval":
+			&"delay", &"tick_interval", &"full_distance", &"range", &"through_shield", &"after_bounce", &"horizontal", &"every", &"boost_cap":
 				return value
 			&"speed_multiplier":
 				return clampf(lerpf(1.0, numeric_value, factor), 0.05, 1.0)

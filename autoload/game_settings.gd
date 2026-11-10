@@ -208,6 +208,13 @@ const PLAYER_SLIDE_CARRY_DECAY: float = 260.0
 const PLAYER_WALL_CLING_TIME: float = 0.4
 ## Highest lip a dash climbs instead of stopping at it.
 const PLAYER_DASH_STEP_HEIGHT: float = 18.0
+## Ground Slam (Movement research): the beat the body hangs before the dive, the dive's speed, and how long
+## after landing a jump still springs off it (Mk III).
+const PLAYER_SLAM_HANG_TIME: float = 0.08
+const PLAYER_SLAM_SPEED: float = 1250.0
+const PLAYER_SLAM_SPRING_WINDOW: float = 0.22
+## Air Jump: falling this close (px) above a floor, a jump press waits for the landing instead.
+const PLAYER_AIR_JUMP_FLOOR_MARGIN: float = 30.0
 ## Player bodies are ~30 px round: centres closer than this mean they are stuck inside each other.
 const PLAYER_OVERLAP_DISTANCE: float = 22.0
 const PLAYER_OVERLAP_PUSH_SPEED: float = 360.0

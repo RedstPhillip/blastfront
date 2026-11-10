@@ -38,15 +38,20 @@ mk2_projectile_effects = {
 "freeze": {
 "duration": 4.2,
 "speed_multiplier": 0.28,
-"tint_color": Color(0.4, 0.7, 1, 1)
+"tint_color": Color(0.4, 0.7, 1, 1),
+"root_if_slowed": 0.5
 }
 }
 mk3_projectile_effects = {
 "freeze": {
 "duration": 5.2,
 "speed_multiplier": 0.18,
-"tint_color": Color(0.4, 0.7, 1, 1)
+"tint_color": Color(0.4, 0.7, 1, 1),
+"root": 0.3,
+"root_if_slowed": 1.0
 }
 }
+mk2_trait = "Hits on slowed targets freeze solid."
+mk3_trait = "Every hit freezes solid for a moment."
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.4, 0.7, 1, 1)

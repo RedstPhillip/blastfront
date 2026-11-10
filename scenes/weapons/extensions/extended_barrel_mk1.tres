@@ -19,12 +19,22 @@ attribute_modifiers = {
 mk2_attribute_modifiers = {
 "projectile_speed": 620.0,
 "damage": 1.0,
-"reload_time": 0.08
+"reload_time": 0.08,
+"projectile_max_distance": 500.0
 }
 mk3_attribute_modifiers = {
 "projectile_speed": 950.0,
 "damage": 2.0,
-"reload_time": 0.05
+"reload_time": 0.05,
+"projectile_max_distance": 700.0
 }
+mk3_projectile_effects = {
+"range_bonus": {
+"max_bonus": 0.4,
+"full_distance": 900.0
+}
+}
+mk2_trait = "Rounds reach much farther."
+mk3_trait = "Hits grow stronger with range."
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.6, 0.6, 0.7, 1)

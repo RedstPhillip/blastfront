@@ -21,6 +21,8 @@ var _condition_track: Control = null
 var _condition_value: float = -1.0
 var _condition_color: Color = Color.WHITE
 var _description: Label = null
+## Weapon parts: what their marks add (the ones this copy has in the accent, the next one muted).
+var _traits: RichTextLabel = null
 var _rows_caption: Label = null
 var _rows: Array[Dictionary] = []
 var _hint: Label = null
@@ -73,6 +75,19 @@ func _ready() -> void:
 	_description.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_description.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	column.add_child(_description)
+	_traits = RichTextLabel.new()
+	_traits.bbcode_enabled = true
+	_traits.scroll_active = false
+	_traits.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_traits.clip_contents = true
+	_traits.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_traits.custom_minimum_size = Vector2(10.0, 30.0)
+	_traits.add_theme_font_override("normal_font", UiStyle.FONT_BODY)
+	_traits.add_theme_font_override("bold_font", UiStyle.FONT_BOLD)
+	_traits.add_theme_font_size_override("normal_font_size", 11)
+	_traits.add_theme_font_size_override("bold_font_size", 10)
+	_traits.add_theme_constant_override("line_separation", 2)
+	column.add_child(_traits)
 	_rows_caption = _label(UiStyle.FONT_BOLD, 10, LoadoutStyle.TEXT_MUTED)
 	column.add_child(_rows_caption)
 	var rows: VBoxContainer = VBoxContainer.new()
@@ -126,6 +141,7 @@ func show_overview(subtitle: String, config: Dictionary, rows: Array) -> void:
 	_grade.text = ""
 	_set_condition(-1.0, Color.WHITE)
 	_description.text = ""
+	_traits.text = ""
 	_set_rows("", rows)
 	_hint.text = ""
 
@@ -136,8 +152,34 @@ func show_extension(item: WeaponExtensionItem, description: String, caption: Str
 	_title.text = _strip_mark(item.get_display_name())
 	_set_grade(item.mark, item.condition, item.get_condition_tier_name(), item.get_condition_color())
 	_description.text = description
+	_traits.text = _mark_traits_text(item)
 	_set_rows(caption, rows)
 	_hint.text = hint
+
+
+## Two lines at most: the highest mark's trait this copy has and the one before it, or (below MK III) the
+## next mark's trait as a muted preview of what merging adds.
+func _mark_traits_text(item: WeaponExtensionItem) -> String:
+	if item == null or item.definition == null:
+		return ""
+	var lines: PackedStringArray = PackedStringArray()
+	for mark in [3, 2]:
+		if mark <= item.mark:
+			lines.append(_trait_line(item.definition, mark, LoadoutStyle.ACCENT))
+	if item.mark < GameSettings.EXTENSION_MAX_MARK:
+		lines.append(_trait_line(item.definition, item.mark + 1, LoadoutStyle.TEXT_MUTED))
+	var shown: PackedStringArray = PackedStringArray()
+	for line in lines:
+		if line != "" and shown.size() < 2:
+			shown.append(line)
+	return "\n".join(shown)
+
+
+func _trait_line(definition: WeaponExtensionDefinition, mark: int, color: Color) -> String:
+	var text: String = definition.get_mark_trait(mark)
+	if text == "":
+		return ""
+	return "[color=#%s][b]MK %s[/b]  %s[/color]" % [color.to_html(true), LoadoutStyle.roman(mark), text.replace("[", "(")]
 
 
 func show_armor(item: ArmorItemData, description: String, caption: String, rows: Array, hint: String) -> void:
@@ -146,6 +188,7 @@ func show_armor(item: ArmorItemData, description: String, caption: String, rows:
 	_title.text = _strip_mark(item.get_hover_title())
 	_set_grade(item.get_mark(), item.condition, item.get_condition_name(), item.get_condition_color())
 	_description.text = description
+	_traits.text = ""
 	_set_rows(caption, rows)
 	_hint.text = hint
 
@@ -157,6 +200,7 @@ func show_slot(slot: StringName, description: String, rows: Array, hint: String)
 	_grade.text = ""
 	_set_condition(-1.0, Color.WHITE)
 	_description.text = description
+	_traits.text = ""
 	_set_rows("", rows)
 	_hint.text = hint
 
@@ -166,6 +210,7 @@ func show_message(title: String, subtitle: String, body: String, color: Color) -
 	_subtitle.text = subtitle
 	_grade.text = ""
 	_description.text = body
+	_traits.text = ""
 	_set_condition(-1.0, color)
 	_set_rows("", [])
 	_hint.text = ""

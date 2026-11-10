@@ -44,5 +44,12 @@ mk3_attribute_modifiers = {
 "ammo_max": -1.0,
 "reload_time": 0.15
 }
+mk3_projectile_effects = {
+"impact": {
+"knockback": 200.0
+}
+}
+mk2_trait = "Six pellets."
+mk3_trait = "Seven pellets that shove up close."
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.55, 0.45, 0.35, 1)

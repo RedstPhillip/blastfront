@@ -1,7 +1,7 @@
 extends SyncModule
 
 ## Movement moves the owner starts and the other side has to see: the dash (trail, sound, cooldown and, on
-## the host, the protection window hits are judged by) and its shockwave. The host decides who a shockwave
+## the host, the protection window hits are judged by) and its shockwave, which a Ground Slam landing reuses. The host decides who a shockwave
 ## throws and tells the thrown player's owner, who applies the throw.
 
 func get_module_name() -> StringName:
@@ -29,16 +29,17 @@ func send_dash(slot: int, direction: float, protected: bool, shockwave: bool) ->
 
 ## The local player's shockwave went off (its feedback already played here): the host resolves it and shows
 ## it to the client, a client hands it to the host.
-func request_shockwave(slot: int, origin: Vector2, direction: float) -> void:
+func request_shockwave(slot: int, origin: Vector2, direction: float, slam: bool = false) -> void:
 	if game_sync == null or not game_sync.is_network_active():
 		return
 	game_sync.send_reliable(GameSettings.PACKET_DASH_SHOCKWAVE, {
 		"slot": slot,
 		"origin": origin,
 		"direction": direction,
+		"slam": slam,
 	}, GameSettings.NETWORK_CHANNEL_EVENTS)
 	if game_sync.is_host():
-		_resolve_shockwave(slot, origin, direction)
+		_resolve_shockwave(slot, origin, direction, slam)
 
 
 func handle_packet(packet: Dictionary) -> void:
@@ -60,9 +61,10 @@ func handle_packet(packet: Dictionary) -> void:
 			if dasher == null or not (origin_variant is Vector2):
 				return
 			var direction: float = float(payload.get("direction", 0.0))
-			dasher.play_dash_shockwave_feedback(origin_variant, direction)
+			var slam: bool = payload.get("slam", false) == true
+			dasher.play_dash_shockwave_feedback(origin_variant, direction, slam)
 			if game_sync.is_host():
-				_resolve_shockwave(slot, origin_variant, direction)
+				_resolve_shockwave(slot, origin_variant, direction, slam)
 		GameSettings.PACKET_KNOCKBACK:
 			if game_sync.is_host():
 				return
@@ -70,18 +72,18 @@ func handle_packet(packet: Dictionary) -> void:
 			var knockback: Variant = payload.get("velocity", null)
 			var origin: Variant = payload.get("origin", Vector2.ZERO)
 			if target != null and knockback is Vector2 and origin is Vector2:
-				target.receive_knockback(knockback, origin)
+				target.receive_knockback(knockback, origin, float(payload.get("stun", GameSettings.PLAYER_DASH_SHOCKWAVE_STUN)))
 
 
 ## Host only: throws everyone the shockwave reaches. The host's own player is thrown here; the client's is
 ## thrown by the client when the knockback packet arrives (this side only shows the hit).
-func _resolve_shockwave(slot: int, origin: Vector2, direction: float) -> void:
+func _resolve_shockwave(slot: int, origin: Vector2, direction: float, slam: bool = false) -> void:
 	if not OnlineMatch.is_playing_set():
 		return
 	var dasher: Player = _get_player(slot)
 	if dasher == null:
 		return
-	for hit in dasher.get_dash_shockwave_hits(origin, direction):
+	for hit in dasher.get_dash_shockwave_hits(origin, direction, slam):
 		var target: Player = hit["target"]
 		var knockback: Vector2 = hit["velocity"]
 		target.receive_knockback(knockback, origin)
@@ -90,6 +92,22 @@ func _resolve_shockwave(slot: int, origin: Vector2, direction: float) -> void:
 			"velocity": knockback,
 			"origin": origin,
 		}, GameSettings.NETWORK_CHANNEL_EVENTS)
+
+
+## Host only: a throw decided outside a shockwave (the impact trait, a blast's push). The host's own player
+## is thrown here, the client's by the client when the packet arrives; stun 0 is a plain shove.
+func throw(target: Player, knockback: Vector2, origin: Vector2, stun: float = 0.0) -> void:
+	if game_sync == null or not game_sync.is_host() or target == null:
+		return
+	if knockback.length_squared() <= GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED or target.is_dash_protected():
+		return
+	target.receive_knockback(knockback, origin, stun)
+	game_sync.send_reliable(GameSettings.PACKET_KNOCKBACK, {
+		"target_slot": target.player_slot,
+		"velocity": knockback,
+		"origin": origin,
+		"stun": stun,
+	}, GameSettings.NETWORK_CHANNEL_EVENTS)
 
 
 func _get_remote_player(slot: int) -> Player:

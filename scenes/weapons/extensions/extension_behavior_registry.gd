@@ -2,9 +2,11 @@ class_name ExtensionBehaviorRegistry
 extends Node
 
 const HOVER_BEHAVIOR_SCRIPT: Script = preload("res://scenes/weapons/extensions/behaviors/hover_behavior.gd")
+const SEEK_BEHAVIOR_SCRIPT: Script = preload("res://scenes/weapons/extensions/behaviors/seek_behavior.gd")
 
 static var behaviors: Dictionary = {
 	&"hover": HOVER_BEHAVIOR_SCRIPT.new(),
+	&"seek": SEEK_BEHAVIOR_SCRIPT.new(),
 }
 
 

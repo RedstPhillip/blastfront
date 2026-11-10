@@ -24,6 +24,8 @@ const RESEARCH_YIELD: StringName = &"research_yield"
 const DASHING: StringName = &"dashing"
 const WALL_JUMPS: StringName = &"wall_jumps"
 const SLIDING: StringName = &"sliding"
+const AIR_JUMP: StringName = &"air_jump"
+const GROUND_SLAM: StringName = &"ground_slam"
 
 const LIFE_STEAL: StringName = &"life_steal"
 const RAGE: StringName = &"rage"
@@ -401,6 +403,50 @@ func get_slide_profile(player_slot: int = 0) -> Dictionary:
 	return SLIDE_MARKS[mini(mark, SLIDE_MARKS.size()) - 1]
 
 
+## Air Jump's mark; the sandbox lets it be tried without research (like the dash and the slide).
+func get_air_jump_mark(player_slot: int = 0) -> int:
+	var mark: int = get_mark(AIR_JUMP, player_slot)
+	if mark == 0 and NetworkSession.is_training():
+		return 1
+	return mark
+
+
+## Jumps allowed in the air before touching the ground or a wall again: one from Mk I, two at Mk III.
+func get_air_jump_limit(player_slot: int = 0) -> int:
+	var mark: int = get_air_jump_mark(player_slot)
+	if mark <= 0:
+		return 0
+	return 2 if mark >= 3 else 1
+
+
+## How high an air jump goes against a ground jump: 70% at Mk I, full from Mk II.
+func get_air_jump_height(player_slot: int = 0) -> float:
+	return 0.7 if get_air_jump_mark(player_slot) <= 1 else 1.0
+
+
+## Mk II: an air jump also sets the run straight to the held direction (turns you round mid-air).
+func air_jump_turns(player_slot: int = 0) -> bool:
+	return get_air_jump_mark(player_slot) >= 2
+
+
+## Ground Slam's mark; the sandbox lets it be tried without research.
+func get_ground_slam_mark(player_slot: int = 0) -> int:
+	var mark: int = get_mark(GROUND_SLAM, player_slot)
+	if mark == 0 and NetworkSession.is_training():
+		return 1
+	return mark
+
+
+## What landing a slam does at the player's mark: {radius, knockback, spring}, or {} without the research.
+## Mk I only plunges (radius 0); Mk II throws enemies close by; Mk III throws wider and a jump right on
+## landing springs higher.
+func get_ground_slam_profile(player_slot: int = 0) -> Dictionary:
+	var mark: int = get_ground_slam_mark(player_slot)
+	if mark <= 0:
+		return {}
+	return GROUND_SLAM_MARKS[mini(mark, GROUND_SLAM_MARKS.size()) - 1]
+
+
 # Players are handled untyped in this autoload on purpose: naming the Player class here would compile the
 # whole player (and everything it uses) at start-up, before the menu can appear.
 func apply_local_life_steal(source_slot: int, applied_damage: int) -> int:
@@ -518,6 +564,8 @@ func _build_definitions() -> Dictionary:
 		_definition(DASHING, "Dashing", BRANCH_MOVEMENT, "res://assets/ui/research/dashing.svg", [4, 7, 11, 15], Vector2(330, 260), [], true, 110),
 		_definition(WALL_JUMPS, "Wall Jumps", BRANCH_MOVEMENT, "res://assets/ui/research/wall_jumps.svg", [3, 6, 10], Vector2(450, 260), [_require(DASHING)], true, 115),
 		_definition(SLIDING, "Sliding", BRANCH_MOVEMENT, "res://assets/ui/research/sliding.svg", [4, 8, 13], Vector2(570, 260), [_require(DASHING)], true, 120),
+		_definition(AIR_JUMP, "Air Jump", BRANCH_MOVEMENT, "res://assets/ui/research/air_jump.svg", [5, 9, 14], Vector2(690, 260), [_require(WALL_JUMPS)], true, 125),
+		_definition(GROUND_SLAM, "Ground Slam", BRANCH_MOVEMENT, "res://assets/ui/research/ground_slam.svg", [5, 9, 14], Vector2(810, 260), [_require(SLIDING)], true, 130),
 
 		_definition(LIFE_STEAL, "Life Steal", BRANCH_MISC, "res://assets/ui/research/life_steal.svg", [3, 7, 12], Vector2(270, 395), [], true, 210),
 		_definition(RAGE, "Last Stand", BRANCH_MISC, "res://assets/ui/research/rage.svg", [3, 7, 13], Vector2(470, 395), [_require(LIFE_STEAL)], true, 220),
@@ -554,6 +602,14 @@ const SLIDE_MARKS: Array[Dictionary] = [
 	{"speed": 470.0, "time": 0.6, "steer": true, "carry": true},
 ]
 
+## Ground Slam per mark: the landing throw's reach (px, 0 = none) and push, and how much higher a jump
+## pressed right on landing goes (1.0 = a normal jump).
+const GROUND_SLAM_MARKS: Array[Dictionary] = [
+	{"radius": 0.0, "knockback": Vector2.ZERO, "spring": 1.0},
+	{"radius": 120.0, "knockback": Vector2(520.0, -360.0), "spring": 1.0},
+	{"radius": 175.0, "knockback": Vector2(620.0, -420.0), "spring": 1.35},
+]
+
 
 ## How each project reads on the research screen: a few words, and what every mark is worth.
 const PRESENTATION: Dictionary = {
@@ -568,6 +624,10 @@ const PRESENTATION: Dictionary = {
 	DASHING: {"summary": "Burst sideways, on the ground or in the air", "label": "EACH MARK ADDS", "levels": ["Dash · 2.4 s", "Cooldown 1.4 s", "Shockwave", "No damage"]},
 	WALL_JUMPS: {"summary": "Climb walls with more wall jumps in a row", "label": "EACH MARK ADDS", "levels": ["2 in a row", "No limit · stronger", "Wall cling"]},
 	SLIDING: {"summary": "Drop low under shots and keep your speed", "label": "EACH MARK ADDS", "levels": ["Slide · 0.4 s", "Faster · 0.6 s", "Steer · jump out"]},
+	AIR_JUMP: {"summary": "Jump again in mid-air", "label": "EACH MARK ADDS", "levels": ["Air jump · 70%", "Full height · turn", "Two air jumps"],
+		"details": ["One jump in the air at 70% height", "Full height, and it turns you the way you hold", "Two jumps before you land"]},
+	GROUND_SLAM: {"summary": "Down in the air plunges you to the ground", "label": "EACH MARK ADDS", "levels": ["Slam", "Shockwave", "Wider · spring"],
+		"details": ["Down in the air drops you straight down", "Landing throws enemies close by", "Wider throw; jump on landing springs you high"]},
 	LIFE_STEAL: {"summary": "Heal from damage dealt", "label": "HEAL", "levels": ["5%", "10%", "16%"]},
 	RAGE: {"summary": "More damage below 20% health", "label": "DAMAGE", "levels": ["+15%", "+30%", "+50%"]},
 	PASSIVE_HEALING: {"summary": "Heal while standing still", "label": "HEALS UP TO", "levels": ["50%", "75%", "100%"]},

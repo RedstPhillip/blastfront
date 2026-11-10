@@ -66,6 +66,9 @@ static func projectile_wind_response(muzzle_speed: float, projectile_scale: floa
 		response *= 0.7
 	if source_extensions.has("shotgun_mk1"):
 		response *= 1.35
+	# Standard Scope MK II: rounds that shrug off the wind.
+	if tags.has("windproof"):
+		response *= 0.2
 	return response
 
 

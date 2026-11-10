@@ -37,7 +37,9 @@ mk2_projectile_effects = {
 "detection_depth": 125.0,
 "height_response": 9.0,
 "vertical_damping": 6.0,
-"max_correction_speed": 500.0
+"max_correction_speed": 500.0,
+"boost": 600.0,
+"boost_cap": 1.5
 }
 }
 mk3_projectile_effects = {
@@ -46,8 +48,18 @@ mk3_projectile_effects = {
 "detection_depth": 150.0,
 "height_response": 11.0,
 "vertical_damping": 7.0,
-"max_correction_speed": 600.0
+"max_correction_speed": 600.0,
+"boost": 600.0,
+"boost_cap": 1.6
+},
+"seek": {
+"turn_rate": 120.0,
+"range": 520.0,
+"horizontal": true
 }
 }
+mk3_projectile_tags = Array[String](["seek"])
+mk2_trait = "Skimming rounds speed up."
+mk3_trait = "Rounds turn back at a passed enemy."
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.3, 0.75, 0.6, 1)

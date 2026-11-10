@@ -126,6 +126,17 @@ var _wall_jumps_used: int = 0
 var _wall_cling_timer: float = 0.0
 var _wall_cling_used: bool = false
 var _wall_jump_count: int = 0
+## Air Jump (Movement research): jumps used since the last floor or wall, the running count the other side
+## mirrors for its feedback, and whether jump was pressed this very step (an air jump needs a fresh press, so
+## a press buffered just before landing still becomes the ground jump).
+var _air_jumps_used: int = 0
+var _air_jump_count: int = 0
+var _jump_pressed_now: bool = false
+## Ground Slam (Movement research): the dive itself, the short hang before it, and the window after landing
+## in which a jump springs higher (Mk III).
+var _slamming: bool = false
+var _slam_hang_timer: float = 0.0
+var _slam_spring_timer: float = 0.0
 ## What the owner reported about its wall contact (remote copies are moved by snapshots, not physics).
 var _remote_wall_x: float = 0.0
 var _remote_clinging: bool = false
@@ -326,6 +337,7 @@ func _physics_process(delta: float) -> void:
 	_update_movement_timers(own_delta)
 	_update_dash_input(own_delta)
 	_update_slide_input(own_delta)
+	_update_slam_input()
 	update_wall_coyote(own_delta)
 	_update_wind_exposure(own_delta)
 	_push_out_of_players(own_delta)
@@ -771,6 +783,8 @@ func set_eliminated(eliminated: bool) -> void:
 		_dash_protection_timer = 0.0
 		_sliding = false
 		_remote_sliding = false
+		_slamming = false
+		_slam_spring_timer = 0.0
 		_set_low_profile(false)
 		if _state_machine != null:
 			_state_machine.process_mode = Node.PROCESS_MODE_DISABLED
@@ -783,7 +797,7 @@ func set_eliminated(eliminated: bool) -> void:
 		_block_timer = 0.0
 		_block_cooldown_timer = 0.0
 		_dash_cooldown_timer = 0.0
-		if _state_machine != null and _state_machine.current_state != null and _state_machine.current_state.name in [&"DashState", &"SlideState"]:
+		if _state_machine != null and _state_machine.current_state != null and _state_machine.current_state.name in [&"DashState", &"SlideState", &"SlamState"]:
 			_state_machine.change_state("FallState")
 		if status_effect_manager != null:
 			status_effect_manager.clear_all()
@@ -840,12 +854,17 @@ func _apply_remote_wall_state(snapshot: Dictionary, had_network_target: bool) ->
 		if had_network_target and count != _wall_jump_count:
 			_emit_jump_feedback(Vector2(-signf(_network_target_velocity.x), 0.35))
 		_wall_jump_count = count
+	if snapshot.has("air_jumps"):
+		var air_count: int = int(snapshot["air_jumps"])
+		if had_network_target and air_count != _air_jump_count:
+			_play_air_jump_feedback()
+		_air_jump_count = air_count
 
 
 ## What the owner tells the other side about its moves: wall contact, cling and wall jumps (see
 ## _apply_remote_wall_state) and the slide (see _apply_remote_slide_state).
 func get_move_snapshot() -> Dictionary:
-	return {"wall": get_wall_contact_x(), "cling": is_wall_clinging(), "wall_jumps": _wall_jump_count, "slide": is_sliding()}
+	return {"wall": get_wall_contact_x(), "cling": is_wall_clinging(), "wall_jumps": _wall_jump_count, "air_jumps": _air_jump_count, "slide": is_sliding()}
 
 
 func get_border_check_position() -> Vector2:
@@ -947,7 +966,7 @@ func get_block_direction() -> Vector2:
 
 
 func is_blocking_projectile(projectile_position: Vector2, projectile_velocity: Vector2 = Vector2.ZERO) -> bool:
-	if not _block_active:
+	if not _block_active or is_guard_broken():
 		return false
 
 	var to_projectile: Vector2 = projectile_position - global_position
@@ -1065,6 +1084,7 @@ func consume_jump_buffer() -> void:
 func update_wall_coyote(delta: float) -> void:
 	if is_on_wall():
 		_wall_coyote_timer = wall_coyote_time
+		_air_jumps_used = 0
 		var wall_x: float = get_wall_normal().x
 		_wall_coyote_dir = signf(wall_x) if absf(wall_x) > 0.0 else -last_dir
 	else:
@@ -1147,9 +1167,134 @@ func get_wall_contact_x() -> float:
 
 func jump() -> void:
 	velocity.y = -jump_velocity
+	if _slam_spring_timer > 0.0:
+		# Ground Slam Mk III: a jump right out of the landing springs off it.
+		velocity.y *= float(ResearchManager.get_ground_slam_profile(player_slot).get("spring", 1.0))
+		_slam_spring_timer = 0.0
+		GameJuice.spawn_burst(&"dash_shockwave", global_position + Vector2(0.0, hover_dist - 2.0), Vector2.UP, get_visual_tint(), 0.6)
 	_coyote_timer = 0.0
 	consume_jump_buffer()
 	_emit_jump_feedback(Vector2.DOWN)
+
+
+# --- Air Jump (Movement research) --------------------------------------------------------------------
+
+## A fresh jump press in the air, with an air jump left (see ResearchManager.get_air_jump_limit). The jump
+## and fall states ask this after the ground and wall jumps had their turn.
+func can_air_jump() -> bool:
+	if not _jump_pressed_now or not movement_enabled or _is_eliminated or _stun_timer > 0.0:
+		return false
+	if can_jump() or is_grounded() or is_in_water():
+		return false
+	if _air_jumps_used >= ResearchManager.get_air_jump_limit(player_slot):
+		return false
+	# Falling onto a floor just below: leave the press to the jump buffer, so it becomes the full ground
+	# jump on landing instead of spending the air jump.
+	return not (velocity.y > 0.0 and _is_floor_close(GameSettings.PLAYER_AIR_JUMP_FLOOR_MARGIN))
+
+
+func _is_floor_close(margin: float) -> bool:
+	var from: Vector2 = global_position
+	var query: PhysicsRayQueryParameters2D = PhysicsRayQueryParameters2D.create(from, from + Vector2(0.0, hover_dist + margin), 1, [get_rid()])
+	return not get_world_2d().direct_space_state.intersect_ray(query).is_empty()
+
+
+## Jumps again from mid-air: 70% of a ground jump at Mk I, full height from Mk II, where it also turns the
+## run straight to the held direction.
+func air_jump() -> void:
+	velocity.y = -jump_velocity * ResearchManager.get_air_jump_height(player_slot)
+	if ResearchManager.air_jump_turns(player_slot):
+		var input: float = get_move_direction()
+		if input != 0.0:
+			velocity.x = signf(input) * maxf(speed, absf(velocity.x))
+			last_dir = signf(input)
+	_air_jumps_used += 1
+	_air_jump_count += 1
+	_jump_pressed_now = false
+	consume_jump_buffer()
+	_play_air_jump_feedback()
+
+
+func _play_air_jump_feedback() -> void:
+	_body_punch_scale = Vector2(0.74, 1.26)
+	if control_mode == GameSettings.CONTROL_LOCAL:
+		ResearchQuestManager.record_local_action(ResearchQuestManager.EVENT_JUMP)
+	var feet: Vector2 = global_position + Vector2(0.0, hover_dist - 4.0)
+	GameJuice.spawn_burst(&"dash_shockwave", feet, Vector2.DOWN, get_visual_tint(), 0.45)
+	GameJuice.spawn_burst(&"jump", feet, Vector2.DOWN, Color(0.92, 0.9, 0.84, 0.55))
+	AudioDirector.play_at(&"jump", global_position, 2.0, 1.25)
+
+
+# --- Ground Slam (Movement research) -----------------------------------------------------------------
+
+func is_slamming() -> bool:
+	return _slamming
+
+
+## Down pressed in the air (rising or falling) with the research: the jump and fall states hand over to the
+## slam. Not under water, and not while stunned.
+func can_slam() -> bool:
+	if _slamming or not movement_enabled or _is_eliminated or _stun_timer > 0.0:
+		return false
+	if is_grounded() or is_in_water():
+		return false
+	return not ResearchManager.get_ground_slam_profile(player_slot).is_empty()
+
+
+func _update_slam_input() -> void:
+	if _state_machine == null or _state_machine.current_state == null:
+		return
+	if not (_state_machine.current_state.name in [&"JumpState", &"FallState"]):
+		return
+	if is_down_pressed() and can_slam():
+		_state_machine.change_state("SlamState")
+
+
+## SlamState.enter: a beat of hang in the air, then the dive.
+func begin_slam() -> void:
+	_slamming = true
+	_slam_hang_timer = GameSettings.PLAYER_SLAM_HANG_TIME
+	_carried_speed = 0.0
+	velocity = Vector2.ZERO
+	_body_punch_scale = Vector2(1.2, 0.82)
+	AudioDirector.play_at(&"dash", global_position, -2.0, 0.7)
+
+
+## One step of the slam (SlamState): hang, then straight down at PLAYER_SLAM_SPEED with the sideways speed
+## bled off.
+func update_slam(delta: float) -> void:
+	if _slam_hang_timer > 0.0:
+		_slam_hang_timer = maxf(_slam_hang_timer - delta, 0.0)
+		velocity = Vector2.ZERO
+		return
+	velocity.x = move_toward(velocity.x, 0.0, GameSettings.PLAYER_SLAM_SPEED * 4.0 * delta)
+	velocity.y = GameSettings.PLAYER_SLAM_SPEED
+
+
+## SlamState, on touching the floor: the landing thump and, from Mk II, the throw (resolved like the dash
+## shockwave: offline right here, online by the host). Mk III opens the spring window.
+func land_slam() -> void:
+	if not _slamming:
+		return
+	_slamming = false
+	var profile: Dictionary = ResearchManager.get_ground_slam_profile(player_slot)
+	var origin: Vector2 = global_position + Vector2(0.0, hover_dist - 2.0)
+	if float(profile.get("spring", 1.0)) > 1.0:
+		_slam_spring_timer = GameSettings.PLAYER_SLAM_SPRING_WINDOW
+	if float(profile.get("radius", 0.0)) <= 0.0:
+		if _is_local_view_player():
+			GameJuice.shake(2.0, 0.08)
+		return
+	play_dash_shockwave_feedback(origin, 0.0, true)
+	var world: Node = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)
+	if world != null and world.has_method(&"request_dash_shockwave"):
+		world.request_dash_shockwave(self, origin, 0.0, true)
+
+
+## SlamState.exit (landed, or a dash / the water took over).
+func end_slam() -> void:
+	_slamming = false
+	_slam_hang_timer = 0.0
 
 
 # --- Dash (Movement research) ------------------------------------------------------------------------
@@ -1280,10 +1425,18 @@ func _release_dash_shockwave() -> void:
 
 ## Who a dash shockwave released at origin throws, and how: every enemy in reach that is not itself inside a
 ## protected dash, sent away from the blast (along the dash when straight above it). Offline and on the host.
-func get_dash_shockwave_hits(origin: Vector2, direction: float) -> Array[Dictionary]:
+func get_dash_shockwave_hits(origin: Vector2, direction: float, slam: bool = false) -> Array[Dictionary]:
 	var hits: Array[Dictionary] = []
 	var knockback: Vector2 = GameSettings.PLAYER_DASH_SHOCKWAVE_KNOCKBACK
-	for target in _get_players_in_radius_from(origin, GameSettings.PLAYER_DASH_SHOCKWAVE_RADIUS, false):
+	var radius: float = GameSettings.PLAYER_DASH_SHOCKWAVE_RADIUS
+	if slam:
+		# A Ground Slam landing (Mk II+): its reach and push come from this player's marks.
+		var profile: Dictionary = ResearchManager.get_ground_slam_profile(player_slot)
+		radius = float(profile.get("radius", 0.0))
+		knockback = profile.get("knockback", Vector2.ZERO)
+		if radius <= 0.0:
+			return hits
+	for target in _get_players_in_radius_from(origin, radius, false):
 		if target.player_slot == player_slot or target.is_dash_protected():
 			continue
 		var side: float = signf(target.global_position.x - origin.x)
@@ -1293,9 +1446,26 @@ func get_dash_shockwave_hits(origin: Vector2, direction: float) -> Array[Diction
 	return hits
 
 
+## Shocking Rounds MK II: while their shock lasts, no shield goes up (and a raised one drops).
+func is_guard_broken() -> bool:
+	return status_effect_manager != null and status_effect_manager.has_flag(&"breaks_guard")
+
+
+## Poison Rounds MK II: while their poison lasts, nothing heals this player.
+func is_healing_blocked() -> bool:
+	return status_effect_manager != null and status_effect_manager.has_flag(&"no_heal")
+
+
+## Shoved by a hit (the impact trait, a blast's throw): a throw like the dash shockwave's, without its stun.
+func receive_hit_knockback(knockback: Vector2) -> void:
+	if knockback.length_squared() <= GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED or is_dash_protected():
+		return
+	receive_knockback(knockback, global_position - knockback.normalized() * 32.0, 0.0)
+
+
 ## Thrown by a dash shockwave. Only the side that moves this player applies the throw (with a short stun so
 ## it is not steered straight back); everywhere else this is just the feedback.
-func receive_knockback(knockback: Vector2, _source_position: Vector2) -> void:
+func receive_knockback(knockback: Vector2, _source_position: Vector2, stun: float = GameSettings.PLAYER_DASH_SHOCKWAVE_STUN) -> void:
 	var away: Vector2 = Vector2(signf(knockback.x), -0.35).normalized()
 	GameJuice.spawn_burst(&"knockback", global_position, away, Color.WHITE)
 	_body_punch_scale = Vector2(1.22, 0.8)
@@ -1309,7 +1479,7 @@ func receive_knockback(knockback: Vector2, _source_position: Vector2) -> void:
 	_cancel_dash()
 	velocity = knockback
 	_external_launch = true
-	_stun_timer = maxf(_stun_timer, GameSettings.PLAYER_DASH_SHOCKWAVE_STUN)
+	_stun_timer = maxf(_stun_timer, stun)
 	if _state_machine != null:
 		_state_machine.change_state("JumpState" if knockback.y < 0.0 else "FallState")
 
@@ -1341,7 +1511,18 @@ func _play_dash_feedback(direction: float, protected: bool) -> void:
 		GameJuice.kick(Vector2(direction, 0.0), 2.5)
 
 
-func play_dash_shockwave_feedback(origin: Vector2, direction: float) -> void:
+func play_dash_shockwave_feedback(origin: Vector2, direction: float, slam: bool = false) -> void:
+	if slam:
+		# The slam's ring spreads both ways along the floor, wider than the dash's.
+		var reach: float = float(ResearchManager.get_ground_slam_profile(player_slot).get("radius", 120.0)) / 120.0
+		GameJuice.spawn_burst(&"dash_shockwave", origin, Vector2.LEFT, get_visual_tint(), reach)
+		GameJuice.spawn_burst(&"dash_shockwave", origin, Vector2.RIGHT, get_visual_tint(), reach)
+		GameJuice.spawn_burst(&"land", origin, Vector2.UP, Color(0.78, 0.70, 0.54, 0.8), 1.4)
+		AudioDirector.play_at(&"dash_shockwave", origin, 2.0, 0.75)
+		GameJuice.shockwave(origin, 0.6 * reach, 0.45)
+		if _is_local_view_player():
+			GameJuice.shake(3.2, 0.12)
+		return
 	GameJuice.spawn_burst(&"dash_shockwave", origin, Vector2(direction, 0.0), get_visual_tint())
 	AudioDirector.play_at(&"dash_shockwave", origin)
 	GameJuice.shockwave(origin, 0.45, 0.35)
@@ -1915,10 +2096,17 @@ func _spawn_status_feedback(effect_name: StringName, world_position: Vector2, di
 		&"poison":
 			GameJuice.spawn_burst(&"poison", world_position, direction, Color(0.42, 1.0, 0.42, 0.72))
 			AudioDirector.play_at(&"poison", world_position)
+		&"stagger":
+			GameJuice.spawn_burst(&"knockback", world_position, direction, Color.WHITE)
+		&"frozen":
+			GameJuice.spawn_burst(&"freeze", world_position, direction, Color(0.7, 0.92, 1.0, 1.0), 1.4)
+			AudioDirector.play_at(&"freeze", world_position, 3.0, 0.8)
 
 
 func _update_movement_timers(delta: float) -> void:
-	if is_jump_pressed():
+	_jump_pressed_now = is_jump_pressed()
+	_slam_spring_timer = maxf(_slam_spring_timer - delta, 0.0)
+	if _jump_pressed_now:
 		_jump_buffer_timer = jump_buffer_time
 	else:
 		_jump_buffer_timer = maxf(_jump_buffer_timer - delta, 0.0)
@@ -1930,6 +2118,7 @@ func _update_movement_timers(delta: float) -> void:
 	if is_grounded():
 		_coyote_timer = coyote_time
 		_wall_jumps_used = 0
+		_air_jumps_used = 0
 		_wall_cling_used = false
 		_wall_cling_timer = 0.0
 	else:
@@ -1938,7 +2127,12 @@ func _update_movement_timers(delta: float) -> void:
 
 func _update_block_input() -> void:
 	if _block_active:
+		if is_guard_broken():
+			_end_block()
+			return
 		_refresh_block_direction()
+		return
+	if is_guard_broken():
 		return
 
 	if is_block_pressed():

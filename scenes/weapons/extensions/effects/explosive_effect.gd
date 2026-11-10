@@ -13,6 +13,21 @@ func apply(target: Player, effect_data: Dictionary, projectile: Projectile) -> v
 	if tree == null:
 		return
 	var owner_slot: int = projectile.owner_slot
+	var push: float = float(effect_data.get("knockback", 0.0))
+	_blast(tree, origin, radius, splash_damage, owner_slot, push)
+	var aftershock: float = float(effect_data.get("aftershock", 0.0))
+	if aftershock > 0.0:
+		_aftershock(tree, origin, radius, maxi(1, int(roundf(float(splash_damage) * aftershock))), owner_slot)
+
+
+## Explosive Bullet MK III, offline: the second, smaller blast on whoever the first one threw.
+func _aftershock(tree: SceneTree, origin: Vector2, radius: float, splash_damage: int, owner_slot: int) -> void:
+	await tree.create_timer(ExtensionEffectRegistry.AFTERSHOCK_DELAY, false).timeout
+	var at: Vector2 = ExtensionEffectRegistry.aftershock_origin(origin, owner_slot, radius)
+	_blast(tree, at, radius * ExtensionEffectRegistry.AFTERSHOCK_RADIUS, splash_damage, owner_slot, 0.0)
+
+
+func _blast(tree: SceneTree, origin: Vector2, radius: float, splash_damage: int, owner_slot: int, push: float) -> void:
 
 	var players: Array[Node] = tree.get_nodes_in_group(GameSettings.PLAYERS_GROUP)
 	for node in players:
@@ -32,6 +47,7 @@ func apply(target: Player, effect_data: Dictionary, projectile: Projectile) -> v
 		var old_health: int = player.health_component.health
 		player.health_component.damage(final_damage)
 		player.apply_hit_feedback(origin, final_damage)
+		ExtensionEffectRegistry.apply_blast_extras(player, origin, push, 0.0)
 		if player.player_slot != owner_slot:
 			var applied_damage: int = mini(final_damage, old_health)
 			ResearchManager.apply_local_life_steal(owner_slot, applied_damage)

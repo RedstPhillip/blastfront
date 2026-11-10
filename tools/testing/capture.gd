@@ -732,6 +732,211 @@ func _build_script() -> void:
 				var p1 = _p1()
 				print("CLIMB wall: on_top=%s at %s most_wall_jumps=%d longest_stuck=%.2f s" % [p1.is_grounded() and p1.global_position.y < 230.0, p1.global_position.round(), int(_wall_stats.get("used_max", 0)), float(_wall_stats["stuck_max"])]))
 			_at(16.2, "quit")
+		"air_probe":
+			# Air Jump and Ground Slam on the slide rig (floor top 640). Prints the jump peak with one press and
+			# with air jumps per mark, the Mk II turn, then the slam per mark: dive time, how far it throws a
+			# dummy parked next to the landing, and the Mk III spring.
+			_at(0.1, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
+			_at(0.5, "call", func(): _main._on_sandbox_requested())
+			_at(1.5, "call", func():
+				_build_slide_rig()
+				_freeze_camera_keep_players(Vector2(650.0, 480.0), 1.0)
+				var dummy = _stress_game().get_player_by_slot(2)
+				dummy.set_controls_enabled(false)
+				dummy.global_position = Vector2(1300.0, 600.0)
+				_hooks.append(_watch_air))
+			# A plain jump for comparison (air jump research at Mk I, but only one press).
+			_at(2.0, "call", func(): _set_air_marks(1, 0); _air_reset(Vector2(300.0, 616.0)))
+			_at(2.1, "press", "p1_jump")
+			_at(2.4, "release", "p1_jump")
+			_at(3.4, "call", func(): _report_air("single_jump"))
+			for mark in [1, 2, 3]:
+				var t0: float = 4.0 + float(mark - 1) * 2.0
+				_at(t0, "call", func(): _set_air_marks(mark, 0); _air_reset(Vector2(300.0, 616.0)))
+				_at(t0 + 0.1, "press", "p1_jump")
+				_at(t0 + 0.4, "release", "p1_jump")
+				_at(t0 + 0.45, "press", "p1_jump")
+				_at(t0 + 0.7, "release", "p1_jump")
+				_at(t0 + 0.75, "press", "p1_jump")
+				_at(t0 + 1.0, "release", "p1_jump")
+				_at(t0 + 0.6, "crop", ["air_mk%d" % mark, Rect2(140, 60, 520, 640), 1.0])
+				_at(t0 + 1.9, "call", func(): _report_air("air_mk%d" % mark))
+			# Mk II turns: running right, air jump while holding left.
+			_at(10.0, "call", func(): _set_air_marks(2, 0); _air_reset(Vector2(300.0, 616.0)))
+			_at(10.05, "press", "p1_move_right")
+			_at(10.3, "press", "p1_jump")
+			_at(10.45, "release", "p1_jump")
+			_at(10.5, "release", "p1_move_right")
+			_at(10.52, "press", "p1_move_left")
+			_at(10.6, "press", "p1_jump")
+			_at(10.62, "call", func(): print("AIR turn vx_after=%.0f (negative = turned)" % _p1().velocity.x))
+			_at(10.7, "release", "p1_jump")
+			_at(10.9, "release", "p1_move_left")
+			# A press just before landing is still the ground jump (no air jump wasted).
+			_at(11.5, "call", func(): _set_air_marks(1, 0); _air_reset(Vector2(300.0, 500.0)))
+			_at(11.5, "call", func(): _hooks.append(_press_jump_near_floor))
+			_at(12.2, "call", func(): print("AIR buffered_near_floor peak_after=%.0f px air_jumps_spent=%d (0 = it became the ground jump)" % [616.0 - float(_air_stats["min_y"]), _p1()._air_jump_count - int(_air_stats.get("count_at_press", 0))]))
+			# Ground Slam per mark: dive from 380 px up, a dummy parked 70 px beside the landing spot.
+			for mark in [1, 2, 3]:
+				var t1: float = 12.5 + float(mark - 1) * 2.5
+				_at(t1, "call", func():
+					_set_air_marks(0, mark)
+					_air_reset(Vector2(500.0, 236.0))
+					var dummy = _stress_game().get_player_by_slot(2)
+					dummy.global_position = Vector2(570.0, 616.0)
+					dummy.velocity = Vector2.ZERO
+					_dummy_start = dummy.global_position)
+				_at(t1 + 0.2, "press", "p1_move_down")
+				_at(t1 + 0.25, "release", "p1_move_down")
+				_at(t1 + 0.21, "call", func(): _air_stats["slam_t"] = _time; print("SLAM mk%d state=%s" % [mark, _p1()._state_machine.current_state.name]))
+				_at(t1 + 0.36, "crop", ["slam_mk%d" % mark, Rect2(300, 180, 520, 520), 1.0])
+				_at(t1 + 0.9, "call", func():
+					var dummy = _stress_game().get_player_by_slot(2)
+					print("SLAM mk%d landed_after=%.2f s grounded=%s dummy_dx=%+.0f dummy_dy=%+.0f" % [mark, float(_air_stats.get("landed_t", 0.0)) - float(_air_stats.get("slam_t", 0.0)), _p1().is_grounded(), dummy.global_position.x - _dummy_start.x, float(_air_stats.get("dummy_min_y", 616.0)) - _dummy_start.y]))
+			# Mk III spring: jump buffered during the dive springs off the landing.
+			_at(20.5, "call", func(): _set_air_marks(0, 3); _air_reset(Vector2(300.0, 236.0)); _stress_game().get_player_by_slot(2).global_position = Vector2(1300.0, 600.0))
+			_at(20.7, "press", "p1_move_down")
+			_at(20.75, "release", "p1_move_down")
+			_at(21.0, "press", "p1_jump")
+			_at(21.06, "call", func(): _air_stats["min_y"] = 616.0; _air_stats["start_y"] = 616.0)
+			_at(21.3, "release", "p1_jump")
+			_at(22.3, "call", func(): _report_air("slam_spring_mk3"))
+			_at(22.5, "quit")
+		"ext_traits":
+			# Every weapon part per mark: the tags and effect keys MK I-III build and the trait texts. Then the
+			# hit traits on the sandbox dummy with hand-made rounds from P1 (offline path).
+			_at(0.1, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
+			_at(0.5, "call", func(): _main._on_sandbox_requested())
+			# Hitstop runs on wall-clock time, which a --fixed-fps run outpaces: off, so shoves show up.
+			_at(0.2, "call", func(): root.get_node("UserSettings").set_value(&"gameplay_hitstop", false))
+			_at(1.4, "call", func(): _print_extension_marks())
+			_at(1.6, "call", func():
+				_build_slide_rig()
+				_freeze_camera_keep_players(Vector2(650.0, 560.0), 1.0)
+				var dummy = _stress_game().get_player_by_slot(2)
+				dummy.set_controls_enabled(false)
+				_air_reset(Vector2(200.0, 616.0)))
+			var trials: Array = [
+				["plain", {}, []],
+				["impact", {"impact": {"knockback": 380.0, "stagger": 0.25}}, []],
+				["range_bonus_far", {"range_bonus": {"max_bonus": 0.4, "full_distance": 400.0}}, []],
+				["guard_chip_blocked", {"guard_chip": {"share": 0.5}}, []],
+				["blocked_plain", {}, []],
+				["drill_through_shield", {"drill": {"wall_passes": 1.0, "through_shield": 1.0}}, ["drill"]],
+				["freeze_root_second_hit", {"freeze": {"duration": 3.0, "speed_multiplier": 0.3, "root_if_slowed": 0.5}}, ["freeze"]],
+				["poison_no_heal", {"poison": {"damage_per_tick": 2, "duration": 3.0, "tick_count": 3, "tick_interval": 1.0, "no_heal": 1.0}}, ["poison"]],
+				["shock_breaks_guard", {"shock": {"duration": 1.3, "tick_count": 4, "tick_interval": 0.33, "stun_duration": 0.1, "breaks_guard": 1.0}}, ["shock"]],
+			]
+			for i in range(trials.size()):
+				var trial: Array = trials[i]
+				var t0: float = 2.0 + float(i) * 1.6
+				var label: String = trial[0]
+				_at(t0, "call", func(): _trait_setup(label))
+				_at(t0 + 0.1, "call", func(): _trait_fire(trial[1], trial[2], 400.0 if label == "range_bonus_far" else 120.0))
+				if label == "freeze_root_second_hit":
+					_at(t0 + 0.45, "call", func(): _trait_fire(trial[1], trial[2], 120.0))
+				if label == "shock_breaks_guard":
+					_at(t0 + 0.45, "call", func(): _block_dummy(); _trait_fire({}, [], 120.0))
+				if label == "impact":
+					_at(t0 + 0.3, "call", func(): print("TRAIT impact_early dx=%+.0f stunned=%s vel=%s state=%s" % [_stress_game().get_player_by_slot(2).global_position.x - _dummy_start.x, _stress_game().get_player_by_slot(2)._stun_timer > 0.0, _stress_game().get_player_by_slot(2).velocity, _stress_game().get_player_by_slot(2)._state_machine.current_state.name]))
+				_at(t0 + 0.9, "call", func(): _trait_report(label))
+			# Growth: a bouncy round off a wall behind the dummy's back (the far wall at x 1100).
+			_at(17.0, "call", func(): _trait_setup("growth"))
+			_at(17.1, "call", func():
+				var dummy = _stress_game().get_player_by_slot(2)
+				dummy.global_position = Vector2(900.0, 616.0)
+				_dummy_start = dummy.global_position
+				var shot = load("res://scenes/projectiles/projectile.tscn").instantiate()
+				shot.configure_from_data(0, 1, Vector2.RIGHT, {"muzzle_speed": 900.0, "gravity": 0.0, "damage": 20, "max_distance": 1400.0, "extension_tags": ["bouncy"], "extension_effects": {"bouncy": {"bounces": 1.0}, "growth": {"bounce": 0.4}}})
+				_stress_game().spawn_projectile(shot, Vector2(1000.0, 626.0)))
+			_at(17.9, "call", func(): _trait_report("growth_after_bounce"))
+			_at(18.2, "quit")
+		"research_movement2":
+			# The Movement lane with the two new projects: Air Jump and Ground Slam selected in turn.
+			_at(0.5, "call", func(): _main.change_scene(_main.get_scene("res://scenes/menus/intermission_menu.tscn")))
+			_at(2.0, "call", func(): _main.get_node("SceneRoot").get_child(-1)._set_page(1))
+			_at(2.2, "call", func():
+				var research = root.get_node("ResearchManager")
+				research.research_points = 40
+				research._local_marks["dashing"] = 2
+				research._local_marks["wall_jumps"] = 1
+				research._local_marks["sliding"] = 1
+				research.research_changed.emit()
+				research.research_points_changed.emit(40))
+			_at(2.4, "call", func(): _main.get_node("SceneRoot").get_child(-1).get("_research_page")._select(&"air_jump"))
+			_at(3.0, "shot", "research_air_jump")
+			_at(3.1, "call", func(): _main.get_node("SceneRoot").get_child(-1).get("_research_page")._select(&"ground_slam"))
+			_at(3.7, "shot", "research_ground_slam")
+			_at(3.9, "quit")
+		"loadout_traits":
+			# The loadout inspector on weapon parts at MK I, II and III (trait lines under the description).
+			_at(0.5, "call", func(): _main._on_sandbox_requested())
+			_at(2.0, "action", "pause")
+			_at(2.4, "call", func(): _open_sandbox_loadout())
+			_at(3.2, "call", func(): _inspect_part("bouncy_bullets_mk1", 1))
+			_at(3.6, "shot", "traits_mk1")
+			_at(3.7, "call", func(): _inspect_part("bouncy_bullets_mk1", 2))
+			_at(4.1, "shot", "traits_mk2")
+			_at(4.2, "call", func(): _inspect_part("heavy_barrel_mk1", 3))
+			_at(4.6, "shot", "traits_mk3")
+			_at(4.7, "call", func(): _inspect_part("ground_hover_mk1", 3))
+			_at(5.1, "shot", "traits_mk3_long")
+			_at(5.3, "quit")
+		"traits_online":
+			# The host's side of the mark traits without Steam: a faked hosted set, P2 the remote client. Rounds
+			# from P2 (owner 2) are spawned through the projectile module at the host's own player (P1).
+			_at(0.1, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
+			_at(0.2, "call", func(): root.get_node("UserSettings").set_value(&"gameplay_hitstop", false))
+			_at(0.5, "call", func(): _main._on_sandbox_requested())
+			_at(1.6, "call", func():
+				_build_slide_rig()
+				var g = _stress_game()
+				var session = root.get_node("NetworkSession")
+				session.mode = &"host"
+				session._match_active = true
+				session.local_player_slot = 1
+				root.get_node("OnlineMatch")._reset_current_set_stats()
+				root.get_node("OnlineMatch").phase = &"playing_set"
+				g.get_player_by_slot(2).configure_remote_control(2)
+				g._game_sync.setup(g)
+				g.get_player_by_slot(2).global_position = Vector2(1300.0, 600.0)
+				g.get_player_by_slot(2).reset_network_state_to_current_transform())
+			var online_trials: Array = [
+				["impact", {"impact": {"knockback": 380.0, "stagger": 0.25}}, []],
+				["guard_chip", {"guard_chip": {"share": 0.5}}, []],
+				["explosive_aftershock", {"explosive": {"radius": 130.0, "splash_damage": 20, "knockback": 400.0, "aftershock": 0.5}}, ["explosive"]],
+				["grenade_stun", {"grenade": {"delay": 0.2, "radius": 130.0, "damage_per_hit": 20, "knockback": 400.0, "stun": 0.35}}, ["grenade"]],
+			]
+			for i in range(online_trials.size()):
+				var trial: Array = online_trials[i]
+				var t0: float = 2.0 + float(i) * 1.5
+				var label: String = trial[0]
+				_at(t0, "call", func():
+					var p1 = _p1()
+					_air_reset(Vector2(400.0, 616.0))
+					p1.health_component.health = 100
+					p1._stun_timer = 0.0
+					p1.status_effect_manager.clear_all()
+					_dummy_start = p1.global_position
+					pass)
+				_at(t0 + 0.1, "call", func():
+					var sync = _stress_game()._game_sync.get_module(&"projectile")
+					var data: Dictionary = {"muzzle_speed": 900.0, "gravity": 0.0, "damage": 20, "max_distance": 1400.0, "extension_tags": trial[2], "extension_effects": trial[1]}
+					if label == "guard_chip":
+						# The host's own shield follows the (absent) mouse here, so hand the module a blocked round.
+						var shot = sync._spawn_projectile(9000 + i, 2, _p1().global_position + Vector2(400.0, -200.0), Vector2.LEFT, data, true)
+						sync._on_projectile_despawn_requested(shot, &"blocked", _p1(), 9000 + i)
+						shot.queue_free()
+						return
+					sync._spawn_projectile(9000 + i, 2, _p1().global_position + Vector2(120.0, -6.0), Vector2.LEFT, data, true))
+				_at(t0 + 0.32, "call", func(): print("ONLINE_TRAIT %s early hp=%d dx=%+.0f stunned=%s" % [label, _p1().health_component.health, _p1().global_position.x - _dummy_start.x, _p1()._stun_timer > 0.0]))
+				_at(t0 + 1.2, "call", func(): print("ONLINE_TRAIT %s late hp=%d dx=%+.0f" % [label, _p1().health_component.health, _p1().global_position.x - _dummy_start.x]))
+			_at(8.2, "call", func():
+				var session = root.get_node("NetworkSession")
+				session.mode = &"training"
+				session._match_active = false
+				root.get_node("OnlineMatch").phase = &"locker")
+			_at(8.4, "quit")
 		"slide_probe":
 			# Sliding on a private rig (arena terrain removed): floor top 640, a low tunnel at x 700-900 (its
 			# ceiling 30 px above the floor: too low to stand, high enough to slide) and a dead-end pocket at
@@ -2759,3 +2964,119 @@ func _report_slide(label: String) -> void:
 		print("SLIDE %s never slid" % label)
 		return
 	print("SLIDE %s took=%.2f s distance=%+.0f top_speed=%.0f longest_still=%.2f s stood_without_room=%d frames now x=%.0f state=%s" % [label, float(_slide_stats.get("took", -1.0)), float(_slide_stats.get("end_x", p1.global_position.x)) - float(_slide_stats["start_x"]), float(_slide_stats["top"]), float(_slide_stats["still_max"]), int(_slide_stats.get("bad_stand", 0)), p1.global_position.x, p1._state_machine.current_state.name])
+
+
+# --- Air Jump / Ground Slam / extension trait probes ---------------------------------------------------
+
+var _air_stats: Dictionary = {}
+
+
+func _set_air_marks(air: int, slam: int) -> void:
+	var research = root.get_node("ResearchManager")
+	research._local_marks["air_jump"] = air
+	research._local_marks["ground_slam"] = slam
+	# The sandbox hands out Mk I of both for free; a 0 here still means Mk I there.
+
+
+func _air_reset(at: Vector2) -> void:
+	_wall_reset(at)
+	_air_stats = {"start_y": at.y, "min_y": at.y, "landed_t": 0.0, "dummy_min_y": 616.0, "was_slamming": false}
+
+
+func _watch_air() -> void:
+	if _air_stats.is_empty() or _stress_game() == null:
+		return
+	var p1 = _p1()
+	_air_stats["min_y"] = minf(float(_air_stats["min_y"]), p1.global_position.y)
+	if p1.is_slamming():
+		_air_stats["was_slamming"] = true
+	elif bool(_air_stats["was_slamming"]) and float(_air_stats["landed_t"]) == 0.0:
+		_air_stats["landed_t"] = _time
+	var dummy = _stress_game().get_player_by_slot(2)
+	_air_stats["dummy_min_y"] = minf(float(_air_stats["dummy_min_y"]), dummy.global_position.y)
+
+
+## Presses jump once, the first frame P1 falls within 24 px of the floor (top 640), and holds it 0.3 s.
+func _press_jump_near_floor() -> void:
+	var p1 = _p1()
+	if _air_stats.get("near_pressed", false) or p1.velocity.y <= 0.0 or p1.global_position.y < 640.0 - 24.0 - 24.0:
+		return
+	_air_stats["near_pressed"] = true
+	_air_stats["count_at_press"] = p1._air_jump_count
+	_air_stats["min_y"] = 616.0
+	Input.action_press(&"p1_jump")
+	create_timer(0.3).timeout.connect(func(): Input.action_release(&"p1_jump"))
+	_hooks.erase(_press_jump_near_floor)
+
+
+func _report_air(label: String) -> void:
+	print("AIR %s peak=%.0f px air_jumps_used=%d" % [label, float(_air_stats["start_y"]) - float(_air_stats["min_y"]), _p1()._air_jumps_used])
+
+
+func _print_extension_marks() -> void:
+	var dir: DirAccess = DirAccess.open("res://scenes/weapons/extensions")
+	var names: Array = []
+	for file in dir.get_files():
+		if file.ends_with(".tres"):
+			names.append(file)
+	names.sort()
+	for file in names:
+		var definition = load("res://scenes/weapons/extensions/" + file)
+		for mark in [1, 2, 3]:
+			var item = load("res://scenes/weapons/extensions/weapon_extension_item.gd").create(definition, 100.0, mark)
+			var stats: Dictionary = item.build_effective_stats()
+			print("EXT %s mk%d tags=%s effects=%s trait=\"%s\"" % [definition.extension_id, mark, str(stats["projectile_tags"]), str((stats["projectile_effects"] as Dictionary).keys()), definition.get_mark_trait(mark)])
+
+
+func _trait_setup(_label: String) -> void:
+	var dummy = _stress_game().get_player_by_slot(2)
+	dummy.status_effect_manager.clear_all()
+	dummy.health_component.health = 60
+	dummy._block_active = false
+	dummy._stun_timer = 0.0
+	dummy.global_position = Vector2(640.0, 616.0)
+	dummy.velocity = Vector2.ZERO
+	dummy._state_machine.change_state("RunState")
+	_dummy_start = dummy.global_position
+	_air_stats = {"hp0": 60}
+	if _label in ["guard_chip_blocked", "blocked_plain", "drill_through_shield"]:
+		_block_dummy()
+
+
+## Raises the dummy's shield toward P1's side (left) for the whole trial.
+func _block_dummy() -> void:
+	var dummy = _stress_game().get_player_by_slot(2)
+	dummy.last_dir = -1.0
+	dummy._begin_block()
+	dummy._block_timer = 5.0
+	print("TRAIT dummy blocking=%s guard_broken=%s" % [dummy._block_active, dummy.is_guard_broken()])
+
+
+## A straight round from P1 (slot 1) at the dummy, `behind` px to its left.
+func _trait_fire(effects: Dictionary, tags: Array, behind: float) -> void:
+	var dummy = _stress_game().get_player_by_slot(2)
+	var shot = load("res://scenes/projectiles/projectile.tscn").instantiate()
+	shot.configure_from_data(0, 1, Vector2.RIGHT, {"muzzle_speed": 900.0, "gravity": 0.0, "damage": 20, "max_distance": 1400.0, "extension_tags": tags, "extension_effects": effects})
+	_stress_game().spawn_projectile(shot, dummy.global_position + Vector2(-behind, -6.0))
+
+
+func _trait_report(label: String) -> void:
+	var dummy = _stress_game().get_player_by_slot(2)
+	var hp_before_heal: int = dummy.health_component.health
+	dummy.health_component.heal(10)
+	var healed: int = dummy.health_component.health - hp_before_heal
+	print("TRAIT %s damage=%d dx=%+.0f stunned=%s frozen=%s slow=%.2f healed=%d guard_broken=%s" % [label, int(_air_stats.get("hp0", 60)) - hp_before_heal, dummy.global_position.x - _dummy_start.x, dummy._stun_timer > 0.0, dummy.status_effect_manager.has_effect(&"frozen"), dummy.status_effect_manager.get_slow_multiplier(), healed, dummy.is_guard_broken()])
+
+
+func _open_sandbox_loadout() -> void:
+	get_first_node_in_group(&"game_world").get_node("HUD/PauseMenu")._on_loadout_pressed()
+
+
+## Sets P1's own copy of the part to that mark and hovers its tile, so the inspector shows it.
+func _inspect_part(id: String, mark: int) -> void:
+	var inv = root.get_node("ExtensionInventory")
+	for item in inv.get_inventory_for_player(1):
+		if str(item.get_definition_id()) == id:
+			item.mark = mark
+	_lo_mouse_to(Vector2(4.0, 4.0))
+	_lo_mouse_to_tile(id, Vector2.ZERO)

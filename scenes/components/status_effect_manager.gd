@@ -1,7 +1,9 @@
 class_name StatusEffectManager
 extends Node
 
-## Timed status effects on a player (slows, stuns, poison) and their ticks.
+## Timed status effects on a player (slows, stuns, poison) and their ticks. An effect's data can carry
+## flags the higher extension marks add (breaks_guard, no_heal; see has_flag), and a freeze can carry a
+## root: Freeze Rounds MK II / III freeze the target solid for a moment (the "frozen" effect).
 
 signal effect_added(effect_name: StringName)
 signal effect_removed(effect_name: StringName)
@@ -17,6 +19,8 @@ func apply_effect(name: StringName, params: Dictionary) -> void:
 	var duration: float = float(adjusted_params.get("duration", 0.0))
 	if duration <= 0.0:
 		return
+	if name == &"freeze":
+		_apply_freeze_root(player, adjusted_params)
 
 	var instance: Dictionary = {
 		"time_remaining": duration,
@@ -29,6 +33,8 @@ func apply_effect(name: StringName, params: Dictionary) -> void:
 		"speed_multiplier": float(adjusted_params.get("speed_multiplier", 1.0)),
 		"tint_color": adjusted_params.get("tint_color", null),
 		"source_slot": int(adjusted_params.get("source_slot", 0)),
+		"breaks_guard": float(adjusted_params.get("breaks_guard", 0.0)) > 0.0,
+		"no_heal": float(adjusted_params.get("no_heal", 0.0)) > 0.0,
 	}
 
 	if name == &"poison":
@@ -38,6 +44,44 @@ func apply_effect(name: StringName, params: Dictionary) -> void:
 			_active_effects[name] = []
 		_active_effects[name].append(instance)
 	effect_added.emit(name)
+
+
+## Root of a freeze hit: "root" (s) on every hit, "root_if_slowed" (s) on a target the freeze already slows.
+## The root is its own short effect at a near-standstill, plus a stun so the target cannot act out of it.
+func _apply_freeze_root(player: Player, params: Dictionary) -> void:
+	var root: float = float(params.get("root", 0.0))
+	if has_effect(&"freeze"):
+		root = maxf(root, float(params.get("root_if_slowed", 0.0)))
+	if root <= 0.0:
+		return
+	if not _active_effects.has(&"frozen"):
+		_active_effects[&"frozen"] = []
+	_active_effects[&"frozen"].append({
+		"time_remaining": root,
+		"duration": root,
+		"tick_interval": 0.0,
+		"tick_timer": 0.0,
+		"damage_per_tick": 0,
+		"ticks_remaining": -1,
+		"stun_duration": 0.0,
+		"speed_multiplier": 0.02,
+		"tint_color": Color(0.78, 0.94, 1.0, 1.0),
+		"source_slot": int(params.get("source_slot", 0)),
+		"breaks_guard": false,
+		"no_heal": false,
+	})
+	if player != null:
+		player.apply_stun(root)
+	effect_added.emit(&"frozen")
+
+
+## True while any active effect carries this flag (breaks_guard, no_heal).
+func has_flag(flag: StringName) -> bool:
+	for instances in _active_effects.values():
+		for instance in (instances as Array):
+			if (instance as Dictionary).get(flag, false) == true:
+				return true
+	return false
 
 
 func remove_effects(name: StringName) -> void:

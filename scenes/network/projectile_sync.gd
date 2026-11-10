@@ -320,12 +320,20 @@ func _on_projectile_despawn_requested(projectile: Node, reason: StringName, coll
 		return
 
 	var hit_player: Player = collider as Player
+	var combat_sync: Variant = game_sync.get_module(GameSettings.MODULE_COMBAT)
 	if hit_player != null and reason == &"blocked" and hit_player.player_slot != shot.owner_slot:
 		OnlineMatch.record_block(hit_player.player_slot, shot.damage)
+		# Heavy Barrel MK II / III: part of a blocked round still gets through.
+		var chip: int = shot.get_guard_chip_damage()
+		if chip > 0 and combat_sync != null:
+			combat_sync.apply_hit(hit_player.player_slot, shot.owner_slot, net_id, chip)
 	if hit_player != null and reason != &"blocked" and hit_player.player_slot != shot.owner_slot:
-		var combat_sync: Variant = game_sync.get_module(GameSettings.MODULE_COMBAT)
 		if combat_sync != null:
 			combat_sync.apply_hit(hit_player.player_slot, shot.owner_slot, net_id, shot.damage)
+			_throw(hit_player, shot.get_impact_knockback(), shot.global_position)
+			var stagger: float = shot.get_impact_stagger()
+			if stagger > 0.0:
+				combat_sync.apply_status_effect(hit_player.player_slot, shot.owner_slot, &"stagger", ExtensionEffectRegistry.stagger_data(stagger))
 	if reason == &"collision":
 		_apply_authoritative_extension_effects(shot, hit_player)
 
@@ -361,12 +369,13 @@ func _apply_authoritative_extension_effects(projectile: Projectile, direct_targe
 				if direct_target != null:
 					combat_sync.apply_status_effect(direct_target.player_slot, owner_slot, effect_name, effect_data)
 			&"explosive":
-				_apply_area_damage(
-					origin,
-					owner_slot,
-					float(effect_data.get("radius", 80.0)),
-					int(effect_data.get("splash_damage", effect_data.get("damage", GameSettings.PROJECTILE_DAMAGE)))
-				)
+				var radius: float = float(effect_data.get("radius", 80.0))
+				var splash: int = int(effect_data.get("splash_damage", effect_data.get("damage", GameSettings.PROJECTILE_DAMAGE)))
+				var blast_push: float = float(effect_data.get("knockback", 0.0))
+				_apply_area_damage(origin, owner_slot, radius, splash, blast_push)
+				var aftershock: float = float(effect_data.get("aftershock", 0.0))
+				if aftershock > 0.0:
+					_schedule_aftershock(origin, owner_slot, radius, int(roundf(float(splash) * aftershock)))
 			&"grenade":
 				_schedule_grenade_explosion(origin, owner_slot, effect_data)
 
@@ -396,13 +405,26 @@ func _schedule_grenade_explosion(origin: Vector2, owner_slot: int, effect_data: 
 	var delay: float = maxf(float(effect_data.get("delay", 0.5)), 0.0)
 	var radius: float = float(effect_data.get("radius", 80.0))
 	var damage: int = int(effect_data.get("damage_per_hit", effect_data.get("damage", GameSettings.PROJECTILE_DAMAGE)))
+	var blast_push: float = float(effect_data.get("knockback", 0.0))
+	var stun: float = float(effect_data.get("stun", 0.0))
 	await get_tree().create_timer(delay, false).timeout
 	if game_sync == null or not game_sync.is_host() or not OnlineMatch.is_playing_set():
 		return
-	_apply_area_damage(origin, owner_slot, radius, damage)
+	_apply_area_damage(origin, owner_slot, radius, damage, blast_push, stun)
 
 
-func _apply_area_damage(origin: Vector2, owner_slot: int, radius: float, damage: int) -> void:
+## Explosive Bullet MK III: a smaller second blast on whoever the first one threw.
+func _schedule_aftershock(origin: Vector2, owner_slot: int, radius: float, damage: int) -> void:
+	await get_tree().create_timer(ExtensionEffectRegistry.AFTERSHOCK_DELAY, false).timeout
+	if game_sync == null or not game_sync.is_host() or not OnlineMatch.is_playing_set():
+		return
+	var at: Vector2 = ExtensionEffectRegistry.aftershock_origin(origin, owner_slot, radius)
+	_apply_area_damage(at, owner_slot, radius * ExtensionEffectRegistry.AFTERSHOCK_RADIUS, damage)
+
+
+## Blast damage with falloff; push (px/s) throws whoever it reaches away from the blast, stun (s) stuns them
+## (the higher marks of Explosive Bullet and Grenades).
+func _apply_area_damage(origin: Vector2, owner_slot: int, radius: float, damage: int, push: float = 0.0, stun: float = 0.0) -> void:
 	if game == null or radius <= 0.0 or damage <= 0:
 		return
 	var combat_sync: Variant = game_sync.get_module(GameSettings.MODULE_COMBAT)
@@ -421,6 +443,17 @@ func _apply_area_damage(origin: Vector2, owner_slot: int, radius: float, damage:
 		var base_damage: int = maxi(1, int(roundf(float(damage) * falloff)))
 		var final_damage: int = ResearchManager.apply_rage_to_damage(owner_slot, base_damage)
 		combat_sync.apply_hit(target_slot, owner_slot, 0, final_damage)
+		_throw(player, ExtensionEffectRegistry.blast_knockback(origin, player.global_position, push), origin)
+		if stun > 0.0:
+			combat_sync.apply_status_effect(target_slot, owner_slot, &"stagger", ExtensionEffectRegistry.stagger_data(stun))
+
+
+func _throw(target: Player, knockback: Vector2, origin: Vector2) -> void:
+	if knockback == Vector2.ZERO or target == null or target.is_eliminated():
+		return
+	var movement_sync: Variant = game_sync.get_module(GameSettings.MODULE_MOVEMENT)
+	if movement_sync != null:
+		movement_sync.throw(target, knockback, origin)
 
 
 func _on_projectile_tree_exited(net_id: int) -> void:
