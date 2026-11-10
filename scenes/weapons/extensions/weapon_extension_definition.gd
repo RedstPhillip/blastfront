@@ -132,8 +132,18 @@ func get_projectile_tags_for_mark(item_mark: int) -> Array[String]:
 	return result
 
 
+## {attr.fire_rate}: how much faster than the stock carbine this copy fires (0.5 = 50% faster); any other
+## {attr.name}: the attribute's modifier as it is.
+static func _attribute_token(attributes: Dictionary, name: StringName) -> float:
+	if name == &"fire_rate":
+		var interval: float = maxf(GameSettings.GUN_FIRE_INTERVAL + float(attributes.get(&"fire_interval", 0.0)), 0.03)
+		return GameSettings.GUN_FIRE_INTERVAL / interval - 1.0
+	return float(attributes.get(name, 0.0))
+
+
 ## The trait a mark adds ("" for MK I). Numbers in it come from the mark's effects at the given condition,
-## written as {effect.key} (a plain number) or {effect.key%} (a share as a percentage), so a worn copy
+## written as {effect.key} (a plain number) or {effect.key%} (a share as a percentage), or {attr.name} for
+## the stats (see _attribute_token), so a worn copy
 ## reads what it really does: "Each bounce adds {growth.bounce%} damage." → "Each bounce adds 19% damage."
 func get_mark_trait(item_mark: int, condition: float = 100.0) -> String:
 	var text: String = ""
@@ -145,11 +155,16 @@ func get_mark_trait(item_mark: int, condition: float = 100.0) -> String:
 	if text.find("{") < 0:
 		return text
 	var effects: Dictionary = get_effective_projectile_effects(condition, item_mark)
+	var attributes: Dictionary = get_effective_attribute_modifiers(condition, item_mark)
 	var pattern: RegEx = RegEx.create_from_string("\\{([a-z_]+)\\.([a-z_]+)(%?)\\}")
 	for found in pattern.search_all(text):
-		var effect: Variant = effects.get(found.get_string(1), {})
-		var value: float = float((effect as Dictionary).get(found.get_string(2), 0.0)) if effect is Dictionary else 0.0
-		var shown: String = "%d%%" % roundi(value * 100.0) if found.get_string(3) == "%" else String.num(value, 1)
+		var value: float = 0.0
+		if found.get_string(1) == "attr":
+			value = _attribute_token(attributes, StringName(found.get_string(2)))
+		else:
+			var effect: Variant = effects.get(found.get_string(1), {})
+			value = float((effect as Dictionary).get(found.get_string(2), 0.0)) if effect is Dictionary else 0.0
+		var shown: String = "%d%%" % roundi(value * 100.0) if found.get_string(3) == "%" else String.num(value, 1).trim_suffix(".0")
 		text = text.replace(found.get_string(0), shown)
 	return text
 

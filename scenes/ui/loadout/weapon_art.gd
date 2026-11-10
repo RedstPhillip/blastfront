@@ -531,18 +531,6 @@ static func _front_part(id: StringName) -> Array:
 
 static func _top_part(id: StringName) -> Array:
 	match id:
-		&"standard_scope_mk1":
-			return [
-				_poly([Vector2(-14, 0), Vector2(-9, 0), Vector2(-9, -6), Vector2(-14, -6)], STEEL_DARK),
-				_poly([Vector2(9, 0), Vector2(14, 0), Vector2(14, -6), Vector2(9, -6)], STEEL_DARK),
-				_poly([Vector2(-23, -12.5), Vector2(22, -12.5), Vector2(22, -5.5), Vector2(-23, -5.5)], STEEL),
-				_poly([Vector2(21, -15), Vector2(31, -16), Vector2(31, -2), Vector2(21, -3)], STEEL_DARK),
-				_poly([Vector2(-30, -13), Vector2(-22, -12.5), Vector2(-22, -5.5), Vector2(-30, -5)], STEEL_DARK),
-				_poly([Vector2(-1, -16), Vector2(5, -16), Vector2(5, -12.5), Vector2(-1, -12.5)], STEEL_MID),
-				_poly([Vector2(-22, -11.4), Vector2(21, -11.4), Vector2(21, -9.6), Vector2(-22, -9.6)], STEEL_LIGHT, false),
-				_poly([Vector2(31, -15.2), Vector2(33, -14.6), Vector2(33, -3.4), Vector2(31, -2.8)], GLASS),
-				_poly([Vector2(31.2, -13.5), Vector2(32.6, -13.2), Vector2(32.6, -10.5), Vector2(31.2, -10.6)], Color(0.95, 1.0, 1.0), false),
-			]
 		&"laser_scope_mk1":
 			return [
 				_poly([Vector2(-8, 0), Vector2(-4, 0), Vector2(-4, -3), Vector2(-8, -3)], STEEL_DARK),

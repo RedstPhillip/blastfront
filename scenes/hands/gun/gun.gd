@@ -28,8 +28,6 @@ var _fire_cooldown: float = 0.0
 var _shot_buffer: float = 0.0
 var _recoil_offset: float = 0.0
 var _recoil_rotation: float = 0.0
-## How long the reload under way takes in all (an empty one is quicker with Lighter Barrel MK II / III).
-var _reload_total: float = 0.0
 var _trigger_rest_time: float = 0.0
 var _extension_stats: Dictionary = {}
 var _extension_player_slot: int = -1
@@ -537,15 +535,7 @@ func _build_fire_profile() -> Dictionary:
 
 func _start_reload() -> void:
 	_is_reloading = true
-	_reload_total = _get_effective_reload_time()
-	if _current_ammo <= 0:
-		# Lighter Barrel MK II / III: an empty magazine reloads faster (its empty_reload effect).
-		var faster: float = float(_get_effect_data(_extension_stats.projectile_effects, &"empty_reload").get("faster", 0.0))
-		if faster > 0.0:
-			_reload_total *= 1.0 - clampf(faster, 0.0, 0.8)
-			if _player != null:
-				_player.show_trait_callout("QUICK RELOAD", UiStyle.ACCENT)
-	_reload_timer = _reload_total
+	_reload_timer = _get_effective_reload_time()
 	AudioDirector.play_at(&"reload_start", global_position)
 
 
@@ -610,7 +600,7 @@ func instant_reload() -> void:
 func get_reload_ratio() -> float:
 	if not _is_reloading:
 		return 1.0
-	var reload_duration: float = _reload_total if _reload_total > 0.0 else _get_effective_reload_time()
+	var reload_duration: float = _get_effective_reload_time()
 	return clampf(1.0 - (_reload_timer / reload_duration), 0.0, 1.0)
 
 

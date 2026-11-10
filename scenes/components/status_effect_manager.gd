@@ -26,6 +26,8 @@ func apply_effect(name: StringName, params: Dictionary) -> void:
 			player.show_trait_callout("GUARD BROKEN", Color(1.0, 0.9, 0.3, 1.0))
 		if float(adjusted_params.get("no_heal", 0.0)) > 0.0:
 			player.show_trait_callout("NO HEALING", Color(0.5, 1.0, 0.5, 1.0))
+		if name == &"marked":
+			player.show_trait_callout("MARKED", Color(1.0, 0.5, 0.45, 1.0))
 
 	var instance: Dictionary = {
 		"time_remaining": duration,
@@ -42,7 +44,7 @@ func apply_effect(name: StringName, params: Dictionary) -> void:
 		"no_heal": float(adjusted_params.get("no_heal", 0.0)) > 0.0,
 	}
 
-	if name == &"poison":
+	if name == &"poison" or name == &"marked":
 		_active_effects[name] = [instance]
 	else:
 		if not _active_effects.has(name):
@@ -79,6 +81,18 @@ func _apply_freeze_root(player: Player, params: Dictionary) -> void:
 		player.apply_stun(root)
 		player.show_trait_callout("FROZEN", Color(0.72, 0.92, 1.0, 1.0))
 	effect_added.emit(&"frozen")
+
+
+## Sniper Barrel MK III: spends a mark source_slot left on this player. True when there was one.
+func take_mark(source_slot: int) -> bool:
+	var instances: Variant = _active_effects.get(&"marked")
+	if not (instances is Array):
+		return false
+	for instance in (instances as Array):
+		if int((instance as Dictionary).get("source_slot", 0)) == source_slot:
+			remove_effects(&"marked")
+			return true
+	return false
 
 
 ## True while any active effect carries this flag (breaks_guard, no_heal).

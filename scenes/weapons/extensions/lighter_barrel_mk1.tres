@@ -14,32 +14,19 @@ minimum_condition_factor = 0.25
 attribute_modifiers = {
 "fire_interval": -0.12,
 "damage": -5.0,
-"projectile_speed": 50.0,
-"reload_time": -0.1
+"projectile_speed": 50.0
 }
 mk2_attribute_modifiers = {
-"fire_interval": -0.2,
+"fire_interval": -0.22,
 "damage": -4.0,
-"projectile_speed": 120.0,
-"reload_time": -0.16
+"projectile_speed": 120.0
 }
 mk3_attribute_modifiers = {
-"fire_interval": -0.28,
+"fire_interval": -0.3,
 "damage": -3.0,
-"projectile_speed": 220.0,
-"reload_time": -0.22
+"projectile_speed": 220.0
 }
-mk2_projectile_effects = {
-"empty_reload": {
-"faster": 0.25
-}
-}
-mk3_projectile_effects = {
-"empty_reload": {
-"faster": 0.45
-}
-}
-mk2_trait = "Empty reloads are {empty_reload.faster%} faster."
-mk3_trait = "Empty reloads are {empty_reload.faster%} faster."
+mk2_trait = "Fires {attr.fire_rate%} faster than stock."
+mk3_trait = "Fires {attr.fire_rate%} faster than stock."
 visual_scene = ExtResource("2_visual")
 icon_color = Color(0.7, 0.7, 0.75, 1)

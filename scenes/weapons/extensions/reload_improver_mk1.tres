@@ -17,11 +17,11 @@ attribute_modifiers = {
 }
 mk2_attribute_modifiers = {
 "fire_interval": -0.18,
-"reload_time": -0.28
+"reload_time": -0.45
 }
 mk3_attribute_modifiers = {
 "fire_interval": -0.26,
-"reload_time": -0.4
+"reload_time": -0.65
 }
 mk2_projectile_effects = {
 "auto_reload": {
@@ -30,7 +30,7 @@ mk2_projectile_effects = {
 }
 mk3_projectile_effects = {
 "auto_reload": {
-"delay": 0.35
+"delay": 0.3
 }
 }
 mk2_trait = "Auto-reloads {auto_reload.delay} s after you stop firing."

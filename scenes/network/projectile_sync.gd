@@ -334,6 +334,10 @@ func _on_projectile_despawn_requested(projectile: Node, reason: StringName, coll
 			var stagger: float = shot.get_impact_stagger()
 			if stagger > 0.0:
 				combat_sync.apply_status_effect(hit_player.player_slot, shot.owner_slot, &"stagger", ExtensionEffectRegistry.stagger_data(stagger))
+			# Sniper Barrel MK III: the hit (its bonus already in shot.damage) marks the target anew.
+			var mark_data: Dictionary = shot.get_mark_data()
+			if not mark_data.is_empty():
+				combat_sync.apply_status_effect(hit_player.player_slot, shot.owner_slot, &"marked", mark_data)
 	if reason == &"collision":
 		_apply_authoritative_extension_effects(shot, hit_player)
 

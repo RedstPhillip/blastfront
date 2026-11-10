@@ -859,26 +859,14 @@ func _build_script() -> void:
 			_at(18.5, "call", func():
 				var shot = _air_stats.get("bounce_shot")
 				print("TRAIT bounce_speed after=%.0f (600 before; 720 = +20%%) bounced=%s" % [shot.velocity.length() if is_instance_valid(shot) else -1.0, shot.has_bounced() if is_instance_valid(shot) else false]))
-			# Lighter Barrel MK III: an empty reload against a part-empty one.
-			_at(18.7, "call", func():
-				for item in root.get_node("ExtensionInventory").get_inventory_for_player(1):
-					if str(item.get_definition_id()) == "lighter_barrel_mk1":
-						item.mark = 3
-						item.condition = 100.0
-				_equip(["lighter_barrel_mk1"]))
-			_at(18.9, "call", func():
-				var gun = _p1().get_gun()
-				gun._refresh_extension_loadout()
-				gun._current_ammo = 1
-				gun._start_reload()
-				var partial: float = gun._reload_total
-				gun._finish_reload()
-				gun._current_ammo = 0
-				gun._start_reload()
-				print("TRAIT empty_reload partial=%.2f s empty=%.2f s (45%% faster)" % [partial, gun._reload_total])
-				gun._finish_reload())
-			_at(19.1, "call", func(): print("TRAIT callouts=%s" % str(root.get_node("GameJuice")._callout_times.keys())))
-			_at(19.3, "quit")
+			# Sniper Barrel MK III: the second of two marked hits deals +30%.
+			_at(18.7, "call", func(): _trait_setup("mark"))
+			_at(18.8, "call", func(): _trait_fire({"mark": {"duration": 3.0, "bonus": 0.3}}, [], 120.0))
+			_at(19.0, "call", func(): print("TRAIT mark first hit damage=%d marked=%s" % [60 - _stress_game().get_player_by_slot(2).health_component.health, _stress_game().get_player_by_slot(2).status_effect_manager.has_effect(&"marked")]))
+			_at(19.05, "call", func(): _trait_fire({"mark": {"duration": 3.0, "bonus": 0.3}}, [], 120.0))
+			_at(19.25, "call", func(): print("TRAIT mark second hit total=%d (20 + 26 = 46)" % (60 - _stress_game().get_player_by_slot(2).health_component.health)))
+			_at(19.35, "call", func(): print("TRAIT callouts=%s" % str(root.get_node("GameJuice")._callout_times.keys())))
+			_at(19.5, "quit")
 		"research_movement2":
 			# The Movement lane with the two new projects: Air Jump and Ground Slam selected in turn.
 			_at(0.5, "call", func(): _main.change_scene(_main.get_scene("res://scenes/menus/intermission_menu.tscn")))
@@ -958,6 +946,7 @@ func _build_script() -> void:
 				["guard_chip", {"guard_chip": {"share": 0.5}}, []],
 				["explosive_aftershock", {"explosive": {"radius": 130.0, "splash_damage": 20, "knockback": 400.0, "aftershock": 0.5}}, ["explosive"]],
 				["grenade_stun", {"grenade": {"delay": 0.2, "radius": 130.0, "damage_per_hit": 20, "knockback": 400.0, "stun": 0.35}}, ["grenade"]],
+				["mark", {"mark": {"duration": 3.0, "bonus": 0.3}}, []],
 			]
 			for i in range(online_trials.size()):
 				var trial: Array = online_trials[i]
@@ -982,13 +971,18 @@ func _build_script() -> void:
 						return
 					sync._spawn_projectile(9000 + i, 2, _p1().global_position + Vector2(120.0, -6.0), Vector2.LEFT, data, true))
 				_at(t0 + 0.32, "call", func(): print("ONLINE_TRAIT %s early hp=%d dx=%+.0f stunned=%s" % [label, _p1().health_component.health, _p1().global_position.x - _dummy_start.x, _p1()._stun_timer > 0.0]))
+				if label == "mark":
+					_at(t0 + 0.5, "call", func():
+						var sync = _stress_game()._game_sync.get_module(&"projectile")
+						var data: Dictionary = {"muzzle_speed": 900.0, "gravity": 0.0, "damage": 20, "max_distance": 1400.0, "extension_tags": [], "extension_effects": trial[1]}
+						sync._spawn_projectile(9100, 2, _p1().global_position + Vector2(120.0, -6.0), Vector2.LEFT, data, true))
 				_at(t0 + 1.2, "call", func(): print("ONLINE_TRAIT %s late hp=%d dx=%+.0f" % [label, _p1().health_component.health, _p1().global_position.x - _dummy_start.x]))
-			_at(8.2, "call", func():
+			_at(9.6, "call", func():
 				var session = root.get_node("NetworkSession")
 				session.mode = &"training"
 				session._match_active = false
 				root.get_node("OnlineMatch").phase = &"locker")
-			_at(8.4, "quit")
+			_at(9.8, "quit")
 		"slide_probe":
 			# Sliding on a private rig (arena terrain removed): floor top 640, a low tunnel at x 700-900 (its
 			# ceiling 30 px above the floor: too low to stand, high enough to slide) and a dead-end pocket at
@@ -1763,11 +1757,11 @@ func _build_script() -> void:
 			_at(2.3, "call", func(): get_first_node_in_group(&"game_world").get_node("HUD/PauseMenu")._on_loadout_pressed())
 			_at(2.32, "shot", "open_a")
 			_at(2.45, "shot", "open_b")
-			_at(3.2, "call", func(): _lo_mouse_to_tile("standard_scope_mk1", Vector2.ZERO))
+			_at(3.2, "call", func(): _lo_mouse_to_tile("laser_scope_mk1", Vector2.ZERO))
 			_at(3.6, "shot", "hover_scope")
 			_at(3.7, "call", func(): _lo_press(true))
-			_at(3.75, "call", func(): _lo_mouse_to_tile("standard_scope_mk1", Vector2(12, -8)))
-			_at(3.8, "call", func(): _lo_mouse_to_tile("standard_scope_mk1", Vector2(40, -30)))
+			_at(3.75, "call", func(): _lo_mouse_to_tile("laser_scope_mk1", Vector2(12, -8)))
+			_at(3.8, "call", func(): _lo_mouse_to_tile("laser_scope_mk1", Vector2(40, -30)))
 			_at(3.9, "call", func(): _lo_mouse_to(Vector2(330, 260)))
 			_at(4.1, "shot", "drag_mid")
 			_at(4.2, "call", func(): _lo_mouse_to(Vector2(250, 160)))
@@ -1941,7 +1935,7 @@ func _build_script() -> void:
 			_at(1.5, "call", func():
 				var gun = _stress_game().get_player_by_slot(1).get_gun()
 				print("SCOPE stock ", gun.get_ballistics(), " dmg=", gun._get_modified_damage(), " interval=", gun._get_modified_fire_interval()))
-			_at(1.6, "call", func(): _equip(["standard_scope_mk1"]))
+			_at(1.6, "call", func(): _equip(["laser_scope_mk1"]))
 			_at(1.7, "call", func():
 				var gun = _stress_game().get_player_by_slot(1).get_gun()
 				print("SCOPE standard ", gun.get_ballistics(), " dmg=", gun._get_modified_damage(), " interval=", gun._get_modified_fire_interval()))
@@ -1981,7 +1975,7 @@ func _build_script() -> void:
 			_at(1.0, "mouse", Vector2(900, 330))
 			_at(2.0, "call", func(): _freeze_camera_keep_players(get_first_node_in_group(&"game_world").get_player_by_slot(1).global_position + Vector2(20, -10), 3.2))
 			_at(2.3, "shot", "gun_stock")
-			_at(2.4, "call", func(): _equip(["sniper_barrel_mk1", "standard_scope_mk1", "poison_rounds_mk1"]))
+			_at(2.4, "call", func(): _equip(["sniper_barrel_mk1", "laser_scope_mk1", "poison_rounds_mk1"]))
 			_at(2.7, "shot", "gun_sniper")
 			_at(2.8, "call", func(): _equip(["shotgun_mk1", "laser_scope_mk1", "big_bullets_mk1"]))
 			_at(3.1, "shot", "gun_shotgun")
@@ -2062,15 +2056,15 @@ func _build_art_sheet() -> void:
 	var art = load("res://scenes/ui/loadout/weapon_art.gd")
 	var configs: Array = [
 		{},
-		{&"front": {"id": &"sniper_barrel_mk1", "mark": 3}, &"middle": {"id": &"standard_scope_mk1", "mark": 2}, &"ammo": {"id": &"freeze_rounds_mk1", "mark": 1}},
+		{&"front": {"id": &"sniper_barrel_mk1", "mark": 3}, &"middle": {"id": &"laser_scope_mk1", "mark": 2}, &"ammo": {"id": &"freeze_rounds_mk1", "mark": 1}},
 		{&"front": {"id": &"heavy_barrel_mk1", "mark": 1}, &"middle": {"id": &"laser_scope_mk1", "mark": 1}, &"ammo": {"id": &"poison_rounds_mk1", "mark": 2}},
 		{&"front": {"id": &"shotgun_mk1", "mark": 1}, &"middle": {"id": &"reload_improver_mk1", "mark": 1}, &"ammo": {"id": &"explosive_bullet_mk1", "mark": 1}},
 		{&"front": {"id": &"kinetic_amplifier_mk1", "mark": 2}, &"middle": {"id": &"ground_hover_mk1", "mark": 1}, &"ammo": {"id": &"shocking_rounds_mk1", "mark": 1}},
 		{&"front": {"id": &"multi_barrel_mk1", "mark": 1}, &"ammo": {"id": &"grenades_mk1", "mark": 1}},
 		{&"front": {"id": &"lighter_barrel_mk1", "mark": 1}, &"ammo": {"id": &"big_bullets_mk1", "mark": 1}},
-		{&"front": {"id": &"extended_barrel_mk1", "mark": 1}, &"ammo": {"id": &"drill_bullets_mk1", "mark": 1}, &"middle": {"id": &"standard_scope_mk1", "mark": 1}},
+		{&"front": {"id": &"extended_barrel_mk1", "mark": 1}, &"ammo": {"id": &"drill_bullets_mk1", "mark": 1}, &"middle": {"id": &"laser_scope_mk1", "mark": 1}},
 	]
-	var ids: Array = ["extended_barrel_mk1", "heavy_barrel_mk1", "kinetic_amplifier_mk1", "lighter_barrel_mk1", "multi_barrel_mk1", "shotgun_mk1", "sniper_barrel_mk1", "standard_scope_mk1", "laser_scope_mk1", "reload_improver_mk1", "ground_hover_mk1", "poison_rounds_mk1", "freeze_rounds_mk1", "shocking_rounds_mk1", "explosive_bullet_mk1", "grenades_mk1", "drill_bullets_mk1", "bouncy_bullets_mk1", "big_bullets_mk1"]
+	var ids: Array = ["extended_barrel_mk1", "heavy_barrel_mk1", "kinetic_amplifier_mk1", "lighter_barrel_mk1", "multi_barrel_mk1", "shotgun_mk1", "sniper_barrel_mk1", "laser_scope_mk1", "reload_improver_mk1", "ground_hover_mk1", "poison_rounds_mk1", "freeze_rounds_mk1", "shocking_rounds_mk1", "explosive_bullet_mk1", "grenades_mk1", "drill_bullets_mk1", "bouncy_bullets_mk1", "big_bullets_mk1"]
 	canvas.draw.connect(func():
 		canvas.draw_rect(Rect2(Vector2.ZERO, canvas.size), Color(0.07, 0.1, 0.11))
 		for i in range(configs.size()):

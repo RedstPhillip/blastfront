@@ -233,11 +233,16 @@ func _on_collision(collision: KinematicCollision2D) -> void:
 
 	if is_player:
 		_apply_range_bonus()
+		if is_network_authority:
+			take_mark_bonus(collider as Player)
 	_play_collision_feedback(collision, collider)
 	_play_payload_feedback(collision.get_position())
 	if net_id == 0:
 		_apply_local_collision_damage(collider)
 		_apply_local_impact(collider as Player)
+		var marked: Player = collider as Player
+		if marked != null and marked.status_effect_manager != null and not get_mark_data().is_empty():
+			marked.status_effect_manager.apply_effect(&"marked", get_mark_data())
 		ExtensionEffectRegistry.apply_projectile_effects(collider as Player, self)
 	_request_despawn(&"collision", collider)
 
@@ -290,6 +295,24 @@ func get_impact_knockback() -> Vector2:
 ## How long a hit with the impact trait stuns (Big Bullets MK III, Sniper Barrel MK II).
 func get_impact_stagger() -> float:
 	return float(get_effect("impact").get("stagger", 0.0))
+
+
+## Sniper Barrel MK III: a hit on a target this round's owner marked spends the mark for +bonus damage.
+## Runs on the authority right before the hit is judged; the hit then marks the target anew.
+func take_mark_bonus(target: Player) -> void:
+	var mark: Dictionary = get_effect("mark")
+	if mark.is_empty() or target == null or target.player_slot == owner_slot or target.status_effect_manager == null:
+		return
+	if target.status_effect_manager.take_mark(owner_slot):
+		damage = maxi(1, int(roundf(float(damage) * (1.0 + float(mark.get("bonus", 0.0))))))
+
+
+## The status a hit with the mark trait leaves on its target, or {} without the trait.
+func get_mark_data() -> Dictionary:
+	var mark: Dictionary = get_effect("mark")
+	if mark.is_empty():
+		return {}
+	return {"duration": float(mark.get("duration", 3.0)), "source_slot": owner_slot, "tint_color": Color(1.0, 0.45, 0.4, 1.0)}
 
 
 ## Damage a raised shield lets through (Heavy Barrel MK II / III), as a share of the round's damage.
@@ -567,17 +590,6 @@ func _get_projectile_visual_style() -> Dictionary:
 				0.11,
 				5.0
 			)
-		"standard_scope_mk1":
-			return _make_projectile_style(
-				Color(0.76, 0.84, 0.9, 1.0),
-				Color(0.05, 0.06, 0.07, 1.0),
-				Color(0.58, 0.66, 0.72, 0.32),
-				PackedVector2Array([Vector2(8.8, 0.0), Vector2(-1.0, -2.7), Vector2(-5.2, 0.0), Vector2(-1.0, 2.7)]),
-				PackedVector2Array([Vector2(11.6, 0.0), Vector2(-1.5, -4.2), Vector2(-7.8, 0.0), Vector2(-1.5, 4.2)]),
-				14,
-				0.11,
-				10.0
-			)
 		"extended_barrel_mk1":
 			return _make_projectile_style(
 				Color(0.9, 0.9, 0.82, 1.0),
@@ -621,7 +633,6 @@ func _get_visual_extension_id() -> String:
 		"ground_hover_mk1",
 		"laser_scope_mk1",
 		"reload_improver_mk1",
-		"standard_scope_mk1",
 	]
 	for extension_id in priority:
 		if source_extensions.has(extension_id):
