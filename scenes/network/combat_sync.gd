@@ -180,6 +180,17 @@ func apply_status_effect(target_slot: int, source_slot: int, effect_name: String
 		)
 
 
+## Host only: ends a status effect source_slot put on target_slot early (its ticks stop; the peers' look of it
+## runs out on its own).
+func clear_status_effect(target_slot: int, source_slot: int, effect_name: StringName) -> void:
+	if game_sync == null or not game_sync.is_host():
+		return
+	_clear_damage_over_time(_status_effect_key(target_slot, source_slot, effect_name))
+	var player: Player = _get_player(target_slot)
+	if player != null and player.status_effect_manager != null:
+		player.status_effect_manager.remove_effects(effect_name)
+
+
 func _start_or_refresh_damage_over_time(
 	effect_key: String,
 	target_slot: int,

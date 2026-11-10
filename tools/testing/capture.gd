@@ -1031,6 +1031,12 @@ func _build_script() -> void:
 			_at(8.9, "call", func():
 				var dummy = _stress_game().get_player_by_slot(2)
 				print("PARTS fire afterburn damage_after_leaving=%d" % (int(_air_stats["hp_out"]) - dummy.health_component.health)))
+			# Stepping in burns at once: the dummy walks into a fresh patch and is checked a frame later.
+			_at(9.0, "call", func():
+				var dummy = _stress_game().get_player_by_slot(2)
+				dummy.global_position = Vector2(640.0, 616.0)
+				_air_stats["hp_step"] = dummy.health_component.health)
+			_at(9.04, "call", func(): print("PARTS fire step_in damage_within_2_frames=%d (3 = burned at once)" % (int(_air_stats["hp_step"]) - _stress_game().get_player_by_slot(2).health_component.health)))
 			# Shotgun-style: five fire rounds at one spot make one patch.
 			_at(9.2, "call", func():
 				for k in range(5):

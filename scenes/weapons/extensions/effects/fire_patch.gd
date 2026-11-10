@@ -3,9 +3,11 @@ extends Node2D
 
 ## Burning ground left by Fire Rounds: a strip of flames on the floor under the impact. Every peer shows it
 ## (it is spawned with the impact feedback); only the side that judges hits (offline, or the host online)
-## burns whoever stands in it every `tick` seconds, and from MK II sets them burning (the "burn" status) the
-## moment they step out or the fire dies under them, so the two never burn at once. A new patch next to one of the same owner refreshes it instead of stacking, so a
-## shotgun volley makes one fire, not seven.
+## burns whoever steps into it the moment they do, then every `tick` seconds while they stay; from MK II it
+## sets them burning (the "burn" status) the moment they step out or the fire dies under them, and stepping
+## back in puts that burn out, so the two never burn at once. Each fighter burns at most once per `tick`, so
+## dancing on the edge burns no faster than standing in it. A new patch next to one of the same owner
+## refreshes it instead of stacking, so a shotgun volley makes one fire, not seven.
 
 const MAX_PER_OWNER: int = 4
 const FADE_IN: float = 0.15
@@ -22,9 +24,10 @@ var tick: float = 0.4
 var afterburn: float = 0.0
 
 var _age: float = 0.0
-## Fighters standing in the fire at the last tick (they get the afterburn when they leave it).
+## Fighters standing in the fire (they get the afterburn when they leave it).
 var _inside: Array[Player] = []
-var _tick_timer: float = 0.0
+## Player -> seconds since this fire last burned them.
+var _since_burn: Dictionary = {}
 var _seed: float = 0.0
 
 
@@ -72,7 +75,6 @@ func _ready() -> void:
 	add_to_group(&"fire_patches")
 	z_index = 4
 	_seed = randf() * 100.0
-	_tick_timer = tick * 0.5
 
 
 func _process(delta: float) -> void:
@@ -98,17 +100,21 @@ func extinguish() -> void:
 func _physics_process(delta: float) -> void:
 	if not _judges_hits():
 		return
-	_tick_timer -= delta
-	if _tick_timer > 0.0:
-		return
-	_tick_timer = tick
+	for key in _since_burn.keys():
+		_since_burn[key] = float(_since_burn[key]) + delta
 	var now_inside: Array[Player] = []
 	for node in get_tree().get_nodes_in_group(GameSettings.PLAYERS_GROUP):
 		var player: Player = node as Player
 		if player == null or player.player_slot == owner_slot or player.is_eliminated():
 			continue
-		if _covers(player.global_position):
-			now_inside.append(player)
+		if not _covers(player.global_position):
+			continue
+		now_inside.append(player)
+		if not _inside.has(player):
+			_put_out_afterburn(player)
+		# The first burn the moment they step in, then one per tick while they stay.
+		if float(_since_burn.get(player, INF)) >= tick:
+			_since_burn[player] = 0.0
 			_burn(player)
 	for player in _inside:
 		if is_instance_valid(player) and not now_inside.has(player) and not player.is_eliminated():
@@ -135,6 +141,17 @@ func _burn(player: Player) -> void:
 		return
 	if not NetworkSession.is_steam_match_active():
 		player.apply_incoming_damage(damage, owner_slot, global_position, false)
+
+
+## Stepping back into the fire puts out the burn they took with them, so fire and burn never stack.
+func _put_out_afterburn(player: Player) -> void:
+	if afterburn <= 0.0:
+		return
+	var combat: Variant = _combat()
+	if combat != null:
+		combat.clear_status_effect(player.player_slot, owner_slot, &"burn")
+	elif player.status_effect_manager != null:
+		player.status_effect_manager.remove_effects(&"burn")
 
 
 ## Fire Rounds MK II / III: the burn a fighter takes with them out of the fire.
