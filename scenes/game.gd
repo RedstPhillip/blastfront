@@ -51,6 +51,7 @@ func _enter_tree() -> void:
 func _ready() -> void:
 	add_to_group(GameSettings.GAME_WORLD_GROUP)
 	TimeFlow.reset()
+	_announce_presence()
 
 	if NetworkSession.is_steam_match_active():
 		OnlineMatch.phase_changed.connect(_on_online_phase_changed)
@@ -728,6 +729,7 @@ func _on_offline_health_depleted(slot: int) -> void:
 		_clear_projectiles()
 		_set_player_controls_enabled(false)
 		match_finished.emit(source_slot)
+		_report_match_result(source_slot)
 		return
 
 	_set_player_controls_enabled(false)
@@ -789,6 +791,30 @@ func _on_online_phase_changed(next_phase: StringName) -> void:
 	elif next_phase == GameSettings.MATCH_PHASE_FINAL:
 		_clear_projectiles()
 		_set_player_controls_enabled(false)
+		_report_match_result(OnlineMatch.final_winner_slot)
+
+
+## What Steam friends see while this match runs.
+func _announce_presence() -> void:
+	var mode: String = "Offline"
+	if NetworkSession.is_steam_match_active():
+		mode = "Online duel"
+	elif NetworkSession.is_training():
+		mode = "Sandbox"
+	elif NetworkSession.is_bot_duel():
+		mode = "Versus bot"
+	SteamService.set_presence("%s · %s" % [mode, WorldCatalog.display_name(WorldCatalog.active_world_id())])
+
+
+## Tells Steam how the match ended for the local player (achievements and stats).
+func _report_match_result(winner_slot: int) -> void:
+	if winner_slot == 0:
+		return
+	var local_slot: int = NetworkSession.local_player_slot
+	var loser_slot: int = GameSettings.PLAYER_TWO_SLOT if winner_slot == GameSettings.PLAYER_ONE_SLOT else GameSettings.PLAYER_ONE_SLOT
+	var difficulty: int = UserSettings.get_int(UserSettings.BOT_DIFFICULTY) if NetworkSession.is_bot_duel() else -1
+	var loser_points: int = int(OnlineMatch.match_points.get(loser_slot, 0)) if NetworkSession.uses_set_flow() else get_score_for_slot(loser_slot)
+	SteamService.report_match_result(winner_slot == local_slot, difficulty, WorldCatalog.active_world_id(), loser_points == 0)
 
 
 func _on_online_state_changed() -> void:

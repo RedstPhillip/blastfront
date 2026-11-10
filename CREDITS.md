@@ -25,3 +25,18 @@ Files live in `assets/audio/sfx/`, `assets/audio/ui/` and `assets/audio/stingers
 ## Procedurally generated audio
 
 Music and ambience in `assets/audio/music/` were synthesized specifically for Blastfront.
+The same goes for the rain, thunder, tide and weapon sounds rendered by `tools/music/render_sfx.py`.
+
+## Engine and middleware (MIT License)
+
+| Component | Copyright | License text |
+| --- | --- | --- |
+| Godot Engine | Juan Linietsky, Ariel Manzur and the Godot Engine contributors | https://godotengine.org/license |
+| GodotSteam | GP Garcia, Chris Ridenour and contributors | `addons/godotsteam/license.md` |
+
+Godot's license asks for its copyright notice and license text to ship with the game: put this file (and
+the texts it points to) in the Steam depot next to the executable. The engine's own third-party notices
+are listed at https://docs.godotengine.org/en/stable/about/complying_with_licenses.html.
+
+Steamworks SDK binaries (`steam_api64.dll`, `libsteam_api.so`) are redistributed under the Steamworks SDK
+Access Agreement.

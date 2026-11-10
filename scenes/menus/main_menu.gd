@@ -49,6 +49,7 @@ func _ready() -> void:
 	GameJuice.attach_button_feedback(self)
 	SteamService.status_changed.connect(_refresh_steam)
 	_refresh_steam("")
+	SteamService.set_presence("Menu")
 	_play_intro()
 
 
