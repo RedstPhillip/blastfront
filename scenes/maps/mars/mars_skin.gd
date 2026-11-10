@@ -29,6 +29,11 @@ func _ready() -> void:
 	_beacon_material = ShaderMaterial.new()
 	_beacon_material.shader = BEACON_SHADER
 	_rng.seed = 4242
+	# Dust instead of turf: a plain graded band, and fine dust settling down the rock from the top.
+	soil_turf_depth = 0.0
+	soil_root_strength = 0.0
+	soil_earth_color = soil_top_color
+	rock_growth_color = Color(0.86, 0.56, 0.36, 0.32)
 	super._ready()
 	set_process(false)
 

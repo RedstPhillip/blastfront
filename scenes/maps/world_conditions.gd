@@ -29,6 +29,8 @@ static var water_level: float = INF
 ## Where the water will stand at the top of the tide that is announced or running (INF without water):
 ## what the bot keeps clear of.
 static var water_forecast: float = INF
+## The sound of a footstep on this world's ground (ice has its own, see Player).
+static var footstep: StringName = &"step"
 
 
 static func reset() -> void:
@@ -40,6 +42,7 @@ static func reset() -> void:
 	visibility = 1.0
 	water_level = INF
 	water_forecast = INF
+	footstep = &"step"
 
 
 static func is_ice(collider: Object) -> bool:

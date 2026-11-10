@@ -2735,7 +2735,7 @@ func _get_body_sprite_base_modulate(color_id: StringName) -> Color:
 
 func _begin_step(is_left: bool, target: Vector2) -> void:
 	if absf(velocity.x) > GameSettings.PLAYER_VISUAL_SPEED_THRESHOLD:
-		AudioDirector.play_at(&"step_ice" if is_on_ice() else &"step", target)
+		AudioDirector.play_at(&"step_ice" if is_on_ice() else WorldConditions.footstep, target)
 	if is_left:
 		_step_from_l = foot_pos_l
 		_step_to_l = target

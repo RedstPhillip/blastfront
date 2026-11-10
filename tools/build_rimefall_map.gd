@@ -11,6 +11,9 @@ extends "res://tools/map_builder.gd"
 const WIDTH: float = 2200.0
 const HEIGHT: float = 800.0
 const ICE_GROUP: StringName = WorldConditions.ICE_GROUP
+## Far-layer coordinates (origin = the arena's centre): the foot of the far range, and the moon.
+const FAR_BASELINE: float = 40.0
+const MOON: Vector2 = Vector2(380.0, -235.0)
 
 
 func _configure() -> void:
@@ -27,6 +30,7 @@ func _build() -> void:
 	_build_geometry()
 	_add_airdrops()
 	_build_notice()
+	_build_weather()
 	_build_skin()
 
 
@@ -37,6 +41,7 @@ func _build_profile() -> void:
 	profile.world_id = &"rimefall"
 	profile.display_name = "Rimefall"
 	profile.ambience = &"ambience_rimefall"
+	profile.footstep = &"step_snow"
 	profile.gravity_scale = 1.0
 	profile.projectile_gravity_scale = 1.0
 	profile.projectile_range_scale = 1.0
@@ -117,9 +122,16 @@ func _build_notice() -> void:
 	var notice: Node = Node.new()
 	notice.set_script(load("res://scenes/maps/world_notice.gd"))
 	notice.set(&"title", "GLARE ICE")
-	notice.set(&"detail", "Blue ice keeps your momentum, snow grips")
+	notice.set(&"detail", "Ice slides  ·  snow grips")
 	notice.set(&"color", Color(0.66, 0.88, 1.0))
 	_add(_root, notice, "IceNotice")
+
+
+func _build_weather() -> void:
+	var weather: Node2D = Node2D.new()
+	weather.set_script(load("res://scenes/maps/rimefall/rimefall_weather.gd"))
+	weather.set(&"arena_rect", Rect2(0.0, 0.0, WIDTH, HEIGHT))
+	_add(_root, weather, "Weather")
 
 
 func _build_skin() -> void:
@@ -150,27 +162,45 @@ func _build_environment() -> void:
 	var environment: Node2D = Node2D.new()
 	environment.z_index = -10
 	_add(_root, environment, "Environment")
+	# Far: the night sky with the aurora, and the pale range under it.
 	var far: Node2D = _layer(environment, "FarLayer", Vector2(0.18, 0.12))
-	var sky: TextureRect = TextureRect.new()
-	sky.position = Vector2(-3400.0, -700.0)
-	sky.size = Vector2(6800.0, 1000.0)
-	sky.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var gradient: Gradient = Gradient.new()
-	gradient.offsets = PackedFloat32Array([0.0, 0.6, 1.0])
-	gradient.colors = PackedColorArray([Color(0.02, 0.03, 0.08), Color(0.08, 0.12, 0.22), Color(0.3, 0.36, 0.5)])
-	var texture: GradientTexture2D = GradientTexture2D.new()
-	texture.gradient = gradient
-	texture.fill_from = Vector2(0.0, 0.0)
-	texture.fill_to = Vector2(0.0, 1.0)
-	sky.texture = texture
-	sky.stretch_mode = TextureRect.STRETCH_SCALE
-	sky.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_add(far, sky, "Sky")
-	_fill(far, "FarFill", Rect2(-3400.0, 300.0, 6800.0, 1600.0), Color(0.3, 0.36, 0.5))
-	_shader_rect(far, "FarHaze", Rect2(-3400.0, 60.0, 6800.0, 240.0), "res://scenes/maps/environment/fog.gdshader", {
-		&"noise_tex": noise, &"fog_color": Color(0.7, 0.78, 0.92), &"density": 0.3, &"speed": 0.01,
-		&"scale": 0.8, &"top_softness": 0.5, &"bottom_softness": 0.3,
+	var sky_rect: Rect2 = Rect2(-3400.0, -700.0, 6800.0, 700.0 + FAR_BASELINE)
+	_shader_rect(far, "Sky", sky_rect, "res://scenes/maps/rimefall/rimefall_sky.gdshader", {
+		&"noise_tex": noise, &"moon_px": MOON - sky_rect.position, &"moon_radius": 22.0,
+	})
+	_backdrop(far, "FarRange", 0, FAR_BASELINE, {
+		&"rock_shadow": Color(0.13, 0.17, 0.32), &"rock_lit": Color(0.18, 0.23, 0.4),
+		&"snow_shadow": Color(0.26, 0.33, 0.55), &"snow_lit": Color(0.47, 0.56, 0.8),
+		&"ground_color": Color(0.3, 0.37, 0.56), &"ground_deep": Color(0.2, 0.26, 0.44), &"seed_value": 21,
+	})
+	_shader_rect(far, "FarHaze", Rect2(-3400.0, FAR_BASELINE - 150.0, 6800.0, 230.0), "res://scenes/maps/environment/fog.gdshader", {
+		&"noise_tex": noise, &"fog_color": Color(0.62, 0.72, 0.92), &"density": 0.3, &"speed": 0.01,
+		&"scale": 0.8, &"top_softness": 0.6, &"bottom_softness": 0.35,
+	})
+	# Mid: nearer, darker peaks over the frozen plain.
+	var mid: Node2D = _layer(environment, "MidLayer", Vector2(0.36, 0.3))
+	_backdrop(mid, "MidRange", 1, FAR_BASELINE + 62.0, {
+		&"ground_color": Color(0.24, 0.3, 0.5), &"ground_deep": Color(0.12, 0.16, 0.32), &"seed_value": 34,
+	})
+	_shader_rect(mid, "MidHaze", Rect2(-3400.0, FAR_BASELINE - 30.0, 6800.0, 180.0), "res://scenes/maps/environment/fog.gdshader", {
+		&"noise_tex": noise, &"fog_color": Color(0.58, 0.68, 0.9), &"density": 0.22, &"speed": 0.016,
+		&"scale": 1.1, &"top_softness": 0.5, &"bottom_softness": 0.4,
+	})
+	# Near: the pine forest on its snow ridge.
+	var near: Node2D = _layer(environment, "NearLayer", Vector2(0.62, 0.55))
+	_backdrop(near, "Forest", 2, 205.0, {
+		&"ground_color": Color(0.16, 0.21, 0.38), &"ground_deep": Color(0.05, 0.07, 0.16), &"seed_value": 47,
 	})
 	_abyss(environment, Color(0.03, 0.04, 0.09), Color(0.55, 0.62, 0.8), 0.45)
-	_sky_light(environment, "MoonLight", Vector2(WIDTH * 0.66, -160.0), Color(0.78, 0.86, 1.0), 0.5, Color(0.02, 0.03, 0.08, 0.55))
-	_motes(environment, "Snow", 70, Vector2(0.2, 1.0), Vector2(2.0, 8.0), Vector2(10.0, 24.0), Vector2(0.04, 0.1), Color(0.95, 0.97, 1.0, 0.5))
+	_sky_light(environment, "MoonLight", Vector2(WIDTH * 0.5 + MOON.x, -160.0), Color(0.78, 0.86, 1.0), 0.5, Color(0.02, 0.03, 0.08, 0.55))
+
+
+func _backdrop(parent: Node, backdrop_name: String, kind: int, baseline: float, settings: Dictionary) -> void:
+	var backdrop: Node2D = Node2D.new()
+	backdrop.set_script(load("res://scenes/maps/rimefall/rimefall_backdrop.gd"))
+	backdrop.set(&"kind", kind)
+	backdrop.set(&"baseline", baseline)
+	backdrop.set(&"moon_side", signf(MOON.x))
+	for key in settings.keys():
+		backdrop.set(key, settings[key])
+	_add(parent, backdrop, backdrop_name)

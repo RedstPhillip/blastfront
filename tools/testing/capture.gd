@@ -1934,6 +1934,30 @@ func _build_script() -> void:
 			_at(15.5, "shot", "tide_spring")
 			_at(16.0, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
 			_at(16.1, "quit")
+		"tide_look":
+			# The looks of Tidewater's weather: a held flood in the rain, then a spring tide in the storm.
+			_at(0.2, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "tidewater"))
+			_at(0.5, "call", func(): _main._on_sandbox_requested())
+			_at(1.0, "mouse", Vector2(820, 300))
+			_at(2.0, "call", func():
+				_tide().hold_flood(false)
+				_stress_game().get_node("Arena/Weather").force_storm(0.72))
+			_at(4.0, "shot", "flood_game")
+			_at(4.1, "call", func(): _freeze_camera_keep_players(Vector2(1120, 420), 0.57))
+			_at(4.4, "shot", "flood_overview")
+			_at(4.5, "call", func(): _freeze_camera_keep_players(Vector2(900, 600), 2.0))
+			_at(4.8, "shot", "flood_close")
+			_at(5.0, "call", func():
+				_tide().hold_flood(true)
+				_stress_game().get_node("Arena/Weather").force_storm(1.0)
+				_freeze_camera_keep_players(Vector2(1120, 420), 0.8))
+			_at(7.0, "shot", "spring_wide")
+			_at(7.1, "call", func():
+				_stress_game().get_node("Arena/Weather")._flash = 1.0
+				_stress_game().get_node("Arena/Weather")._flash_timer = 50.0)
+			_at(7.15, "shot", "spring_flash")
+			_at(7.5, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
+			_at(7.6, "quit")
 		"tide_sync":
 			# Online: a second tide set up as the client follows the host's states (reliable phase events plus
 			# the regular snapshot, the way WorldSync delivers them) and must stand at the same level.

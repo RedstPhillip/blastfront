@@ -9,6 +9,8 @@ const GROUP: StringName = &"map_profile"
 @export var world_id: StringName = &"verdant"
 @export var display_name: String = "Verdant Ridge"
 @export var ambience: StringName = &"ambience_wind"
+## Audio event for a footstep on this world's ground (grass, stone, dust, snow).
+@export var footstep: StringName = &"step"
 @export_range(0.3, 1.5, 0.01) var gravity_scale: float = 1.0
 @export_range(0.3, 1.5, 0.01) var projectile_gravity_scale: float = 1.0
 ## Thin air lets rounds carry further before they fade out.
@@ -28,6 +30,7 @@ func _enter_tree() -> void:
 	WorldConditions.visibility = 1.0
 	WorldConditions.water_level = INF
 	WorldConditions.water_forecast = INF
+	WorldConditions.footstep = footstep
 
 
 func _exit_tree() -> void:

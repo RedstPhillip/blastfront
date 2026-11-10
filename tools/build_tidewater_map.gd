@@ -13,6 +13,9 @@ const WIDTH: float = 2240.0
 const HEIGHT: float = 800.0
 const FLOOD_LEVEL: float = 600.0
 const SPRING_LEVEL: float = 506.0
+## Far-layer coordinates (origin = the arena's centre): where the sea meets the sky, and the moon.
+const HORIZON: float = 30.0
+const MOON: Vector2 = Vector2(-430.0, -215.0)
 
 
 func _configure() -> void:
@@ -29,6 +32,7 @@ func _build() -> void:
 	_build_geometry()
 	_add_airdrops()
 	_build_tide()
+	_build_weather()
 	_build_skin()
 
 
@@ -39,6 +43,7 @@ func _build_profile() -> void:
 	profile.world_id = &"tidewater"
 	profile.display_name = "Tidewater"
 	profile.ambience = &"ambience_tidewater"
+	profile.footstep = &"step_stone"
 	profile.gravity_scale = 1.0
 	profile.projectile_gravity_scale = 1.0
 	profile.projectile_range_scale = 1.0
@@ -116,21 +121,25 @@ func _build_tide() -> void:
 	_add(_root, tide, "Tide")
 
 
+func _build_weather() -> void:
+	var weather: Node2D = Node2D.new()
+	weather.set_script(load("res://scenes/maps/tidewater/tidewater_weather.gd"))
+	weather.set(&"arena_rect", Rect2(0.0, 0.0, WIDTH, HEIGHT))
+	_add(_root, weather, "Weather")
+
+
 func _build_skin() -> void:
 	var skin: Node2D = Node2D.new()
-	skin.set_script(load("res://scenes/maps/environment/platform_skin.gd"))
+	skin.set_script(load("res://scenes/maps/tidewater/tidewater_skin.gd"))
 	var settings: Dictionary = {
 		&"map_top_y": 340.0,
 		&"map_bottom_y": 720.0,
-		&"high_color": Color(0.16, 0.2, 0.22),
-		&"low_color": Color(0.2, 0.3, 0.3),
-		&"deep_color": Color(0.03, 0.06, 0.07),
-		&"outline_color": Color(0.02, 0.05, 0.06, 0.9),
-		&"moss_color": Color(0.24, 0.42, 0.34),
-		&"rim_color": Color(0.7, 0.95, 0.9, 0.7),
-		&"rock_tint": Color(0.44, 0.47, 0.46),
-		&"soil_top_color": Color(0.22, 0.4, 0.32),
-		&"soil_deep_color": Color(0.1, 0.17, 0.16),
+		&"flood_level": FLOOD_LEVEL,
+		&"spring_level": SPRING_LEVEL,
+		&"outline_color": Color(0.015, 0.04, 0.05, 0.9),
+		&"rim_color": Color(0.78, 0.97, 0.93, 0.75),
+		&"vine_color": Color(0.1, 0.22, 0.17),
+		&"lantern_color": Color(1.0, 0.72, 0.4),
 	}
 	for key in settings.keys():
 		skin.set(key, settings[key])
@@ -144,27 +153,45 @@ func _build_environment() -> void:
 	var environment: Node2D = Node2D.new()
 	environment.z_index = -10
 	_add(_root, environment, "Environment")
+	# Far: the sky down to the horizon, the open sea below it, headlands and the lighthouse on the line.
 	var far: Node2D = _layer(environment, "FarLayer", Vector2(0.18, 0.12))
-	var sky: TextureRect = TextureRect.new()
-	sky.position = Vector2(-3400.0, -700.0)
-	sky.size = Vector2(6800.0, 1000.0)
-	sky.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var gradient: Gradient = Gradient.new()
-	gradient.offsets = PackedFloat32Array([0.0, 0.6, 1.0])
-	gradient.colors = PackedColorArray([Color(0.03, 0.06, 0.1), Color(0.08, 0.18, 0.22), Color(0.2, 0.36, 0.38)])
-	var texture: GradientTexture2D = GradientTexture2D.new()
-	texture.gradient = gradient
-	texture.fill_from = Vector2(0.0, 0.0)
-	texture.fill_to = Vector2(0.0, 1.0)
-	sky.texture = texture
-	sky.stretch_mode = TextureRect.STRETCH_SCALE
-	sky.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_add(far, sky, "Sky")
-	_fill(far, "FarFill", Rect2(-3400.0, 300.0, 6800.0, 1600.0), Color(0.2, 0.36, 0.38))
-	_shader_rect(far, "FarHaze", Rect2(-3400.0, 60.0, 6800.0, 240.0), "res://scenes/maps/environment/fog.gdshader", {
-		&"noise_tex": noise, &"fog_color": Color(0.5, 0.72, 0.72), &"density": 0.3, &"speed": 0.015,
-		&"scale": 0.8, &"top_softness": 0.5, &"bottom_softness": 0.3,
+	var sky_rect: Rect2 = Rect2(-3400.0, -700.0, 6800.0, 700.0 + HORIZON)
+	_shader_rect(far, "Sky", sky_rect, "res://scenes/maps/tidewater/tidewater_sky.gdshader", {
+		&"noise_tex": noise, &"moon_px": MOON - sky_rect.position, &"moon_radius": 26.0,
 	})
-	_abyss(environment, Color(0.02, 0.07, 0.09), Color(0.32, 0.6, 0.6), 0.4)
-	_sky_light(environment, "MoonLight", Vector2(WIDTH * 0.3, -160.0), Color(0.7, 0.92, 1.0), 0.5, Color(0.0, 0.04, 0.06, 0.55))
+	_shader_rect(far, "Sea", Rect2(-3400.0, HORIZON, 6800.0, 1870.0), "res://scenes/maps/tidewater/far_sea.gdshader", {
+		&"noise_tex": noise, &"moon_x": MOON.x + 3400.0, &"center_x": 3400.0,
+	})
+	_backdrop(far, "Headlands", 0, HORIZON, {
+		&"top_color": Color(0.15, 0.31, 0.34), &"base_color": Color(0.2, 0.39, 0.4), &"seed_value": 3,
+	})
+	_shader_rect(far, "FarHaze", Rect2(-3400.0, HORIZON - 120.0, 6800.0, 190.0), "res://scenes/maps/environment/fog.gdshader", {
+		&"noise_tex": noise, &"fog_color": Color(0.5, 0.72, 0.7), &"density": 0.26, &"speed": 0.015,
+		&"scale": 0.8, &"top_softness": 0.55, &"bottom_softness": 0.45,
+	})
+	# Mid: the drowned city.
+	var mid: Node2D = _layer(environment, "MidLayer", Vector2(0.36, 0.3))
+	_backdrop(mid, "Ruins", 1, HORIZON + 38.0, {&"seed_value": 5})
+	_shader_rect(mid, "MidHaze", Rect2(-3400.0, HORIZON - 60.0, 6800.0, 170.0), "res://scenes/maps/environment/fog.gdshader", {
+		&"noise_tex": noise, &"fog_color": Color(0.42, 0.66, 0.66), &"density": 0.2, &"speed": 0.022,
+		&"scale": 1.1, &"top_softness": 0.5, &"bottom_softness": 0.4,
+	})
+	# Near: rocks and the dark water under the ruins.
+	var near: Node2D = _layer(environment, "NearLayer", Vector2(0.62, 0.55))
+	_backdrop(near, "Rocks", 2, 215.0, {
+		&"top_color": Color(0.05, 0.12, 0.15), &"base_color": Color(0.025, 0.07, 0.09), &"seed_value": 9,
+	})
+	_abyss(environment, Color(0.012, 0.05, 0.07), Color(0.32, 0.6, 0.6), 0.4)
+	_sky_light(environment, "MoonLight", Vector2(WIDTH * 0.5 + MOON.x, -160.0), Color(0.7, 0.92, 1.0), 0.5, Color(0.0, 0.04, 0.06, 0.55))
 	_motes(environment, "Spray", 50, Vector2(1.0, 0.2), Vector2(4.0, 6.0), Vector2(8.0, 20.0), Vector2(0.04, 0.09), Color(0.8, 1.0, 0.96, 0.28))
+
+
+func _backdrop(parent: Node, backdrop_name: String, kind: int, waterline: float, settings: Dictionary) -> void:
+	var backdrop: Node2D = Node2D.new()
+	backdrop.set_script(load("res://scenes/maps/tidewater/tidewater_backdrop.gd"))
+	backdrop.set(&"kind", kind)
+	backdrop.set(&"waterline", waterline)
+	backdrop.set(&"moon_x", MOON.x)
+	for key in settings.keys():
+		backdrop.set(key, settings[key])
+	_add(parent, backdrop, backdrop_name)

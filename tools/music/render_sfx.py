@@ -163,24 +163,20 @@ def _sparse_events(n, rate_hz, rng):
 
 
 def render_tidewater_ambience(seconds):
-    """A drowned temple at night in the rain: steady downpour, waves washing through the ruins in slow
-    swells, water dripping off stone and thunder rolling far away."""
+    """A drowned temple on a clear night: waves washing through the ruins in slow swells, the pull of the
+    undertow, a light sea breeze and water dripping off stone. The rain and the thunder of a tide are
+    layers of their own (rain_loop, thunder), brought in by the weather."""
     t = t_axis(seconds)
     n = len(t)
     rng = np.random.default_rng(211)
-    rain = bandpass(rng.standard_normal(n), 1400.0, 9000.0) * 0.32
-    rain *= 0.85 + 0.15 * np.sin(2 * np.pi * 0.07 * t)
-    patter = np.zeros(n)
-    for start in _sparse_events(n, 55.0, rng):
-        length = int(SR * rng.uniform(0.004, 0.012))
-        end = min(start + length, n)
-        patter[start:end] += rng.uniform(-1, 1) * np.exp(-np.arange(end - start) / (length * 0.3))
-    patter = bandpass(patter, 1800.0, 6000.0) * 0.9
     # Waves: two swells of different period wash in and drain away.
     swell = 0.5 + 0.5 * np.sin(2 * np.pi * t / 8.0) ** 3 + 0.25 * np.sin(2 * np.pi * t / 13.0 + 1.0)
     swell = np.clip(swell, 0.15, 1.4)
     wash = bandpass(rng.standard_normal(n), 180.0, 1100.0) * 0.9 * swell
+    fizz = highpass(rng.standard_normal(n), 3200.0) * 0.07 * np.clip(swell - 0.4, 0.0, 1.0)
     undertow = lowpass(rng.standard_normal(n), 110.0) * 1.3 * (0.6 + 0.4 * swell)
+    breeze = resonant_wind(seconds, 520.0, 140.0, 0.05, 23) * 0.2
+    breeze *= 0.6 + 0.4 * np.sin(2 * np.pi * 0.021 * t + 0.8)
     drips = np.zeros(n)
     for start in _sparse_events(n, 0.9, rng):
         length = int(SR * 0.18)
@@ -189,18 +185,49 @@ def render_tidewater_ambience(seconds):
         freq = rng.uniform(900.0, 1700.0) * (1.0 + 0.6 * np.exp(-tt / 0.01))
         drips[start:end] += np.sin(2 * np.pi * np.cumsum(freq) / SR) * np.exp(-tt / 0.035) * rng.uniform(0.3, 0.7)
     drips = reverb(drips, wet=0.5, seconds=1.8, damping=3000.0)
-    thunder = np.zeros(n)
-    for start in _sparse_events(n, 0.035, rng):
-        length = int(SR * 5.0)
-        end = min(start + length, n)
-        tt = np.arange(end - start) / SR
-        roll = 1.0 + 0.5 * np.sin(2 * np.pi * 1.3 * tt) * np.exp(-tt / 1.5)
-        thunder[start:end] += np.clip(tt / 0.4, 0, 1) * np.exp(-tt / 1.8) * roll
-    thunder = lowpass(rng.standard_normal(n), 140.0) * thunder * 2.6
-    mono = rain + undertow + thunder
-    left = mono + wash + patter * 0.8 + drips[:, 0] * 0.6
-    right = mono + np.roll(wash, int(SR * 0.7)) + np.roll(patter, 911) * 0.8 + drips[:, 1] * 0.6
+    mono = undertow + breeze
+    left = mono + wash + fizz + drips[:, 0] * 0.6
+    right = mono + np.roll(wash, int(SR * 0.7)) + np.roll(fizz, 1777) + drips[:, 1] * 0.6
     return np.stack([left, right], axis=1)
+
+
+def render_rain_loop(seconds):
+    """Rain on stone and on the sea: a steady hiss, single drops pattering close by, a duller wash where it
+    meets the water."""
+    t = t_axis(seconds)
+    n = len(t)
+    rng = np.random.default_rng(223)
+    hiss = bandpass(rng.standard_normal(n), 1500.0, 9500.0) * 0.36
+    hiss *= 0.86 + 0.14 * np.sin(2 * np.pi * 0.09 * t) * np.sin(2 * np.pi * 0.031 * t + 0.5)
+    on_water = bandpass(rng.standard_normal(n), 350.0, 1500.0) * 0.22
+    patter = np.zeros(n)
+    for start in _sparse_events(n, 70.0, rng):
+        length = int(SR * rng.uniform(0.004, 0.012))
+        end = min(start + length, n)
+        patter[start:end] += rng.uniform(-1, 1) * np.exp(-np.arange(end - start) / (length * 0.3))
+    patter = bandpass(patter, 1800.0, 6000.0) * 0.95
+    mono = hiss * 0.8 + on_water
+    left = mono + patter * 0.8 + highpass(rng.standard_normal(n), 5000.0) * 0.05
+    right = mono + np.roll(patter, 911) * 0.8 + highpass(rng.standard_normal(n), 5000.0) * 0.05
+    return np.stack([left, right], axis=1)
+
+
+def render_thunder(seed):
+    """Thunder far out over the sea: no crack, only the long roll arriving in waves and dying away."""
+    seconds = 6.5
+    t = t_axis(seconds)
+    rng = np.random.default_rng(seed)
+    envelope = np.zeros(len(t))
+    for index in range(rng.integers(3, 6)):
+        at = rng.uniform(0.0, 2.2) if index else 0.05
+        tt = np.clip(t - at, 0.0, None)
+        envelope += (t >= at) * np.clip(tt / rng.uniform(0.08, 0.3), 0, 1) * np.exp(-tt / rng.uniform(0.7, 1.6)) * rng.uniform(0.45, 1.0)
+    rumble = lowpass(rng.standard_normal(len(t)), rng.uniform(110.0, 150.0)) * 2.4
+    body = bandpass(rng.standard_normal(len(t)), 120.0, 420.0) * 0.5
+    body *= np.exp(-t / 1.4)
+    mono = (rumble + body) * envelope * np.clip((seconds - t) / 1.5, 0, 1)
+    wet = reverb(mono, wet=0.45, seconds=3.5, damping=900.0)
+    return limit_peak(normalize_rms(wet, -22.0))
 
 
 def render_rimefall_ambience(seconds):
@@ -355,6 +382,46 @@ def render_step_ice(seed):
     ring = sum(np.sin(2 * np.pi * f * t) for f in rng.uniform(2200.0, 4600.0, 3)) * np.exp(-t / 0.04) * 0.12
     thud = lowpass(rng.standard_normal(len(t)), 250.0) * np.exp(-t / 0.02) * 0.5
     return limit_peak(normalize_rms(stereoize(click + ring + thud, 0.1), -22.0))
+
+
+def render_step_stone(seed):
+    """A footstep on wet dressed stone: a dull knock, a little grit under the sole, a short slap of water."""
+    rng = np.random.default_rng(seed)
+    seconds = 0.2
+    t = t_axis(seconds)
+    knock = lowpass(rng.standard_normal(len(t)), rng.uniform(380.0, 520.0)) * np.exp(-t / 0.018) * 1.1
+    tone = np.sin(2 * np.pi * rng.uniform(150.0, 210.0) * t) * np.exp(-t / 0.025) * 0.35
+    grit = bandpass(rng.standard_normal(len(t)), 1800.0, 5200.0) * np.exp(-t / 0.012) * 0.3
+    slap = bandpass(rng.standard_normal(len(t)), 700.0, 2400.0) * np.exp(-((t - 0.03) / 0.018) ** 2) * 0.16
+    return limit_peak(normalize_rms(stereoize(knock + tone + grit + slap, 0.1), -22.0))
+
+
+def render_step_snow(seed):
+    """A footstep in packed snow: the squeaking crunch as it gives way, no hard attack."""
+    rng = np.random.default_rng(seed)
+    seconds = 0.26
+    t = t_axis(seconds)
+    swell = np.clip(t / 0.02, 0, 1) * np.exp(-t / rng.uniform(0.05, 0.07))
+    crunch = bandpass(rng.standard_normal(len(t)), 900.0, 4200.0) * swell
+    # The crunch is grainy: chop it with a fast random gate.
+    grain = np.repeat(rng.uniform(0.25, 1.0, len(t) // 90 + 1), 90)[: len(t)]
+    squeak = np.sin(2 * np.pi * np.cumsum(rng.uniform(1300.0, 1700.0) * (1.0 - t * 1.2)) / SR) * swell * 0.08
+    press = lowpass(rng.standard_normal(len(t)), 220.0) * np.exp(-t / 0.03) * 0.6
+    return limit_peak(normalize_rms(stereoize(crunch * grain + squeak + press, 0.12), -22.0))
+
+
+def render_step_dust(seed):
+    """A footstep on Martian regolith: a soft thud and a spray of grit, thin in the thin air."""
+    rng = np.random.default_rng(seed)
+    seconds = 0.22
+    t = t_axis(seconds)
+    thud = lowpass(rng.standard_normal(len(t)), rng.uniform(260.0, 340.0)) * np.exp(-t / 0.022)
+    scuff = bandpass(rng.standard_normal(len(t)), 1200.0, 3600.0) * np.clip(t / 0.008, 0, 1) * np.exp(-t / 0.035) * 0.42
+    grains = np.zeros(len(t))
+    for start in rng.integers(int(0.01 * SR), int(0.12 * SR), 7):
+        grains[start] = rng.uniform(-1.0, 1.0)
+    grains = bandpass(grains, 2500.0, 7000.0) * 2.2
+    return limit_peak(normalize_rms(stereoize(thud + scuff + grains, 0.1), -22.0))
 
 
 # --- Weapons -------------------------------------------------------------------------------------------
@@ -572,6 +639,10 @@ def main():
         renders["splash_%d.wav" % index] = lambda seed=index: render_splash(500 + seed)
         renders["swim_%d.wav" % index] = lambda seed=index: render_swim(600 + seed)
         renders["step_ice_%d.wav" % index] = lambda seed=index: render_step_ice(700 + seed)
+        renders["thunder_%d.wav" % index] = lambda seed=index: render_thunder(800 + seed)
+        renders["step_stone_%d.wav" % index] = lambda seed=index: render_step_stone(900 + seed)
+        renders["step_snow_%d.wav" % index] = lambda seed=index: render_step_snow(1000 + seed)
+        renders["step_dust_%d.wav" % index] = lambda seed=index: render_step_dust(1100 + seed)
     only = sys.argv[1:]
     for name, render in renders.items():
         if only and name not in only:
@@ -582,6 +653,10 @@ def main():
         loop = make_seamless(render_storm_loop, 30.0)
         write_ogg(normalize_rms(loop, -19.0), os.path.join(MUSIC_DIR, "storm_loop.ogg"))
         print("rendered storm_loop.ogg")
+    if not only or "rain_loop.ogg" in only:
+        loop = make_seamless(render_rain_loop, 24.0)
+        write_ogg(normalize_rms(loop, -22.0), os.path.join(MUSIC_DIR, "rain_loop.ogg"))
+        print("rendered rain_loop.ogg")
     if not only or "ambience_mars.ogg" in only:
         loop = make_seamless(render_mars_ambience, 40.0)
         write_ogg(normalize_rms(loop, -24.0), os.path.join(MUSIC_DIR, "ambience_mars.ogg"))

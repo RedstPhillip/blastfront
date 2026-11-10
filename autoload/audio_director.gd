@@ -102,6 +102,15 @@ const EVENTS: Dictionary = {
 	&"step": {"bus": &"SFX", "voices": 3, "cooldown": 0.06, "layers": [
 		{"files": ["step_grass_0", "step_grass_1", "step_grass_2", "step_grass_3", "step_grass_4"], "volume": -15.0, "pitch": Vector2(0.95, 1.15)},
 	]},
+	&"step_stone": {"bus": &"SFX", "voices": 3, "cooldown": 0.06, "layers": [
+		{"files": ["step_stone_0", "step_stone_1", "step_stone_2"], "volume": -13.0, "pitch": Vector2(0.92, 1.12)},
+	]},
+	&"step_snow": {"bus": &"SFX", "voices": 3, "cooldown": 0.06, "layers": [
+		{"files": ["step_snow_0", "step_snow_1", "step_snow_2"], "volume": -12.0, "pitch": Vector2(0.92, 1.1)},
+	]},
+	&"step_dust": {"bus": &"SFX", "voices": 3, "cooldown": 0.06, "layers": [
+		{"files": ["step_dust_0", "step_dust_1", "step_dust_2"], "volume": -12.0, "pitch": Vector2(0.9, 1.1)},
+	]},
 	&"step_ice": {"bus": &"SFX", "voices": 3, "cooldown": 0.06, "layers": [
 		{"files": ["step_ice_0", "step_ice_1", "step_ice_2"], "volume": -12.0, "pitch": Vector2(0.92, 1.12)},
 	]},
@@ -263,6 +272,9 @@ const EVENTS: Dictionary = {
 	]},
 	&"tide_drain": {"bus": &"Ambience", "voices": 1, "cooldown": 3.0, "layers": [
 		{"files": ["tide_drain"], "volume": -5.0, "pitch": Vector2(0.95, 1.05)},
+	]},
+	&"thunder": {"bus": &"Ambience", "voices": 2, "cooldown": 2.0, "layers": [
+		{"files": ["thunder_0", "thunder_1", "thunder_2"], "volume": -5.0, "pitch": Vector2(0.92, 1.06)},
 	]},
 	&"geyser_rumble": {"bus": &"SFX", "voices": 2, "cooldown": 0.3, "layers": [
 		{"files": ["geyser_rumble"], "volume": -6.0, "pitch": Vector2(0.9, 1.08)},

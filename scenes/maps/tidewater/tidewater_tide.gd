@@ -51,6 +51,9 @@ var _sea: ColorRect = null
 var _sea_material: ShaderMaterial = null
 var _tide_line: ColorRect = null
 var _tide_line_material: ShaderMaterial = null
+## The sea is drawn (out of sight, under the abyss) for the first frames so its shader is compiled before
+## the first flood instead of hitching when the water comes into view.
+var _warm_frames: int = 4
 
 
 func _ready() -> void:
@@ -110,6 +113,7 @@ func _physics_process(delta: float) -> void:
 
 
 func _process(_delta: float) -> void:
+	_warm_frames = maxi(_warm_frames - 1, 0)
 	var surge: float = 0.0
 	if _phase == Phase.RISING or _phase == Phase.FALLING:
 		surge = sin(PI * clampf(_progress(), 0.0, 1.0))
@@ -131,7 +135,7 @@ func _apply_level() -> void:
 	WorldConditions.water_forecast = forecast_level()
 	_sea.position.y = _level - SURFACE_PAD
 	# The sea is out of sight under the abyss at low tide; skip drawing it there.
-	_sea.visible = _level < arena_rect.end.y + 4.0
+	_sea.visible = _level < arena_rect.end.y + 4.0 or _warm_frames > 0
 
 
 func _progress() -> float:
@@ -166,6 +170,29 @@ func forecast_level() -> float:
 
 func get_level() -> float:
 	return _level
+
+
+## How rough the weather that comes with the tide should be right now (0 clear .. 1 storm): clouds gather
+## with the warning, the rain holds while the water is up (a spring tide brings the full storm) and it
+## clears as the sea drains. The same on both sides of an online match, since it follows the tide.
+func weather_target() -> float:
+	match _phase:
+		Phase.WARNING:
+			return 0.45
+		Phase.RISING, Phase.FLOOD:
+			return 1.0 if _spring else 0.72
+		Phase.FALLING:
+			return 0.3
+	return 0.0
+
+
+func is_spring_tide_up() -> bool:
+	return _spring and (_phase == Phase.RISING or _phase == Phase.FLOOD)
+
+
+## Rain falling on the sea (0..1), set by the weather.
+func set_rain(amount: float) -> void:
+	_sea_material.set_shader_parameter(&"rain", amount)
 
 
 func _advance_phase() -> void:

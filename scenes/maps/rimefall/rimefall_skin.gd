@@ -26,6 +26,11 @@ func _ready() -> void:
 	_ice_material = ShaderMaterial.new()
 	_ice_material.shader = ICE_SHADER
 	_ice_material.set_shader_parameter(&"noise_tex", NOISE_TEXTURE)
+	# Snow instead of turf: a plain graded band, and rime growing down the rock from the top.
+	soil_turf_depth = 0.0
+	soil_root_strength = 0.0
+	soil_earth_color = soil_top_color
+	rock_growth_color = Color(0.78, 0.86, 1.0, 0.42)
 	super._ready()
 	set_process(false)
 
@@ -49,7 +54,7 @@ func _skin_ice(polygon: Polygon2D, decorations: Node2D) -> void:
 	var vertex_colors: PackedColorArray = PackedColorArray()
 	vertex_colors.resize(world_points.size())
 	for index in range(world_points.size()):
-		vertex_colors[index] = Color((world_points[index].y - bounds.position.y) / height, seed_value, 0.0, 1.0)
+		vertex_colors[index] = Color((world_points[index].y - bounds.position.y) / height, seed_value, height / 1000.0, 1.0)
 	polygon.color = Color.WHITE
 	polygon.vertex_colors = vertex_colors
 	polygon.material = _ice_material
@@ -129,15 +134,6 @@ func _decorate_bottom_chain(chain: Array, bounds: Rect2) -> void:
 	if bounds.end.y > map_bottom_y + 40.0:
 		return
 	_add_icicles(chain, 26.0, 0.8)
-
-
-## Half-ellipse standing on the surface: `rise` tall along the normal, `half_width` along the tangent.
-func _mound(base: Vector2, normal: Vector2, tangent: Vector2, half_width: float, rise: float) -> PackedVector2Array:
-	var points: PackedVector2Array = PackedVector2Array()
-	for index in range(7):
-		var angle: float = PI * float(index) / 6.0
-		points.append(base + tangent * cos(angle) * half_width + normal * sin(angle) * rise)
-	return points
 
 
 func _commit_mesh(decorations: Node2D) -> void:

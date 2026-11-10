@@ -2,8 +2,9 @@ class_name PlatformSkin
 extends Node2D
 
 ## Dresses every StaticBody2D polygon in the map: rock shader, silhouette outline, a topsoil band of even
-## depth under every walkable edge, mossy top edges with moonlit rim, wind-blown grass, flowers, hanging
-## vines and the odd warm lantern. Grass, vines and lantern bodies share one mesh (one draw call), the soil
+## depth under every walkable edge (turf, earth, roots and stones), mossy top edges with moonlit rim, grass
+## in two rows that thickens into tufts, seed stalks, clover, flowers, hanging vines and the odd warm
+## lantern. Grass, vines and lantern bodies share one mesh (one draw call), the soil
 ## of every platform shares another; every rock body shares one material so they batch.
 ## Place this node as the last child of the map root at the origin.
 
@@ -37,8 +38,14 @@ const GEOMETRY_LIGHT_MASK: int = 1 | 4
 @export var layer_contrast: float = 0.0
 @export var warm_strength: float = 0.035
 @export var crack_strength: float = 0.38
+## What creeps down the rock from the top (moss here; dust or rime on other worlds). Alpha = strength.
+@export var rock_growth_color: Color = Color(0.2, 0.36, 0.19, 0.42)
 @export var soil_top_color: Color = Color(0.29, 0.47, 0.25)
-@export var soil_deep_color: Color = Color(0.13, 0.19, 0.12)
+@export var soil_earth_color: Color = Color(0.25, 0.22, 0.13)
+@export var soil_deep_color: Color = Color(0.11, 0.12, 0.075)
+## Thickness of the turf mat on top of the earth (0 = none: dust, snow) and how many roots hang from it.
+@export var soil_turf_depth: float = 3.4
+@export var soil_root_strength: float = 0.6
 @export var soil_fleck_color: Color = Color(0.42, 0.36, 0.24)
 @export var soil_depth: float = 9.0
 @export var soil_depth_variation: float = 3.5
@@ -71,7 +78,7 @@ func _ready() -> void:
 	_grass_material = ShaderMaterial.new()
 	_grass_material.shader = GRASS_SHADER
 	_body_material = ShaderMaterial.new()
-	_body_material.shader = BODY_SHADER
+	_body_material.shader = _body_shader()
 	_body_material.set_shader_parameter(&"map_top_y", map_top_y)
 	_body_material.set_shader_parameter(&"map_bottom_y", map_bottom_y)
 	_body_material.set_shader_parameter(&"high_color", high_color)
@@ -84,9 +91,21 @@ func _ready() -> void:
 	_body_material.set_shader_parameter(&"layer_contrast", layer_contrast)
 	_body_material.set_shader_parameter(&"warm_strength", warm_strength)
 	_body_material.set_shader_parameter(&"crack_strength", crack_strength)
+	_body_material.set_shader_parameter(&"growth_color", rock_growth_color)
+	_configure_body_material(_body_material)
 	_glow_material = ShaderMaterial.new()
 	_glow_material.shader = LANTERN_GLOW_SHADER
 	_build()
+
+
+## The shader every terrain body shares; a world's skin can swap in its own stone.
+func _body_shader() -> Shader:
+	return BODY_SHADER
+
+
+## Extra uniforms for a world's own body shader.
+func _configure_body_material(_material: ShaderMaterial) -> void:
+	pass
 
 
 func _process(_delta: float) -> void:
@@ -204,7 +223,23 @@ func _decorate_top_chain(chain: Array, decorations: Node2D) -> void:
 	var total_length: float = 0.0
 	for edge in chain:
 		total_length += (edge["a"] as Vector2).distance_to(edge["b"])
+	# A row of taller, darker grass behind, so the front row has something to stand against.
 	var travelled: float = 0.0
+	for edge in chain:
+		var a: Vector2 = edge["a"]
+		var b: Vector2 = edge["b"]
+		var normal: Vector2 = edge["normal"]
+		var tangent: Vector2 = (b - a).normalized()
+		var length: float = a.distance_to(b)
+		var distance: float = _rng.randf_range(0.0, BLADE_SPACING * 1.7)
+		while distance < length:
+			var falloff: float = _edge_falloff((travelled + distance) / maxf(total_length, 1.0))
+			_add_blade(a + tangent * distance + normal * 0.6, normal, tangent, _rng.randf_range(7.0, 13.5) * falloff, 0.6)
+			distance += BLADE_SPACING * 1.7 * _rng.randf_range(0.7, 1.3)
+		travelled += length
+	# The front row: short lawn that thickens into tufts, with the odd seed stalk, clover and flower.
+	var tuft_phase: float = _rng.randf() * TAU
+	travelled = 0.0
 	for edge in chain:
 		var a: Vector2 = edge["a"]
 		var b: Vector2 = edge["b"]
@@ -213,14 +248,25 @@ func _decorate_top_chain(chain: Array, decorations: Node2D) -> void:
 		var length: float = a.distance_to(b)
 		var distance: float = _rng.randf_range(0.0, BLADE_SPACING)
 		while distance < length:
-			var along: float = (travelled + distance) / maxf(total_length, 1.0)
-			var edge_falloff: float = clampf(minf(along, 1.0 - along) * 8.0, 0.25, 1.0)
+			var run: float = travelled + distance
+			var falloff: float = _edge_falloff(run / maxf(total_length, 1.0))
+			var tuft: float = pow(0.5 + 0.5 * sin(run * 0.085 + tuft_phase + sin(run * 0.023) * 2.0), 2.0)
 			var base: Vector2 = a + tangent * distance + normal * 1.0
-			_add_blade(base, normal, tangent, _rng.randf_range(4.0, 11.0) * edge_falloff)
-			if _rng.randf() < 0.035:
-				_add_flower(base + normal * _rng.randf_range(5.0, 9.0) * edge_falloff)
+			_add_blade(base, normal, tangent, _rng.randf_range(3.5, 8.0) * (0.75 + tuft * 0.95) * falloff)
+			var roll: float = _rng.randf()
+			if roll < 0.035:
+				_add_flower(base + normal * _rng.randf_range(5.0, 9.0) * falloff)
+			elif roll < 0.05 and falloff > 0.9:
+				_add_stalk(base, normal, tangent, _rng.randf_range(13.0, 20.0))
+			elif roll < 0.075:
+				_add_clover(base + normal * 1.5, normal, tangent)
 			distance += BLADE_SPACING * _rng.randf_range(0.7, 1.3)
 		travelled += length
+
+
+## Grass gets shorter towards both ends of a ledge (`along` = 0..1 down the chain).
+func _edge_falloff(along: float) -> float:
+	return clampf(minf(along, 1.0 - along) * 8.0, 0.25, 1.0)
 
 
 ## A warm lantern at one end of longer ledges: post and lamp go into the shared mesh, the glow and the
@@ -279,23 +325,63 @@ func _decorate_bottom_chain(chain: Array, bounds: Rect2) -> void:
 			_add_vine(a.lerp(b, t) + Vector2(0.0, -1.0), _rng.randf_range(10.0, 34.0))
 
 
-func _add_blade(base: Vector2, normal: Vector2, tangent: Vector2, height: float) -> void:
+## One blade: two segments with a bend in the middle, dark at the root and light at the tip. `shade`
+## below 1 darkens it (the back row).
+func _add_blade(base: Vector2, normal: Vector2, tangent: Vector2, height: float, shade: float = 1.0) -> void:
 	var width: float = _rng.randf_range(2.0, 3.4)
-	var lean: float = _rng.randf_range(-2.5, 2.5)
+	var lean: float = _rng.randf_range(-2.8, 2.8)
 	var color: Color = grass_palette[_rng.randi() % grass_palette.size()]
-	var tip_color: Color = color.lightened(0.18)
-	_push_tri(
-		base - tangent * width * 0.5, base + tangent * width * 0.5, base + normal * height + tangent * lean,
-		color, color, tip_color,
-		0.0, 0.0, 1.0
-	)
+	color = Color(color.r * shade, color.g * shade, color.b * shade, color.a)
+	var root_color: Color = color.darkened(0.3)
+	var tip_color: Color = color.lightened(0.2)
+	var left: Vector2 = base - tangent * width * 0.5
+	var right: Vector2 = base + tangent * width * 0.5
+	var mid: Vector2 = base + normal * height * 0.55 + tangent * lean * 0.3
+	var mid_left: Vector2 = mid - tangent * width * 0.36
+	var mid_right: Vector2 = mid + tangent * width * 0.36
+	var tip: Vector2 = base + normal * height + tangent * lean
+	_push_tri(left, right, mid_right, root_color, root_color, color, 0.0, 0.0, 0.55)
+	_push_tri(left, mid_right, mid_left, root_color, color, color, 0.0, 0.55, 0.55)
+	_push_tri(mid_left, mid_right, tip, color, color, tip_color, 0.55, 0.55, 1.0)
+
+
+## A seed stalk standing above the lawn: a thin stem with a little pale ear on top.
+func _add_stalk(base: Vector2, normal: Vector2, tangent: Vector2, height: float) -> void:
+	var color: Color = grass_palette[_rng.randi() % grass_palette.size()].lightened(0.1)
+	var lean: float = _rng.randf_range(-3.0, 3.0)
+	var top: Vector2 = base + normal * height + tangent * lean
+	_push_tri(base - tangent * 0.7, base + tangent * 0.7, top, color.darkened(0.25), color.darkened(0.25), color, 0.0, 0.0, 1.0)
+	var ear: Color = color.lerp(Color(0.86, 0.82, 0.55), 0.55)
+	var ear_base: Vector2 = top - normal * 4.5 - tangent * lean * 0.2
+	_push_tri(ear_base - tangent * 1.5, ear_base + tangent * 1.5, top + normal * 1.5, ear, ear, ear, 0.8, 0.8, 1.0)
+	_push_tri(ear_base - tangent * 1.5, ear_base + tangent * 1.5, ear_base - normal * 1.8, ear, ear, ear, 0.8, 0.8, 0.75)
+
+
+## A sprig of clover: three round leaflets on the ground.
+func _add_clover(center: Vector2, normal: Vector2, tangent: Vector2) -> void:
+	var color: Color = grass_palette[_rng.randi() % grass_palette.size()].lightened(0.08)
+	var size: float = _rng.randf_range(1.8, 2.6)
+	for offset in [-1.0, 0.0, 1.0]:
+		var leaf: Vector2 = center + tangent * float(offset) * size * 1.15 + normal * (size * 0.9 if offset == 0.0 else 0.0)
+		_push_tri(leaf - tangent * size, leaf + tangent * size, leaf + normal * size, color, color, color.lightened(0.15), 0.3, 0.3, 0.45)
+		_push_tri(leaf - tangent * size, leaf + tangent * size, leaf - normal * size * 0.6, color, color, color.darkened(0.15), 0.3, 0.3, 0.2)
 
 
 func _add_flower(center: Vector2) -> void:
 	var color: Color = flower_palette[_rng.randi() % flower_palette.size()]
-	var r: float = _rng.randf_range(1.2, 2.0)
-	_push_tri(center + Vector2(-r, 0), center + Vector2(0, -r), center + Vector2(r, 0), color, color, color, 0.9, 0.9, 0.9)
-	_push_tri(center + Vector2(-r, 0), center + Vector2(r, 0), center + Vector2(0, r), color, color, color, 0.9, 0.9, 0.9)
+	var r: float = _rng.randf_range(1.5, 2.3)
+	var stem: Color = grass_palette[_rng.randi() % grass_palette.size()].darkened(0.1)
+	_push_tri(center + Vector2(-0.6, r * 3.2), center + Vector2(0.6, r * 3.2), center, stem, stem, stem, 0.3, 0.3, 0.9)
+	var petals: int = 5
+	var turn: float = _rng.randf() * TAU
+	for index in range(petals):
+		var angle: float = turn + TAU * float(index) / float(petals)
+		var out: Vector2 = Vector2(cos(angle), sin(angle))
+		var side: Vector2 = out.orthogonal() * r * 0.55
+		_push_tri(center, center + out * r * 0.7 + side, center + out * r * 1.25, color, color, color, 0.9, 0.9, 0.9)
+		_push_tri(center, center + out * r * 1.25, center + out * r * 0.7 - side, color, color, color, 0.9, 0.9, 0.9)
+	var heart: Color = Color(1.0, 0.86, 0.45)
+	_push_tri(center + Vector2(-0.7, 0.4), center + Vector2(0.7, 0.4), center + Vector2(0.0, -0.8), heart, heart, heart, 0.9, 0.9, 0.9)
 
 
 func _add_vine(root: Vector2, length: float) -> void:
@@ -337,6 +423,16 @@ func _offset_chain(chain: Array, distance: float) -> PackedVector2Array:
 	for edge in chain:
 		path.append((edge["b"] as Vector2) + (edge["normal"] as Vector2) * distance)
 	return path
+
+
+## Half-ellipse standing on the surface (a drift, a stone, a moss cushion): `rise` tall along the normal,
+## `half_width` along the tangent.
+func _mound(base: Vector2, normal: Vector2, tangent: Vector2, half_width: float, rise: float) -> PackedVector2Array:
+	var points: PackedVector2Array = PackedVector2Array()
+	for index in range(7):
+		var angle: float = PI * float(index) / 6.0
+		points.append(base + tangent * cos(angle) * half_width + normal * sin(angle) * rise)
+	return points
 
 
 ## A filled outline (pebble, drift, stone) as a fan of triangles around its centre, in one colour.
@@ -472,7 +568,10 @@ func _commit_soil(decorations: Node2D) -> void:
 	material.shader = SOIL_SHADER
 	material.set_shader_parameter(&"noise_tex", NOISE_TEXTURE)
 	material.set_shader_parameter(&"top_color", soil_top_color)
+	material.set_shader_parameter(&"earth_color", soil_earth_color)
 	material.set_shader_parameter(&"deep_color", soil_deep_color)
+	material.set_shader_parameter(&"turf_depth", soil_turf_depth)
+	material.set_shader_parameter(&"root_strength", soil_root_strength)
 	material.set_shader_parameter(&"fleck_color", soil_fleck_color)
 	material.set_shader_parameter(&"base_depth", soil_depth)
 	material.set_shader_parameter(&"depth_variation", soil_depth_variation)

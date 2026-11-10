@@ -86,6 +86,8 @@ func _ready() -> void:
 	_build_screen_fx.call_deferred()
 	_audio = AudioStreamPlayer.new()
 	_audio.bus = &"Ambience"
+	# The import leaves the loop flag off; without it the storm falls silent 30 s into a match.
+	(STORM_LOOP as AudioStreamOggVorbis).loop = true
 	_audio.stream = STORM_LOOP
 	_audio.volume_db = -40.0
 	add_child(_audio)
