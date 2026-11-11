@@ -3,10 +3,13 @@ extends "res://tools/map_builder.gd"
 ## Builds res://scenes/maps/rimefall/rimefall_arena.tscn, the Rimefall world: a glacier pass at night.
 ## Run headless: godot --headless --path . -s res://tools/build_rimefall_map.gd
 ##
-## Layout: two snowy cliffs (spawns) with a lower step each, chasms with a rock crag above them, and a
-## frozen lake between two rock banks with a snow-capped rock island in its middle. Ice floes and a
-## broad ice arch float above the lake. Bodies in the ice group (the lake, the floes, the arch) are glassy
-## ice; everything else is snow on rock.
+## Layout: the other way round from the mesa worlds. The spawns lie low at the edges, each behind a
+## stepped snow rampart that climbs to a top and steps down again to the shore. Between the ramparts one
+## frozen lake runs from shore to shore with no chasm in it, and out of its middle rises the ice arch: a
+## real arch with two feet on the lake, a tunnel of open ice under it (the longest glide on the map) and
+## a back you can run up and slide down. A high road of floes leads from the rampart tops over the arch to
+## the snow summit above it. Bodies in the ice group (the lake, the arch, the floes) are glassy ice;
+## everything else is snow on rock.
 
 const WIDTH: float = 2200.0
 const HEIGHT: float = 800.0
@@ -54,68 +57,62 @@ func _build_profile() -> void:
 
 func _build_markers() -> void:
 	_add_markers({
-		"Spawn1": Vector2(150.0, 390.0),
-		"Spawn2": Vector2(WIDTH - 150.0, 390.0),
-		"DummySpawn1": Vector2(1300.0, 600.0),
+		"Spawn1": Vector2(130.0, 530.0),
+		"Spawn2": Vector2(WIDTH - 130.0, 530.0),
+		"DummySpawn1": Vector2(1470.0, 598.0),
 	}, {
-		"AirdropPointCenter": Vector2(WIDTH * 0.5, 306.0),
-		"AirdropPointLeft": Vector2(777.0, 392.0),
-		"AirdropPointRight": Vector2(WIDTH - 777.0, 392.0),
+		"AirdropPointCenter": Vector2(WIDTH * 0.5, 250.0),
+		"AirdropPointLeft": Vector2(630.0, 360.0),
+		"AirdropPointRight": Vector2(WIDTH - 630.0, 360.0),
 	})
 
 
 # --- Geometry --------------------------------------------------------------------------------------------
 
 func _build_geometry() -> void:
-	var cliff: Array = [
-		Vector2(-80, 960), Vector2(-80, 420), Vector2(296, 420), Vector2(310, 424), Vector2(318, 436),
-		Vector2(322, 500), Vector2(440, 500), Vector2(454, 506), Vector2(460, 524), Vector2(464, 960),
-	]
-	# Rock crag over the chasm: the stepping stone from the cliff top out to the floes.
-	var crag: Array = [
-		Vector2(466, 438), Vector2(478, 432), Vector2(544, 432), Vector2(556, 440), Vector2(548, 458),
-		Vector2(512, 466), Vector2(480, 458),
-	]
-	# Rock banks either side of the lake, sloping down to its shore.
-	var bank: Array = [
-		Vector2(600, 960), Vector2(600, 556), Vector2(612, 548), Vector2(690, 548), Vector2(704, 556),
-		Vector2(728, 594), Vector2(756, 630), Vector2(782, 642), Vector2(782, 960),
+	# The rampart: the spawn ledge, two steps up to the top, two steps down to the shore.
+	var rampart: Array = [
+		Vector2(-80, 960), Vector2(-80, 560), Vector2(226, 560), Vector2(236, 554), Vector2(240, 492),
+		Vector2(250, 484), Vector2(334, 484), Vector2(344, 478), Vector2(348, 416), Vector2(358, 408),
+		Vector2(446, 408), Vector2(456, 414), Vector2(460, 476), Vector2(470, 484), Vector2(536, 484),
+		Vector2(546, 490), Vector2(550, 552), Vector2(560, 560), Vector2(620, 560), Vector2(630, 566),
+		Vector2(634, 960),
 	]
 	# The frozen lake: one deep body of ice from shore to shore.
 	var lake: Array = [
-		Vector2(778, 640), Vector2(788, 634), Vector2(WIDTH - 788, 634), Vector2(WIDTH - 778, 640),
-		Vector2(WIDTH - 778, 960), Vector2(778, 960),
+		Vector2(630, 634), Vector2(640, 628), Vector2(WIDTH - 640, 628), Vector2(WIDTH - 630, 634),
+		Vector2(WIDTH - 630, 960), Vector2(630, 960),
 	]
-	# Snow-capped rock island standing in the ice: grip and cover in the middle of the rink.
-	var island: Array = [
-		Vector2(1030, 640), Vector2(1060, 612), Vector2(1090, 586), Vector2(1110, 582), Vector2(1130, 586),
-		Vector2(1160, 612), Vector2(1190, 640),
+	# The ice arch: the back (left foot to right foot), then the underside of the tunnel back again.
+	var back_half: Array = [
+		Vector2(780, 634), Vector2(830, 600), Vector2(880, 566), Vector2(930, 530), Vector2(980, 496),
+		Vector2(1030, 468), Vector2(1070, 450),
 	]
-	var floe: Array = [
-		Vector2(704, 472), Vector2(716, 466), Vector2(838, 466), Vector2(850, 472), Vector2(842, 486),
-		Vector2(780, 494), Vector2(716, 486),
+	var tunnel_half: Array = [
+		Vector2(900, 634), Vector2(915, 585), Vector2(950, 545), Vector2(1000, 515), Vector2(1050, 498),
 	]
-	var arch: Array = [
-		Vector2(950, 392), Vector2(962, 386), Vector2(1238, 386), Vector2(1250, 392), Vector2(1236, 408),
-		Vector2(1100, 420), Vector2(964, 408),
-	]
+	var arch: Array = back_half + [Vector2(WIDTH * 0.5, 444)] + _mirror(back_half)
+	var tunnel: Array = tunnel_half + [Vector2(WIDTH * 0.5, 492)] + _mirror(tunnel_half)
+	tunnel.reverse()
+	arch.append_array(tunnel)
 	_add_bodies({
-		"LeftCliff": cliff,
-		"LeftBank": bank,
-		"RightBank": _mirror(bank),
-		"RightCliff": _mirror(cliff),
+		"LeftRampart": rampart,
+		"RightRampart": _mirror(rampart),
 		"Lake": lake,
-		"Island": island,
-		"LeftCrag": crag,
-		"RightCrag": _mirror(crag),
-		"LeftFloe": floe,
-		"RightFloe": _mirror(floe),
 		"IceArch": arch,
+		# The high road: rampart top, floe, high floe, summit.
+		"LeftFloe": _slab(560, 700, 400, 24),
+		"RightFloe": _mirror(_slab(560, 700, 400, 24)),
+		"LeftHighFloe": _slab(820, 1000, 372, 24),
+		"RightHighFloe": _mirror(_slab(820, 1000, 372, 24)),
+		"Summit": _slab(1020, 1180, 300, 28),
 	}, {
 		"Lake": [ICE_GROUP],
+		"IceArch": [ICE_GROUP],
 		"LeftFloe": [ICE_GROUP],
 		"RightFloe": [ICE_GROUP],
-		"IceArch": [ICE_GROUP],
+		"LeftHighFloe": [ICE_GROUP],
+		"RightHighFloe": [ICE_GROUP],
 	})
 
 
@@ -140,7 +137,7 @@ func _build_skin() -> void:
 	var skin: Node2D = Node2D.new()
 	skin.set_script(load("res://scenes/maps/rimefall/rimefall_skin.gd"))
 	var settings: Dictionary = {
-		&"map_top_y": 360.0,
+		&"map_top_y": 300.0,
 		&"map_bottom_y": 720.0,
 		&"high_color": Color(0.22, 0.25, 0.32),
 		&"low_color": Color(0.3, 0.34, 0.42),

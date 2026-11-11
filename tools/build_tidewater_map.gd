@@ -3,16 +3,20 @@ extends "res://tools/map_builder.gd"
 ## Builds res://scenes/maps/tidewater/tidewater_arena.tscn, the Tidewater world: a drowned temple.
 ## Run headless: godot --headless --path . -s res://tools/build_tidewater_map.gd
 ##
-## Layout: two colonnades (spawns) with a lower stair each, a chasm on either side and the sunken
-## courtyard between them with a low altar dais in the middle. Ruin blocks, broken arches and fallen
-## column capitals step up to the temple pediment floating above the dais. The tide (TidewaterTide) floods
-## the courtyard and the chasms at high tide (FLOOD_LEVEL) and also the lower stairs, the courtyard walls
-## and the capitals at a spring tide (SPRING_LEVEL); the blocks, arches, pediment and spawns stay dry.
+## Layout: unlike the other worlds this one is built upwards. Two stair towers (spawns on top, two steps
+## down towards the middle) stand at the sides with a chasm at their feet; between them lies the sunken
+## plaza with its altar dais, and over the plaza the temple hangs in floors of fallen stone: drums and
+## steps out of the plaza, the docks and the bridge, the galleries, the cella with the crown and the apex
+## on top, and a high road of arch, span and capital from the tower tops to the cella. The water column
+## under the floors is open from tower to tower, which is where the sharks hunt.
+## The tide (TidewaterTide) floods the plaza, the drums and the steps at high tide (FLOOD_LEVEL, the docks
+## and the bridge stay just dry) and also the docks, the bridge, the galleries and the towers' steps at a
+## spring tide (SPRING_LEVEL); the tower tops, the cella and everything above always stay dry.
 
 const WIDTH: float = 2240.0
 const HEIGHT: float = 800.0
-const FLOOD_LEVEL: float = 600.0
-const SPRING_LEVEL: float = 506.0
+const FLOOD_LEVEL: float = 500.0
+const SPRING_LEVEL: float = 348.0
 ## Far-layer coordinates (origin = the arena's centre): where the sea meets the sky, and the moon.
 const HORIZON: float = 30.0
 const MOON: Vector2 = Vector2(-430.0, -215.0)
@@ -30,8 +34,10 @@ func _build() -> void:
 	_build_environment()
 	_build_markers()
 	_build_geometry()
+	_build_columns()
 	_add_airdrops()
 	_build_tide()
+	_build_sharks()
 	_build_weather()
 	_build_skin()
 
@@ -56,61 +62,90 @@ func _build_profile() -> void:
 
 func _build_markers() -> void:
 	_add_markers({
-		"Spawn1": Vector2(150.0, 400.0),
-		"Spawn2": Vector2(WIDTH - 150.0, 400.0),
-		"DummySpawn1": Vector2(1300.0, 630.0),
+		"Spawn1": Vector2(150.0, 270.0),
+		"Spawn2": Vector2(WIDTH - 150.0, 270.0),
+		# The sandbox target stands on the bridge: dry at high tide, so the sharks leave it alone.
+		"DummySpawn1": Vector2(1190.0, 458.0),
 	}, {
-		"AirdropPointCenter": Vector2(WIDTH * 0.5, 282.0),
-		"AirdropPointLeft": Vector2(815.0, 362.0),
-		"AirdropPointRight": Vector2(WIDTH - 815.0, 362.0),
+		# Under the cella and the spans, so the crates land on the bridge and the docks.
+		"AirdropPointCenter": Vector2(WIDTH * 0.5, 400.0),
+		"AirdropPointLeft": Vector2(680.0, 310.0),
+		"AirdropPointRight": Vector2(WIDTH - 680.0, 310.0),
 	})
 
 
 # --- Geometry --------------------------------------------------------------------------------------------
 
 func _build_geometry() -> void:
-	# Spawn colonnade with its lower stair; the chasm opens at x 470.
-	var colonnade: Array = [
-		Vector2(-80, 960), Vector2(-80, 430), Vector2(296, 430), Vector2(310, 434), Vector2(318, 446),
-		Vector2(322, 512), Vector2(446, 512), Vector2(460, 518), Vector2(466, 536), Vector2(470, 960),
+	# Spawn tower: the top at 300, two steps down towards the middle, then the wall into the chasm.
+	var tower: Array = [
+		Vector2(-80, 960), Vector2(-80, 300), Vector2(268, 300), Vector2(282, 304), Vector2(290, 316),
+		Vector2(294, 376), Vector2(398, 376), Vector2(412, 380), Vector2(418, 392), Vector2(422, 452),
+		Vector2(500, 452), Vector2(514, 458), Vector2(520, 474), Vector2(524, 960),
 	]
-	# The sunken courtyard: walls at 548, slopes down to the floor at 664 and the altar dais at 620.
-	var courtyard_half: Array = [
-		Vector2(590, 960), Vector2(590, 556), Vector2(602, 548), Vector2(688, 548), Vector2(702, 556),
-		Vector2(720, 590), Vector2(744, 632), Vector2(770, 660), Vector2(790, 664), Vector2(1000, 664),
-		Vector2(1050, 622), Vector2(1080, 620),
+	# The sunken plaza: the floor at 716 and the altar dais at 668 in the middle.
+	var plaza_half: Array = [
+		Vector2(640, 960), Vector2(640, 730), Vector2(652, 718), Vector2(668, 716), Vector2(1004, 716),
+		Vector2(1056, 672), Vector2(1084, 668),
 	]
-	var courtyard: Array = courtyard_half + _mirror(courtyard_half)
-	# A fallen ruin block over the chasm: the step from the stair up towards the arches.
-	var block: Array = [
-		Vector2(500, 476), Vector2(512, 470), Vector2(574, 470), Vector2(586, 478), Vector2(578, 494),
-		Vector2(540, 500), Vector2(508, 494),
-	]
-	var arch: Array = [
-		Vector2(720, 438), Vector2(732, 432), Vector2(898, 432), Vector2(910, 440), Vector2(900, 458),
-		Vector2(860, 466), Vector2(760, 466), Vector2(728, 456),
-	]
-	# Column capitals beside the dais: the way out of the courtyard towards the arches.
-	var capital: Array = [
-		Vector2(930, 546), Vector2(940, 540), Vector2(1000, 540), Vector2(1010, 546), Vector2(1004, 562),
-		Vector2(980, 570), Vector2(960, 570), Vector2(936, 562),
-	]
-	var pediment: Array = [
-		Vector2(1010, 362), Vector2(1022, 356), Vector2(1218, 356), Vector2(1230, 362), Vector2(1214, 376),
-		Vector2(1120, 394), Vector2(1026, 376),
-	]
+	var plaza: Array = plaza_half + _mirror(plaza_half)
 	_add_bodies({
-		"LeftColonnade": colonnade,
-		"Courtyard": courtyard,
-		"RightColonnade": _mirror(colonnade),
-		"LeftBlock": block,
-		"RightBlock": _mirror(block),
-		"LeftArch": arch,
-		"RightArch": _mirror(arch),
-		"LeftCapital": capital,
-		"RightCapital": _mirror(capital),
-		"Pediment": pediment,
+		"LeftTower": tower,
+		"Plaza": plaza,
+		"RightTower": _mirror(tower),
+		# Out of the plaza.
+		"LeftDrum": _slab(700, 784, 640, 30),
+		"RightDrum": _mirror(_slab(700, 784, 640, 30)),
+		"LeftStep": _slab(826, 944, 564, 30),
+		"RightStep": _mirror(_slab(826, 944, 564, 30)),
+		# The first dry floor at high tide.
+		# A full channel of water (76 px) is left between each tower's wall and its dock: a narrow slot there
+		# was hard to climb out of.
+		"LeftDock": _slab(600, 764, 488, 34),
+		"RightDock": _mirror(_slab(600, 764, 488, 34)),
+		"Bridge": _slab(1000, 1240, 488, 36),
+		"LeftGallery": _slab(800, 960, 412, 32),
+		"RightGallery": _mirror(_slab(800, 960, 412, 32)),
+		# The last dry floor at a spring tide, and what stands on it.
+		"Cella": _slab(1010, 1230, 336, 34),
+		"Crown": _slab(1056, 1184, 260, 22),
+		"Apex": _slab(1092, 1148, 184, 20),
+		# The high road from the tower tops.
+		"LeftArch": _slab(336, 524, 226, 34),
+		"RightArch": _mirror(_slab(336, 524, 226, 34)),
+		"LeftSpan": _slab(624, 764, 262, 30),
+		"RightSpan": _mirror(_slab(624, 764, 262, 30)),
+		"LeftCapital": _slab(838, 922, 300, 28),
+		"RightCapital": _mirror(_slab(838, 922, 300, 28)),
 	})
+
+
+## The columns the floors stand on: scenery behind the terrain (see TidewaterColumns), so the temple reads
+## as a building and not as loose stones in the air. (x, top y, foot y), left half; the right half mirrors.
+func _build_columns() -> void:
+	var left: Array = [
+		# Docks: out of the chasm and off the plaza.
+		Vector3(632, 522, 800), Vector3(724, 522, 720),
+		# Galleries on the steps, capitals on the galleries, spans on the docks.
+		Vector3(852, 444, 564), Vector3(918, 444, 564), Vector3(880, 328, 412), Vector3(694, 292, 488),
+		# The arches on the towers' steps.
+		Vector3(380, 260, 376), Vector3(478, 260, 452),
+	]
+	var middle: Array = [
+		# The bridge on the plaza, the cella on the bridge, the crown on the cella.
+		Vector3(1040, 524, 720), Vector3(1200, 524, 720), Vector3(1052, 370, 488), Vector3(1188, 370, 488),
+		Vector3(1078, 282, 336), Vector3(1162, 282, 336),
+	]
+	var all: PackedVector3Array = PackedVector3Array(middle)
+	for column in left:
+		all.append(column)
+		all.append(Vector3(WIDTH - column.x, column.y, column.z))
+	var columns: Node2D = Node2D.new()
+	columns.set_script(load("res://scenes/maps/tidewater/tidewater_columns.gd"))
+	columns.z_index = -3
+	columns.set(&"columns", all)
+	columns.set(&"moon_x", WIDTH * 0.5 + MOON.x)
+	_add(_root, columns, "Columns")
 
 
 func _build_tide() -> void:
@@ -121,6 +156,16 @@ func _build_tide() -> void:
 	tide.set(&"flood_level", FLOOD_LEVEL)
 	tide.set(&"spring_level", SPRING_LEVEL)
 	_add(_root, tide, "Tide")
+
+
+func _build_sharks() -> void:
+	var sharks: Node2D = Node2D.new()
+	sharks.set_script(load("res://scenes/maps/tidewater/tidewater_sharks.gd"))
+	# The open water between the towers' walls, the chasms they come up from, the plaza they swim over.
+	sharks.set(&"lane", Vector2(566.0, WIDTH - 566.0))
+	sharks.set(&"homes", PackedFloat32Array([582.0, WIDTH - 582.0]))
+	sharks.set(&"floor_y", 716.0)
+	_add(_root, sharks, "Sharks")
 
 
 func _build_weather() -> void:
@@ -134,8 +179,8 @@ func _build_skin() -> void:
 	var skin: Node2D = Node2D.new()
 	skin.set_script(load("res://scenes/maps/tidewater/tidewater_skin.gd"))
 	var settings: Dictionary = {
-		&"map_top_y": 340.0,
-		&"map_bottom_y": 720.0,
+		&"map_top_y": 180.0,
+		&"map_bottom_y": 760.0,
 		&"flood_level": FLOOD_LEVEL,
 		&"spring_level": SPRING_LEVEL,
 		&"outline_color": Color(0.015, 0.04, 0.05, 0.9),

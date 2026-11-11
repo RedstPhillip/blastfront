@@ -4,10 +4,10 @@ extends Node2D
 ## The tide of Tidewater. Low water (ebb, the sea out of sight below the ruins) alternates with high water.
 ## Every flood is announced a few seconds ahead: a conch horn sounds, a notice names it and a glowing tide
 ## line lights up across the ruins at the height the water will reach. Then the sea pours in, holds the
-## courtyard and the chasms under water and drains away again. Every few tides a spring tide climbs higher
-## and also drowns the courtyard walls, the lower stairs and the capitals; the blocks, the arches, the
-## pediment and the spawns always stay dry. In the water players swim (see Player and SwimState) and
-## rounds drag to a stop. The level goes through WorldConditions.water_level, so the water you see is
+## plaza and the lowest floors under water and drains away again. Every few tides a spring tide climbs
+## much higher and also drowns the docks, the bridge, the galleries and the towers' steps; the tower tops,
+## the cella and everything above always stay dry. In the water players swim (see Player and SwimState),
+## rounds drag to a stop and the sharks hunt (see TidewaterSharks). The level goes through WorldConditions.water_level, so the water you see is
 ## exactly where the water is.
 
 enum Phase { EBB, WARNING, RISING, FLOOD, FALLING }
@@ -20,6 +20,8 @@ const FIRST_TIDE: float = 9.0
 const EBB_TIME: Vector2 = Vector2(14.0, 20.0)
 const WARNING_TIME: float = 4.0
 const RISE_TIME: float = 5.0
+## A spring tide has further to climb: it takes this much longer to come in and to drain.
+const SPRING_TIME_SCALE: float = 1.3
 const FLOOD_TIME: Vector2 = Vector2(11.0, 14.0)
 const SPRING_FLOOD_TIME: Vector2 = Vector2(8.0, 10.0)
 const FALL_TIME: float = 5.5
@@ -30,8 +32,8 @@ const SURFACE_PAD: float = 16.0
 @export var arena_rect: Rect2 = Rect2(0.0, 0.0, 2240.0, 800.0)
 ## Water surface at low tide: just under the map's bottom edge, so the chasms are open abyss.
 @export var ebb_level: float = 812.0
-@export var flood_level: float = 600.0
-@export var spring_level: float = 506.0
+@export var flood_level: float = 500.0
+@export var spring_level: float = 348.0
 @export var tide_color: Color = Color(0.45, 1.0, 0.9)
 
 var _phase: Phase = Phase.EBB
@@ -190,6 +192,15 @@ func is_spring_tide_up() -> bool:
 	return _spring and (_phase == Phase.RISING or _phase == Phase.FLOOD)
 
 
+## The water is in (rising, standing or only just draining): what the sharks go by.
+func is_water_up() -> bool:
+	return _phase == Phase.RISING or _phase == Phase.FLOOD or _phase == Phase.FALLING
+
+
+func is_spring() -> bool:
+	return _spring
+
+
 ## Rain falling on the sea (0..1), set by the weather.
 func set_rain(amount: float) -> void:
 	_sea_material.set_shader_parameter(&"rain", amount)
@@ -200,12 +211,12 @@ func _advance_phase() -> void:
 		Phase.EBB:
 			_begin_warning()
 		Phase.WARNING:
-			_enter_phase(Phase.RISING, RISE_TIME)
+			_enter_phase(Phase.RISING, RISE_TIME * (SPRING_TIME_SCALE if _spring else 1.0))
 		Phase.RISING:
 			var hold: Vector2 = SPRING_FLOOD_TIME if _spring else FLOOD_TIME
 			_enter_phase(Phase.FLOOD, _rng.randf_range(hold.x, hold.y))
 		Phase.FLOOD:
-			_enter_phase(Phase.FALLING, FALL_TIME)
+			_enter_phase(Phase.FALLING, FALL_TIME * (SPRING_TIME_SCALE if _spring else 1.0))
 		Phase.FALLING:
 			_enter_phase(Phase.EBB, _rng.randf_range(EBB_TIME.x, EBB_TIME.y))
 

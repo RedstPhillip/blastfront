@@ -95,7 +95,14 @@ Pillow (`ImageChops.difference`) when a change should be pixel-identical.
 - **Tidewater and Rimefall:** `tidewater` / `rimefall` (overview and close-ups), `tide_play` (a flood lifts
   P1 out of the courtyard: warning, rise, swim, leap out, a round into the water, a spring tide; prints
   `TIDE` lines), `tide_sync` (a second tide set up as the online client follows the host's states; prints the
-  level difference), `ice_play` (glide and skid distances on the frozen lake against snow; prints `ICE` lines)
+  level difference), `ice_play` (glide and skid distances on the frozen lake against snow; prints `ICE` lines),
+  `tide_look` (a held flood in the rain, a spring tide in the storm, a lightning frame), `shark_look` (a held
+  flood with P1 left floating: frames through patrol, stalk, dive and strike; prints `SHARK` lines with the
+  states, both soak timers and both health values; `BF_SPRING=1` for a spring tide), `shark_sync` (a second
+  set of sharks set up as the online client follows the host's; prints `SHARK_SYNC PASS/FAIL`)
+- **Combat feedback:** `fx_close` (a hit and a kill frame by frame; aims through the game camera with
+  hold-over, so crop the frames instead of freezing the camera), `ground_fx` (a round into the ground and a
+  landing per world, `BF_WORLD`)
 - **Time Control:** `time_probe` (bot duel: run and projectile speed before/during/after the slow, refusals in
   the intro and on cooldown, the reverse cast; prints `TIME_PROBE PASS/FAIL` lines), `time_sandbox`,
   `time_freeze` (Mk III: rounds hang, inputs blocked, 35% damage cap, last point kept, no cast during the kill

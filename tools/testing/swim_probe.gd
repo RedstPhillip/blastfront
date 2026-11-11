@@ -120,6 +120,9 @@ func _process(delta: float) -> bool:
 		if out:
 			_results[key]["ok"] += 1
 			_slowest = maxf(_slowest, _case_time)
+			# Longer than a shark's patience: worth knowing where.
+			if _case_time > 2.5:
+				print("SLOW %s x=%d out after %.1fs at %s" % [key, int(case["at"].x), _case_time, bot.global_position.round()])
 		else:
 			_results[key]["trapped"].append(int(case["at"].x))
 			print("TRAPPED %s x=%d ended at %s state=%s" % [key, int(case["at"].x), bot.global_position.round(), bot._state_machine.current_state.name])

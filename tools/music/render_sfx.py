@@ -8,7 +8,7 @@ import sys
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(__file__))
-from synth import SR, bandpass, highpass, lowpass, make_seamless, normalize_rms, perc_env, reverb, t_axis, write_ogg, write_wav
+from synth import SR, bandpass, highpass, lowpass, sweep_lowpass, make_seamless, normalize_rms, perc_env, reverb, t_axis, write_ogg, write_wav
 
 OUT_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "assets", "audio", "sfx")
 
@@ -384,6 +384,55 @@ def render_step_ice(seed):
     return limit_peak(normalize_rms(stereoize(click + ring + thud, 0.1), -22.0))
 
 
+def render_shark_alert():
+    """A shark has turned towards a swimmer: a low swell that beats against itself and rises, a rush of
+    water building under it, cut off short. Dread, not a tune."""
+    seconds = 1.5
+    t = t_axis(seconds)
+    rng = np.random.default_rng(1201)
+    rise = np.clip(t / (seconds * 0.9), 0, 1) ** 1.8
+    cut = np.clip((seconds - t) / 0.09, 0, 1)
+    glide = 1.0 + 0.16 * rise
+    low = np.sin(2 * np.pi * np.cumsum(52.0 * glide) / SR) + 0.8 * np.sin(2 * np.pi * np.cumsum(55.6 * glide) / SR)
+    growl = lowpass(np.tanh(np.sin(2 * np.pi * np.cumsum(104.0 * glide) / SR) * 2.4), 420.0) * 0.35
+    rush = sweep_lowpass(rng.standard_normal(len(t)), 220.0, 2600.0) * 0.5
+    mono = (low * 0.9 + growl + rush) * rise * cut
+    return limit_peak(normalize_rms(stereoize(mono, 0.2), -17.0))
+
+
+def render_shark_breach():
+    """The sea thrown open as it comes out: a deep thud of displaced water, the rush, the spray falling."""
+    seconds = 1.2
+    t = t_axis(seconds)
+    rng = np.random.default_rng(1203)
+    thud = thump(0.6, 110.0, 38.0, 0.12) * 1.5
+    rush = bandpass(rng.standard_normal(len(t)), 260.0, 2800.0) * np.clip(t / 0.02, 0, 1) * np.exp(-t / 0.22) * 0.9
+    spray = highpass(rng.standard_normal(len(t)), 3600.0) * np.clip(t / 0.06, 0, 1) * np.exp(-t / 0.42) * 0.3
+    mono = rush + spray
+    mono[: len(thud)] += thud
+    return limit_peak(normalize_rms(stereoize(mono, 0.25), -16.0))
+
+
+def render_shark_bite():
+    """The jaws closing: a hard snap, the crunch after it, a short thrash of water."""
+    seconds = 0.55
+    t = t_axis(seconds)
+    rng = np.random.default_rng(1205)
+    snap = highpass(rng.standard_normal(len(t)), 1800.0) * np.exp(-t / 0.007) * 1.4
+    crunch = np.zeros(len(t))
+    for at in (0.018, 0.034, 0.052, 0.075):
+        start = int(at * SR)
+        length = int(0.012 * SR)
+        crunch[start:start + length] += rng.uniform(-1, 1, length) * np.exp(-np.arange(length) / (length * 0.25)) * rng.uniform(0.5, 1.0)
+    crunch = bandpass(crunch, 700.0, 4200.0) * 1.3
+    body = thump(0.35, 150.0, 55.0, 0.07) * 1.2
+    thrash = bandpass(rng.standard_normal(len(t)), 300.0, 2200.0) * np.exp(-((t - 0.16) / 0.11) ** 2) * 0.5
+    mono = snap + crunch + thrash
+    mono[: len(body)] += body
+    mono = np.tanh(mono * 1.5) / np.tanh(1.5)
+    return limit_peak(normalize_rms(stereoize(mono, 0.15), -15.0))
+
+
 def render_step_stone(seed):
     """A footstep on wet dressed stone: a dull knock, a little grit under the sole, a short slap of water."""
     rng = np.random.default_rng(seed)
@@ -634,6 +683,9 @@ def main():
         "tide_surge.wav": render_tide_surge,
         "tide_drain.wav": render_tide_drain,
         "ice_skid.wav": render_ice_skid,
+        "shark_alert.wav": render_shark_alert,
+        "shark_breach.wav": render_shark_breach,
+        "shark_bite.wav": render_shark_bite,
     }
     for index in range(3):
         renders["splash_%d.wav" % index] = lambda seed=index: render_splash(500 + seed)

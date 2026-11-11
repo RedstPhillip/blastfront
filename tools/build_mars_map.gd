@@ -5,7 +5,9 @@ extends SceneTree
 ##
 ## Layout: two high mesas (spawns) with a lower step each, narrow chasms, and a crater basin between
 ## them with a hoodoo spire in the middle. Floating slabs and boulders link the levels; two CO2 geysers in
-## the crater floor throw players up to the slabs, the spire cap and a high perch above it.
+## the crater floor throw players up to the slabs, the spire cap and a high perch above it. A rock over each chasm is the
+## way up to the slabs on foot; the cap has no climb of its own: it is reached by geyser or by dropping
+## onto it from the slabs.
 
 const OUTPUT_PATH: String = "res://scenes/maps/mars/mars_arena.tscn"
 const WIDTH: float = 2160.0
@@ -82,6 +84,9 @@ func _build_profile() -> void:
 	profile.projectile_gravity_scale = 0.72
 	profile.projectile_range_scale = 1.3
 	profile.border_color = Color(1.0, 0.68, 0.36)
+	profile.footstep = &"step_dust"
+	profile.dust_color = Color(0.88, 0.54, 0.34, 0.5)
+	profile.debris_color = Color(0.4, 0.19, 0.12)
 	_add(_root, profile, "MapProfile")
 	var bounds: Node = Node.new()
 	bounds.set_script(load("res://scenes/maps/map_bounds.gd"))
@@ -137,9 +142,10 @@ func _build_geometry() -> void:
 		Vector2(1220, 690), Vector2(1280, 680), Vector2(1340, 652), Vector2(1400, 610), Vector2(1460, 566),
 		Vector2(1510, 548), Vector2(1554, 546), Vector2(1570, 556), Vector2(1570, 960),
 	]
+	# Close enough to the perch that the jump across is on (the spire's flanks used to be the way up).
 	var slab: Array = [
-		Vector2(650, 402), Vector2(668, 388), Vector2(812, 384), Vector2(834, 396), Vector2(820, 418),
-		Vector2(760, 432), Vector2(690, 428), Vector2(660, 416),
+		Vector2(680, 402), Vector2(698, 388), Vector2(842, 384), Vector2(864, 396), Vector2(850, 418),
+		Vector2(790, 432), Vector2(720, 428), Vector2(690, 416),
 	]
 	var boulder: Array = [
 		Vector2(442, 334), Vector2(450, 320), Vector2(472, 314), Vector2(496, 318), Vector2(506, 330),
@@ -149,15 +155,15 @@ func _build_geometry() -> void:
 		Vector2(1004, 306), Vector2(1020, 294), Vector2(1140, 294), Vector2(1156, 306), Vector2(1142, 320),
 		Vector2(1110, 332), Vector2(1050, 332), Vector2(1018, 320),
 	]
-	# Shelves on the spire's flanks: a walkable climb from the crater floor onto the cap (and cover
-	# from the side). They stay clear of the geyser columns.
-	var shelf: Array = [
-		Vector2(988, 612), Vector2(998, 602), Vector2(1030, 599), Vector2(1052, 603), Vector2(1056, 620),
-		Vector2(1046, 636), Vector2(1020, 642), Vector2(998, 630),
+	# A rock hanging over each chasm: with the spire's flanks bare, the way up to the slabs on foot (from
+	# the mesa's step or the crater rim).
+	var stone: Array = [
+		Vector2(546, 468), Vector2(556, 458), Vector2(580, 454), Vector2(604, 458), Vector2(614, 470),
+		Vector2(606, 484), Vector2(580, 490), Vector2(554, 484),
 	]
 	var bodies: Dictionary = {
-		"LeftShelf": shelf,
-		"RightShelf": _mirror(shelf),
+		"LeftStone": stone,
+		"RightStone": _mirror(stone),
 		"LeftMesa": left_mesa,
 		"Crater": crater,
 		"RightMesa": _mirror(left_mesa),

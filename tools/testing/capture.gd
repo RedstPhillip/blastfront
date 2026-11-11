@@ -2024,6 +2024,65 @@ func _build_script() -> void:
 				_at(3.75 + float(i) / 20.0, "shot", "%s_land_%d" % [ground_world, i])
 			_at(4.4, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
 			_at(4.5, "quit")
+		"shark_look":
+			# The sharks at work: a held flood, P1 left in the water, frames through patrol, stalk, dive, strike.
+			# Prints SHARK lines (states, P1's soak, health); BF_SPRING=1 holds a spring tide instead.
+			var shark_spring: bool = OS.has_environment("BF_SPRING")
+			_at(0.2, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "tidewater"))
+			_at(0.5, "call", func(): _main._on_sandbox_requested())
+			_at(1.6, "call", func(): _tide().hold_flood(shark_spring))
+			_at(4.6, "call", func(): _place_p1(Vector2(900, WorldConditions.water_level + 10.0)))
+			for i in range(44):
+				_at(4.4 + float(i) * 0.2, "call", func():
+					var sharks = _stress_game().get_node("Arena/Sharks")
+					var dummy = _stress_game().get_player_by_slot(2)
+					print("SHARK t=%.1f states=%s soak=%.1f/%.1f hp=%d/%d p1=%s depth=%.0f" % [_time, sharks.states(), sharks.soak_of(1), sharks.soak_of(2), _p1().health_component.health, dummy.health_component.health, _p1().global_position.round(), _p1().get_water_depth()]))
+			_at(4.0, "shot", "patrol")
+			for i in range(36):
+				_at(6.4 + float(i) / 12.0, "shot", "hunt_%02d" % i)
+			_at(13.4, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
+			_at(13.5, "quit")
+		"shark_sync":
+			# Online: a second set of sharks set up as the client follows the host's (every state change at once,
+			# the regular snapshot four times a second, the way WorldSync delivers them). P1 floats in a held
+			# flood so the host's sharks hunt. Prints the largest distance between a host shark and its copy,
+			# and whether their states ever disagreed at a snapshot.
+			_at(0.2, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "tidewater"))
+			_at(0.5, "call", func(): _main._on_sandbox_requested())
+			_at(1.6, "call", func(): _tide().hold_flood(false))
+			_at(2.0, "call", func():
+				var host = _stress_game().get_node("Arena/Sharks")
+				var client: Node2D = load("res://scenes/maps/tidewater/tidewater_sharks.gd").new()
+				client.name = "ClientSharks"
+				client.set(&"lane", host.lane)
+				client.set(&"homes", host.homes)
+				client.set(&"floor_y", host.floor_y)
+				_stress_game().get_node("Arena").add_child(client)
+				client.remove_from_group(&"net_world")
+				client._authority = false
+				client._announced = true
+				_shark_client = client)
+			_at(4.6, "call", func(): _place_p1(Vector2(900, WorldConditions.water_level + 10.0)))
+			_hooks.append(func():
+				if _shark_client == null or not is_instance_valid(_shark_client):
+					return
+				var host = _stress_game().get_node("Arena/Sharks")
+				_shark_frame += 1
+				if host._step != _shark_step:
+					_shark_step = host._step
+					_shark_client.apply_net_state(host.net_state())
+				elif _shark_frame % 15 == 0:
+					if host.states() != _shark_client.states():
+						_shark_state_slips += 1
+					_shark_client.apply_net_state(host.net_state())
+				for index in range(host._hunters.size()):
+					if host._hunters[index].state != 0:
+						_shark_worst = maxf(_shark_worst, host._hunters[index].position.distance_to(_shark_client._hunters[index].position)))
+			_at(16.0, "call", func():
+				print("SHARK_SYNC worst_distance=%.1f px state_slips=%d host_bites_hp=%d" % [_shark_worst, _shark_state_slips, _p1().health_component.health])
+				print("SHARK_SYNC %s" % ("PASS" if _shark_worst < 24.0 and _shark_state_slips == 0 and _p1().health_component.health < 100 else "FAIL")))
+			_at(16.2, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
+			_at(16.3, "quit")
 		"tide_look":
 			# The looks of Tidewater's weather: a held flood in the rain, then a spring tide in the storm.
 			_at(0.2, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "tidewater"))
@@ -2079,7 +2138,8 @@ func _build_script() -> void:
 			# P1 runs across the frozen lake and lets go: the glide, the skid spray, the stop distance.
 			_at(0.2, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "rimefall"))
 			_at(0.5, "call", func(): _main._on_sandbox_requested())
-			_at(2.0, "call", func(): _place_p1(Vector2(800, 600)))
+			# The open ice of the tunnel under the arch.
+			_at(2.0, "call", func(): _place_p1(Vector2(930, 600)))
 			_at(2.5, "press", "p1_move_right")
 			_at(2.85, "release", "p1_move_right")
 			_at(3.0, "shot", "ice_skid")
@@ -2091,7 +2151,8 @@ func _build_script() -> void:
 				_at(2.4 + i * 0.15, "call", func():
 					var p1 = _stress_game().get_player_by_slot(1)
 					print("ICE t=%.2f x=%.0f vx=%.0f on_ice=%s sliding=%s" % [_time, p1.global_position.x, p1.velocity.x, p1.is_on_ice(), p1._ice_sliding]))
-			_at(6.0, "call", func(): _place_p1(Vector2(250, 390)))
+			# The snow of the spawn ledge, for comparison.
+			_at(6.0, "call", func(): _place_p1(Vector2(60, 530)))
 			_at(6.3, "press", "p1_move_right")
 			_at(6.7, "release", "p1_move_right")
 			_at(6.75, "call", func(): print("SNOW stop from vx=", _stress_game().get_player_by_slot(1).velocity.x))
@@ -2371,6 +2432,11 @@ func _equip(ids: Array) -> void:
 
 
 var _fx_last_health: int = -1
+var _shark_client: Node2D = null
+var _shark_step: int = -1
+var _shark_frame: int = 0
+var _shark_worst: float = 0.0
+var _shark_state_slips: int = 0
 var _tracker = null
 var _merge_pair: Array = []
 

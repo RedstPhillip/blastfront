@@ -45,7 +45,8 @@ void fragment() {
 	float body = 0.0;
 	if (v > 0.1) {
 		vec2 cp = px * vec2(0.00052, 0.0021) / TILE_UNITS;
-		float drift = TIME * (0.0032 + storm * 0.004);
+		// Far clouds: a few px a second on a calm night, about twice that as the storm front moves in.
+		float drift = TIME * (0.0007 + storm * 0.0009);
 		float c1 = texture(noise_tex, cp + vec2(drift, 0.0)).r;
 		float c2 = texture(noise_tex, cp * 2.3 + vec2(drift * 1.7, 0.02)).g;
 		float c3 = texture(noise_tex, cp * 5.1 + vec2(drift * 2.6, 0.0)).b;

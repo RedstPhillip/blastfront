@@ -273,6 +273,15 @@ const EVENTS: Dictionary = {
 	&"tide_drain": {"bus": &"Ambience", "voices": 1, "cooldown": 3.0, "layers": [
 		{"files": ["tide_drain"], "volume": -5.0, "pitch": Vector2(0.95, 1.05)},
 	]},
+	&"shark_alert": {"bus": &"SFX", "voices": 2, "cooldown": 0.4, "layers": [
+		{"files": ["shark_alert"], "volume": -3.0, "pitch": Vector2(0.96, 1.04)},
+	]},
+	&"shark_breach": {"bus": &"SFX", "voices": 3, "cooldown": 0.08, "layers": [
+		{"files": ["shark_breach"], "volume": -3.0, "pitch": Vector2(0.94, 1.06)},
+	]},
+	&"shark_bite": {"bus": &"SFX", "voices": 2, "cooldown": 0.1, "layers": [
+		{"files": ["shark_bite"], "volume": -1.0, "pitch": Vector2(0.95, 1.05)},
+	]},
 	&"thunder": {"bus": &"Ambience", "voices": 2, "cooldown": 2.0, "layers": [
 		{"files": ["thunder_0", "thunder_1", "thunder_2"], "volume": -5.0, "pitch": Vector2(0.92, 1.06)},
 	]},

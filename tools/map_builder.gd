@@ -105,6 +105,18 @@ func _mirror(points: Array) -> Array:
 	return result
 
 
+## A floating slab: a level walkable top from x0 to x1 at `top` with chamfered corners, tapering to a
+## narrower underside `thickness` px below.
+func _slab(x0: float, x1: float, top: float, thickness: float) -> Array:
+	var width: float = x1 - x0
+	var inset: float = minf(width * 0.22, 44.0)
+	return [
+		Vector2(x0, top + 6.0), Vector2(x0 + 12.0, top), Vector2(x1 - 12.0, top), Vector2(x1, top + 7.0),
+		Vector2(x1 - 9.0, top + thickness * 0.72), Vector2(x1 - inset, top + thickness),
+		Vector2(x0 + inset, top + thickness), Vector2(x0 + 8.0, top + thickness * 0.7),
+	]
+
+
 ## One terrain body per entry; `groups` tags bodies (e.g. the ice surfaces) for the world's rules and skin.
 func _add_bodies(bodies: Dictionary, groups: Dictionary = {}) -> void:
 	for body_name in bodies.keys():
