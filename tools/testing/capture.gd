@@ -2067,23 +2067,28 @@ func _build_script() -> void:
 			_at(4.4, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
 			_at(4.5, "quit")
 		"shark_look":
-			# The sharks at work: a held flood, P1 left in the water, frames through patrol, stalk, dive, strike.
-			# Prints SHARK lines (states, P1's soak, health); BF_SPRING=1 holds a spring tide instead.
+			# The sharks at work, frame by frame: a held flood with P1 parked dry on the left gallery (so the
+			# camera sits over the water) while the left shark patrols and turns (turn_NN, 8 a second), then P1
+			# left floating until it is hunted (hunt_NN, 20 a second). Prints SHARK lines (states, both soak
+			# timers, both health values, the left shark's place and speed); BF_SPRING=1 holds a spring tide.
 			var shark_spring: bool = OS.has_environment("BF_SPRING")
 			_at(0.2, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "tidewater"))
 			_at(0.5, "call", func(): _main._on_sandbox_requested())
 			_at(1.6, "call", func(): _tide().hold_flood(shark_spring))
-			_at(4.6, "call", func(): _place_p1(Vector2(900, WorldConditions.water_level + 10.0)))
-			for i in range(44):
-				_at(4.4 + float(i) * 0.2, "call", func():
+			_at(1.8, "call", func(): _place_p1(Vector2(880, 380)))
+			for i in range(120):
+				_at(3.0 + float(i) * 0.1, "call", func():
 					var sharks = _stress_game().get_node("Arena/Sharks")
 					var dummy = _stress_game().get_player_by_slot(2)
-					print("SHARK t=%.1f states=%s soak=%.1f/%.1f hp=%d/%d p1=%s depth=%.0f" % [_time, sharks.states(), sharks.soak_of(1), sharks.soak_of(2), _p1().health_component.health, dummy.health_component.health, _p1().global_position.round(), _p1().get_water_depth()]))
-			_at(4.0, "shot", "patrol")
-			for i in range(36):
-				_at(6.4 + float(i) / 12.0, "shot", "hunt_%02d" % i)
-			_at(13.4, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
-			_at(13.5, "quit")
+					var left = sharks._hunters[0]
+					print("SHARK t=%.1f states=%s soak=%.1f/%.1f hp=%d/%d left=%s v=%s" % [_time, sharks.states(), sharks.soak_of(1), sharks.soak_of(2), _p1().health_component.health, dummy.health_component.health, left.position.round(), left.velocity.round()]))
+			for i in range(40):
+				_at(4.0 + float(i) / 8.0, "shot", "turn_%02d" % i)
+			_at(9.2, "call", func(): _place_p1(Vector2(900, WorldConditions.water_level + 10.0)))
+			for i in range(70):
+				_at(11.6 + float(i) / 20.0, "shot", "hunt_%02d" % i)
+			_at(15.2, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
+			_at(15.3, "quit")
 		"shark_sync":
 			# Online: a second set of sharks set up as the client follows the host's (every state change at once,
 			# the regular snapshot four times a second, the way WorldSync delivers them). P1 floats in a held

@@ -9,13 +9,13 @@ extends "res://tools/map_builder.gd"
 ## steps out of the plaza, the docks and the bridge, the galleries, the cella with the crown and the apex
 ## on top, and a high road of arch, span and capital from the tower tops to the cella. The water column
 ## under the floors is open from tower to tower, which is where the sharks hunt.
-## The tide (TidewaterTide) floods the plaza, the drums and the steps at high tide (FLOOD_LEVEL, the docks
-## and the bridge stay just dry) and also the docks, the bridge, the galleries and the towers' steps at a
+## The tide (TidewaterTide) floods the plaza, the drums and the steps at high tide (FLOOD_LEVEL; the docks
+## and the bridge stand clear over the water, with room for a shark's fin under them) and also the docks, the bridge, the galleries and the towers' steps at a
 ## spring tide (SPRING_LEVEL); the tower tops, the cella and everything above always stay dry.
 
 const WIDTH: float = 2240.0
 const HEIGHT: float = 800.0
-const FLOOD_LEVEL: float = 500.0
+const FLOOD_LEVEL: float = 540.0
 const SPRING_LEVEL: float = 348.0
 ## Far-layer coordinates (origin = the arena's centre): where the sea meets the sky, and the moon.
 const HORIZON: float = 30.0

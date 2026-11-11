@@ -32,7 +32,7 @@ const SURFACE_PAD: float = 16.0
 @export var arena_rect: Rect2 = Rect2(0.0, 0.0, 2240.0, 800.0)
 ## Water surface at low tide: just under the map's bottom edge, so the chasms are open abyss.
 @export var ebb_level: float = 812.0
-@export var flood_level: float = 500.0
+@export var flood_level: float = 540.0
 @export var spring_level: float = 348.0
 @export var tide_color: Color = Color(0.45, 1.0, 0.9)
 

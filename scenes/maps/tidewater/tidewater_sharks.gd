@@ -4,16 +4,22 @@ extends Node2D
 ## The sharks of Tidewater. Two of them come up out of the chasms once a flood stands deep enough over the
 ## plaza, and go back down as it drains. They cruise under the temple's floors with the dorsal fin cutting
 ## the surface. Whoever stays in the water too long (GRACE seconds, less at a spring tide) is hunted: the
-## nearest shark turns and comes in fast on the surface, the fin goes under, and a moment later it comes
-## up from below through the spot where the swimmer was, jaws open. Caught, the swimmer takes BITE_DAMAGE
-## and is thrown clear of the water; out of the water in time, or simply somewhere else when it breaches,
-## and it misses. Being out of the water lets the timer run back down.
+## nearest shark turns on them: the fin streaks in along the surface (if it is too close for a run-up it
+## swims on past and swings round first), and from a couple of body lengths out it launches up and
+## forward through the spot the swimmer is at, jaws open, and crashes back in beyond them. Caught, the swimmer takes BITE_DAMAGE and is
+## thrown clear of the water; out of the water in time, or simply somewhere else when it arrives, and it
+## misses. Being out of the water lets the timer run back down.
+##
+## Everything a shark does is steering: it has a velocity, wants another one, and gets there only as fast
+## as a body that size can (ACCEL values), so it speeds up, glides, banks into turns and levels out
+## instead of sliding about. Only the lunge itself follows a fixed curve, set when it starts.
 ##
 ## Online the host's sharks decide (WorldSync carries their state and every change of it), the client's
-## copies swim the same paths; the bite goes through CombatSync like any other hit, credited to the
-## opponent the way the arena's border is. Bots already keep out of water they do not need to be in.
+## copies steer the same way from the same numbers; the bite goes through CombatSync like any other hit,
+## credited to the opponent the way the arena's border is. Bots already keep out of water they do not
+## need to be in.
 
-enum State { AWAY, ARRIVE, PATROL, STALK, DIVE, STRIKE, RECOVER, LEAVE }
+enum State { AWAY, ARRIVE, PATROL, RUSH, LUNGE, RECOVER, LEAVE }
 
 const GRACE: float = 2.6
 const SPRING_GRACE: float = 1.8
@@ -22,24 +28,45 @@ const BITE_RADIUS: float = 46.0
 const BITE_THROW: Vector2 = Vector2(240.0, -470.0)
 ## After a bite the same swimmer is left alone this long, however long they stay in.
 const VICTIM_COOLDOWN: float = 2.4
-## Spine depth under the surface while cruising: the dorsal fin stands a hand out of the water.
-const CRUISE_DEPTH: float = 22.0
-const STRIKE_DEPTH: float = 96.0
-const PATROL_SPEED: float = 82.0
-const STALK_SPEED: float = 255.0
+## Spine depth under the surface while cruising: the dorsal fin stands a hand out of the water, and just
+## clears the underside of a floor that stands over the water.
+const CRUISE_DEPTH: float = 32.0
+## From the spine up to the tip of the dorsal fin, and down to the belly.
+const FIN_HEIGHT: float = 48.0
+const BELLY_DEPTH: float = 26.0
+const PATROL_SPEED: float = 96.0
+const PATROL_ACCEL: float = 150.0
+const RUSH_SPEED: float = 500.0
+const RUSH_ACCEL: float = 1100.0
+## A run-up: the shark comes in from at least RUN_UP px out; closer than that it swims away first.
+const RUN_UP: float = 215.0
+## Over the last stretch of the run-in it sinks this far under the swimmer, to come up at them.
+const ATTACK_DEPTH: float = 74.0
+## The leap goes off within this distance of the swimmer, once it is coming at them this fast.
+const LUNGE_RANGE: float = 215.0
+const LUNGE_ENTRY_SPEED: float = 300.0
+const RUSH_LIMIT: float = 2.6
+## The leap: up and forward at LUNGE_SPEED, passing through the swimmer, over the top and back in.
+const LUNGE_SPEED: float = 700.0
+const LUNGE_HEADING: Vector2 = Vector2(0.62, -0.78)
+const LUNGE_RISE_LIMITS: Vector2 = Vector2(0.14, 0.3)
+const LUNGE_FALL_TIME: float = 0.45
+const LUNGE_EXIT: Vector2 = Vector2(260.0, 300.0)
+## The body is this far past the swimmer at the top of the rise: the jaws have gone through them.
+const LUNGE_OVERSHOOT: float = 20.0
+const JAW_REACH: float = 62.0
+const RECOVER_TIME: float = 1.1
 const RISE_SPEED: float = 150.0
-const STALK_REACH: float = 150.0
-const STALK_LIMIT: float = 1.7
-const DIVE_TIME: float = 0.5
-const STRIKE_TIME: float = 0.64
-const RECOVER_TIME: float = 1.3
 ## How deep the body has to sit to count as being in the water: a swimmer floats about level with the
 ## surface, somebody standing on an awash floor has the water at their feet (around -24) and is left alone.
 const SOAK_DEPTH: float = -8.0
-## Room a shark keeps under a floor that lies in the surface, and how far ahead it looks for one.
-const CEILING_CLEARANCE: float = 42.0
-const CEILING_LOOKAHEAD: float = 104.0
 const DRY_FORGIVE: float = 0.45
+## A floor standing in the surface: how far ahead a shark starts to go down for it and how far past it
+## the tail still has to clear. Floors that lie wholly under water it simply swims behind.
+const CEILING_AHEAD: float = 150.0
+const CEILING_BEHIND: float = 96.0
+## It never swims closer to the plaza than this.
+const FLOOR_ROOM: float = 36.0
 ## The plaza must stand this deep under water before the sharks come up.
 const MIN_WATER_OVER_FLOOR: float = 96.0
 
@@ -66,21 +93,33 @@ var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var _ceilings: Array[Rect2] = []
 
 
-## One shark: what it is doing, where, and the path of the strike it is on.
+## One shark: what it is doing, where it is and how it is moving, and the curve of the lunge it is on.
 class Hunter:
 	extends RefCounted
 	var body: TideShark = null
 	var state: int = State.AWAY
 	var position: Vector2 = Vector2.ZERO
-	var heading: Vector2 = Vector2.RIGHT
+	var velocity: Vector2 = Vector2.ZERO
+	## Which way it is patrolling (or lunging): +1 right, -1 left.
 	var direction: float = 1.0
 	var timer: float = 0.0
 	var target_slot: int = 0
 	var home_x: float = 0.0
 	var beat: Vector2 = Vector2.ZERO
+	## Its own rhythm, so the two never weave in step.
+	var phase: float = 0.0
+	## How hard it is working right now (0 gliding .. 1 all out): what its tail shows.
+	var effort: float = 0.0
+	# The lunge: from, through (where the body is as the jaws close on the swimmer) and back in, each with
+	# the velocity it has there.
 	var from: Vector2 = Vector2.ZERO
-	var control: Vector2 = Vector2.ZERO
+	var from_velocity: Vector2 = Vector2.ZERO
+	var through: Vector2 = Vector2.ZERO
+	var through_velocity: Vector2 = Vector2.ZERO
 	var to: Vector2 = Vector2.ZERO
+	var rise_time: float = 0.2
+	## In a rush: coming at the swimmer (true) or still swimming out for the run-up (false).
+	var run_in: bool = true
 	var bitten: bool = false
 	var wake_timer: float = 0.0
 	var was_above: bool = false
@@ -98,7 +137,7 @@ func _ready() -> void:
 		var hunter: Hunter = Hunter.new()
 		hunter.home_x = homes[index]
 		hunter.direction = 1.0 if hunter.home_x < middle else -1.0
-		hunter.heading = Vector2(hunter.direction, 0.0)
+		hunter.phase = float(index) * 2.3
 		# Each keeps to its own half until it has someone to chase.
 		hunter.beat = Vector2(lane.x, middle - 30.0) if hunter.home_x < middle else Vector2(middle + 30.0, lane.y)
 		hunter.body = TideShark.new()
@@ -128,10 +167,9 @@ func _process(delta: float) -> void:
 		if not body.visible:
 			continue
 		body.global_position = hunter.position
-		body.z_index = 4 if hunter.state == State.STRIKE else -1
-		body.thrash = move_toward(body.thrash, _thrash_of(hunter), delta * 5.0)
-		body.jaw = _jaw_of(hunter)
-		body.animate(delta, hunter.heading, _speed_of(hunter))
+		body.z_index = 4 if hunter.state == State.LUNGE else -1
+		body.jaw = _jaw_of(hunter, delta)
+		body.animate(delta, hunter.velocity, hunter.effort, hunter.state == State.LUNGE)
 		_update_wake(hunter, delta, water)
 
 
@@ -154,136 +192,183 @@ func _collect_ceilings() -> void:
 				_ceilings.append(box)
 
 
-## How deep a shark at x swims: fin out of the water where the surface is open, ducked under any floor
-## that lies in the surface there.
-func _cruise_y(x: float, water: float) -> float:
+## How deep a shark at x, heading `direction`, swims: fin out of the water where the surface is open,
+## just deep enough for the fin to pass under a floor that stands in the surface, starting down in good
+## time and staying down until the tail is clear.
+func _cruise_y(x: float, direction: float, water: float) -> float:
 	var y: float = water + CRUISE_DEPTH
 	for box in _ceilings:
-		if x < box.position.x - CEILING_LOOKAHEAD or x > box.end.x + CEILING_LOOKAHEAD:
+		var ahead: float = CEILING_AHEAD if direction > 0.0 else CEILING_BEHIND
+		var behind: float = CEILING_BEHIND if direction > 0.0 else CEILING_AHEAD
+		if x < box.position.x - ahead or x > box.end.x + behind:
 			continue
-		# In the way if it reaches into the band between the fin's tip and the belly.
-		if box.end.y > water - 30.0 and box.position.y < y + 26.0:
-			y = maxf(y, box.end.y + CEILING_CLEARANCE)
-	return y
+		# Only a floor whose top is out of the water is in the fin's way.
+		if box.position.y < water + 4.0 and box.end.y > y - FIN_HEIGHT:
+			y = maxf(y, box.end.y + FIN_HEIGHT + 6.0)
+	return minf(y, floor_y - FLOOR_ROOM)
 
 
 # --- What a shark does --------------------------------------------------------------------------------------
 
 func _advance(hunter: Hunter, delta: float, water: float, up: bool) -> void:
 	hunter.timer += delta
-	var cruise_y: float = _cruise_y(hunter.position.x, water)
 	match hunter.state:
 		State.AWAY:
 			if _authority and up:
 				hunter.position = Vector2(hunter.home_x, floor_y + 130.0)
-				hunter.heading = Vector2(hunter.direction * 0.3, -1.0).normalized()
+				hunter.velocity = Vector2(hunter.direction * 30.0, -RISE_SPEED)
 				_enter(hunter, State.ARRIVE)
 		State.ARRIVE:
-			hunter.position.y = move_toward(hunter.position.y, cruise_y, RISE_SPEED * delta)
-			hunter.position.x += hunter.direction * 26.0 * delta
-			_turn(hunter, Vector2(hunter.direction * 0.5, -1.0), delta, 4.0)
-			if _authority and hunter.position.y <= cruise_y + 26.0:
+			# Up out of the chasm, levelling off into the patrol as the surface comes near.
+			var arrive_y: float = _cruise_y(hunter.position.x, hunter.direction, water)
+			var level: float = clampf((hunter.position.y - arrive_y) / 150.0, 0.0, 1.0)
+			_steer(hunter, Vector2(hunter.direction * lerpf(PATROL_SPEED, 34.0, level), -RISE_SPEED * level), 260.0, delta, 0.35)
+			if _authority and level < 0.12:
 				_enter(hunter, State.PATROL)
 		State.PATROL:
 			if hunter.position.x > hunter.beat.y:
 				hunter.direction = -1.0
 			elif hunter.position.x < hunter.beat.x:
 				hunter.direction = 1.0
-			hunter.position.x += hunter.direction * PATROL_SPEED * delta
-			var before_y: float = hunter.position.y
-			hunter.position.y = move_toward(hunter.position.y, cruise_y + sin(hunter.timer * 0.9) * 3.0, 64.0 * delta)
-			# Nose down going under a floor, nose up coming back to the surface.
-			_turn(hunter, Vector2(hunter.direction * PATROL_SPEED, (hunter.position.y - before_y) / maxf(delta, 0.001)), delta, 3.5)
+			_steer(hunter, _cruise_velocity(hunter, water, PATROL_SPEED), PATROL_ACCEL, delta, 0.0)
 			if _authority and not up:
 				_enter(hunter, State.LEAVE)
-		State.STALK:
+		State.RUSH:
+			# `direction` is the way it will come at the swimmer. Swimming out for the run-up it goes the
+			# other way along the surface; far enough out (or at the end of the lane) it turns in.
 			var target: Player = _player(hunter.target_slot)
-			var target_x: float = target.global_position.x if target != null else hunter.position.x
-			var to_target: float = target_x - hunter.position.x
-			if absf(to_target) > 6.0:
-				hunter.direction = signf(to_target)
-			hunter.position.x = clampf(hunter.position.x + hunter.direction * STALK_SPEED * delta, lane.x, lane.y)
-			var stalk_before_y: float = hunter.position.y
-			hunter.position.y = move_toward(hunter.position.y, cruise_y, 110.0 * delta)
-			_turn(hunter, Vector2(hunter.direction * STALK_SPEED, (hunter.position.y - stalk_before_y) / maxf(delta, 0.001)), delta, 7.0)
+			var prey: Vector2 = target.global_position if target != null else hunter.position
+			var ahead_of_it: float = (prey.x - hunter.position.x) * hunter.direction
+			var cruise: float = _cruise_y(hunter.position.x, hunter.direction if hunter.run_in else -hunter.direction, water)
+			if not hunter.run_in:
+				var at_end: bool = hunter.position.x < lane.x + 30.0 or hunter.position.x > lane.y - 30.0
+				if ahead_of_it > RUN_UP or at_end:
+					hunter.run_in = true
+					_step += 1
+				_steer(hunter, Vector2(-hunter.direction * RUSH_SPEED * 0.85, clampf((cruise - hunter.position.y) * 3.0, -160.0, 160.0)), RUSH_ACCEL, delta, 0.8)
+			else:
+				# Fin out on the way in; over the last stretch it sinks to come up from below.
+				var sink: float = 1.0 - smoothstep(LUNGE_RANGE, LUNGE_RANGE + 170.0, ahead_of_it)
+				var depth: float = minf(lerpf(cruise, maxf(cruise, maxf(prey.y, water) + ATTACK_DEPTH), sink), floor_y - FLOOR_ROOM)
+				_steer(hunter, Vector2(hunter.direction * RUSH_SPEED, clampf((depth - hunter.position.y) * 3.5, -220.0, 220.0)), RUSH_ACCEL, delta, 1.0)
 			if _authority:
 				if not up or target == null or target.is_eliminated() or float(_dry.get(hunter.target_slot, 0.0)) > DRY_FORGIVE:
 					_release(hunter)
-				elif absf(to_target) < STALK_REACH or hunter.timer > STALK_LIMIT:
-					hunter.from = hunter.position
-					hunter.to = Vector2(clampf(target_x - hunter.direction * 78.0, lane.x - 30.0, lane.y + 30.0), water + STRIKE_DEPTH)
-					_enter(hunter, State.DIVE)
-		State.DIVE:
-			var t: float = clampf(hunter.timer / DIVE_TIME, 0.0, 1.0)
-			var eased: float = t * t * (3.0 - 2.0 * t)
-			var before: Vector2 = hunter.position
-			hunter.position = hunter.from.lerp(hunter.to, eased)
-			_turn(hunter, hunter.position - before + Vector2(hunter.direction * 0.4, 0.0), delta, 9.0)
-			if _authority and t >= 1.0:
-				_begin_strike(hunter, water)
-		State.STRIKE:
-			var t: float = clampf(hunter.timer / STRIKE_TIME, 0.0, 1.0)
-			var a: Vector2 = hunter.from.lerp(hunter.control, t)
-			var b: Vector2 = hunter.control.lerp(hunter.to, t)
-			hunter.position = a.lerp(b, t)
-			if (b - a).length_squared() > 0.01:
-				hunter.heading = (b - a).normalized()
+				elif hunter.run_in and ahead_of_it > 40.0 and ahead_of_it < LUNGE_RANGE and hunter.velocity.x * hunter.direction > LUNGE_ENTRY_SPEED:
+					_begin_lunge(hunter, water)
+				elif hunter.timer > RUSH_LIMIT or (hunter.run_in and ahead_of_it < -40.0):
+					# Overshot, or too slow: give it up rather than lunge at nothing.
+					_release(hunter)
+		State.LUNGE:
+			_follow_lunge(hunter)
 			_breach_feedback(hunter, water)
 			if _authority:
-				if not hunter.bitten and t > 0.3 and t < 0.66:
+				if not hunter.bitten and hunter.timer < hunter.rise_time + 0.06:
 					_try_bite(hunter)
-				if t >= 1.0:
+				if hunter.timer >= hunter.rise_time + LUNGE_FALL_TIME:
+					# Back in the water with the speed it came down with.
+					hunter.velocity = Vector2(LUNGE_EXIT.x * hunter.direction, LUNGE_EXIT.y)
 					_enter(hunter, State.RECOVER)
 		State.RECOVER:
-			hunter.direction = signf(hunter.heading.x) if absf(hunter.heading.x) > 0.05 else hunter.direction
+			# Carries its speed on, levels out and slows back into the patrol.
 			if hunter.position.x > lane.y:
 				hunter.direction = -1.0
 			elif hunter.position.x < lane.x:
 				hunter.direction = 1.0
-			hunter.position.x += hunter.direction * 190.0 * delta
-			hunter.position.y = move_toward(hunter.position.y, cruise_y + 34.0 * (1.0 - clampf(hunter.timer / RECOVER_TIME, 0.0, 1.0)), 160.0 * delta)
-			_turn(hunter, Vector2(hunter.direction, 0.0), delta, 4.0)
+			elif absf(hunter.velocity.x) > 40.0:
+				hunter.direction = signf(hunter.velocity.x)
+			_steer(hunter, _cruise_velocity(hunter, water, 150.0), 620.0, delta, 0.1)
 			if _authority and hunter.timer >= RECOVER_TIME:
 				_enter(hunter, State.PATROL if up else State.LEAVE)
 		State.LEAVE:
 			var to_home: float = hunter.home_x - hunter.position.x
-			if absf(to_home) > 14.0:
+			if absf(to_home) > 26.0:
 				hunter.direction = signf(to_home)
-				hunter.position.x += hunter.direction * 170.0 * delta
-				hunter.position.y = move_toward(hunter.position.y, maxf(cruise_y, hunter.position.y), 60.0 * delta)
-				_turn(hunter, Vector2(hunter.direction, 0.15), delta, 4.0)
+				var leaving: Vector2 = _cruise_velocity(hunter, water, 170.0)
+				_steer(hunter, Vector2(leaving.x, maxf(leaving.y, 0.0)), 260.0, delta, 0.3)
 			else:
-				hunter.position.y += RISE_SPEED * delta
-				_turn(hunter, Vector2(hunter.direction * 0.4, 1.0), delta, 4.0)
+				_steer(hunter, Vector2(to_home * 1.5, RISE_SPEED), 260.0, delta, 0.3)
 				if _authority and hunter.position.y > floor_y + 130.0:
 					_enter(hunter, State.AWAY)
 			if _authority and up and hunter.position.y < floor_y:
 				_enter(hunter, State.PATROL)
 
 
-## The leap: from where it lies under the swimmer, up through the spot they are at now, and back into the
-## water beyond them. Set once; whoever has moved on by the time it gets there is missed.
-func _begin_strike(hunter: Hunter, water: float) -> void:
+## Moves a shark towards the velocity it wants, no faster than `accel` lets it, and on by one frame.
+## Its effort (what the tail shows) is the push that takes, never less than `base_effort`. Over the plaza
+## it is turned back up before it reaches the floor (the chasms at the sides go down further).
+func _steer(hunter: Hunter, wanted: Vector2, accel: float, delta: float, base_effort: float) -> void:
+	var push: float = (wanted - hunter.velocity).length()
+	var bottom: float = floor_y - FLOOR_ROOM
+	if hunter.state != State.ARRIVE and hunter.state != State.LEAVE and hunter.position.y > bottom - 60.0:
+		# Easing off the dive over the last 60 px.
+		wanted.y = minf(wanted.y, (bottom - hunter.position.y) * 4.0)
+		accel = maxf(accel, 700.0)
+	hunter.velocity = hunter.velocity.move_toward(wanted, accel * delta)
+	hunter.position += hunter.velocity * delta
+	hunter.effort = clampf(maxf(base_effort, push / 190.0), 0.0, 1.0)
+
+
+## The velocity of a shark on its beat: along it at an easy, uneven pace, weaving a little in depth, and
+## down or up towards the depth the water ahead allows.
+func _cruise_velocity(hunter: Hunter, water: float, speed: float) -> Vector2:
+	var pace: float = speed * (0.86 + 0.2 * sin(hunter.timer * 0.41 + hunter.phase))
+	var ahead: float = hunter.position.x + hunter.direction * 46.0
+	var depth: float = _cruise_y(ahead, hunter.direction, water) + sin(hunter.timer * 0.63 + hunter.phase) * 3.0
+	return Vector2(hunter.direction * pace, clampf((depth - hunter.position.y) * 2.4, -110.0, 80.0))
+
+
+## The leap, set once: from where it is (keeping the speed it has) up and forward through the swimmer,
+## over the top and back into the water beyond. Whoever has moved on by the time it gets there is missed.
+func _begin_lunge(hunter: Hunter, water: float) -> void:
 	var target: Player = _player(hunter.target_slot)
 	if target == null or target.is_eliminated() or target.get_water_depth() < -70.0:
 		_release(hunter)
 		return
-	var aim: Vector2 = target.global_position + target.velocity * 0.12
-	aim.y = maxf(aim.y, water - 64.0)
+	var prey: Vector2 = target.global_position + target.velocity * 0.12
+	prey.y = maxf(prey.y, water - 64.0)
+	var heading: Vector2 = Vector2(LUNGE_HEADING.x * hunter.direction, LUNGE_HEADING.y)
 	hunter.from = hunter.position
-	hunter.to = Vector2(aim.x + hunter.direction * 124.0, water + 74.0)
-	hunter.control = (aim + Vector2(0.0, -12.0)) * 2.0 - (hunter.from + hunter.to) * 0.5
+	hunter.from_velocity = hunter.velocity
+	hunter.through = prey + heading * LUNGE_OVERSHOOT
+	hunter.through_velocity = heading * LUNGE_SPEED
+	var average: float = (hunter.velocity.length() + LUNGE_SPEED) * 0.5
+	hunter.rise_time = clampf(hunter.from.distance_to(hunter.through) / maxf(average, 1.0), LUNGE_RISE_LIMITS.x, LUNGE_RISE_LIMITS.y)
+	hunter.to = Vector2(prey.x + hunter.direction * 230.0, water + 44.0)
 	hunter.bitten = false
-	hunter.was_above = false
-	_enter(hunter, State.STRIKE)
+	hunter.was_above = hunter.position.y < water
+	_enter(hunter, State.LUNGE)
+
+
+## Where the lunge has got to: two smooth pieces that share their velocity where they meet.
+func _follow_lunge(hunter: Hunter) -> void:
+	var exit: Vector2 = Vector2(LUNGE_EXIT.x * hunter.direction, LUNGE_EXIT.y)
+	var before: Vector2 = hunter.position
+	if hunter.timer < hunter.rise_time:
+		hunter.position = _curve(hunter.from, hunter.from_velocity * hunter.rise_time, hunter.through, hunter.through_velocity * hunter.rise_time, hunter.timer / hunter.rise_time)
+	else:
+		var t: float = clampf((hunter.timer - hunter.rise_time) / LUNGE_FALL_TIME, 0.0, 1.0)
+		hunter.position = _curve(hunter.through, hunter.through_velocity * LUNGE_FALL_TIME, hunter.to, exit * LUNGE_FALL_TIME, t)
+	var step: float = maxf(get_physics_process_delta_time(), 0.001)
+	if hunter.position.distance_squared_to(before) > 0.01:
+		hunter.velocity = (hunter.position - before) / step
+	hunter.effort = 1.0
+
+
+## A cubic Hermite curve: from a to b, leaving with tangent a_out and arriving with b_in.
+func _curve(a: Vector2, a_out: Vector2, b: Vector2, b_in: Vector2, t: float) -> Vector2:
+	var t2: float = t * t
+	var t3: float = t2 * t
+	return a * (2.0 * t3 - 3.0 * t2 + 1.0) + a_out * (t3 - 2.0 * t2 + t) + b * (-2.0 * t3 + 3.0 * t2) + b_in * (t3 - t2)
 
 
 func _try_bite(hunter: Hunter) -> void:
 	var target: Player = _player(hunter.target_slot)
 	if target == null or target.is_eliminated():
 		return
-	var jaws: Vector2 = hunter.position + hunter.heading * (TideShark.LENGTH * 0.5 - 22.0)
-	if jaws.distance_to(target.global_position) > BITE_RADIUS:
+	var heading: Vector2 = hunter.velocity.normalized() if hunter.velocity.length_squared() > 1.0 else Vector2(hunter.direction, 0.0)
+	var jaws: Vector2 = hunter.position + heading * JAW_REACH
+	if heading.y > -0.25 or jaws.distance_to(target.global_position) > BITE_RADIUS:
 		return
 	hunter.bitten = true
 	_step += 1
@@ -315,12 +400,6 @@ func _enter(hunter: Hunter, next_state: int) -> void:
 		hunter.target_slot = 0
 	_step += 1
 	_state_feedback(hunter)
-
-
-func _turn(hunter: Hunter, towards: Vector2, delta: float, rate: float) -> void:
-	if towards.length_squared() < 0.0001:
-		return
-	hunter.heading = hunter.heading.slerp(towards.normalized(), clampf(rate * delta, 0.0, 1.0)).normalized()
 
 
 # --- Who is hunted ------------------------------------------------------------------------------------------
@@ -359,12 +438,26 @@ func _send_hunters() -> void:
 		if best == null:
 			continue
 		best.target_slot = int(slot)
-		_enter(best, State.STALK)
+		var away: float = player.global_position.x - best.position.x
+		var towards: bool = best.velocity.x * away > 0.0
+		if absf(away) >= RUN_UP * 0.8 and towards:
+			# Already coming their way with room to spare: straight in.
+			best.direction = signf(away)
+			best.run_in = true
+		elif towards:
+			# Coming their way but too close: on past them, then round and in from the far side.
+			best.direction = -signf(away) if away != 0.0 else -best.direction
+			best.run_in = false
+		else:
+			# Heading away: on out a little, then round and in.
+			best.direction = signf(away) if away != 0.0 else best.direction
+			best.run_in = absf(away) >= RUN_UP
+		_enter(best, State.RUSH)
 
 
 func _is_hunted(slot: int) -> bool:
 	for hunter in _hunters:
-		if hunter.target_slot == slot and (hunter.state == State.STALK or hunter.state == State.DIVE or hunter.state == State.STRIKE):
+		if hunter.target_slot == slot and (hunter.state == State.RUSH or hunter.state == State.LUNGE):
 			return true
 	return false
 
@@ -390,34 +483,15 @@ func _player(slot: int) -> Player:
 
 # --- Looks and sound ----------------------------------------------------------------------------------------
 
-func _speed_of(hunter: Hunter) -> float:
-	match hunter.state:
-		State.STALK:
-			return STALK_SPEED
-		State.STRIKE, State.DIVE:
-			return 420.0
-		State.RECOVER, State.LEAVE:
-			return 180.0
-	return PATROL_SPEED
-
-
-func _thrash_of(hunter: Hunter) -> float:
-	match hunter.state:
-		State.STRIKE:
-			return 1.0
-		State.STALK, State.DIVE:
-			return 0.55
-	return 0.0
-
-
-## Jaws: opening on the way up, wide at the swimmer, snapping shut right after.
-func _jaw_of(hunter: Hunter) -> float:
-	if hunter.state != State.STRIKE:
-		return move_toward(hunter.body.jaw, 0.0, 0.08)
-	var t: float = clampf(hunter.timer / STRIKE_TIME, 0.0, 1.0)
-	if hunter.bitten:
-		return move_toward(hunter.body.jaw, 0.12, 0.3)
-	return smoothstep(0.08, 0.4, t) * (1.0 - smoothstep(0.62, 0.8, t))
+## Jaws: thrown open as the lunge starts, shut on the swimmer or, missing, as it goes over the top.
+func _jaw_of(hunter: Hunter, delta: float) -> float:
+	var open: float = 0.0
+	if hunter.state == State.RUSH and hunter.run_in:
+		open = 0.18
+	elif hunter.state == State.LUNGE and not hunter.bitten and hunter.timer < hunter.rise_time + 0.05:
+		open = 1.0
+	# Open fast, snap shut faster.
+	return move_toward(hunter.body.jaw, open, delta * (9.0 if open > hunter.body.jaw else 14.0))
 
 
 func _state_feedback(hunter: Hunter) -> void:
@@ -426,14 +500,11 @@ func _state_feedback(hunter: Hunter) -> void:
 			if not _announced:
 				_announced = true
 				HudToasts.notify("SHARKS", "Swimmers get bitten", warning_color, &"")
-		State.STALK:
+		State.RUSH:
 			AudioDirector.play_at(&"shark_alert", hunter.position)
 			var target: Player = _player(hunter.target_slot)
 			if target != null:
 				GameJuice.spawn_callout(target.global_position, "SHARK", warning_color, target.get_instance_id())
-		State.DIVE:
-			# The fin slips under: a last swirl where it was.
-			GameJuice.spawn_burst(&"ripple", Vector2(hunter.position.x, WorldConditions.water_level), Vector2(hunter.direction, 0.0), Color.WHITE)
 
 
 func _bite_feedback(hunter: Hunter) -> void:
@@ -444,12 +515,13 @@ func _bite_feedback(hunter: Hunter) -> void:
 
 ## The surface breaking on the way out and again on the way back in.
 func _breach_feedback(hunter: Hunter, water: float) -> void:
-	var jaws_y: float = hunter.position.y + hunter.heading.y * 60.0
-	var above: bool = jaws_y < water
+	var heading: Vector2 = hunter.velocity.normalized() if hunter.velocity.length_squared() > 1.0 else Vector2(hunter.direction, 0.0)
+	var jaws: Vector2 = hunter.position + heading * JAW_REACH
+	var above: bool = jaws.y < water
 	if above == hunter.was_above:
 		return
 	hunter.was_above = above
-	var at: Vector2 = Vector2(hunter.position.x + hunter.heading.x * 60.0, water)
+	var at: Vector2 = Vector2(jaws.x, water)
 	GameJuice.spawn_burst(&"splash", at, Vector2.UP, Color.WHITE, 1.7 if above else 1.4)
 	GameJuice.spawn_burst(&"splash", at + Vector2(-hunter.direction * 34.0, 0.0), Vector2.UP, Color.WHITE, 1.0)
 	AudioDirector.play_at(&"shark_breach", at, 0.0 if above else -3.0, 1.0 if above else 0.85)
@@ -459,7 +531,7 @@ func _breach_feedback(hunter: Hunter, water: float) -> void:
 
 ## The dorsal fin drags a wake along the surface while it is out of the water.
 func _update_wake(hunter: Hunter, delta: float, water: float) -> void:
-	if hunter.state == State.STRIKE or hunter.state == State.DIVE:
+	if hunter.state == State.LUNGE or not hunter.body.is_side_on():
 		return
 	var tip: Vector2 = hunter.body.fin_tip()
 	if tip.y > water - 2.0:
@@ -467,8 +539,9 @@ func _update_wake(hunter: Hunter, delta: float, water: float) -> void:
 	hunter.wake_timer -= delta
 	if hunter.wake_timer > 0.0:
 		return
-	hunter.wake_timer = 0.14 if hunter.state == State.STALK else 0.34
-	GameJuice.spawn_burst(&"ripple", Vector2(tip.x, water), Vector2(-hunter.direction, 0.0), Color.WHITE)
+	# The faster it goes, the closer the rings.
+	hunter.wake_timer = clampf(34.0 / maxf(absf(hunter.velocity.x), 40.0), 0.07, 0.4)
+	GameJuice.spawn_burst(&"ripple", Vector2(tip.x, water), Vector2(-signf(hunter.velocity.x), 0.0), Color.WHITE)
 
 
 # --- Online -------------------------------------------------------------------------------------------------
@@ -477,8 +550,9 @@ func net_state() -> Dictionary:
 	var hunters: Array = []
 	for hunter in _hunters:
 		hunters.append([
-			hunter.state, hunter.position, hunter.heading, hunter.direction, hunter.timer, hunter.target_slot,
-			hunter.from, hunter.control, hunter.to, hunter.bitten,
+			hunter.state, hunter.position, hunter.velocity, hunter.direction, hunter.timer, hunter.target_slot,
+			hunter.from, hunter.from_velocity, hunter.through, hunter.to, hunter.bitten,
+			hunter.through_velocity, hunter.rise_time, hunter.run_in,
 		])
 	return {"step": _step, "hunters": hunters}
 
@@ -490,26 +564,30 @@ func apply_net_state(state: Dictionary) -> void:
 		return
 	for index in range(mini((hunters as Array).size(), _hunters.size())):
 		var data: Variant = (hunters as Array)[index]
-		if not (data is Array) or (data as Array).size() < 10:
+		if not (data is Array) or (data as Array).size() < 14:
 			continue
 		var hunter: Hunter = _hunters[index]
 		var entered: bool = int(data[0]) != hunter.state
-		var bit: bool = data[9] == true and not hunter.bitten
+		var bit: bool = data[10] == true and not hunter.bitten
 		hunter.state = int(data[0])
 		hunter.direction = float(data[3])
 		hunter.timer = float(data[4])
 		hunter.target_slot = int(data[5])
 		hunter.from = data[6]
-		hunter.control = data[7]
-		hunter.to = data[8]
-		hunter.bitten = data[9] == true
-		# A strike follows its path from the timer alone; anywhere else take the host's place for it.
-		if hunter.state != State.STRIKE and hunter.state != State.DIVE:
+		hunter.from_velocity = data[7]
+		hunter.through = data[8]
+		hunter.to = data[9]
+		hunter.bitten = data[10] == true
+		hunter.through_velocity = data[11]
+		hunter.rise_time = float(data[12])
+		hunter.run_in = data[13] == true
+		# A lunge follows its curve from the timer alone; anywhere else take the host's place and speed.
+		if hunter.state != State.LUNGE:
 			hunter.position = data[1]
-			hunter.heading = data[2]
+			hunter.velocity = data[2]
 		if entered:
-			if hunter.state == State.STRIKE:
-				hunter.was_above = false
+			if hunter.state == State.LUNGE:
+				hunter.was_above = hunter.position.y < WorldConditions.water_level
 			_state_feedback(hunter)
 		if bit:
 			_bite_feedback(hunter)

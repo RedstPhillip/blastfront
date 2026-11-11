@@ -135,9 +135,9 @@ polygon = PackedVector2Array(838, 306, 850, 300, 910, 300, 922, 307, 913, 320.16
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_m2gpu"]
 polygon = PackedVector2Array(1394, 319.6, 1383.52, 328, 1336.48, 328, 1327, 320.16, 1318, 307, 1330, 300, 1390, 300, 1402, 306)
 
-[node name="TidewaterArena" type="Node2D" unique_id=858980374]
+[node name="TidewaterArena" type="Node2D" unique_id=1961020495]
 
-[node name="MapProfile" type="Node" parent="." unique_id=76679520]
+[node name="MapProfile" type="Node" parent="." unique_id=1223498991]
 script = ExtResource("1_lf54q")
 world_id = &"tidewater"
 display_name = "Tidewater"
@@ -147,19 +147,19 @@ dust_color = Color(0.7, 0.82, 0.82, 0.42)
 debris_color = Color(0.33, 0.39, 0.4, 1)
 border_color = Color(0.42, 0.96, 0.88, 1)
 
-[node name="MapBounds" type="Node" parent="." unique_id=729475116]
+[node name="MapBounds" type="Node" parent="." unique_id=16466377]
 script = ExtResource("2_ro7ub")
 bounds = Rect2(0, -60, 2240, 860)
 
-[node name="Environment" type="Node2D" parent="." unique_id=1762613077]
+[node name="Environment" type="Node2D" parent="." unique_id=1255987975]
 z_index = -10
 
-[node name="FarLayer" type="Node2D" parent="Environment" unique_id=1842116511]
+[node name="FarLayer" type="Node2D" parent="Environment" unique_id=1325650288]
 script = ExtResource("3_jyxys")
 factor = Vector2(0.18, 0.12)
 anchor = Vector2(1120, 400)
 
-[node name="Sky" type="ColorRect" parent="Environment/FarLayer" unique_id=82365858]
+[node name="Sky" type="ColorRect" parent="Environment/FarLayer" unique_id=1314539888]
 material = SubResource("ShaderMaterial_6ql31")
 offset_left = -3400.0
 offset_top = -700.0
@@ -167,7 +167,7 @@ offset_right = 3400.0
 offset_bottom = 30.0
 mouse_filter = 2
 
-[node name="Sea" type="ColorRect" parent="Environment/FarLayer" unique_id=1752459860]
+[node name="Sea" type="ColorRect" parent="Environment/FarLayer" unique_id=731422892]
 material = SubResource("ShaderMaterial_y2gh3")
 offset_left = -3400.0
 offset_top = 30.0
@@ -175,7 +175,7 @@ offset_right = 3400.0
 offset_bottom = 1900.0
 mouse_filter = 2
 
-[node name="Headlands" type="Node2D" parent="Environment/FarLayer" unique_id=1568159192]
+[node name="Headlands" type="Node2D" parent="Environment/FarLayer" unique_id=1086670086]
 script = ExtResource("7_efc8u")
 kind = 0
 waterline = 30.0
@@ -183,7 +183,7 @@ top_color = Color(0.15, 0.31, 0.34, 1)
 base_color = Color(0.2, 0.39, 0.4, 1)
 seed_value = 3
 
-[node name="FarHaze" type="ColorRect" parent="Environment/FarLayer" unique_id=1911322882]
+[node name="FarHaze" type="ColorRect" parent="Environment/FarLayer" unique_id=786599677]
 material = SubResource("ShaderMaterial_8yvqc")
 offset_left = -3400.0
 offset_top = -90.0
@@ -191,15 +191,15 @@ offset_right = 3400.0
 offset_bottom = 100.0
 mouse_filter = 2
 
-[node name="MidLayer" type="Node2D" parent="Environment" unique_id=500934195]
+[node name="MidLayer" type="Node2D" parent="Environment" unique_id=1418596028]
 script = ExtResource("3_jyxys")
 factor = Vector2(0.36, 0.3)
 anchor = Vector2(1120, 400)
 
-[node name="Ruins" type="Node2D" parent="Environment/MidLayer" unique_id=1212174034]
+[node name="Ruins" type="Node2D" parent="Environment/MidLayer" unique_id=314259125]
 script = ExtResource("7_efc8u")
 
-[node name="MidHaze" type="ColorRect" parent="Environment/MidLayer" unique_id=1240964644]
+[node name="MidHaze" type="ColorRect" parent="Environment/MidLayer" unique_id=2130073958]
 material = SubResource("ShaderMaterial_qcmpu")
 offset_left = -3400.0
 offset_top = -30.0
@@ -207,12 +207,12 @@ offset_right = 3400.0
 offset_bottom = 140.0
 mouse_filter = 2
 
-[node name="NearLayer" type="Node2D" parent="Environment" unique_id=1633409056]
+[node name="NearLayer" type="Node2D" parent="Environment" unique_id=1177441800]
 script = ExtResource("3_jyxys")
 factor = Vector2(0.62, 0.55)
 anchor = Vector2(1120, 400)
 
-[node name="Rocks" type="Node2D" parent="Environment/NearLayer" unique_id=81741969]
+[node name="Rocks" type="Node2D" parent="Environment/NearLayer" unique_id=1336060020]
 script = ExtResource("7_efc8u")
 kind = 2
 waterline = 215.0
@@ -220,7 +220,7 @@ top_color = Color(0.05, 0.12, 0.15, 1)
 base_color = Color(0.025, 0.07, 0.09, 1)
 seed_value = 9
 
-[node name="Abyss" type="ColorRect" parent="Environment" unique_id=1289805019]
+[node name="Abyss" type="ColorRect" parent="Environment" unique_id=1905019299]
 z_index = 12
 material = SubResource("ShaderMaterial_avgda")
 offset_left = -900.0
@@ -229,7 +229,7 @@ offset_right = 3140.0
 offset_bottom = 1390.0
 mouse_filter = 2
 
-[node name="MoonLight" type="PointLight2D" parent="Environment" unique_id=311249756]
+[node name="MoonLight" type="PointLight2D" parent="Environment" unique_id=1324956423]
 position = Vector2(690, -160)
 scale = Vector2(70, 40)
 color = Color(0.7, 0.92, 1, 1)
@@ -241,7 +241,7 @@ shadow_filter = 1
 shadow_filter_smooth = 6.0
 texture = SubResource("GradientTexture2D_3hmv4")
 
-[node name="Spray" type="CPUParticles2D" parent="Environment" unique_id=782292118]
+[node name="Spray" type="CPUParticles2D" parent="Environment" unique_id=1844928748]
 z_index = 16
 material = SubResource("CanvasItemMaterial_jngld")
 position = Vector2(1120, 400)
@@ -262,276 +262,276 @@ scale_amount_max = 0.09
 color = Color(0.8, 1, 0.96, 0.28)
 color_ramp = SubResource("Gradient_61rfx")
 
-[node name="Spawn1" type="Marker2D" parent="." unique_id=820765785]
+[node name="Spawn1" type="Marker2D" parent="." unique_id=118386520]
 position = Vector2(150, 270)
 
-[node name="Spawn2" type="Marker2D" parent="." unique_id=1386519645]
+[node name="Spawn2" type="Marker2D" parent="." unique_id=1133580222]
 position = Vector2(2090, 270)
 
-[node name="DummySpawn1" type="Marker2D" parent="." unique_id=970663509]
+[node name="DummySpawn1" type="Marker2D" parent="." unique_id=1114927398]
 position = Vector2(1190, 458)
 
-[node name="AirdropPointCenter" type="Marker2D" parent="." unique_id=674898191 groups=["airdrop_spawn"]]
+[node name="AirdropPointCenter" type="Marker2D" parent="." unique_id=2060693054 groups=["airdrop_spawn"]]
 position = Vector2(1120, 400)
 
-[node name="AirdropPointLeft" type="Marker2D" parent="." unique_id=696292494 groups=["airdrop_spawn"]]
+[node name="AirdropPointLeft" type="Marker2D" parent="." unique_id=2115804097 groups=["airdrop_spawn"]]
 position = Vector2(680, 310)
 
-[node name="AirdropPointRight" type="Marker2D" parent="." unique_id=489493297 groups=["airdrop_spawn"]]
+[node name="AirdropPointRight" type="Marker2D" parent="." unique_id=1347441649 groups=["airdrop_spawn"]]
 position = Vector2(1560, 310)
 
-[node name="LeftTower" type="StaticBody2D" parent="." unique_id=2063928466]
+[node name="LeftTower" type="StaticBody2D" parent="." unique_id=730039694]
 
-[node name="Polygon2D" type="Polygon2D" parent="LeftTower" unique_id=929559710]
+[node name="Polygon2D" type="Polygon2D" parent="LeftTower" unique_id=475139457]
 polygon = PackedVector2Array(-80, 960, -80, 300, 268, 300, 282, 304, 290, 316, 294, 376, 398, 376, 412, 380, 418, 392, 422, 452, 500, 452, 514, 458, 520, 474, 524, 960)
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="LeftTower" unique_id=791508567]
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="LeftTower" unique_id=901634539]
 polygon = PackedVector2Array(-80, 960, -80, 300, 268, 300, 282, 304, 290, 316, 294, 376, 398, 376, 412, 380, 418, 392, 422, 452, 500, 452, 514, 458, 520, 474, 524, 960)
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="LeftTower" unique_id=1606226848]
+[node name="LightOccluder2D" type="LightOccluder2D" parent="LeftTower" unique_id=1114207492]
 occluder = SubResource("OccluderPolygon2D_v30du")
 
-[node name="Plaza" type="StaticBody2D" parent="." unique_id=194676118]
+[node name="Plaza" type="StaticBody2D" parent="." unique_id=1629167153]
 
-[node name="Polygon2D" type="Polygon2D" parent="Plaza" unique_id=1360539666]
+[node name="Polygon2D" type="Polygon2D" parent="Plaza" unique_id=1204668802]
 polygon = PackedVector2Array(640, 960, 640, 730, 652, 718, 668, 716, 1004, 716, 1056, 672, 1084, 668, 1156, 668, 1184, 672, 1236, 716, 1572, 716, 1588, 718, 1600, 730, 1600, 960)
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Plaza" unique_id=550194365]
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Plaza" unique_id=1256460989]
 polygon = PackedVector2Array(640, 960, 640, 730, 652, 718, 668, 716, 1004, 716, 1056, 672, 1084, 668, 1156, 668, 1184, 672, 1236, 716, 1572, 716, 1588, 718, 1600, 730, 1600, 960)
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Plaza" unique_id=1574958560]
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Plaza" unique_id=1756948763]
 occluder = SubResource("OccluderPolygon2D_uxkih")
 
-[node name="RightTower" type="StaticBody2D" parent="." unique_id=802807437]
+[node name="RightTower" type="StaticBody2D" parent="." unique_id=1699979082]
 
-[node name="Polygon2D" type="Polygon2D" parent="RightTower" unique_id=416011455]
+[node name="Polygon2D" type="Polygon2D" parent="RightTower" unique_id=2006069672]
 polygon = PackedVector2Array(1716, 960, 1720, 474, 1726, 458, 1740, 452, 1818, 452, 1822, 392, 1828, 380, 1842, 376, 1946, 376, 1950, 316, 1958, 304, 1972, 300, 2320, 300, 2320, 960)
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="RightTower" unique_id=149224128]
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="RightTower" unique_id=864260816]
 polygon = PackedVector2Array(1716, 960, 1720, 474, 1726, 458, 1740, 452, 1818, 452, 1822, 392, 1828, 380, 1842, 376, 1946, 376, 1950, 316, 1958, 304, 1972, 300, 2320, 300, 2320, 960)
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="RightTower" unique_id=1766518731]
+[node name="LightOccluder2D" type="LightOccluder2D" parent="RightTower" unique_id=1840731580]
 occluder = SubResource("OccluderPolygon2D_s5r83")
 
-[node name="LeftDrum" type="StaticBody2D" parent="." unique_id=341635001]
+[node name="LeftDrum" type="StaticBody2D" parent="." unique_id=466955022]
 
-[node name="Polygon2D" type="Polygon2D" parent="LeftDrum" unique_id=1584016336]
+[node name="Polygon2D" type="Polygon2D" parent="LeftDrum" unique_id=641299203]
 polygon = PackedVector2Array(700, 646, 712, 640, 772, 640, 784, 647, 775, 661.6, 765.52, 670, 718.48, 670, 708, 661)
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="LeftDrum" unique_id=586221225]
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="LeftDrum" unique_id=1804978333]
 polygon = PackedVector2Array(700, 646, 712, 640, 772, 640, 784, 647, 775, 661.6, 765.52, 670, 718.48, 670, 708, 661)
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="LeftDrum" unique_id=1454885628]
+[node name="LightOccluder2D" type="LightOccluder2D" parent="LeftDrum" unique_id=2047100795]
 occluder = SubResource("OccluderPolygon2D_35qj3")
 
-[node name="RightDrum" type="StaticBody2D" parent="." unique_id=767630789]
+[node name="RightDrum" type="StaticBody2D" parent="." unique_id=153317550]
 
-[node name="Polygon2D" type="Polygon2D" parent="RightDrum" unique_id=935182827]
+[node name="Polygon2D" type="Polygon2D" parent="RightDrum" unique_id=658297352]
 polygon = PackedVector2Array(1532, 661, 1521.52, 670, 1474.48, 670, 1465, 661.6, 1456, 647, 1468, 640, 1528, 640, 1540, 646)
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="RightDrum" unique_id=1932816330]
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="RightDrum" unique_id=1231762326]
 polygon = PackedVector2Array(1532, 661, 1521.52, 670, 1474.48, 670, 1465, 661.6, 1456, 647, 1468, 640, 1528, 640, 1540, 646)
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="RightDrum" unique_id=361014890]
+[node name="LightOccluder2D" type="LightOccluder2D" parent="RightDrum" unique_id=968953977]
 occluder = SubResource("OccluderPolygon2D_an3j6")
 
-[node name="LeftStep" type="StaticBody2D" parent="." unique_id=1056643190]
+[node name="LeftStep" type="StaticBody2D" parent="." unique_id=1069770555]
 
-[node name="Polygon2D" type="Polygon2D" parent="LeftStep" unique_id=657475677]
+[node name="Polygon2D" type="Polygon2D" parent="LeftStep" unique_id=113619075]
 polygon = PackedVector2Array(826, 570, 838, 564, 932, 564, 944, 571, 935, 585.6, 918.04, 594, 851.96, 594, 834, 585)
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="LeftStep" unique_id=83373272]
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="LeftStep" unique_id=880610147]
 polygon = PackedVector2Array(826, 570, 838, 564, 932, 564, 944, 571, 935, 585.6, 918.04, 594, 851.96, 594, 834, 585)
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="LeftStep" unique_id=12461922]
+[node name="LightOccluder2D" type="LightOccluder2D" parent="LeftStep" unique_id=1490546828]
 occluder = SubResource("OccluderPolygon2D_uvo3x")
 
-[node name="RightStep" type="StaticBody2D" parent="." unique_id=536351708]
+[node name="RightStep" type="StaticBody2D" parent="." unique_id=450538310]
 
-[node name="Polygon2D" type="Polygon2D" parent="RightStep" unique_id=518643251]
+[node name="Polygon2D" type="Polygon2D" parent="RightStep" unique_id=758818541]
 polygon = PackedVector2Array(1406, 585, 1388.04, 594, 1321.96, 594, 1305, 585.6, 1296, 571, 1308, 564, 1402, 564, 1414, 570)
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="RightStep" unique_id=109897025]
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="RightStep" unique_id=814746877]
 polygon = PackedVector2Array(1406, 585, 1388.04, 594, 1321.96, 594, 1305, 585.6, 1296, 571, 1308, 564, 1402, 564, 1414, 570)
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="RightStep" unique_id=955449300]
+[node name="LightOccluder2D" type="LightOccluder2D" parent="RightStep" unique_id=1351384339]
 occluder = SubResource("OccluderPolygon2D_5aawn")
 
-[node name="LeftDock" type="StaticBody2D" parent="." unique_id=1779465209]
+[node name="LeftDock" type="StaticBody2D" parent="." unique_id=2082375522]
 
-[node name="Polygon2D" type="Polygon2D" parent="LeftDock" unique_id=152089146]
+[node name="Polygon2D" type="Polygon2D" parent="LeftDock" unique_id=217361455]
 polygon = PackedVector2Array(600, 494, 612, 488, 752, 488, 764, 495, 755, 512.48, 727.92, 522, 636.08, 522, 608, 511.8)
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="LeftDock" unique_id=683595317]
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="LeftDock" unique_id=1458528716]
 polygon = PackedVector2Array(600, 494, 612, 488, 752, 488, 764, 495, 755, 512.48, 727.92, 522, 636.08, 522, 608, 511.8)
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="LeftDock" unique_id=1948410624]
+[node name="LightOccluder2D" type="LightOccluder2D" parent="LeftDock" unique_id=1365287355]
 occluder = SubResource("OccluderPolygon2D_0sfmm")
 
-[node name="RightDock" type="StaticBody2D" parent="." unique_id=780111791]
+[node name="RightDock" type="StaticBody2D" parent="." unique_id=964804833]
 
-[node name="Polygon2D" type="Polygon2D" parent="RightDock" unique_id=294040068]
+[node name="Polygon2D" type="Polygon2D" parent="RightDock" unique_id=1489569607]
 polygon = PackedVector2Array(1632, 511.8, 1603.9199, 522, 1512.0801, 522, 1485, 512.48, 1476, 495, 1488, 488, 1628, 488, 1640, 494)
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="RightDock" unique_id=480742373]
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="RightDock" unique_id=1721900683]
 polygon = PackedVector2Array(1632, 511.8, 1603.9199, 522, 1512.0801, 522, 1485, 512.48, 1476, 495, 1488, 488, 1628, 488, 1640, 494)
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="RightDock" unique_id=1709867760]
+[node name="LightOccluder2D" type="LightOccluder2D" parent="RightDock" unique_id=30204313]
 occluder = SubResource("OccluderPolygon2D_w2qvf")
 
-[node name="Bridge" type="StaticBody2D" parent="." unique_id=982790331]
+[node name="Bridge" type="StaticBody2D" parent="." unique_id=1547426067]
 
-[node name="Polygon2D" type="Polygon2D" parent="Bridge" unique_id=421438038]
+[node name="Polygon2D" type="Polygon2D" parent="Bridge" unique_id=1869932046]
 polygon = PackedVector2Array(1000, 494, 1012, 488, 1228, 488, 1240, 495, 1231, 513.92, 1196, 524, 1044, 524, 1008, 513.2)
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Bridge" unique_id=751286430]
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Bridge" unique_id=663800953]
 polygon = PackedVector2Array(1000, 494, 1012, 488, 1228, 488, 1240, 495, 1231, 513.92, 1196, 524, 1044, 524, 1008, 513.2)
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Bridge" unique_id=1410772963]
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Bridge" unique_id=955438653]
 occluder = SubResource("OccluderPolygon2D_kus3i")
 
-[node name="LeftGallery" type="StaticBody2D" parent="." unique_id=187291227]
+[node name="LeftGallery" type="StaticBody2D" parent="." unique_id=1772973434]
 
-[node name="Polygon2D" type="Polygon2D" parent="LeftGallery" unique_id=1077991443]
+[node name="Polygon2D" type="Polygon2D" parent="LeftGallery" unique_id=246323308]
 polygon = PackedVector2Array(800, 418, 812, 412, 948, 412, 960, 419, 951, 435.04, 924.8, 444, 835.2, 444, 808, 434.4)
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="LeftGallery" unique_id=582096127]
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="LeftGallery" unique_id=1703692106]
 polygon = PackedVector2Array(800, 418, 812, 412, 948, 412, 960, 419, 951, 435.04, 924.8, 444, 835.2, 444, 808, 434.4)
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="LeftGallery" unique_id=1004569701]
+[node name="LightOccluder2D" type="LightOccluder2D" parent="LeftGallery" unique_id=1285482247]
 occluder = SubResource("OccluderPolygon2D_soi51")
 
-[node name="RightGallery" type="StaticBody2D" parent="." unique_id=1217151916]
+[node name="RightGallery" type="StaticBody2D" parent="." unique_id=1482144044]
 
-[node name="Polygon2D" type="Polygon2D" parent="RightGallery" unique_id=1419173565]
+[node name="Polygon2D" type="Polygon2D" parent="RightGallery" unique_id=901067443]
 polygon = PackedVector2Array(1432, 434.4, 1404.8, 444, 1315.2, 444, 1289, 435.04, 1280, 419, 1292, 412, 1428, 412, 1440, 418)
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="RightGallery" unique_id=816597272]
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="RightGallery" unique_id=1043321825]
 polygon = PackedVector2Array(1432, 434.4, 1404.8, 444, 1315.2, 444, 1289, 435.04, 1280, 419, 1292, 412, 1428, 412, 1440, 418)
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="RightGallery" unique_id=1280015809]
+[node name="LightOccluder2D" type="LightOccluder2D" parent="RightGallery" unique_id=935653599]
 occluder = SubResource("OccluderPolygon2D_7swe8")
 
-[node name="Cella" type="StaticBody2D" parent="." unique_id=1708162220]
+[node name="Cella" type="StaticBody2D" parent="." unique_id=1047521272]
 
-[node name="Polygon2D" type="Polygon2D" parent="Cella" unique_id=713919018]
+[node name="Polygon2D" type="Polygon2D" parent="Cella" unique_id=421450689]
 polygon = PackedVector2Array(1010, 342, 1022, 336, 1218, 336, 1230, 343, 1221, 360.48, 1186, 370, 1054, 370, 1018, 359.8)
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Cella" unique_id=15559877]
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Cella" unique_id=573098417]
 polygon = PackedVector2Array(1010, 342, 1022, 336, 1218, 336, 1230, 343, 1221, 360.48, 1186, 370, 1054, 370, 1018, 359.8)
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Cella" unique_id=1791881108]
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Cella" unique_id=379908580]
 occluder = SubResource("OccluderPolygon2D_yyxh5")
 
-[node name="Crown" type="StaticBody2D" parent="." unique_id=1564755253]
+[node name="Crown" type="StaticBody2D" parent="." unique_id=1869262396]
 
-[node name="Polygon2D" type="Polygon2D" parent="Crown" unique_id=1519014553]
+[node name="Polygon2D" type="Polygon2D" parent="Crown" unique_id=575523487]
 polygon = PackedVector2Array(1056, 266, 1068, 260, 1172, 260, 1184, 267, 1175, 275.84, 1155.84, 282, 1084.16, 282, 1064, 275.4)
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Crown" unique_id=1345596544]
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Crown" unique_id=1294760564]
 polygon = PackedVector2Array(1056, 266, 1068, 260, 1172, 260, 1184, 267, 1175, 275.84, 1155.84, 282, 1084.16, 282, 1064, 275.4)
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Crown" unique_id=1553826970]
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Crown" unique_id=302929255]
 occluder = SubResource("OccluderPolygon2D_hm1vl")
 
-[node name="Apex" type="StaticBody2D" parent="." unique_id=516195063]
+[node name="Apex" type="StaticBody2D" parent="." unique_id=632970698]
 
-[node name="Polygon2D" type="Polygon2D" parent="Apex" unique_id=1328563107]
+[node name="Polygon2D" type="Polygon2D" parent="Apex" unique_id=1225455447]
 polygon = PackedVector2Array(1092, 190, 1104, 184, 1136, 184, 1148, 191, 1139, 198.4, 1135.68, 204, 1104.32, 204, 1100, 198)
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Apex" unique_id=34503475]
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Apex" unique_id=1590225732]
 polygon = PackedVector2Array(1092, 190, 1104, 184, 1136, 184, 1148, 191, 1139, 198.4, 1135.68, 204, 1104.32, 204, 1100, 198)
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Apex" unique_id=656790934]
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Apex" unique_id=1901658418]
 occluder = SubResource("OccluderPolygon2D_yexcj")
 
-[node name="LeftArch" type="StaticBody2D" parent="." unique_id=1983571574]
+[node name="LeftArch" type="StaticBody2D" parent="." unique_id=794665377]
 
-[node name="Polygon2D" type="Polygon2D" parent="LeftArch" unique_id=131496288]
+[node name="Polygon2D" type="Polygon2D" parent="LeftArch" unique_id=679712403]
 polygon = PackedVector2Array(336, 232, 348, 226, 512, 226, 524, 233, 515, 250.48, 482.64, 260, 377.36, 260, 344, 249.8)
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="LeftArch" unique_id=1371906812]
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="LeftArch" unique_id=274064185]
 polygon = PackedVector2Array(336, 232, 348, 226, 512, 226, 524, 233, 515, 250.48, 482.64, 260, 377.36, 260, 344, 249.8)
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="LeftArch" unique_id=809049223]
+[node name="LightOccluder2D" type="LightOccluder2D" parent="LeftArch" unique_id=1129016490]
 occluder = SubResource("OccluderPolygon2D_kiv7m")
 
-[node name="RightArch" type="StaticBody2D" parent="." unique_id=1074111599]
+[node name="RightArch" type="StaticBody2D" parent="." unique_id=1518397345]
 
-[node name="Polygon2D" type="Polygon2D" parent="RightArch" unique_id=1695729949]
+[node name="Polygon2D" type="Polygon2D" parent="RightArch" unique_id=1090782971]
 polygon = PackedVector2Array(1896, 249.8, 1862.64, 260, 1757.36, 260, 1725, 250.48, 1716, 233, 1728, 226, 1892, 226, 1904, 232)
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="RightArch" unique_id=652083805]
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="RightArch" unique_id=1694796313]
 polygon = PackedVector2Array(1896, 249.8, 1862.64, 260, 1757.36, 260, 1725, 250.48, 1716, 233, 1728, 226, 1892, 226, 1904, 232)
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="RightArch" unique_id=1565747251]
+[node name="LightOccluder2D" type="LightOccluder2D" parent="RightArch" unique_id=782466435]
 occluder = SubResource("OccluderPolygon2D_bp1fl")
 
-[node name="LeftSpan" type="StaticBody2D" parent="." unique_id=1473910053]
+[node name="LeftSpan" type="StaticBody2D" parent="." unique_id=718248461]
 
-[node name="Polygon2D" type="Polygon2D" parent="LeftSpan" unique_id=337288267]
+[node name="Polygon2D" type="Polygon2D" parent="LeftSpan" unique_id=1849891813]
 polygon = PackedVector2Array(624, 268, 636, 262, 752, 262, 764, 269, 755, 283.6, 733.2, 292, 654.8, 292, 632, 283)
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="LeftSpan" unique_id=1103479405]
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="LeftSpan" unique_id=1715206920]
 polygon = PackedVector2Array(624, 268, 636, 262, 752, 262, 764, 269, 755, 283.6, 733.2, 292, 654.8, 292, 632, 283)
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="LeftSpan" unique_id=719118708]
+[node name="LightOccluder2D" type="LightOccluder2D" parent="LeftSpan" unique_id=1767182154]
 occluder = SubResource("OccluderPolygon2D_8dpeu")
 
-[node name="RightSpan" type="StaticBody2D" parent="." unique_id=1911597613]
+[node name="RightSpan" type="StaticBody2D" parent="." unique_id=325243376]
 
-[node name="Polygon2D" type="Polygon2D" parent="RightSpan" unique_id=61521096]
+[node name="Polygon2D" type="Polygon2D" parent="RightSpan" unique_id=640070910]
 polygon = PackedVector2Array(1608, 283, 1585.2, 292, 1506.8, 292, 1485, 283.6, 1476, 269, 1488, 262, 1604, 262, 1616, 268)
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="RightSpan" unique_id=1892489252]
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="RightSpan" unique_id=1185522191]
 polygon = PackedVector2Array(1608, 283, 1585.2, 292, 1506.8, 292, 1485, 283.6, 1476, 269, 1488, 262, 1604, 262, 1616, 268)
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="RightSpan" unique_id=1640999226]
+[node name="LightOccluder2D" type="LightOccluder2D" parent="RightSpan" unique_id=309441820]
 occluder = SubResource("OccluderPolygon2D_0bun0")
 
-[node name="LeftCapital" type="StaticBody2D" parent="." unique_id=1207419329]
+[node name="LeftCapital" type="StaticBody2D" parent="." unique_id=775950989]
 
-[node name="Polygon2D" type="Polygon2D" parent="LeftCapital" unique_id=1022860386]
+[node name="Polygon2D" type="Polygon2D" parent="LeftCapital" unique_id=1075563623]
 polygon = PackedVector2Array(838, 306, 850, 300, 910, 300, 922, 307, 913, 320.16, 903.52, 328, 856.48, 328, 846, 319.6)
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="LeftCapital" unique_id=993418904]
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="LeftCapital" unique_id=11657279]
 polygon = PackedVector2Array(838, 306, 850, 300, 910, 300, 922, 307, 913, 320.16, 903.52, 328, 856.48, 328, 846, 319.6)
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="LeftCapital" unique_id=344245731]
+[node name="LightOccluder2D" type="LightOccluder2D" parent="LeftCapital" unique_id=1438262176]
 occluder = SubResource("OccluderPolygon2D_pyhyv")
 
-[node name="RightCapital" type="StaticBody2D" parent="." unique_id=984040667]
+[node name="RightCapital" type="StaticBody2D" parent="." unique_id=2019334497]
 
-[node name="Polygon2D" type="Polygon2D" parent="RightCapital" unique_id=2145573605]
+[node name="Polygon2D" type="Polygon2D" parent="RightCapital" unique_id=1370560229]
 polygon = PackedVector2Array(1394, 319.6, 1383.52, 328, 1336.48, 328, 1327, 320.16, 1318, 307, 1330, 300, 1390, 300, 1402, 306)
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="RightCapital" unique_id=1079058946]
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="RightCapital" unique_id=445666983]
 polygon = PackedVector2Array(1394, 319.6, 1383.52, 328, 1336.48, 328, 1327, 320.16, 1318, 307, 1330, 300, 1390, 300, 1402, 306)
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="RightCapital" unique_id=1024483822]
+[node name="LightOccluder2D" type="LightOccluder2D" parent="RightCapital" unique_id=1706595989]
 occluder = SubResource("OccluderPolygon2D_m2gpu")
 
-[node name="Columns" type="Node2D" parent="." unique_id=1077378659]
+[node name="Columns" type="Node2D" parent="." unique_id=1524077074]
 z_index = -3
 script = ExtResource("11_spmoc")
 columns = PackedVector3Array(1040, 524, 720, 1200, 524, 720, 1052, 370, 488, 1188, 370, 488, 1078, 282, 336, 1162, 282, 336, 632, 522, 800, 1608, 522, 800, 724, 522, 720, 1516, 522, 720, 852, 444, 564, 1388, 444, 564, 918, 444, 564, 1322, 444, 564, 880, 328, 412, 1360, 328, 412, 694, 292, 488, 1546, 292, 488, 380, 260, 376, 1860, 260, 376, 478, 260, 452, 1762, 260, 452)
 
-[node name="AirdropManager" type="Node2D" parent="." unique_id=1334883011]
+[node name="AirdropManager" type="Node2D" parent="." unique_id=1708214272]
 script = ExtResource("12_eokxl")
 
-[node name="Tide" type="Node2D" parent="." unique_id=1381845306]
+[node name="Tide" type="Node2D" parent="." unique_id=351313975]
 script = ExtResource("13_smsdl")
 
-[node name="Sharks" type="Node2D" parent="." unique_id=397686559]
+[node name="Sharks" type="Node2D" parent="." unique_id=267159432]
 script = ExtResource("14_vahob")
 homes = PackedFloat32Array(582, 1658)
 
-[node name="Weather" type="Node2D" parent="." unique_id=1810521698]
+[node name="Weather" type="Node2D" parent="." unique_id=1034445663]
 script = ExtResource("15_ryclj")
 
-[node name="PlatformSkin" type="Node2D" parent="." unique_id=1824895119]
+[node name="PlatformSkin" type="Node2D" parent="." unique_id=1632916021]
 script = ExtResource("16_mx30j")
-flood_level = 500.0
+flood_level = 540.0
 spring_level = 348.0
 map_top_y = 180.0
 map_bottom_y = 760.0
