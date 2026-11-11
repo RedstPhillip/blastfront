@@ -376,6 +376,7 @@ func _try_bite(hunter: Hunter) -> void:
 	_soak[hunter.target_slot] = 0.0
 	_victim_cooldown[hunter.target_slot] = VICTIM_COOLDOWN
 	_bite_feedback(hunter)
+	KillLog.note_damage(target, &"shark")
 	if NetworkSession.is_steam_match_active():
 		var game_sync: Variant = _game.get(&"_game_sync") if _game != null else null
 		var combat: Variant = game_sync.get_module(GameSettings.MODULE_COMBAT) if game_sync != null else null
@@ -522,6 +523,7 @@ func _breach_feedback(hunter: Hunter, water: float) -> void:
 		return
 	hunter.was_above = above
 	var at: Vector2 = Vector2(jaws.x, water)
+	KillLog.note_event(&"breach", at, {"direction": hunter.direction})
 	GameJuice.spawn_burst(&"splash", at, Vector2.UP, Color.WHITE, 1.7 if above else 1.4)
 	GameJuice.spawn_burst(&"splash", at + Vector2(-hunter.direction * 34.0, 0.0), Vector2.UP, Color.WHITE, 1.0)
 	AudioDirector.play_at(&"shark_breach", at, 0.0 if above else -3.0, 1.0 if above else 0.85)

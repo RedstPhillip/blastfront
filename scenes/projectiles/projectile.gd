@@ -12,6 +12,30 @@ signal despawn_requested(projectile: Node, reason: StringName, collider)
 ## pixel it travels there uses up this many pixels of its range, so it fizzles out close to the surface.
 const WATER_DRAG: float = 6.0
 const WATER_RANGE_COST: float = 8.0
+## Which part gives a round its look when it carries several (the first one listed wins).
+const VISUAL_PRIORITY: Array[String] = [
+	"big_bullets_mk1",
+	"fire_rounds_mk1",
+	"armor_piercing_mk1",
+	"bouncy_bullets_mk1",
+	"drill_bullets_mk1",
+	"explosive_bullet_mk1",
+	"freeze_rounds_mk1",
+	"grenades_mk1",
+	"poison_rounds_mk1",
+	"shocking_rounds_mk1",
+	"shotgun_mk1",
+	"sniper_barrel_mk1",
+	"kinetic_amplifier_mk1",
+	"extended_barrel_mk1",
+	"heavy_barrel_mk1",
+	"lighter_barrel_mk1",
+	"multi_barrel_mk1",
+	"ground_hover_mk1",
+	"homing_mk1",
+	"laser_scope_mk1",
+	"reload_improver_mk1",
+]
 
 @export var muzzle_speed: float = GameSettings.PROJECTILE_MUZZLE_SPEED
 @export var gravity: float = GameSettings.PROJECTILE_GRAVITY
@@ -50,6 +74,11 @@ var _base_damage: int = 0
 var _growth_steps_bounce: int = 0
 var _growth_steps_wall: int = 0
 var _has_bounced: bool = false
+## For the kill cam's record: a small id unique within the session and the look (index into VISUAL_PRIORITY,
+## + 1; 0 is the plain round).
+var replay_id: int = 0
+var visual_style_index: int = 0
+static var _replay_serial: int = 0
 
 
 func configure_from_data(
@@ -96,6 +125,9 @@ func _ready() -> void:
 	direction = direction.normalized()
 
 	velocity = initial_velocity if initial_velocity.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED else direction * muzzle_speed
+	_replay_serial = (_replay_serial + 1) % 1000000
+	replay_id = _replay_serial
+	visual_style_index = VISUAL_PRIORITY.find(_get_visual_extension_id()) + 1
 	var style: Dictionary = _get_projectile_visual_style()
 	if _get_visual_extension_id() != "":
 		var body: Color = style["body_color"]
@@ -232,6 +264,8 @@ func _on_collision(collision: KinematicCollision2D) -> void:
 		return
 
 	if is_player:
+		if is_network_authority and KillLog.listener != null:
+			KillLog.note_damage(collider as Node, &"round", _kill_note())
 		_apply_range_bonus()
 		if is_network_authority:
 			take_mark_bonus(collider as Player)
@@ -252,6 +286,19 @@ func _on_collision(collision: KinematicCollision2D) -> void:
 
 func has_bounced() -> bool:
 	return _has_bounced
+
+
+## What the kill cam needs to name a kill by this round (see KillCam.describe_kill).
+func _kill_note() -> Dictionary:
+	return {
+		"slot": owner_slot,
+		"bounced": _has_bounced,
+		"walls": _growth_steps_wall,
+		"distance": _distance_travelled,
+		"extensions": source_extensions.duplicate(),
+		"look": _get_visual_extension_id(),
+		"round": replay_id,
+	}
 
 
 ## Data of one of this round's effects, or {} (keys may arrive as String or StringName over the network).
@@ -415,7 +462,12 @@ func _apply_projectile_visual_style(style: Dictionary) -> void:
 
 
 func _get_projectile_visual_style() -> Dictionary:
-	match _get_visual_extension_id():
+	return visual_style_for(_get_visual_extension_id())
+
+
+## The look of a round led by this extension ("" for the plain round): colours, body and outline shapes, trail.
+static func visual_style_for(extension_id: String) -> Dictionary:
+	match extension_id:
 		"big_bullets_mk1":
 			return _make_projectile_style(
 				Color(1.0, 0.52, 0.12, 1.0),
@@ -660,36 +712,13 @@ func _get_projectile_visual_style() -> Dictionary:
 
 
 func _get_visual_extension_id() -> String:
-	var priority: Array[String] = [
-		"big_bullets_mk1",
-		"fire_rounds_mk1",
-		"armor_piercing_mk1",
-		"bouncy_bullets_mk1",
-		"drill_bullets_mk1",
-		"explosive_bullet_mk1",
-		"freeze_rounds_mk1",
-		"grenades_mk1",
-		"poison_rounds_mk1",
-		"shocking_rounds_mk1",
-		"shotgun_mk1",
-		"sniper_barrel_mk1",
-		"kinetic_amplifier_mk1",
-		"extended_barrel_mk1",
-		"heavy_barrel_mk1",
-		"lighter_barrel_mk1",
-		"multi_barrel_mk1",
-		"ground_hover_mk1",
-		"homing_mk1",
-		"laser_scope_mk1",
-		"reload_improver_mk1",
-	]
-	for extension_id in priority:
+	for extension_id in VISUAL_PRIORITY:
 		if source_extensions.has(extension_id):
 			return extension_id
 	return ""
 
 
-func _make_projectile_style(
+static func _make_projectile_style(
 	body_color: Color,
 	outline_color: Color,
 	trail_color: Color,

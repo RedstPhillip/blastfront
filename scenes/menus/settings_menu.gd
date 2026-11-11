@@ -7,6 +7,7 @@ signal back_pressed
 
 const PARTICLE_LEVELS: Array[float] = [0.0, 0.33, 0.66, 1.0]
 const PARTICLE_NAMES: Array[String] = ["Off", "Low", "Medium", "High"]
+const KILL_CAM_NAMES: Array[String] = ["Off", "Final kills only", "Highlights"]
 const WINDOW_MODE_NAMES: Array[String] = ["Windowed", "Borderless Fullscreen", "Exclusive Fullscreen"]
 const LISTENING_TEXT: String = "PRESS…"
 ## While a chip is listening the menu must swallow the next key, including ESC (cancel) and the
@@ -243,6 +244,11 @@ func _build_gameplay_tab() -> void:
 	_options(page, "Particle detail", PARTICLE_NAMES, particle_index, func(index: int) -> void:
 		UserSettings.set_value(UserSettings.PARTICLES, PARTICLE_LEVELS[index])
 	)
+	_section(page, "REPLAYS")
+	_options(page, "Kill cam", KILL_CAM_NAMES, UserSettings.get_int(UserSettings.KILL_CAM), func(index: int) -> void:
+		UserSettings.set_value(UserSettings.KILL_CAM, index)
+	)
+	_toggle(page, "Kill cam against Easy bots", UserSettings.KILL_CAM_EASY_BOTS)
 
 
 func _build_controls_tab() -> void:

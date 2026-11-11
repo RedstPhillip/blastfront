@@ -109,6 +109,19 @@ Pillow (`ImageChops.difference`) when a change should be pixel-identical.
   banner), `time_bot` (a low Hard bot casts once it sees you; a slowed bot backs off), `time_online` (host and
   client paths without Steam: casts, spoofing, kill banner, late packets, snapshot corrections, frozen rounds). regress.sh only greps
   for script errors, so read the PASS/FAIL lines of these yourself.
+- **Kill cam:** `killcam_flow` (headless, ~45 s: in a shop bot duel a plain mid-set kill gets no replay, a
+  kill on a Time-Control-slowed victim does, a set-winning kill is skipped with `ui_cancel`; in a first-to-5
+  duel an Easy bot is refused until "Kill cam against Easy bots" is on, setting Off and Final only, the
+  match-winning replay with its hold and a late skip it ignores; kill names from notes ("Ricochet · Bouncy
+  Bullets MK III", "Slam · Over the edge", "Sniper · 740 px"...); the sandbox never records; a faked hosted
+  set (the host names the kill in `OnlineMatch.last_kill`) and the client replaying the host's kill. Checks
+  that no banner runs longer than today's 1.9 s, that every replay is over before the next round and that
+  `Engine.time_scale` is exactly 1 afterwards; prints `KILLCAM PASS/FAIL` lines and a total), `killcam_look`
+  (render: a ricochet off a test floor, a 650 px sniper kill and the match-winning kill with its hold behind
+  the results, shot frame by frame as `kc_ricochet_*`, `kc_sniper_*`, `kc_match_*`), `killcam_cost` (headless:
+  `KC_COST` lines with the recorder's cost per frame, about 8 us on the dev laptop, and a hard-bot duel's mean
+  frame with the idle replay puppets present, removed and present again; perfsuite duels include real
+  replays in their banners, so compare those with the setting Off)
 - **Bots:** `bot_loops` (two bots of `BF_BOT_LEVEL` on `BF_WORLD` for `BF_SECONDS`: a detector flags a bot that
   keeps moving inside a small box for 6 s (many turns or jumps) and prints `LOOP` lines with its goal, path and
   states, a short `LTRACE` of the first loop with the target far away, and `MOVES` counts of air jumps and slams;

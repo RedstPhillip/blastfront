@@ -24,6 +24,10 @@ const DAMAGE_NUMBERS: StringName = &"gameplay_damage_numbers"
 const HITSTOP: StringName = &"gameplay_hitstop"
 const BOT_DIFFICULTY: StringName = &"gameplay_bot_difficulty"
 const BOT_PHASE_SHOP: StringName = &"gameplay_bot_phase_shop"
+## Kill cam replays in the kill banner: KILL_CAM_OFF, KILL_CAM_FINAL (set- and match-winning kills only) or
+## KILL_CAM_HIGHLIGHTS (those plus standout kills); against Easy bots only with KILL_CAM_EASY_BOTS.
+const KILL_CAM: StringName = &"gameplay_kill_cam"
+const KILL_CAM_EASY_BOTS: StringName = &"gameplay_kill_cam_easy_bots"
 const CONTROLS_HINTS_SEEN: StringName = &"progress_controls_hints_seen"
 const MENU_LAST_CHOICE: StringName = &"progress_menu_last_choice"
 const LOCKER_HELP_SEEN: StringName = &"progress_locker_help_seen"
@@ -34,6 +38,10 @@ const INPUT_BINDINGS: StringName = &"input_bindings"
 const REVISION: StringName = &"settings_revision"
 ## Revision 2 made exclusive fullscreen the default (direct flip, steadier frame pacing on Windows).
 const CURRENT_REVISION: int = 2
+
+const KILL_CAM_OFF: int = 0
+const KILL_CAM_FINAL: int = 1
+const KILL_CAM_HIGHLIGHTS: int = 2
 
 const WINDOW_MODE_WINDOWED: int = 0
 const WINDOW_MODE_FULLSCREEN: int = 1
@@ -160,6 +168,8 @@ func _defaults() -> Dictionary:
 		HITSTOP: true,
 		BOT_DIFFICULTY: 1,
 		BOT_PHASE_SHOP: false,
+		KILL_CAM: KILL_CAM_HIGHLIGHTS,
+		KILL_CAM_EASY_BOTS: false,
 		CONTROLS_HINTS_SEEN: 0,
 		MENU_LAST_CHOICE: 0,
 		LOCKER_HELP_SEEN: 0,

@@ -68,6 +68,7 @@ static func ignite(world: Node, impact: Vector2, source_slot: int, data: Diction
 	patch.afterburn = float(data.get("afterburn", 0.0))
 	world.add_child(patch)
 	patch.global_position = floor_point
+	KillLog.note_event(&"fire", floor_point, {"width": patch_width})
 	AudioDirector.play_at(&"explosion", floor_point, -16.0, 1.7)
 	return patch
 
@@ -155,6 +156,7 @@ func _judges_hits() -> bool:
 
 
 func _burn(player: Player) -> void:
+	KillLog.note_damage(player, &"fire", {"slot": owner_slot})
 	var combat: Variant = _combat()
 	if combat != null:
 		combat.apply_hit(player.player_slot, owner_slot, 0, damage, true, global_position)

@@ -107,6 +107,10 @@ func _bind_game() -> void:
 		_game.round_intro_started.connect(_on_round_intro_started)
 	if not _game.match_finished.is_connected(_on_match_finished):
 		_game.match_finished.connect(_on_match_finished)
+	var kill_cam: KillCam = _game.get_kill_cam()
+	if kill_cam != null and not kill_cam.replay_started.is_connected(_on_replay_started):
+		kill_cam.replay_started.connect(_on_replay_started)
+		kill_cam.replay_finished.connect(_banner.tuck.bind(false))
 	var online: bool = NetworkSession.uses_set_flow()
 	var training: bool = NetworkSession.is_training()
 	_quest_tracker.visible = online
@@ -115,6 +119,11 @@ func _bind_game() -> void:
 	if (training or online) and HudControlsHint.should_show():
 		_controls_hint.play(1.2)
 	_refresh_online_state()
+
+
+## The kill cam's replay takes the middle of the screen: the point banner moves up out of its way.
+func _on_replay_started(_label: String) -> void:
+	_banner.tuck(true)
 
 
 func _on_device_changed(_using_gamepad: bool) -> void:

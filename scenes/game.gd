@@ -28,6 +28,7 @@ var _round_intro_running: bool = false
 var _kill_focus_timer: float = 0.0
 var _kill_focus_position: Vector2 = Vector2.ZERO
 var _match_stats: Dictionary = {}
+var _kill_cam: KillCam = null
 
 
 ## Swaps the default arena for the selected world before anything reads map bounds or spawn markers.
@@ -72,6 +73,9 @@ func _ready() -> void:
 		_configure_offline_players()
 		_connect_offline_health()
 	_connect_kill_cam()
+	_kill_cam = KillCam.new()
+	add_child(_kill_cam)
+	_kill_cam.setup(self)
 
 	_set_spawn_positions()
 	_apply_camera_bounds()
@@ -114,7 +118,12 @@ func _update_camera_targets() -> void:
 	var focus: Vector2 = Vector2(_get_camera_target_x(), _get_camera_target_y())
 	var zoom_value: float = _get_camera_target_zoom()
 	var look: Vector2 = _get_camera_look_ahead()
-	if _kill_focus_timer > 0.0:
+	if _kill_cam != null and _kill_cam.is_playing():
+		var frame: Dictionary = _kill_cam.camera_frame(get_viewport_rect().size, _board_fit_zoom())
+		focus = frame["focus"]
+		zoom_value = frame["zoom"]
+		look = Vector2.ZERO
+	elif _kill_focus_timer > 0.0:
 		var weight: float = clampf(_kill_focus_timer / 0.4, 0.0, 1.0) * 0.6
 		focus = focus.lerp(_kill_focus_position, weight)
 		zoom_value *= 1.0 + 0.22 * weight
@@ -122,6 +131,21 @@ func _update_camera_targets() -> void:
 	_camera.focus_position = focus
 	_camera.target_zoom = zoom_value
 	_camera.look_ahead_target = look
+
+
+## The kill cam cuts to its replay: the camera jumps to the replay's framing instead of gliding there.
+func snap_camera_to_kill_cam() -> void:
+	_update_camera_targets()
+	_camera.snap_to_target()
+
+
+func get_kill_cam() -> KillCam:
+	return _kill_cam
+
+
+## How victim_slot was just knocked out, for the kill banner's replay (OnlineMatch asks on the host).
+func describe_kill(victim_slot: int) -> Dictionary:
+	return _kill_cam.describe_kill(victim_slot) if _kill_cam != null else {}
 
 
 func record_stat(slot: int, key: String, amount: float = 1.0) -> void:
@@ -344,6 +368,7 @@ func request_dash_shockwave(owner: Node, origin: Vector2, direction: float, slam
 			movement_sync.request_shockwave(dasher.player_slot, origin, direction, slam)
 		return
 	for hit in dasher.get_dash_shockwave_hits(origin, direction, slam):
+		KillLog.note_shove(hit["target"], dasher.player_slot, &"slam" if slam else &"dash")
 		(hit["target"] as Player).receive_knockback(hit["velocity"], origin)
 
 
@@ -571,6 +596,8 @@ func get_projectiles_root() -> Node2D:
 
 
 func respawn_players() -> void:
+	if _kill_cam != null:
+		_kill_cam.on_round_reset()
 	_set_spawn_positions()
 	_player_1.reset_research_round_state()
 	_player_1.reset_network_state_to_current_transform()

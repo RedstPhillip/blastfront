@@ -7,6 +7,8 @@ const BURST_EFFECT_SCENE: PackedScene = preload("res://scenes/effects/burst_effe
 const MUZZLE_EFFECT_SCENE: PackedScene = preload("res://scenes/effects/muzzle_effect.tscn")
 const DAMAGE_FONT: Font = preload("res://assets/fonts/blastfront_combat_font.tres")
 const SCREEN_FX_GROUP: StringName = &"screen_fx"
+## Every burst and muzzle flash in flight (the kill cam hides the live ones when its replay cuts in).
+const TRANSIENT_FX_GROUP: StringName = &"transient_fx"
 
 const MAX_SHAKE_OFFSET: float = 26.0
 const MAX_SHAKE_ROLL: float = 0.035
@@ -40,6 +42,8 @@ var _slowmo_until_usec: int = 0
 var _slowmo_scale: float = 1.0
 var _slowmo_recover: float = 0.0
 var _time_scale_current: float = 1.0
+## The kill cam's replay sets the pace while it plays (see hold_time_scale); -1 when nothing holds it.
+var _held_time_scale: float = -1.0
 var _damage_numbers: Dictionary = {}
 var _damage_label_settings: Dictionary = {}
 
@@ -172,7 +176,7 @@ func _update_camera_juice(delta: float) -> void:
 
 ## Freezes gameplay for a few frames to sell impact. Disabled in online matches to keep peers in sync.
 func hitstop(duration: float, time_scale: float = 0.04) -> void:
-	if not _time_effects_allowed() or not UserSettings.get_bool(UserSettings.HITSTOP):
+	if not _time_effects_allowed() or not UserSettings.get_bool(UserSettings.HITSTOP) or _held_time_scale > 0.0:
 		return
 	var until: int = Time.get_ticks_usec() + int(duration * 1000000.0)
 	_hitstop_until_usec = maxi(_hitstop_until_usec, until)
@@ -181,14 +185,41 @@ func hitstop(duration: float, time_scale: float = 0.04) -> void:
 
 ## Slow motion for dramatic moments (round winning kill). Offline only.
 func slow_motion(time_scale: float, duration: float, recover_seconds: float = 0.35) -> void:
-	if not _time_effects_allowed():
+	if not _time_effects_allowed() or _held_time_scale > 0.0:
 		return
 	_slowmo_until_usec = Time.get_ticks_usec() + int(duration * 1000000.0)
 	_slowmo_scale = clampf(time_scale, 0.05, 1.0)
 	_slowmo_recover = maxf(recover_seconds, 0.01)
 
 
+## The kill cam's replay runs the world at its own pace: while held, hitstop and slow motion stand aside
+## (new ones are refused, running ones dropped) and Engine.time_scale is exactly this.
+func hold_time_scale(time_scale: float) -> void:
+	_held_time_scale = clampf(time_scale, 0.05, 1.0)
+	_hitstop_until_usec = 0
+	_slowmo_until_usec = 0
+	_hitstop_scale = 1.0
+	_slowmo_scale = 1.0
+	if not is_equal_approx(_held_time_scale, _time_scale_current):
+		_time_scale_current = _held_time_scale
+		Engine.time_scale = _held_time_scale
+
+
+## Ends a hold: time runs at exactly 1 again (nothing that was refused meanwhile comes back).
+func release_time_scale() -> void:
+	if _held_time_scale < 0.0:
+		return
+	_held_time_scale = -1.0
+	reset_time_scale()
+	AudioServer.playback_speed_scale = 1.0
+
+
+func is_time_scale_held() -> bool:
+	return _held_time_scale > 0.0
+
+
 func reset_time_scale() -> void:
+	_held_time_scale = -1.0
 	_hitstop_until_usec = 0
 	_slowmo_until_usec = 0
 	_hitstop_scale = 1.0
@@ -202,6 +233,8 @@ func _time_effects_allowed() -> bool:
 
 
 func _update_time_scale(real_delta: float) -> void:
+	if _held_time_scale > 0.0:
+		return
 	var now: int = Time.get_ticks_usec()
 	var target: float = 1.0
 	if now < _slowmo_until_usec:
@@ -288,6 +321,7 @@ func spawn_casing(world_position: Vector2, eject_direction: Vector2, tint: Color
 
 func spawn_explosion(world_position: Vector2, radius: float = 80.0, tint: Color = Color(1.0, 0.55, 0.18, 1.0)) -> void:
 	var power: float = clampf(radius / 80.0, 0.6, 2.2)
+	KillLog.note_event(&"blast", world_position, {"radius": radius, "tint": tint})
 	spawn_burst(&"explosion", world_position, Vector2.UP, tint, power)
 	# A blast in or just over the water throws the sea up with it.
 	var water: float = WorldConditions.water_level
@@ -308,6 +342,15 @@ func spawn_explosion(world_position: Vector2, radius: float = 80.0, tint: Color 
 
 
 # --- Damage numbers -----------------------------------------------------------------
+
+## Takes every damage number off the screen at once (the kill cam's replay cuts in).
+func clear_damage_numbers() -> void:
+	for entry in _damage_numbers.values():
+		var label_variant: Variant = (entry as Dictionary).get("label")
+		if is_instance_valid(label_variant):
+			(label_variant as Node).queue_free()
+	_damage_numbers.clear()
+
 
 func spawn_damage_number(world_position: Vector2, amount: int, color: Color = Color(1.0, 0.28, 0.22, 1.0), target_key: int = 0, is_heal: bool = false) -> void:
 	if not UserSettings.get_bool(UserSettings.DAMAGE_NUMBERS) or amount <= 0:
@@ -487,6 +530,7 @@ func _effect_root() -> Node:
 
 
 func _place_effect(effect: Node2D, root_node: Node, world_position: Vector2) -> void:
+	effect.add_to_group(TRANSIENT_FX_GROUP)
 	var root_2d: Node2D = root_node as Node2D
 	if root_2d != null:
 		effect.position = root_2d.to_local(world_position)

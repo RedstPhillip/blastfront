@@ -44,6 +44,7 @@ func apply_effect(name: StringName, params: Dictionary) -> void:
 		"source_slot": int(adjusted_params.get("source_slot", 0)),
 		"breaks_guard": float(adjusted_params.get("breaks_guard", 0.0)) > 0.0,
 		"no_heal": float(adjusted_params.get("no_heal", 0.0)) > 0.0,
+		"name": name,
 	}
 
 	if name == &"poison" or name == &"marked" or name == &"burn":
@@ -226,6 +227,8 @@ func _tick_instance(instance: Dictionary) -> void:
 	if damage > 0:
 		var armor_source_slot: int = int(instance.get("source_slot", 0))
 		var modified_damage: int = ResearchManager.apply_rage_to_damage(armor_source_slot, damage)
+		if KillLog.listener != null:
+			KillLog.note_damage(player, &"status", {"slot": armor_source_slot, "effect": instance.get("name", &"")})
 		var applied_damage: int = player.apply_incoming_damage(modified_damage, armor_source_slot, player.global_position, false)
 		if armor_source_slot > 0 and applied_damage > 0:
 			ResearchManager.apply_local_life_steal(armor_source_slot, applied_damage)

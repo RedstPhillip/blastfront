@@ -5,6 +5,8 @@ extends Control
 ## diagonal bars in the scoring player's colour.
 
 const BAR_SLANT: float = -0.07
+const TUCKED_SCALE: float = 0.62
+const TUCKED_Y: float = 80.0
 
 var _title: Label = null
 var _subtitle: Label = null
@@ -15,6 +17,7 @@ var _bar_bottom: Polygon2D = null
 var _bar_stripe: Polygon2D = null
 var _sequence: Tween = null
 var _bars_tween: Tween = null
+var _tuck_tween: Tween = null
 
 
 func _ready() -> void:
@@ -66,6 +69,7 @@ func _layout() -> void:
 ## Round intro: title, optional subtitle and a countdown ending in FIGHT exactly at `duration`.
 func play_intro(round_number: int, duration: float, subtitle: String, title_override: String = "") -> void:
 	_kill_sequences()
+	_untuck_now()
 	_title.text = title_override if title_override != "" else "ROUND %d" % round_number
 	_title.add_theme_color_override("font_color", UiStyle.TEXT)
 	_subtitle.text = subtitle
@@ -150,6 +154,33 @@ func play_point(color: Color, title: String, subtitle: String, big: bool = false
 	_bars_tween.tween_property(_bar_bottom, "position:x", -sweep - 300.0, 0.4).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN).set_delay(hold + 0.05)
 	_bars_tween.tween_property(_title, "modulate:a", 0.0, 0.25).set_delay(hold)
 	_bars_tween.tween_property(_subtitle, "modulate:a", 0.0, 0.25).set_delay(hold)
+
+
+## The kill cam's replay needs the middle of the screen: the point banner shrinks up into the replay's top
+## wash (title centred TUCKED_Y px from the top) and comes back down when the replay ends.
+func tuck(tucked: bool) -> void:
+	if _tuck_tween != null and _tuck_tween.is_valid():
+		_tuck_tween.kill()
+	var title_center_y: float = size.y * 0.5 - 60.0
+	pivot_offset = Vector2(size.x * 0.5, title_center_y)
+	var target_scale: Vector2 = Vector2.ONE * (TUCKED_SCALE if tucked else 1.0)
+	var target_y: float = (TUCKED_Y - title_center_y) if tucked else 0.0
+	# The point's flash covers the whole screen; shrunk it would show as a box.
+	_flash.visible = not tucked
+	if not tucked and _title.modulate.a <= 0.01 and _subtitle.modulate.a <= 0.01:
+		_untuck_now()
+		return
+	_tuck_tween = create_tween().set_ignore_time_scale(true).set_parallel(true)
+	_tuck_tween.tween_property(self, "position:y", target_y, 0.3).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_tuck_tween.tween_property(self, "scale", target_scale, 0.3).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+
+func _untuck_now() -> void:
+	if _tuck_tween != null and _tuck_tween.is_valid():
+		_tuck_tween.kill()
+	position.y = 0.0
+	scale = Vector2.ONE
+	_flash.visible = true
 
 
 func hide_banner() -> void:

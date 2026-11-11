@@ -20,6 +20,8 @@ var match_points: Dictionary = GameSettings.default_score()
 var coin_balances: Dictionary = GameSettings.default_score()
 var last_set_earnings: Dictionary = {}
 var last_winner_slot: int = 0
+## How the last kill happened, decided by the host (see KillCam.describe_kill): label, highlight, victim.
+var last_kill: Dictionary = {}
 var final_winner_slot: int = 0
 var intermission_remaining: float = GameSettings.ONLINE_INTERMISSION_SECONDS
 var locker_countdown_remaining: float = -1.0
@@ -61,7 +63,8 @@ func _process(delta: float) -> void:
 	if phase == GameSettings.MATCH_PHASE_LOCKER:
 		_process_locker_countdown(delta)
 	elif phase == GameSettings.MATCH_PHASE_KILL_BANNER:
-		_kill_banner_remaining = maxf(_kill_banner_remaining - delta, 0.0)
+		# Real time: the knockout's slow motion or the kill cam's replay must not stretch the banner.
+		_kill_banner_remaining = maxf(_kill_banner_remaining - delta / maxf(Engine.time_scale, 0.0001), 0.0)
 		if _kill_banner_remaining <= 0.0 or Time.get_ticks_msec() >= _kill_banner_deadline_msec:
 			_finish_kill_banner()
 	elif phase == GameSettings.MATCH_PHASE_INTERMISSION:
@@ -97,6 +100,7 @@ func enter_locker(reset_scores: bool = true) -> void:
 	if reset_scores:
 		ResearchManager.reset_for_new_game()
 	last_winner_slot = 0
+	last_kill = {}
 	final_winner_slot = 0
 	_kill_banner_remaining = 0.0
 	_kill_banner_deadline_msec = 0
@@ -124,6 +128,7 @@ func begin_bot_match() -> void:
 	armor_loadouts = GameSettings.default_armor_loadouts()
 	research_profiles = {}
 	last_winner_slot = 0
+	last_kill = {}
 	final_winner_slot = 0
 	phase = GameSettings.MATCH_PHASE_LOCKER
 	start_next_set()
@@ -150,6 +155,7 @@ func start_next_set() -> void:
 	locker_ready = GameSettings.default_ready_state()
 	intermission_ready = GameSettings.default_ready_state()
 	last_winner_slot = 0
+	last_kill = {}
 	_kill_banner_remaining = 0.0
 	_kill_banner_deadline_msec = 0
 	intermission_remaining = GameSettings.ONLINE_INTERMISSION_SECONDS
@@ -170,6 +176,7 @@ func record_kill(winner_slot: int) -> void:
 	set_kills[winner_slot] = int(set_kills[winner_slot]) + 1
 	small_round_number += 1
 	last_winner_slot = winner_slot
+	last_kill = _describe_kill(GameSettings.PLAYER_TWO_SLOT if winner_slot == GameSettings.PLAYER_ONE_SLOT else GameSettings.PLAYER_ONE_SLOT)
 	_kill_banner_remaining = GameSettings.ONLINE_KILL_BANNER_SECONDS
 	_kill_banner_deadline_msec = Time.get_ticks_msec() + int(roundf(GameSettings.ONLINE_KILL_BANNER_SECONDS * 1000.0))
 	_kill_banner_generation += 1
@@ -495,6 +502,7 @@ func build_state() -> Dictionary:
 		"coin_balances": coin_balances.duplicate(),
 		"last_set_earnings": last_set_earnings.duplicate(true),
 		"last_winner_slot": last_winner_slot,
+		"last_kill": last_kill.duplicate(),
 		"final_winner_slot": final_winner_slot,
 		"intermission_remaining": intermission_remaining,
 		"locker_countdown_remaining": locker_countdown_remaining,
@@ -609,6 +617,14 @@ func _update_locker_countdown_state() -> void:
 		_last_locker_countdown_second = -1
 
 
+## The game names the kill for the banner's replay (the kill cam's record of it); {} without a game.
+func _describe_kill(victim_slot: int) -> Dictionary:
+	var world: Node = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)
+	if world == null or not world.has_method(&"describe_kill"):
+		return {}
+	return world.describe_kill(victim_slot)
+
+
 func _finish_kill_banner() -> void:
 	_kill_banner_remaining = 0.0
 	_kill_banner_deadline_msec = 0
@@ -672,6 +688,8 @@ func _apply_state(state: Dictionary) -> void:
 	_apply_nested_dictionary(state.get("last_set_earnings", {}), last_set_earnings)
 
 	last_winner_slot = int(state.get("last_winner_slot", last_winner_slot))
+	var kill_variant: Variant = state.get("last_kill", {})
+	last_kill = (kill_variant as Dictionary).duplicate() if kill_variant is Dictionary else {}
 	final_winner_slot = int(state.get("final_winner_slot", final_winner_slot))
 	intermission_remaining = float(state.get("intermission_remaining", intermission_remaining))
 	locker_countdown_remaining = float(state.get("locker_countdown_remaining", locker_countdown_remaining))

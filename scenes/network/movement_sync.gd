@@ -86,6 +86,7 @@ func _resolve_shockwave(slot: int, origin: Vector2, direction: float, slam: bool
 	for hit in dasher.get_dash_shockwave_hits(origin, direction, slam):
 		var target: Player = hit["target"]
 		var knockback: Vector2 = hit["velocity"]
+		KillLog.note_shove(target, slot, &"slam" if slam else &"dash")
 		target.receive_knockback(knockback, origin)
 		game_sync.send_reliable(GameSettings.PACKET_KNOCKBACK, {
 			"target_slot": target.player_slot,
@@ -101,6 +102,7 @@ func throw(target: Player, knockback: Vector2, origin: Vector2, stun: float = 0.
 		return
 	if knockback.length_squared() <= GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED or target.is_dash_protected():
 		return
+	KillLog.note_shove(target, 0, &"impact")
 	target.receive_knockback(knockback, origin, stun)
 	game_sync.send_reliable(GameSettings.PACKET_KNOCKBACK, {
 		"target_slot": target.player_slot,

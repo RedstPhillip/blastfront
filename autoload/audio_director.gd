@@ -392,6 +392,8 @@ const MUSIC_TRACKS: Dictionary = {
 	&"ambience_rimefall": "ambience_rimefall.ogg",
 }
 
+## Silences every positional (world) sound while set: the kill cam's replay plays the fight again quietly.
+var world_muted: bool = false
 var _streams: Dictionary = {}
 var _pool_2d: Array[AudioStreamPlayer2D] = []
 var _pool_global: Array[AudioStreamPlayer] = []
@@ -441,7 +443,7 @@ func play(event_id: StringName, volume_offset_db: float = 0.0, pitch_multiplier:
 
 
 func play_at(event_id: StringName, world_position: Vector2, volume_offset_db: float = 0.0, pitch_multiplier: float = 1.0) -> void:
-	if not _accept_trigger(event_id):
+	if world_muted or not _accept_trigger(event_id):
 		return
 	var definition: Dictionary = EVENTS[event_id]
 	if definition.get("bus", &"SFX") == &"UI":

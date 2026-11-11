@@ -1811,6 +1811,211 @@ func _build_script() -> void:
 				root.get_node("OnlineMatch").phase = &"playing_set"
 				_tp_report())
 			_at(7.1, "quit")
+		"killcam_flow":
+			# The kill cam end to end, headless. Set flow (shop bot duel): a plain mid-set kill (no replay), a
+			# highlight (the victim slowed by Time Control), a set-winning kill skipped with ui_cancel. A
+			# first-to-5 duel: Easy bot refused / allowed, setting Off and Final only, the match-winning replay
+			# with its hold (a late skip ignored once the banner is over). Kill names from notes as the hit sites
+			# leave them. The sandbox (never). Online without Steam: the host names the kill and broadcasts it,
+			# the client replays the host's kill from its own record. Prints KILLCAM PASS/FAIL lines.
+			_at(0.1, "call", func():
+				var settings = root.get_node("UserSettings")
+				settings.set_value(&"progress_bot_world", "verdant")
+				settings.set_value(&"gameplay_kill_cam", 2)
+				settings.set_value(&"gameplay_kill_cam_easy_bots", false)
+				settings.set_value(&"gameplay_bot_difficulty", 1)
+				settings.set_value(&"gameplay_bot_phase_shop", true)
+				root.get_node("OnlineMatch").phase_changed.connect(_kc_on_phase)
+				_hooks.append(_kc_watch))
+			_at(0.3, "call", func(): _main.start_bot_match())
+			_at(1.2, "call", func(): _kc_calm_bot())
+			# 1) Set flow, plain mid-set kill: no replay.
+			_at(3.4, "call", func(): _kc_kill(1, 2))
+			_at(3.9, "call", func():
+				var d: Dictionary = _kc_cam().last_decision
+				_kc_check("plain mid-set kill: no replay", d.get("played", true) == false and d.get("reason", "") == "plain kill", str(d)))
+			_at(5.6, "call", func(): _kc_banner_check("plain kill"))
+			# 2) A highlight mid-set: P1 slowed by Time Control and finished.
+			_at(6.2, "call", func():
+				_kc_calm_bot()
+				_p1().apply_time_slow(0.35, 3.0)
+				_kc_kill(2, 1))
+			_at(6.75, "call", func():
+				var d: Dictionary = _kc_cam().last_decision
+				_kc_check("slowed victim: highlight replay plays", _kc_cam().is_playing() and str(d.get("label", "")).contains("slow time"), str(d.get("label", "")))
+				_kc_check("live fighters hidden, puppets shown", not _p1().visible and not _stress_game().get_player_by_slot(2).visible and _kc_cam().get_node("ReplayFighter2").visible))
+			_at(8.6, "call", func():
+				_kc_check("offline the replay slows the world (lowest time_scale %.2f)" % float(_kc_marks.get("min_scale", 1.0)), float(_kc_marks.get("min_scale", 1.0)) < 0.7)
+				_kc_banner_check("highlight"))
+			# 3) The set-winning kill (P1's second), skipped.
+			_at(9.6, "call", func():
+				_kc_calm_bot()
+				_kc_kill(1, 2))
+			_at(10.15, "call", func(): _kc_check("set-winning kill plays", _kc_cam().is_playing() and int(_kc_cam().last_decision.get("tier", -1)) == 1, str(_kc_cam().last_decision.get("label", ""))))
+			_at(10.2, "action", "ui_cancel")
+			_at(10.3, "call", func():
+				var g = _stress_game()
+				_kc_check("skip ends the replay", not _kc_cam().is_playing() and _kc_cam().last_decision.get("skipped", false) == true)
+				_kc_check("skip restores time_scale exactly (%.3f)" % Engine.time_scale, Engine.time_scale == 1.0 and not root.get_node("GameJuice").is_time_scale_held())
+				_kc_check("skip gives the world back", g.get_player_by_slot(1).visible and g.get_projectiles_root().visible and not g.get_player_by_slot(2).visible and not root.get_node("AudioDirector").world_muted)
+				_kc_check("skip leaves the pause menu closed", not paused))
+			# 4) First-to-5 duel against an Easy bot.
+			_at(12.5, "call", func():
+				var settings = root.get_node("UserSettings")
+				settings.set_value(&"gameplay_bot_phase_shop", false)
+				settings.set_value(&"gameplay_bot_difficulty", 0)
+				_main.start_bot_match())
+			_at(13.4, "call", func(): _kc_calm_bot())
+			_at(15.6, "call", func(): _kc_kill(1, 2))
+			_at(16.0, "call", func(): _kc_check("Easy bot: no replay by default", _kc_cam().last_decision.get("reason", "") == "easy bot", str(_kc_cam().last_decision)))
+			_at(17.8, "call", func():
+				root.get_node("UserSettings").set_value(&"gameplay_kill_cam_easy_bots", true)
+				_kc_calm_bot()
+				_kc_kill(1, 2))
+			_at(18.3, "call", func(): _kc_check("Easy bot allowed: a round kill replays", _kc_cam().is_playing() and int(_kc_cam().last_decision.get("tier", -1)) == 0))
+			_at(20.4, "call", func():
+				_kc_respawn_check("round kill")
+				root.get_node("UserSettings").set_value(&"gameplay_kill_cam", 0)
+				_kc_calm_bot()
+				_kc_kill(1, 2))
+			_at(20.9, "call", func(): _kc_check("setting Off: no replay", not _kc_cam().is_playing() and _kc_cam().last_decision.get("reason", "") == "off"))
+			_at(23.0, "call", func():
+				root.get_node("UserSettings").set_value(&"gameplay_kill_cam", 1)
+				_kc_calm_bot()
+				_kc_kill(1, 2))
+			_at(23.5, "call", func(): _kc_check("Final kills only: round kill skipped", not _kc_cam().is_playing() and _kc_cam().last_decision.get("reason", "") == "final kills only"))
+			# Kill names, from notes as the hit sites leave them.
+			_at(24.0, "call", func(): _kc_label_checks())
+			# 5) The match-winning kill (P1's fifth point): full replay with a hold, running on behind the results.
+			_at(25.6, "call", func():
+				_kc_calm_bot()
+				_kc_marks["late_skip"] = true
+				_kc_kill(1, 2))
+			_at(26.1, "call", func(): _kc_check("match-winning kill plays in Final-only mode", _kc_cam().is_playing() and int(_kc_cam().last_decision.get("tier", -1)) == 2))
+			_at(31.5, "call", func():
+				_kc_check("match replay ignored a late skip", _kc_marks.get("late_skip_result", "") == "kept playing", str(_kc_marks.get("late_skip_result", "none")))
+				_kc_check("match replay ended by itself after its hold", not _kc_cam().is_playing() and Engine.time_scale == 1.0)
+				var runs: Array = _kc_marks.get("runs", [])
+				var last: Dictionary = runs[-1] if not runs.is_empty() else {}
+				_kc_check("match replay ran %.2f s (budget 3.4 + hold 0.9)" % float(last.get("seconds", -1.0)), float(last.get("seconds", 99.0)) <= 4.4 and float(last.get("seconds", 0.0)) >= 3.0))
+			# 6) Never in the sandbox.
+			_at(32.0, "call", func(): _main._on_sandbox_requested())
+			_at(34.0, "call", func(): _kc_kill(1, 2))
+			_at(34.6, "call", func():
+				var kc = _kc_cam()
+				_kc_check("sandbox: nothing recorded or replayed", kc != null and kc.get_recorder().frame_count() == 0 and kc.last_decision.is_empty() and not kc.is_playing()))
+			# 7) Online without Steam, host side, from a first-to-5 duel flipped into a hosted set.
+			_at(35.0, "call", func():
+				var settings = root.get_node("UserSettings")
+				settings.set_value(&"gameplay_kill_cam", 2)
+				settings.set_value(&"gameplay_bot_difficulty", 1)
+				_main.start_bot_match())
+			_at(37.6, "call", func():
+				var g = _stress_game()
+				var session = root.get_node("NetworkSession")
+				var online_match = root.get_node("OnlineMatch")
+				session.mode = &"host"
+				session._match_active = true
+				session.local_player_slot = 1
+				online_match._reset_current_set_stats()
+				online_match.set_kills = {1: 0, 2: 0}
+				online_match.match_points = {1: 0, 2: 0}
+				online_match.phase = &"playing_set"
+				g.get_player_by_slot(2).configure_remote_control(2)
+				g._game_sync.setup(g)
+				g.get_player_by_slot(2).reset_network_state_to_current_transform())
+			_at(38.2, "call", func():
+				var g = _stress_game()
+				var p2 = g.get_player_by_slot(2)
+				load("res://scenes/killcam/kill_log.gd").note_shove(p2, 1, &"slam")
+				g._game_sync.get_module(&"combat").apply_hit(2, 1, 0, 999)
+				var state: Dictionary = root.get_node("OnlineMatch").build_state()
+				_kc_check("host names the kill and broadcasts it", root.get_node("OnlineMatch").phase == &"kill_banner" and str((state.get("last_kill", {}) as Dictionary).get("label", "")) == "Slam", str(state.get("last_kill", {}))))
+			_at(38.7, "call", func():
+				_kc_check("host replays its own kill", _kc_cam().is_playing() and str(_kc_cam().last_decision.get("label", "")) == "Slam")
+				_kc_check("online the world keeps real time (time_scale %.2f)" % Engine.time_scale, Engine.time_scale == 1.0))
+			_at(40.6, "call", func(): _kc_banner_check("host"))
+			# Client side: the host's kill arrives in the match state; the client replays it from its own record.
+			_at(41.4, "call", func():
+				root.get_node("NetworkSession").mode = &"client"
+				_p1().health_component.damage(999))
+			_at(41.45, "call", func():
+				root.get_node("OnlineMatch")._apply_state({"phase": "kill_banner", "last_winner_slot": 2, "set_kills": {1: 0, 2: 2}, "match_points": {1: 0, 2: 1},
+					"last_kill": {"label": "Ricochet · Bouncy Bullets MK III", "highlight": true, "victim": 1, "killer": 2}})
+				_kc_marks["client_banner_frame"] = _kc_frames)
+			_at(41.95, "call", func(): _kc_check("client replays the host's kill under the host's name", _kc_cam().is_playing() and str(_kc_cam().last_decision.get("label", "")) == "Ricochet · Bouncy Bullets MK III" and int(_kc_cam().last_decision.get("tier", -1)) == 1))
+			_at(43.6, "call", func():
+				var runs: Array = _kc_marks.get("runs", [])
+				var last: Dictionary = runs[-1] if not runs.is_empty() else {}
+				var after: float = (float(last.get("end_frame", 1e9)) - float(_kc_marks["client_banner_frame"])) / 60.0
+				_kc_check("client replay over inside the banner (%.2f s after the state)" % after, not _kc_cam().is_playing() and after <= 1.9)
+				root.get_node("OnlineMatch")._apply_state({"phase": "playing_set", "set_kills": {1: 0, 2: 0}}))
+			_at(44.0, "call", func():
+				var session = root.get_node("NetworkSession")
+				session._match_active = false
+				session.mode = &"bot"
+				root.get_node("OnlineMatch").phase = &"locker"
+				_kc_report())
+			_at(44.2, "quit")
+		"killcam_cost":
+			# What the kill cam costs during a round: record() timed directly, and the frame time of a hard-bot
+			# duel (kill cam Off, so no replays) with the idle puppets present, freed, and present again.
+			_at(0.1, "call", func():
+				root.get_node("UserSettings").set_value(&"gameplay_kill_cam", 0)
+				root.get_node("UserSettings").set_value(&"gameplay_bot_phase_shop", false))
+			_at(0.3, "call", func(): _main.start_bot_match())
+			_at(3.0, "call", func():
+				_stress_game().get_player_by_slot(1).configure_ai_control(1, 2)
+				var kc = _kc_cam()
+				var g = _stress_game()
+				var start: int = Time.get_ticks_usec()
+				for i in range(2000):
+					kc.get_recorder().record(0.0, kc._fighters, g.get_projectiles_root())
+				print("KC_COST record() %.2f us per frame" % (float(Time.get_ticks_usec() - start) / 2000.0))
+				_hooks.append(_kc_cost_tick))
+			_at(13.0, "call", func(): _kc_cost_report("puppets idle"); for p in _kc_cam()._puppets: p.visible = false)
+			_at(13.05, "call", func():
+				for p in _kc_cam()._puppets: p.get_parent().remove_child(p))
+			_at(23.0, "call", func(): _kc_cost_report("puppets removed"); for p in _kc_cam()._puppets: _kc_cam().add_child(p))
+			_at(33.0, "call", func(): _kc_cost_report("puppets idle again"))
+			_at(33.2, "quit")
+		"killcam_look":
+			# A ricochet kill on a plain rig above Verdant (P1 Bouncy Bullets MK III bounces a round off the floor
+			# into a parked P2), the replay shot frame by frame; a sniper kill across 650 px; the match-winning kill
+			# with its hold behind the results.
+			_at(0.1, "call", func():
+				var settings = root.get_node("UserSettings")
+				settings.set_value(&"progress_bot_world", OS.get_environment("BF_WORLD") if OS.has_environment("BF_WORLD") else "verdant")
+				settings.set_value(&"gameplay_kill_cam", 2)
+				settings.set_value(&"gameplay_bot_difficulty", 1)
+				settings.set_value(&"gameplay_bot_phase_shop", false)
+				_hooks.append(_kc_watch))
+			_at(0.3, "call", func(): _main.start_bot_match())
+			_at(1.0, "call", func():
+				_kc_calm_bot()
+				_give_parts(1, "bouncy_bullets_mk1:3,sniper_barrel_mk1:2")
+				_dash_spot = _build_test_floor(Vector2(380.0, 150.0), 760.0))
+			# Placed well before the shot, so the recorded lead-up shows them standing there.
+			for at in [1.2, 2.0, 2.8, 3.1]:
+				_at(at, "call", func(): _kc_place(500.0, 820.0))
+			_at(3.2, "call", func(): _kc_ricochet())
+			for i in range(14):
+				_at(3.4 + i * 0.12, "shot", "kc_ricochet_%02d" % i)
+			for at in [5.7, 6.4, 7.2, 7.5]:
+				_at(at, "call", func(): _kc_place(420.0, 1100.0))
+			_at(7.6, "call", func(): _kc_sniper())
+			for i in range(13):
+				_at(7.75 + i * 0.12, "shot", "kc_sniper_%02d" % i)
+			# The match-winning kill (P1 at match point): the full replay, then the hold on the winner behind
+			# the results screen.
+			_at(10.2, "call", func(): _stress_game()._offline_score[1] = 4)
+			for at in [10.3, 11.0, 11.8, 12.1]:
+				_at(at, "call", func(): _kc_place(560.0, 860.0))
+			_at(12.2, "call", func(): _kc_kill(1, 2))
+			for i in range(12):
+				_at(12.5 + i * 0.3, "shot", "kc_match_%02d" % i)
+			_at(16.4, "call", func(): _kc_report())
+			_at(16.5, "quit")
 		"time_sandbox":
 			# Time Control in the sandbox: free to try, slows every dummy, nobody else.
 			_at(0.1, "call", func(): root.get_node("UserSettings").set_value(&"progress_sandbox_world", "verdant"))
@@ -3654,3 +3859,215 @@ func _watch_fire_escape() -> void:
 		_fire_total += stood
 		_fire_count += 1
 		_fire_trial = {}
+
+
+## --- Kill cam (killcam_flow, killcam_look) ----------------------------------------------------------------
+
+var _kc_frames: int = 0
+var _kc_checks: int = 0
+var _kc_failures: int = 0
+var _kc_marks: Dictionary = {}
+var _kc_was_playing: bool = false
+var _kc_phase_frames: Array = []
+var _kc_down: Dictionary = {}
+var _kc_respawns: Array = []
+
+
+func _kc_cam() -> Node:
+	var g = _stress_game()
+	return g.get_kill_cam() if g != null and g.has_method(&"get_kill_cam") else null
+
+
+func _kc_check(label: String, ok: bool, detail: String = "") -> void:
+	_kc_checks += 1
+	if not ok:
+		_kc_failures += 1
+	print("KILLCAM %s %s%s" % ["PASS" if ok else "FAIL", label, ("  [" + detail + "]") if detail != "" and not ok else ""])
+
+
+func _kc_report() -> void:
+	print("KILLCAM %s %d/%d checks" % ["PASS" if _kc_failures == 0 else "FAIL", _kc_checks - _kc_failures, _kc_checks])
+
+
+func _kc_on_phase(phase: StringName) -> void:
+	_kc_phase_frames.append([str(phase), _kc_frames])
+
+
+## Every frame: replay runs (start / end frame, real seconds: one frame is 1/60 s at --fixed-fps 60), the
+## late skip of the match test, and when each fighter went down and came back.
+func _kc_watch() -> void:
+	_kc_frames += 1
+	var kc = _kc_cam()
+	var playing: bool = kc != null and kc.is_playing()
+	if playing and not _kc_was_playing:
+		_kc_marks["run_start"] = _kc_frames
+	elif _kc_was_playing and not playing:
+		var start: int = int(_kc_marks.get("run_start", _kc_frames))
+		var runs: Array = _kc_marks.get("runs", [])
+		var label: String = str(kc.last_decision.get("label", "")) if kc != null else ""
+		runs.append({"start_frame": start, "end_frame": _kc_frames, "seconds": float(_kc_frames - start) / 60.0, "label": label})
+		_kc_marks["runs"] = runs
+		print("KILLCAM run \"%s\" %.2f s, time_scale after %.3f" % [label, float(_kc_frames - start) / 60.0, Engine.time_scale])
+	_kc_was_playing = playing
+	if playing:
+		_kc_marks["min_scale"] = minf(float(_kc_marks.get("min_scale", 1.0)), Engine.time_scale)
+	if playing and _kc_marks.get("late_skip", false) == true and float(kc._since_trigger) > 2.1:
+		_kc_marks["late_skip"] = false
+		_push_action("ui_cancel")
+		_kc_marks["late_skip_result"] = "kept playing" if kc.is_playing() else "stopped"
+	var g = _stress_game()
+	if g == null:
+		return
+	for slot in [1, 2]:
+		var p = g.get_player_by_slot(slot)
+		if p == null:
+			continue
+		if p.is_eliminated() and not _kc_down.has(slot):
+			_kc_down[slot] = _kc_frames
+		elif not p.is_eliminated() and _kc_down.has(slot):
+			_kc_respawns.append([slot, int(_kc_down[slot]), _kc_frames])
+			_kc_down.erase(slot)
+
+
+## The bot stands still and never shoots: kills in these tests come from the scripted rounds only.
+func _kc_calm_bot() -> void:
+	var g = _stress_game()
+	if g != null:
+		g.get_player_by_slot(2).configure_ai_control(2, -1)
+
+
+## A gravity-free, deadly round from killer's side, 70 px from the victim and flying at it.
+func _kc_kill(killer_slot: int, victim_slot: int, extra: Dictionary = {}) -> void:
+	var g = _stress_game()
+	var victim = g.get_player_by_slot(victim_slot)
+	var from: Vector2 = victim.global_position + Vector2(-70.0 if killer_slot == 1 else 70.0, 0.0)
+	var data: Dictionary = {"muzzle_speed": 900.0, "gravity": 0.0, "damage": 999, "max_distance": 400.0}
+	data.merge(extra, true)
+	var shot = g.PROJECTILE_SCENE.instantiate()
+	shot.configure_from_data(0, killer_slot, (victim.global_position - from).normalized(), data)
+	g.spawn_projectile(shot, from)
+
+
+## The last kill banner (set flow) lasted no longer than today's and the replay was over before it ended.
+func _kc_banner_check(label: String) -> void:
+	var start: int = -1
+	var end: int = -1
+	for i in range(_kc_phase_frames.size() - 1, -1, -1):
+		if _kc_phase_frames[i][0] == "kill_banner":
+			start = int(_kc_phase_frames[i][1])
+			if i + 1 < _kc_phase_frames.size():
+				end = int(_kc_phase_frames[i + 1][1])
+			break
+	if start < 0 or end < 0:
+		_kc_check("%s: banner seen" % label, false, str(_kc_phase_frames))
+		return
+	var seconds: float = float(end - start) / 60.0
+	_kc_check("%s: banner %.2f s (today 1.90)" % [label, seconds], seconds <= 1.9 + 0.04)
+	_kc_replay_inside(label, start, end)
+
+
+## First-to-N duel: the fighter came back no later than today's 1.9 s after going down, replay over by then.
+func _kc_respawn_check(label: String) -> void:
+	if _kc_respawns.is_empty():
+		_kc_check("%s: respawn seen" % label, false)
+		return
+	var last: Array = _kc_respawns[-1]
+	var seconds: float = float(int(last[2]) - int(last[1])) / 60.0
+	_kc_check("%s: next round after %.2f s (today 1.90)" % [label, seconds], seconds <= 1.9 + 0.06)
+	_kc_replay_inside(label, int(last[1]), int(last[2]))
+
+
+func _kc_replay_inside(label: String, start: int, end: int) -> void:
+	var runs: Array = _kc_marks.get("runs", [])
+	if not runs.is_empty() and int(runs[-1]["start_frame"]) >= start:
+		_kc_check("%s: replay over %d frames before the next round" % [label, end - int(runs[-1]["end_frame"])], int(runs[-1]["end_frame"]) <= end)
+	_kc_check("%s: time_scale back to exactly 1" % label, Engine.time_scale == 1.0)
+
+
+## Kill names from notes as the hit sites leave them (projectile, fire patch, border, shark, shove sites).
+func _kc_label_checks() -> void:
+	var g = _stress_game()
+	var kc = _kc_cam()
+	var p2 = g.get_player_by_slot(2)
+	var cases: Array = [
+		["bouncy_bullets_mk1:3"],
+		[&"round", {"bounced": true, "walls": 0, "distance": 320.0, "extensions": ["bouncy_bullets_mk1"], "look": "bouncy_bullets_mk1"}, &"", "Ricochet · Bouncy Bullets MK III", true],
+		["drill_bullets_mk1:2"],
+		[&"round", {"bounced": false, "walls": 1, "distance": 300.0, "extensions": ["drill_bullets_mk1"], "look": "drill_bullets_mk1"}, &"", "Through the wall · Drill Bullets MK II", true],
+		[&"round", {"bounced": false, "walls": 0, "distance": 742.0, "extensions": ["sniper_barrel_mk1"], "look": "sniper_barrel_mk1"}, &"", "Sniper · 740 px", true],
+		[&"round", {"bounced": false, "walls": 0, "distance": 420.0, "extensions": ["sniper_barrel_mk1"], "look": "sniper_barrel_mk1"}, &"", "Sniper Barrel", false],
+		[&"round", {"bounced": false, "walls": 0, "distance": 200.0, "extensions": [], "look": ""}, &"", "Knockout", false],
+		[&"fire", {"slot": 1}, &"impact", "Into the fire", true],
+		[&"border", {}, &"slam", "Slam · Over the edge", true],
+		[&"shark", {}, &"dash", "Fed to the sharks", true],
+		[&"shark", {}, &"", "Shark", false],
+	]
+	for case in cases:
+		if case.size() == 1:
+			_give_parts(1, case[0])
+			continue
+		kc._damage_notes.clear()
+		kc._shove_notes.clear()
+		kc._on_damage_noted(p2, case[0], case[1])
+		if case[2] != &"":
+			kc._on_shove_noted(p2, 1, case[2])
+		var named: Dictionary = kc.describe_kill(2)
+		_kc_check("name \"%s\"%s" % [case[3], " (highlight)" if case[4] else ""], named["label"] == case[3] and named["highlight"] == case[4], str(named))
+	kc._damage_notes.clear()
+	kc._shove_notes.clear()
+
+
+## Both fighters on the look rig, at rest, facing each other.
+func _kc_place(p1_x: float, p2_x: float) -> void:
+	var g = _stress_game()
+	for slot in [1, 2]:
+		var p = g.get_player_by_slot(slot)
+		p.global_position = Vector2(p1_x if slot == 1 else p2_x, _dash_spot.y - 26.0)
+		p.velocity = Vector2.ZERO
+		p.last_dir = 1.0 if slot == 1 else -1.0
+		p.set_controls_enabled(false)
+
+
+## P1's Bouncy Bullets round, fired down at the floor halfway to P2 so it comes off it into P2's body.
+func _kc_ricochet() -> void:
+	var g = _stress_game()
+	var p1 = g.get_player_by_slot(1)
+	var p2 = g.get_player_by_slot(2)
+	var from: Vector2 = p1.global_position + Vector2(18.0, -6.0)
+	var floor_point: Vector2 = Vector2(lerpf(from.x, p2.global_position.x, 0.62), _dash_spot.y)
+	var shot = g.PROJECTILE_SCENE.instantiate()
+	shot.configure_from_data(0, 1, (floor_point - from).normalized(), {"muzzle_speed": 820.0, "gravity": 0.0, "damage": 999, "max_distance": 900.0,
+		"extension_tags": ["bouncy"], "extension_effects": {"bouncy": {"bounces": 2}}, "source_extensions": ["bouncy_bullets_mk1"]})
+	g.spawn_projectile(shot, from)
+	print("KILLCAM look: ricochet fired from %s at the floor %s" % [from.round(), floor_point.round()])
+
+
+## P1's sniper round across the rig at a parked P2.
+func _kc_sniper() -> void:
+	var g = _stress_game()
+	var p1 = g.get_player_by_slot(1)
+	var p2 = g.get_player_by_slot(2)
+	var from: Vector2 = p1.global_position + Vector2(18.0, -4.0)
+	var shot = g.PROJECTILE_SCENE.instantiate()
+	shot.configure_from_data(0, 1, (p2.global_position - from).normalized(), {"muzzle_speed": 1500.0, "gravity": 0.0, "damage": 999, "max_distance": 1400.0,
+		"source_extensions": ["sniper_barrel_mk1"]})
+	g.spawn_projectile(shot, from)
+
+
+var _kc_cost_frames: PackedFloat32Array = PackedFloat32Array()
+var _kc_cost_prev: int = 0
+
+
+func _kc_cost_tick() -> void:
+	var now: int = Time.get_ticks_usec()
+	if _kc_cost_prev > 0:
+		_kc_cost_frames.append(float(now - _kc_cost_prev) / 1000.0)
+	_kc_cost_prev = now
+
+
+func _kc_cost_report(label: String) -> void:
+	var total: float = 0.0
+	for ms in _kc_cost_frames:
+		total += ms
+	print("KC_COST %s: mean frame %.3f ms over %d frames, nodes %d" % [label, total / maxf(float(_kc_cost_frames.size()), 1.0), _kc_cost_frames.size(), int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))])
+	_kc_cost_frames.clear()

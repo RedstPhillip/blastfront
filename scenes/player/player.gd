@@ -251,6 +251,10 @@ var _time_control_cooldown_total: float = 0.0
 ## While this player's own cast holds the opponent slowed (drives the HUD dial).
 var _time_control_active_timer: float = 0.0
 var _time_control_active_total: float = 0.0
+## Kill cam puppet (see KillCam): a copy of a fighter that only shows recorded poses. It runs none of the
+## gameplay, only the visuals, at replay_rate times its own delta (the replay's pace over the engine's).
+var replay_puppet: bool = false
+var replay_rate: float = 1.0
 ## Colour the body sprite currently shows (texture + base modulate are only swapped when it changes) and
 ## the last values pushed to the body shader, so idle frames do not re-set unchanged uniforms.
 var _body_color_id: StringName = &""
@@ -306,6 +310,9 @@ func _exit_tree() -> void:
 
 
 func _process(delta: float) -> void:
+	if replay_puppet:
+		_update_feedback_visuals(delta * replay_rate)
+		return
 	if _is_eliminated:
 		return
 	_update_time_control(delta)
@@ -322,6 +329,10 @@ func _process(delta: float) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if replay_puppet:
+		_update_ground_rays()
+		update_visual_movement(delta * replay_rate)
+		return
 	if _is_eliminated:
 		return
 	_update_ground_rays()
@@ -1247,6 +1258,61 @@ func is_slamming() -> bool:
 	return _slamming
 
 
+## Kill cam puppet only: takes one recorded pose (see KillCamRecorder.sample_fighter). The body is placed
+## outright like a remote copy; feet, lean, face and arms follow on this copy's own processing. snap drops
+## the visual history (the first pose of a replay).
+func pose_replay(pose: Dictionary, snap: bool) -> void:
+	var flags: int = int(pose["flags"])
+	global_position = pose["position"]
+	velocity = pose["velocity"]
+	_network_target_position = global_position
+	_network_target_velocity = velocity
+	_network_aim_world_position = pose["aim"]
+	var aim_vector: Vector2 = _network_aim_world_position - global_position
+	if aim_vector.length_squared() > GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
+		_gun.set_aim_direction(aim_vector.normalized())
+	last_dir = -1.0 if (flags & KillCamRecorder.FLAG_FACING_LEFT) != 0 else 1.0
+	_remote_wall_x = 1.0 if (flags & KillCamRecorder.FLAG_WALL_LEFT) != 0 else (-1.0 if (flags & KillCamRecorder.FLAG_WALL_RIGHT) != 0 else 0.0)
+	_remote_clinging = (flags & KillCamRecorder.FLAG_CLING) != 0
+	var sliding: bool = (flags & KillCamRecorder.FLAG_SLIDE) != 0
+	if sliding and not _remote_sliding:
+		_slide_direction = signf(velocity.x) if absf(velocity.x) > 1.0 else last_dir
+	_remote_sliding = sliding
+	_slamming = (flags & KillCamRecorder.FLAG_SLAM) != 0
+	_dash_timer = 0.05 if (flags & KillCamRecorder.FLAG_DASH) != 0 else 0.0
+	_block_active = (flags & KillCamRecorder.FLAG_BLOCK) != 0
+	time_scale = float(pose["scale"])
+	if snap:
+		rotation = 0.0
+		_initialize_feet()
+		_was_visual_grounded = false
+		_body_punch_scale = Vector2.ONE
+		_hit_flash_timer = 0.0
+
+
+## Kill cam puppet only: a recorded hit lands again (flash, squash, the hurt face, the burst; no damage,
+## decals or numbers).
+func replay_hit(source_position: Vector2, damage: int) -> void:
+	var heavy: bool = damage >= 40
+	_hit_flash_timer = GameSettings.PLAYER_HIT_FLASH_TIME
+	_body_punch_scale = Vector2(1.24, 0.78) if heavy else Vector2(1.18, 0.84)
+	if _face != null:
+		_face.set_expression(PlayerFace.Mood.HURT, 0.38)
+	var away: Vector2 = global_position - source_position
+	if away.length_squared() <= GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED:
+		away = Vector2(-last_dir, -0.25)
+	GameJuice.spawn_burst(&"hit_heavy" if heavy else &"hit", global_position, away.normalized(), get_visual_tint())
+
+
+## Kill cam puppet only: the recorded knockout plays again (the burst and screen kick, no decals).
+func replay_death() -> void:
+	var tint: Color = get_visual_tint()
+	GameJuice.spawn_burst(&"death", global_position, Vector2.UP, tint)
+	GameJuice.shockwave(global_position, 1.2, 0.6)
+	GameJuice.flash(Color(1.0, 0.97, 0.9, 1.0), 0.22, 0.2)
+	GameJuice.shake(GameSettings.PLAYER_DEATH_SHAKE_STRENGTH * 0.7, GameSettings.PLAYER_DEATH_SHAKE_TIME)
+
+
 ## Down pressed in the air (rising or falling) with the research: the jump and fall states hand over to the
 ## slam. Not under water, and not while stunned.
 func can_slam() -> bool:
@@ -1481,6 +1547,7 @@ func is_healing_blocked() -> bool:
 func receive_hit_knockback(knockback: Vector2) -> void:
 	if knockback.length_squared() <= GameSettings.PLAYER_MIN_VECTOR_LENGTH_SQUARED or is_dash_protected():
 		return
+	KillLog.note_shove(self, 0, &"impact")
 	receive_knockback(knockback, global_position - knockback.normalized() * 32.0, 0.0)
 
 
@@ -1533,6 +1600,7 @@ func _play_dash_feedback(direction: float, protected: bool) -> void:
 
 
 func play_dash_shockwave_feedback(origin: Vector2, direction: float, slam: bool = false) -> void:
+	KillLog.note_event(&"shockwave", origin, {"direction": direction, "slam": slam, "slot": player_slot})
 	if slam:
 		# The slam's ring spreads both ways along the floor, wider than the dash's.
 		var reach: float = float(ResearchManager.get_ground_slam_profile(player_slot).get("radius", 120.0)) / 120.0

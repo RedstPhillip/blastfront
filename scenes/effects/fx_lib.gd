@@ -138,7 +138,17 @@ static func _place_pooled(particles: CPUParticles2D, parent_2d: Node2D, params: 
 	particles.z_as_relative = false
 	particles.z_index = clampi(_absolute_z(parent_2d) + int(params.get("z", 0)), RenderingServer.CANVAS_ITEM_Z_MIN, RenderingServer.CANVAS_ITEM_Z_MAX)
 	particles.speed_scale = spawn_time_scale
+	particles.visible = true
 	particles.restart()
+
+
+## The kill cam's replay cuts in: every live pooled emitter goes out of sight (each shows again the next
+## time it is fired).
+static func hide_live_emitters() -> void:
+	if not is_instance_valid(_pool_host):
+		return
+	for child in _pool_host.get_children():
+		(child as CanvasItem).visible = false
 
 
 ## The pool lives directly under the viewport that shows the effects, so it survives scene changes.

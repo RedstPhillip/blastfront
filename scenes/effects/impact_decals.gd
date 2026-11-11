@@ -16,6 +16,7 @@ const WORLD_MASK: int = 1
 const MAX_DECALS_PER_HOST: int = 28
 const MAX_DECALS_TOTAL: int = 140
 const META_DECALS: StringName = &"impact_decals"
+const META_BORN: StringName = &"impact_decal_born"
 
 static var _all_decals: Array[Node2D] = []
 
@@ -54,6 +55,14 @@ static func splatter_around(world_position: Vector2, color: Color, count: int, r
 		add_splat(hit["position"], color, randf_range(34.0, 64.0))
 
 
+## The kill cam's replay shows the fight from before these marks were made: decals made since since_msec
+## hide while it plays, and show again with hidden = false.
+static func set_hidden_since(since_msec: int, hidden: bool) -> void:
+	for decal in _all_decals:
+		if decal != null and is_instance_valid(decal) and int(decal.get_meta(META_BORN, 0)) >= since_msec:
+			decal.visible = not hidden
+
+
 static func clear_all() -> void:
 	for decal in _all_decals:
 		if decal != null and is_instance_valid(decal):
@@ -66,6 +75,7 @@ static func _attach(host: Polygon2D, texture: Texture2D, color: Color, size: flo
 	if decal == null:
 		return
 	decal.modulate = color
+	decal.set_meta(META_BORN, Time.get_ticks_msec())
 	host.add_child(decal)
 	var host_decals: Array = host.get_meta(META_DECALS, [])
 	host_decals.append(decal)

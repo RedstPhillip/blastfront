@@ -212,6 +212,7 @@ func _try_apply_border_hit(player: Player, side: StringName) -> void:
 		return
 	_last_hit_time[player] = now
 	_play_border_hit_feedback(player, side)
+	KillLog.note_damage(player, &"border")
 
 	if not NetworkSession.is_steam_match_active() or player.control_mode == GameSettings.CONTROL_LOCAL:
 		player.velocity = _get_knockback_vector(side)
