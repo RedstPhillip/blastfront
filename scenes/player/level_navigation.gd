@@ -122,11 +122,15 @@ func nearest_point(world_feet: Vector2, max_distance: float = 140.0) -> int:
 
 ## A path for a bot that can climb walls up to `climb_reach` px (see wall_climb_reach); climbs higher than
 ## that are never part of it.
-func find_path(from_id: int, to_id: int, climb_reach: float = 0.0) -> PackedInt64Array:
+## avoid: edge keys (see edge_key) the asking bot failed recently; they cost AVOID_PENALTY times more, so
+## the path goes round them when there is another way and still uses them when there is none.
+func find_path(from_id: int, to_id: int, climb_reach: float = 0.0, avoid: Dictionary = {}) -> PackedInt64Array:
 	if from_id < 0 or to_id < 0:
 		return PackedInt64Array()
 	_astar.climb_reach = climb_reach
+	_astar.avoid = avoid
 	var path: PackedInt64Array = _astar.get_id_path(from_id, to_id)
+	_astar.avoid = {}
 	for index in range(path.size() - 1):
 		if float(_astar.climb_heights.get(_edge_key(int(path[index]), int(path[index + 1])), 0.0)) > climb_reach:
 			return PackedInt64Array()
@@ -397,6 +401,10 @@ func _edge_key(from_id: int, to_id: int) -> int:
 	return from_id * 100000 + to_id
 
 
+static func edge_key(from_id: int, to_id: int) -> int:
+	return from_id * 100000 + to_id
+
+
 func _ray(from: Vector2, to: Vector2) -> Dictionary:
 	if _space == null:
 		return {}
@@ -409,16 +417,22 @@ func _ray(from: Vector2, to: Vector2) -> Dictionary:
 class NavAStar:
 	extends AStar2D
 
+	const AVOID_PENALTY: float = 40.0
+
 	var edge_weights: Dictionary = {}
 	## Height of every climb edge, and how high the bot asking for a path can climb.
 	var climb_heights: Dictionary = {}
 	var climb_reach: float = 0.0
+	## Edges the asking bot failed lately (see LevelNavigation.find_path).
+	var avoid: Dictionary = {}
 
 	func _compute_cost(from_id: int, to_id: int) -> float:
 		var key: int = from_id * 100000 + to_id
 		if float(climb_heights.get(key, 0.0)) > climb_reach:
 			return 1.0e9
 		var weight: float = float(edge_weights.get(key, 1.0))
+		if avoid.has(key):
+			weight *= AVOID_PENALTY
 		return get_point_position(from_id).distance_to(get_point_position(to_id)) * weight
 
 	func _estimate_cost(from_id: int, to_id: int) -> float:

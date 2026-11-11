@@ -1082,6 +1082,35 @@ func _build_script() -> void:
 				_stress_game().spawn_projectile(shot, _p1().global_position + Vector2(140.0, -80.0)))
 			_at(6.6, "shot", "fire_patch")
 			_at(6.8, "quit")
+		"bot_loops":
+			# Two bots (BF_BOT_LEVEL, default hard) on BF_WORLD for BF_SECONDS (default 120): a detector flags a
+			# bot that keeps moving without getting anywhere (a small box, many turns or jumps) for 6 s and prints
+			# what its brain was doing (LOOP lines), plus a summary (LOOPS lines) at the end.
+			_at(0.2, "call", func(): root.get_node("UserSettings").set_value(&"gameplay_hitstop", false))
+			_at(0.3, "call", func():
+				root.get_node("UserSettings").set_value(&"progress_bot_world", OS.get_environment("BF_WORLD") if OS.has_environment("BF_WORLD") else "verdant")
+				root.get_node("NetworkSession").start_bot_duel()
+				_main.start_game())
+			_at(0.8, "call", func():
+				var level: int = int(OS.get_environment("BF_BOT_LEVEL")) if OS.has_environment("BF_BOT_LEVEL") else 2
+				_stress_game().get_player_by_slot(1).configure_ai_control(1, level)
+				_stress_game().get_player_by_slot(2).configure_ai_control(2, level)
+				_hooks.append(_watch_loops))
+			var seconds: float = float(OS.get_environment("BF_SECONDS")) if OS.has_environment("BF_SECONDS") else 120.0
+			if OS.has_environment("BF_TRACE_AT"):
+				var trace_at: float = float(OS.get_environment("BF_TRACE_AT"))
+				var trace_slot: int = int(OS.get_environment("BF_TRACE_SLOT")) if OS.has_environment("BF_TRACE_SLOT") else 1
+				for k in range(30):
+					_at(trace_at + float(k) * 0.1, "call", func():
+						var p = _stress_game().get_player_by_slot(trace_slot)
+						var b = p.ai_brain
+						var moves: PackedStringArray = PackedStringArray()
+						for idx in range(b._path.size() - 1):
+							moves.append("%d>%d:%d" % [b._path[idx], b._path[idx + 1], int(b._nav.get_move(int(b._path[idx]), int(b._path[idx + 1]))["move"])])
+						var cur: Vector2 = b._nav.points[int(b._path[b._path_index])] if b._path_index < b._path.size() else Vector2.INF
+						print("TRACE t=%.1f pos=%s v=%s st=%s dir=%.1f jump=%s path=%s idx=%d cur=%s goal=%d air=%d>%d air_x=%.0f stuck=%.2f events=%d" % [_time, p.global_position.round(), p.velocity.round(), p._state_machine.current_state.name, b.move_direction, b.jump_held, ",".join(moves), b._path_index, cur, b._goal_point, b._air_move_from, b._air_move_to, b._air_target_x, b._stuck_timer, b._stuck_events.size()]))
+			_at(seconds, "call", func(): _report_loops())
+			_at(seconds + 0.2, "quit")
 		"slide_probe":
 			# Sliding on a private rig (arena terrain removed): floor top 640, a low tunnel at x 700-900 (its
 			# ceiling 30 px above the floor: too low to stand, high enough to slide) and a dead-end pocket at
@@ -3320,3 +3349,100 @@ func _inspect_part(id: String, mark: int) -> void:
 			item.mark = mark
 	_lo_mouse_to(Vector2(4.0, 4.0))
 	_lo_mouse_to_tile(id, Vector2.ZERO)
+
+
+# --- Bot loop detector ------------------------------------------------------------------------------------
+
+var _loop_samples: Dictionary = {}
+var _loop_flags: Array = []
+var _loop_next_sample: float = 0.0
+var _loop_last_flag: Dictionary = {}
+var _loop_traced: Dictionary = {}
+var _loop_slams: Dictionary = {}
+var _loop_last_state: Dictionary = {}
+var _loop_trace_slot: int = 0
+var _loop_trace_until: float = 0.0
+
+
+## Every 0.2 s per bot: where it is, which way it pushes, whether it is pressing jump, its goal and path.
+func _watch_loops() -> void:
+	if _time < _loop_next_sample or _stress_game() == null:
+		return
+	_loop_next_sample = _time + 0.2
+	for slot in [1, 2]:
+		var p = _stress_game().get_player_by_slot(slot)
+		if p == null or p.ai_brain == null:
+			continue
+		var b = p.ai_brain
+		if p.is_eliminated() or not p.movement_enabled:
+			_loop_samples[slot] = []
+			continue
+		var state_now: String = str(p._state_machine.current_state.name)
+		if state_now == "SlamState" and str(_loop_last_state.get(slot, "")) != "SlamState":
+			_loop_slams[slot] = int(_loop_slams.get(slot, 0)) + 1
+		_loop_last_state[slot] = state_now
+		var list: Array = _loop_samples.get(slot, [])
+		list.append({"t": _time, "pos": p.global_position, "dir": signf(b.move_direction), "jump": b.jump_held,
+			"goal": b._goal_point, "path": b._path.size(), "index": b._path_index, "state": str(p._state_machine.current_state.name),
+			"target_dx": (b._target.global_position.x - p.global_position.x) if b._target != null else 0.0, "climb": b._climb_direction})
+		while not list.is_empty() and _time - float(list[0]["t"]) > 6.0:
+			list.pop_front()
+		_loop_samples[slot] = list
+		if list.size() < 28:
+			continue
+		var box: Rect2 = Rect2(list[0]["pos"], Vector2.ZERO)
+		var turns: int = 0
+		var jumps: int = 0
+		var goals: Dictionary = {}
+		var travelled: float = 0.0
+		var last_dir: float = 0.0
+		var last_jump: bool = false
+		var states: Dictionary = {}
+		for i in range(list.size()):
+			var sample: Dictionary = list[i]
+			box = box.expand(sample["pos"])
+			if i > 0:
+				travelled += (sample["pos"] as Vector2).distance_to(list[i - 1]["pos"])
+			var d: float = float(sample["dir"])
+			if d != 0.0 and last_dir != 0.0 and d != last_dir:
+				turns += 1
+			if d != 0.0:
+				last_dir = d
+			if bool(sample["jump"]) and not last_jump:
+				jumps += 1
+			last_jump = bool(sample["jump"])
+			goals[sample["goal"]] = true
+			states[sample["state"]] = int(states.get(sample["state"], 0)) + 1
+		var small: bool = box.size.x < 220.0 and box.size.y < 160.0
+		if small and travelled > 500.0 and (turns >= 6 or jumps >= 5):
+			if _time - float(_loop_last_flag.get(slot, -100.0)) < 6.0:
+				continue
+			_loop_last_flag[slot] = _time
+			var last: Dictionary = list[-1]
+			var flag: String = "LOOP t=%.1f P%d box=%s travelled=%.0f turns=%d jumps=%d goals=%s path=%d/%d states=%s target_dx=%.0f climb=%.0f world=%s" % [
+				_time, slot, str(box.position.round()) + "+" + str(box.size.round()), travelled, turns, jumps, str(goals.keys()),
+				int(last["index"]), int(last["path"]), str(states), float(last["target_dx"]), float(last["climb"]), str(root.get_node("UserSettings").get_value(&"progress_bot_world"))]
+			print(flag)
+			_loop_flags.append(flag)
+			if absf(float(last["target_dx"])) > 400.0 and not _loop_traced.has(slot):
+				_loop_traced[slot] = true
+				_loop_trace_slot = slot
+				_loop_trace_until = _time + 2.0
+	if _loop_trace_slot > 0 and _time < _loop_trace_until:
+		var p = _stress_game().get_player_by_slot(_loop_trace_slot)
+		var b = p.ai_brain
+		var moves: PackedStringArray = PackedStringArray()
+		for idx in range(b._path.size() - 1):
+			moves.append("%d>%d:%d" % [b._path[idx], b._path[idx + 1], int(b._nav.get_move(int(b._path[idx]), int(b._path[idx + 1]))["move"])])
+		var cur: Vector2 = b._nav.points[int(b._path[b._path_index])] if b._path_index < b._path.size() else Vector2.INF
+		var next_move: String = "-"
+		if b._path_index > 0 and b._path_index < b._path.size():
+			next_move = "%d>%d:%d" % [b._path[b._path_index - 1], b._path[b._path_index], int(b._nav.get_move(int(b._path[b._path_index - 1]), int(b._path[b._path_index]))["move"])]
+		print("LTRACE t=%.1f P%d pos=%s v=%s st=%s dir=%.1f jump=%s idx=%d/%d last_move=%s cur=%s goal=%d air=%d>%d airborne=%s stuck=%.2f events=%d avoid=%d fidget=%.0f" % [_time, _loop_trace_slot, p.global_position.round(), p.velocity.round(), p._state_machine.current_state.name, b.move_direction, b.jump_held, b._path_index, b._path.size(), next_move, cur.round() if cur != Vector2.INF else cur, b._goal_point, b._air_move_from, b._air_move_to, b._air_move_airborne, b._stuck_timer, b._stuck_events.size(), b._avoid_edges.size(), b._fidget_x])
+
+
+func _report_loops() -> void:
+	print("LOOPS total=%d over %.0f s" % [_loop_flags.size(), _time])
+	for slot in [1, 2]:
+		var p = _stress_game().get_player_by_slot(slot)
+		print("MOVES P%d air_jumps=%d slams=%d" % [slot, p._air_jump_count, int(_loop_slams.get(slot, 0))])

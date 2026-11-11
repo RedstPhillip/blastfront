@@ -197,6 +197,8 @@ func _draw() -> void:
 		var x: float = -half + u * width
 		var flicker: float = 0.6 + 0.4 * sin(t * (9.0 + float(i % 3)) + float(i) * 1.7)
 		var height: float = (10.0 + 9.0 * flicker) * (1.0 - absf(u - 0.5) * 0.9) * fade
+		if height < 1.0:
+			continue
 		var sway: float = sin(t * 4.0 + float(i)) * 2.2
 		var base_w: float = width / float(count) * 0.75 + 2.0
 		draw_colored_polygon(PackedVector2Array([Vector2(x - base_w, -3.0), Vector2(x + sway, -3.0 - height), Vector2(x + base_w, -3.0)]),

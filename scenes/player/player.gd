@@ -1238,6 +1238,11 @@ func _play_air_jump_feedback() -> void:
 
 # --- Ground Slam (Movement research) -----------------------------------------------------------------
 
+## Air jumps left before the next floor or wall (bots weigh rescuing a short jump with one).
+func get_air_jumps_left() -> int:
+	return maxi(ResearchManager.get_air_jump_limit(player_slot) - _air_jumps_used, 0)
+
+
 func is_slamming() -> bool:
 	return _slamming
 

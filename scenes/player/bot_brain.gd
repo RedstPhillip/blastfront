@@ -5,6 +5,11 @@ extends Node
 ## movement axis, jump press/hold, shoot press, block press, dash and slide presses and an aim position.
 ## Movement follows a LevelNavigation graph; firing positions are scored with real ballistic
 ## line-of-fire checks (including high lobs over cover), amortised across physics frames.
+##
+## To keep it from repeating itself: a jump that lands short is remembered and the path goes round it for a
+## while (an Air Jump rescues it when the bot has one); getting stuck at the same spot again and again
+## drops that goal; a new goal is kept for a moment before the bot will turn for another; and at its goal
+## it shifts its footing now and then instead of standing like a turret.
 
 enum Difficulty { DUMMY = -1, EASY = 0, NORMAL = 1, HARD = 2 }
 
@@ -16,16 +21,19 @@ const PROFILES: Dictionary = {
 		"aim_error": 7.5, "reaction": 0.45, "fire_delay": 0.6, "block_chance": 0.18, "block_reaction": 0.3,
 		"lead": 0.35, "preferred_distance": 0.85, "dodge_chance": 0.12, "turn_rate": 4.0, "pressure": 0.35,
 		"use_lobs": false, "capture_drive": 2.2, "dash_dodge": 0.15, "dash_drive": 0.18, "slide_dodge": 0.1,
+		"slam_drive": 0.0, "fidget": 0.25,
 	},
 	Difficulty.NORMAL: {
 		"aim_error": 3.2, "reaction": 0.27, "fire_delay": 0.25, "block_chance": 0.48, "block_reaction": 0.17,
 		"lead": 0.75, "preferred_distance": 0.7, "dodge_chance": 0.28, "turn_rate": 7.5, "pressure": 0.6,
 		"use_lobs": true, "capture_drive": 3.6, "dash_dodge": 0.35, "dash_drive": 0.4, "slide_dodge": 0.25,
+		"slam_drive": 0.35, "fidget": 0.4,
 	},
 	Difficulty.HARD: {
 		"aim_error": 1.3, "reaction": 0.15, "fire_delay": 0.07, "block_chance": 0.78, "block_reaction": 0.09,
 		"lead": 1.0, "preferred_distance": 0.58, "dodge_chance": 0.42, "turn_rate": 13.0, "pressure": 0.85,
 		"use_lobs": true, "capture_drive": 4.6, "dash_dodge": 0.6, "dash_drive": 0.65, "slide_dodge": 0.4,
+		"slam_drive": 0.6, "fidget": 0.55,
 	},
 }
 
@@ -79,6 +87,36 @@ const SLIDE_MARKS: Dictionary = {
 	Difficulty.NORMAL: 1,
 	Difficulty.HARD: 3,
 }
+const AIR_JUMP_MARKS: Dictionary = {
+	Difficulty.EASY: 0,
+	Difficulty.NORMAL: 1,
+	Difficulty.HARD: 3,
+}
+const GROUND_SLAM_MARKS: Dictionary = {
+	Difficulty.EASY: 0,
+	Difficulty.NORMAL: 2,
+	Difficulty.HARD: 3,
+}
+## A move counts as failed when the bot lands this far above or below its target point (on another surface)
+## or this far to the side;
+## failed moves are avoided for FAILED_MOVE_MSEC.
+const FAILED_MOVE_DROP: float = 28.0
+const FAILED_MOVE_SIDE: float = 90.0
+const FAILED_MOVE_MSEC: int = 12000
+## Stuck this many times within STUCK_MEMORY_MSEC inside STUCK_RADIUS px: the goal is given up for a while.
+const STUCK_LIMIT: int = 3
+const STUCK_MEMORY_MSEC: int = 6000
+const STUCK_RADIUS: float = 70.0
+const BAD_GOAL_MSEC: int = 9000
+## A freshly chosen goal is kept at least this long (s) unless it floods or goes bad; a better one has to
+## beat the current one's score by GOAL_SWITCH_MARGIN once the commitment is over.
+const GOAL_COMMIT_MIN: float = 1.1
+const GOAL_COMMIT_MAX: float = 2.3
+const GOAL_SWITCH_MARGIN: float = 0.35
+const SLAM_THINK_INTERVAL: float = 0.25
+## Shortest and longest wait (s) after a slam before the bot weighs another.
+const SLAM_COOLDOWN_MIN: float = 3.0
+const SLAM_COOLDOWN_MAX: float = 6.0
 ## Health share below which a bot reaches for Time Control, how often it weighs casting, and the chance per
 ## look by difficulty (a human gets a moment to read the situation first).
 const TIME_CONTROL_LOW_HEALTH: float = 0.4
@@ -171,6 +209,26 @@ var _skip_passed_points: bool = false
 var _climb_direction: float = 0.0
 var _climb_top_y: float = 0.0
 var _climbs_blocked_until: int = 0
+## The jump / drop / climb in the air right now (nav point ids, -1 when none), whether the bot has left the
+## ground since taking off (only then does touching it count as the landing) and whether an Air Jump already
+## went into it.
+var _air_move_from: int = -1
+var _air_move_to: int = -1
+var _air_move_kind: int = -1
+var _air_move_airborne: bool = false
+var _air_rescued: bool = false
+## Edge key -> msec until which the path avoids that failed move.
+var _avoid_edges: Dictionary = {}
+## Recent stuck spots: [{"msec", "pos"}].
+var _stuck_events: Array[Dictionary] = []
+var _goal_commit_timer: float = 0.0
+var _goal_score: float = -INF
+var _slam_think_timer: float = 0.0
+var _slam_cooldown: float = 0.0
+var _fidget_timer: float = 2.0
+var _fidget_x: float = INF
+## Replanning after being knocked off the path waits this long between tries (s).
+var _off_path_cooldown: float = 0.0
 
 
 ## Research marks a bot of this difficulty fights with.
@@ -185,6 +243,10 @@ static func research_marks(bot_difficulty: int) -> Dictionary:
 		marks[str(ResearchManager.SLIDING)] = int(SLIDE_MARKS[bot_difficulty])
 	if int(TIME_CONTROL_MARKS.get(bot_difficulty, 0)) > 0:
 		marks[str(ResearchManager.TIME_CONTROL)] = int(TIME_CONTROL_MARKS[bot_difficulty])
+	if int(AIR_JUMP_MARKS.get(bot_difficulty, 0)) > 0:
+		marks[str(ResearchManager.AIR_JUMP)] = int(AIR_JUMP_MARKS[bot_difficulty])
+	if int(GROUND_SLAM_MARKS.get(bot_difficulty, 0)) > 0:
+		marks[str(ResearchManager.GROUND_SLAM)] = int(GROUND_SLAM_MARKS[bot_difficulty])
 	return marks
 
 
@@ -257,6 +319,7 @@ func _physics_process(delta: float) -> void:
 		return
 	_update_threats(delta)
 	_update_movement(delta)
+	_update_slam(delta)
 	_update_slide(delta)
 	_update_dash(delta)
 	_update_aim_and_fire(delta)
@@ -284,6 +347,8 @@ func _update_movement(delta: float) -> void:
 
 	_replan_timer -= delta
 	_search_cooldown -= delta
+	_goal_commit_timer = maxf(_goal_commit_timer - delta, 0.0)
+	_off_path_cooldown = maxf(_off_path_cooldown - delta, 0.0)
 	if _replan_timer <= 0.0 and _search_queue.is_empty() and _search_cooldown <= 0.0:
 		_replan_timer = randf_range(0.7, 1.2)
 		_search_cooldown = MIN_SEARCH_INTERVAL
@@ -291,6 +356,7 @@ func _update_movement(delta: float) -> void:
 	_continue_goal_search(feet, grounded)
 	if grounded:
 		_air_target_x = INF
+		_check_landing(feet)
 		if _climb_direction != 0.0:
 			_climb_direction = 0.0
 			if feet.y > _climb_top_y + 20.0:
@@ -302,9 +368,16 @@ func _update_movement(delta: float) -> void:
 		_swim_leap = false
 		if _path_index >= _path.size() and _goal_point >= 0 and _nav.nearest_point(feet, 60.0) != _goal_point:
 			_plan_path(feet)
+		elif _off_path_cooldown <= 0.0 and _off_path(feet):
+			# Knocked or fallen off the path (its next point is on another level or far away): plan again from
+			# here instead of hopping under a point it cannot walk to.
+			_off_path_cooldown = 0.4
+			_plan_path(feet)
 
 	var direction: float = 0.0
 	if not grounded:
+		if _air_move_to >= 0:
+			_air_move_airborne = true
 		if _swim_leap and _player.velocity.y < -120.0:
 			move_direction = 0.0
 			return
@@ -322,10 +395,17 @@ func _update_movement(delta: float) -> void:
 				jump_pressed = true
 				jump_held = true
 				_jump_hold_timer = 0.3
-		if not _has_ground_below(me, 700.0) and (_air_target_x == INF or not _has_ground_below(Vector2(_air_target_x, me.y), 700.0)):
+		if not _has_footing_below(me, 700.0) and (_air_target_x == INF or not _has_footing_below(Vector2(_air_target_x, me.y), 700.0)):
 			direction = _nearest_safe_side(me)
+			# Falling into the void: an air jump buys the way back.
+			if _player.velocity.y > 60.0 and _player.get_air_jumps_left() > 0:
+				_force_jump(0.3)
 		if _player.is_on_wall() and _player.velocity.y > 0.0 and not _has_ground_below(me, 500.0):
 			_force_jump(0.3)
+		if _try_air_jump_rescue(feet):
+			# Let go of the stick for the jump itself: from Mk II an air jump turns to the held side at full
+			# run speed, which would carry it over the ledge instead of onto it.
+			direction = 0.0
 		move_direction = direction
 		return
 
@@ -351,6 +431,12 @@ func _update_movement(delta: float) -> void:
 				_path_index += 1
 				direction = signf(next.x - feet.x)
 				_air_speed_x = air_speed
+				if int(move["move"]) != LevelNavigation.Move.WALK:
+					_air_move_from = current_id
+					_air_move_to = next_id
+					_air_move_kind = int(move["move"])
+					_air_move_airborne = false
+					_air_rescued = false
 				match int(move["move"]):
 					LevelNavigation.Move.JUMP:
 						_force_jump(float(move["hold"]))
@@ -370,11 +456,16 @@ func _update_movement(delta: float) -> void:
 		direction = signf(me.x - _target.global_position.x)
 		if not _has_ground_below(me + Vector2(direction * (34.0 + _stopping_distance()), 0.0), SAFE_DROP_DEPTH):
 			direction = 0.0
+	else:
+		direction = _fidget(delta, me)
 
 	if direction != 0.0 and absf(_player.velocity.x) < 10.0:
 		_stuck_timer += delta
 		if _stuck_timer > 0.5:
 			_stuck_timer = 0.0
+			if _note_stuck(me):
+				move_direction = 0.0
+				return
 			_force_jump(0.3)
 			_replan_timer = 0.0
 	else:
@@ -405,6 +496,193 @@ func _stopping_distance() -> float:
 	if not _player.is_on_ice():
 		return 0.0
 	return _player.velocity.x * _player.velocity.x / (2.0 * maxf(_player.get_ground_friction(), 1.0))
+
+
+## Back on the ground after a jump, drop or climb: when it landed short of (or beside) the point it was
+## going for, that move is avoided for a while and the path is planned again from here.
+func _check_landing(feet: Vector2) -> void:
+	if _air_move_to < 0 or not _air_move_airborne:
+		return
+	var target: Vector2 = _nav.points[_air_move_to]
+	var failed: bool = absf(feet.y - target.y) > FAILED_MOVE_DROP or absf(feet.x - target.x) > FAILED_MOVE_SIDE
+	var from_id: int = _air_move_from
+	var to_id: int = _air_move_to
+	_air_move_from = -1
+	_air_move_to = -1
+	_air_move_kind = -1
+	if not failed:
+		return
+	_avoid_edges[LevelNavigation.edge_key(from_id, to_id)] = Time.get_ticks_msec() + FAILED_MOVE_MSEC
+	_climb_direction = 0.0
+	_plan_path(feet)
+	if _goal_point >= 0 and _path.is_empty():
+		_give_up_goal()
+
+
+## Standing somewhere the path's next point cannot be walked to from: a different height, or far to the
+## side of both it and the point before it. Only checked between moves (not mid-climb).
+func _off_path(feet: Vector2) -> bool:
+	if _path_index >= _path.size() or _climb_direction != 0.0:
+		return false
+	var current: Vector2 = _nav.points[int(_path[_path_index])]
+	if absf(feet.y - current.y) > 48.0:
+		var previous: Vector2 = _nav.points[int(_path[_path_index - 1])] if _path_index > 0 else current
+		# Right at a jump's or drop's take-off the next point is meant to be higher or lower.
+		return absf(feet.x - previous.x) > 24.0 or absf(feet.y - previous.y) > 48.0
+	if _path_index > 0 and absf(feet.x - current.x) > 140.0:
+		var before: Vector2 = _nav.points[int(_path[_path_index - 1])]
+		return absf(feet.x - before.x) > 140.0
+	return false
+
+
+## Index of the first path point whose move on is one the bot failed lately, or -1.
+func _first_avoided_move() -> int:
+	for index in range(_path.size() - 1):
+		if _avoid_edges.has(LevelNavigation.edge_key(int(_path[index]), int(_path[index + 1]))):
+			return index
+	return -1
+
+
+## Falling short of a jump to a ledge above: an Air Jump (once per jump) carries it the rest of the way.
+## True on the frame it jumps.
+func _try_air_jump_rescue(feet: Vector2) -> bool:
+	if _air_rescued or _air_move_to < 0 or _air_move_kind != LevelNavigation.Move.JUMP or _player.get_air_jumps_left() <= 0:
+		return false
+	var target: Vector2 = _nav.points[_air_move_to]
+	var takeoff: Vector2 = _nav.points[_air_move_from]
+	# Only a jump up to a ledge that is sinking below the ledge's top with the ledge's side in front of it
+	# (it would hit the wall, not land): a body just above the edge, coming down onto it, lands on its own.
+	var side: float = signf(target.x - takeoff.x)
+	# Up to ~24 px below the top the body still slides up onto the ledge by itself (hover, step-up).
+	if target.y > takeoff.y - 12.0 or _player.velocity.y < 30.0 or feet.y < target.y + 24.0 or (target.x - feet.x) * side < 16.0:
+		return false
+	var probe: Vector2 = Vector2(feet.x, feet.y - 6.0)
+	var wall: Dictionary = _ray(probe, Vector2(target.x, probe.y))
+	if wall.is_empty() or absf((wall["normal"] as Vector2).x) < 0.7:
+		return false
+	_air_rescued = true
+	_force_jump(0.3)
+	return true
+
+
+## A stuck spot (pushing without moving). True when it is the STUCK_LIMIT-th time near here lately: the goal
+## is given up and the move it was on avoided, instead of hopping at the same spot for ever.
+func _note_stuck(me: Vector2) -> bool:
+	var now: int = Time.get_ticks_msec()
+	var recent: Array[Dictionary] = []
+	for event in _stuck_events:
+		if now - int(event["msec"]) < STUCK_MEMORY_MSEC:
+			recent.append(event)
+	recent.append({"msec": now, "pos": me})
+	_stuck_events = recent
+	var near: int = 0
+	for event in recent:
+		if (event["pos"] as Vector2).distance_to(me) < STUCK_RADIUS:
+			near += 1
+	if near < STUCK_LIMIT:
+		return false
+	_stuck_events.clear()
+	if _path_index > 0 and _path_index < _path.size():
+		_avoid_edges[LevelNavigation.edge_key(int(_path[_path_index - 1]), int(_path[_path_index]))] = now + FAILED_MOVE_MSEC
+	_give_up_goal()
+	return true
+
+
+## The current goal goes on the bad list for a while and a fresh search starts.
+func _give_up_goal() -> void:
+	if _goal_point >= 0:
+		_bad_goals[_goal_point] = Time.get_ticks_msec() + BAD_GOAL_MSEC
+	_goal_commit_timer = 0.0
+	_goal_score = -INF
+	_path = PackedInt64Array()
+	_path_index = 0
+	_replan_timer = 0.0
+	_search_cooldown = 0.0
+
+
+func _goal_gone_bad(goal: int) -> bool:
+	if int(_bad_goals.get(goal, 0)) > Time.get_ticks_msec():
+		return true
+	return LevelNavigation.is_flooded(_nav.points[goal].y, WorldConditions.water_forecast)
+
+
+## Failed moves still to be avoided (expired ones dropped).
+func _active_avoid() -> Dictionary:
+	var now: int = Time.get_ticks_msec()
+	for key in _avoid_edges.keys():
+		if int(_avoid_edges[key]) <= now:
+			_avoid_edges.erase(key)
+	return _avoid_edges
+
+
+## At its goal the bot does not stand still like a turret: now and then it shifts its footing a step or two
+## (on safe floor, away from walls), sidesteps with a dash or hops, at an uneven rhythm. 0 when it holds
+## still.
+func _fidget(delta: float, me: Vector2) -> float:
+	if _target == null or not _player.is_grounded() or _player.is_on_ice():
+		_fidget_x = INF
+		return 0.0
+	if _fidget_x != INF:
+		if absf(_fidget_x - me.x) < 8.0:
+			_fidget_x = INF
+			return 0.0
+		var side: float = signf(_fidget_x - me.x)
+		# A step stays on this floor: never off its edge, never into a wall.
+		if _wall_ahead(side) or not _has_ground_below(me + Vector2(side * 24.0, 0.0), _player.hover_dist + 22.0):
+			_fidget_x = INF
+			return 0.0
+		return side * 0.6
+	_fidget_timer -= delta
+	if _fidget_timer > 0.0:
+		return 0.0
+	_fidget_timer = randf_range(1.4, 3.6)
+	if randf() >= float(_profile.get("fidget", 0.3)):
+		return 0.0
+	if randf() < 0.2:
+		_request_jump(0.12)
+		return 0.0
+	var step: float = randf_range(26.0, 70.0) * (1.0 if randf() < 0.5 else -1.0)
+	# Lean towards the preferred range rather than wandering off it.
+	var preferred: float = _weapon_range() * float(_profile["preferred_distance"])
+	var distance: float = absf(_target.global_position.x - me.x)
+	if absf(distance - preferred) > 60.0:
+		step = absf(step) * signf(me.x - _target.global_position.x) * (1.0 if distance < preferred else -1.0)
+	# Now and then the shift is a quick sidestep dash instead of a walk (the dash's own safety check).
+	if _player.can_dash() and randf() < float(_profile.get("dash_drive", 0.0)) * 0.6 and _dash_is_safe(signf(step)):
+		_press_dash(signf(step))
+		return signf(step)
+	if _dash_is_safe(signf(step), absf(step)):
+		_fidget_x = me.x + step
+	return 0.0
+
+
+# --- Ground Slam -----------------------------------------------------------------------
+
+## In the air above a target standing on the floor below (in the slam's throw), the bot slams down on it
+## now and then: never mid-way up a jump to a ledge, never over the void.
+func _update_slam(delta: float) -> void:
+	_slam_cooldown = maxf(_slam_cooldown - delta, 0.0)
+	_slam_think_timer -= delta
+	if _slam_think_timer > 0.0 or _slam_cooldown > 0.0:
+		return
+	_slam_think_timer = SLAM_THINK_INTERVAL
+	if _target == null or _player.is_grounded() or not _player.can_slam():
+		return
+	var radius: float = float(ResearchManager.get_ground_slam_profile(_player.player_slot).get("radius", 0.0))
+	if radius <= 0.0 or randf() >= float(_profile.get("slam_drive", 0.0)):
+		return
+	var me: Vector2 = _player.global_position
+	var offset: Vector2 = _target.global_position - me
+	if offset.y < 70.0 or absf(offset.x) > radius * 0.7 or not _target.is_grounded():
+		return
+	if _air_move_to >= 0 and _air_move_kind != LevelNavigation.Move.DROP and _nav.points[_air_move_to].y < me.y + _player.hover_dist:
+		return
+	# It has to come down on the target's own floor, not on a ledge in between or past it.
+	var landing: Dictionary = _ray(me, me + Vector2(0.0, offset.y + 120.0))
+	if landing.is_empty() or absf((landing["position"] as Vector2).y - (_target.global_position.y + _target.hover_dist)) > 40.0:
+		return
+	slide_pressed = true
+	_slam_cooldown = randf_range(SLAM_COOLDOWN_MIN, SLAM_COOLDOWN_MAX)
 
 
 ## In the water: swim for the nearest ledge a leap reaches and leap out once it is close. Bots never
@@ -491,7 +769,15 @@ func _plan_path(feet: Vector2) -> void:
 	var start_id: int = _nav.nearest_point(feet, 90.0)
 	if start_id < 0 or _goal_point < 0:
 		return
-	_path = _nav.find_path(start_id, _goal_point, _climb_reach())
+	_path = _nav.find_path(start_id, _goal_point, _climb_reach(), _active_avoid())
+	# The only way there is a move it just failed: go as far as the take-off of that move and fight from
+	# there (the goal beyond is left alone for a while) instead of failing it again or standing still.
+	var cut: int = _first_avoided_move()
+	if cut >= 0:
+		_bad_goals[_goal_point] = Time.get_ticks_msec() + BAD_GOAL_MSEC
+		_path = _path.slice(0, cut + 1)
+		_goal_point = int(_path[_path.size() - 1])
+		_goal_commit_timer = randf_range(GOAL_COMMIT_MIN, GOAL_COMMIT_MAX)
 
 
 ## How high this bot can climb a wall with its Wall Jumps marks (0 while climbing is paused after a fail).
@@ -547,12 +833,23 @@ func _continue_goal_search(feet: Vector2, grounded: bool) -> void:
 			break
 		var candidate: int = _search_queue.pop_back()
 		var score: float = cheap + _shot_bonus(candidate)
+		if candidate == _goal_point:
+			_goal_score = score
 		if score > _search_best_score:
 			_search_best_score = score
 			_search_best = candidate
 	if _search_queue.is_empty() and _search_best >= 0:
 		var changed: bool = _search_best != _goal_point
+		if changed and _goal_point >= 0 and not _goal_gone_bad(_goal_point):
+			# Keep a fresh goal for a moment, and only turn for a clearly better one: chasing every small
+			# change in the scores is what made bots dither back and forth.
+			if _goal_commit_timer > 0.0 or _search_best_score < _goal_score + GOAL_SWITCH_MARGIN:
+				return
+		_goal_score = _search_best_score
 		_goal_point = _search_best
+		if changed:
+			_goal_commit_timer = randf_range(GOAL_COMMIT_MIN, GOAL_COMMIT_MAX)
+			_fidget_x = INF
 		if changed and grounded:
 			_plan_path(feet)
 
@@ -668,6 +965,11 @@ func _nearest_safe_side(from: Vector2) -> float:
 
 func _has_ground_below(from: Vector2, depth: float) -> bool:
 	return not _ray(from, from + Vector2(0.0, depth)).is_empty()
+
+
+## Ground, or water to swim out of (Tidewater), within depth below: falling there is no loss.
+func _has_footing_below(from: Vector2, depth: float) -> bool:
+	return _has_ground_below(from, depth) or WorldConditions.water_level < from.y + depth
 
 
 func _wall_ahead(direction: float) -> bool:
@@ -787,7 +1089,9 @@ func _update_dash(delta: float) -> void:
 	if direction == 0.0 or _walk_ahead(direction) < DASH_REACH:
 		return
 	var closing: bool = _target == null or absf(_target.global_position.x - me.x) > _weapon_range() * float(_profile["preferred_distance"]) + 120.0
-	if (closing or not _search_capture.is_empty()) and _dash_is_safe(direction):
+	# Moving to a new firing spot along a long straight floor is worth a dash too, not only closing in.
+	var relocating: bool = _walk_ahead(direction) >= DASH_REACH + 60.0
+	if (closing or relocating or not _search_capture.is_empty()) and _dash_is_safe(direction):
 		_press_dash(direction)
 		_skip_passed_points = true
 
@@ -1093,6 +1397,10 @@ func _update_threats(delta: float) -> void:
 				_pending_block_time = maxf(impact_time - _player.block_duration * 0.5, reaction)
 		elif randf() < float(_profile["dodge_chance"]) and _player.is_grounded():
 			_request_jump(0.25)
+		elif randf() < float(_profile["dodge_chance"]) * 0.4 and not _player.is_grounded() and _player.velocity.y > -50.0 				and _player.get_air_jumps_left() > 0 and _air_move_to < 0:
+			# Already in the air and coming down: now and then an air jump lifts it over the round (not every
+			# time, or it would hardly touch the ground, where it dashes and slides).
+			_force_jump(0.2)
 	if _evaluated_threats.size() > 64:
 		_evaluated_threats.clear()
 

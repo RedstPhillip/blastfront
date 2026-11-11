@@ -102,7 +102,11 @@ Pillow (`ImageChops.difference`) when a change should be pixel-identical.
   banner), `time_bot` (a low Hard bot casts once it sees you; a slowed bot backs off), `time_online` (host and
   client paths without Steam: casts, spoofing, kill banner, late packets, snapshot corrections, frozen rounds). regress.sh only greps
   for script errors, so read the PASS/FAIL lines of these yourself.
-- **Bots:** `bot_watch` (two hard bots, state log every 1.5 s, `BF_WORLD`), `bot_spawn_look` (screenshots of
+- **Bots:** `bot_loops` (two bots of `BF_BOT_LEVEL` on `BF_WORLD` for `BF_SECONDS`: a detector flags a bot that
+  keeps moving inside a small box for 6 s (many turns or jumps) and prints `LOOP` lines with its goal, path and
+  states, a short `LTRACE` of the first loop with the target far away, and `MOVES` counts of air jumps and slams;
+  a "far" loop, with the target over 400 px away, is the real kind; near ones are mostly close-range footwork),
+  `bot_watch` (two hard bots, state log every 1.5 s, `BF_WORLD`), `bot_spawn_look` (screenshots of
   the left spawn, where a navigation bug once kept a bot hopping)
 - **Economy / loadout interaction:** `sell_test`, `sell_equipped`, `botshop`, `shoptour`, `lo_interact`, `loadout_inter`
 - **Long stress:** `stress` (AI vs AI, random loadouts every 6 s, `BF_STRESS_SECONDS`, `BF_WORLD`),
