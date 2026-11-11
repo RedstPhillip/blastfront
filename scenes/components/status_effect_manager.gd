@@ -85,6 +85,17 @@ func _apply_freeze_root(player: Player, params: Dictionary) -> void:
 	effect_added.emit(&"frozen")
 
 
+## Sniper Barrel MK III: whether source_slot has marked this player.
+func has_mark_from(source_slot: int) -> bool:
+	var instances: Variant = _active_effects.get(&"marked")
+	if not (instances is Array):
+		return false
+	for instance in (instances as Array):
+		if int((instance as Dictionary).get("source_slot", 0)) == source_slot:
+			return true
+	return false
+
+
 ## Sniper Barrel MK III: spends a mark source_slot left on this player. True when there was one.
 func take_mark(source_slot: int) -> bool:
 	var instances: Variant = _active_effects.get(&"marked")

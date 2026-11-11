@@ -1108,9 +1108,51 @@ func _build_script() -> void:
 						for idx in range(b._path.size() - 1):
 							moves.append("%d>%d:%d" % [b._path[idx], b._path[idx + 1], int(b._nav.get_move(int(b._path[idx]), int(b._path[idx + 1]))["move"])])
 						var cur: Vector2 = b._nav.points[int(b._path[b._path_index])] if b._path_index < b._path.size() else Vector2.INF
-						print("TRACE t=%.1f pos=%s v=%s st=%s dir=%.1f jump=%s path=%s idx=%d cur=%s goal=%d air=%d>%d air_x=%.0f stuck=%.2f events=%d" % [_time, p.global_position.round(), p.velocity.round(), p._state_machine.current_state.name, b.move_direction, b.jump_held, ",".join(moves), b._path_index, cur, b._goal_point, b._air_move_from, b._air_move_to, b._air_target_x, b._stuck_timer, b._stuck_events.size()]))
+						print("TRACE t=%.1f pos=%s v=%s st=%s dir=%.1f jump=%s path=%s idx=%d cur=%s goal=%d air=%d>%d air_x=%.0f stuck=%.2f events=%d" % [_time, p.global_position.round(), p.velocity.round(), p._state_machine.current_state.name, b.move_direction, b.jump_held, ",".join(moves), b._path_index, cur, b._goal_point, b._air_move_from, b._air_move_to, b._air_target_x, b._stuck_timer, b._memory.stuck_count()]))
 			_at(seconds, "call", func(): _report_loops())
 			_at(seconds + 0.2, "quit")
+		"bot_hazards":
+			# Two bots (BF_BOT_LEVEL, default hard) on BF_WORLD for BF_SECONDS with weapon parts that make hazards
+			# and conditions: BF_P1_PARTS / BF_P2_PARTS ("id:mark,id:mark", default fire rounds MK III and
+			# sniper barrel MK III for P1, shocking rounds MK II for P2). Prints HAZ lines per bot: seconds stood
+			# in enemy fire (and while it existed near them), burn damage, seconds marked with the average
+			# distance and the share of it in the marker's line of fire, seconds with a broken guard with the
+			# block presses and dodges in it.
+			_at(0.2, "call", func(): root.get_node("UserSettings").set_value(&"gameplay_hitstop", false))
+			_at(0.3, "call", func():
+				root.get_node("UserSettings").set_value(&"progress_bot_world", OS.get_environment("BF_WORLD") if OS.has_environment("BF_WORLD") else "verdant")
+				root.get_node("NetworkSession").start_bot_duel()
+				_main.start_game())
+			_at(0.8, "call", func():
+				var level: int = int(OS.get_environment("BF_BOT_LEVEL")) if OS.has_environment("BF_BOT_LEVEL") else 2
+				_stress_game().get_player_by_slot(1).configure_ai_control(1, level)
+				_stress_game().get_player_by_slot(2).configure_ai_control(2, level)
+				_give_parts(1, OS.get_environment("BF_P1_PARTS") if OS.has_environment("BF_P1_PARTS") else "fire_rounds_mk1:3,sniper_barrel_mk1:3")
+				_give_parts(2, OS.get_environment("BF_P2_PARTS") if OS.has_environment("BF_P2_PARTS") else "shocking_rounds_mk1:2")
+				_hooks.append(_watch_hazard_play))
+			var haz_seconds: float = float(OS.get_environment("BF_SECONDS")) if OS.has_environment("BF_SECONDS") else 120.0
+			_at(haz_seconds, "call", func(): _report_hazard_play())
+			_at(haz_seconds + 0.2, "quit")
+		"bot_fire_escape":
+			# A hard bot (P2) in a bot duel gets a 130 px fire patch lit under its feet every 4 s (P1 frozen out of
+			# the way); prints how long it stood in it each time (FIRE lines) and the average (FIRES).
+			_at(0.2, "call", func(): root.get_node("UserSettings").set_value(&"gameplay_hitstop", false))
+			_at(0.3, "call", func():
+				root.get_node("UserSettings").set_value(&"progress_bot_world", OS.get_environment("BF_WORLD") if OS.has_environment("BF_WORLD") else "verdant")
+				root.get_node("NetworkSession").start_bot_duel()
+				_main.start_game())
+			_at(0.8, "call", func(): _stress_game().get_player_by_slot(2).configure_ai_control(2, 2))
+			for k in range(8):
+				_at(4.0 + float(k) * 4.0, "call", func():
+					var p2 = _stress_game().get_player_by_slot(2)
+					if not p2.is_grounded():
+						print("FIRE skip (airborne)")
+						return
+					load("res://scenes/weapons/extensions/effects/fire_patch.gd").ignite(_stress_game(), p2.global_position, 1, {"width": 130.0, "duration": 3.5, "damage": 3.0, "tick": 0.4})
+					_fire_trial = {"start": _time, "out": -1.0})
+			_hooks.append(_watch_fire_escape)
+			_at(36.5, "call", func(): print("FIRES avg_in=%.2fs over %d" % [_fire_total / maxf(float(_fire_count), 1.0), _fire_count]))
+			_at(36.7, "quit")
 		"slide_probe":
 			# Sliding on a private rig (arena terrain removed): floor top 640, a low tunnel at x 700-900 (its
 			# ceiling 30 px above the floor: too low to stand, high enough to slide) and a dead-end pocket at
@@ -3144,9 +3186,9 @@ func _watch_dashes() -> void:
 			print("SLIDE start slot=%d t=%.2f x=%.0f" % [slot, _time, p.global_position.x])
 		_dash_was[slot + 10] = sliding
 		if OS.has_environment("BF_SLIDE_TRACE") and p.ai_brain != null:
-			var planned: bool = p.ai_brain._pending_slide_time >= 0.0
+			var planned: bool = p.ai_brain._timed.is_pending(&"slide")
 			if planned and not bool(_dash_was.get(slot + 20, false)):
-				print("PLAN slide slot=%d t=%.2f dir=%+.0f grounded=%s state=%s" % [slot, _time, p.ai_brain._pending_slide_direction, p.is_grounded(), p._state_machine.current_state.name])
+				print("PLAN slide slot=%d t=%.2f dir=%+.0f grounded=%s state=%s" % [slot, _time, float(p.ai_brain._timed.data_of(&"slide")), p.is_grounded(), p._state_machine.current_state.name])
 			_dash_was[slot + 20] = planned
 
 
@@ -3504,7 +3546,7 @@ func _watch_loops() -> void:
 		var next_move: String = "-"
 		if b._path_index > 0 and b._path_index < b._path.size():
 			next_move = "%d>%d:%d" % [b._path[b._path_index - 1], b._path[b._path_index], int(b._nav.get_move(int(b._path[b._path_index - 1]), int(b._path[b._path_index]))["move"])]
-		print("LTRACE t=%.1f P%d pos=%s v=%s st=%s dir=%.1f jump=%s idx=%d/%d last_move=%s cur=%s goal=%d air=%d>%d airborne=%s stuck=%.2f events=%d avoid=%d fidget=%.0f" % [_time, _loop_trace_slot, p.global_position.round(), p.velocity.round(), p._state_machine.current_state.name, b.move_direction, b.jump_held, b._path_index, b._path.size(), next_move, cur.round() if cur != Vector2.INF else cur, b._goal_point, b._air_move_from, b._air_move_to, b._air_move_airborne, b._stuck_timer, b._stuck_events.size(), b._avoid_edges.size(), b._fidget_x])
+		print("LTRACE t=%.1f P%d pos=%s v=%s st=%s dir=%.1f jump=%s idx=%d/%d last_move=%s cur=%s goal=%d air=%d>%d airborne=%s stuck=%.2f events=%d avoid=%d fidget=%.0f" % [_time, _loop_trace_slot, p.global_position.round(), p.velocity.round(), p._state_machine.current_state.name, b.move_direction, b.jump_held, b._path_index, b._path.size(), next_move, cur.round() if cur != Vector2.INF else cur, b._goal_point, b._air_move_from, b._air_move_to, b._air_move_airborne, b._stuck_timer, b._memory.stuck_count(), b._memory.avoided_count(), b._fidget_x])
 
 
 func _report_loops() -> void:
@@ -3512,3 +3554,98 @@ func _report_loops() -> void:
 	for slot in [1, 2]:
 		var p = _stress_game().get_player_by_slot(slot)
 		print("MOVES P%d air_jumps=%d slams=%d" % [slot, p._air_jump_count, int(_loop_slams.get(slot, 0))])
+
+
+# --- Bot hazard / condition play ------------------------------------------------------------------------------
+
+var _haz: Dictionary = {}
+var _haz_last: float = 0.0
+
+
+## Equips a bot's slot with parts from "id:mark,id:mark" (the bot keeps them between sets).
+func _give_parts(slot: int, spec: String) -> void:
+	var inv = root.get_node("ExtensionInventory")
+	for entry in spec.split(",", false):
+		var bits: PackedStringArray = entry.split(":")
+		var definition = load("res://scenes/weapons/extensions/%s.tres" % bits[0])
+		var item = load("res://scenes/weapons/extensions/weapon_extension_item.gd").create(definition, 100.0, int(bits[1]) if bits.size() > 1 else 1)
+		inv.add_item_for_player(slot, item)
+		inv.equip_item_for_player(slot, item)
+	print("HAZ P%d parts=%s" % [slot, spec])
+
+
+func _watch_hazard_play() -> void:
+	var g = _stress_game()
+	if g == null:
+		return
+	var delta: float = _time - _haz_last
+	_haz_last = _time
+	if delta <= 0.0 or delta > 0.2:
+		return
+	for slot in [1, 2]:
+		var p = g.get_player_by_slot(slot)
+		var other = g.get_player_by_slot(3 - slot)
+		if p == null or other == null or p.is_eliminated() or not p.movement_enabled:
+			continue
+		var stats: Dictionary = _haz.get(slot, {"fire_in": 0.0, "fire_near": 0.0, "burn_hp": 0, "marked": 0.0, "marked_dist": 0.0, "marked_los": 0.0, "broken": 0.0, "broken_blocks": 0, "broken_dodges": 0, "hp_last": p.health_component.health})
+		var hazards: Array[Dictionary] = BotHazardsRef().collect(get_root_tree(), slot)
+		var danger: float = BotHazardsRef().danger_at(hazards, p.global_position)
+		if danger > 0.0:
+			stats["fire_in"] = float(stats["fire_in"]) + delta
+		for hazard in hazards:
+			if (hazard["area"] as Rect2).grow(160.0).has_point(p.global_position):
+				stats["fire_near"] = float(stats["fire_near"]) + delta
+				break
+		var effects = p.status_effect_manager
+		if effects.has_effect(&"burn") or danger > 0.0:
+			stats["burn_hp"] = int(stats["burn_hp"]) + maxi(int(stats["hp_last"]) - p.health_component.health, 0)
+		if effects.has_mark_from(other.player_slot):
+			stats["marked"] = float(stats["marked"]) + delta
+			stats["marked_dist"] = float(stats["marked_dist"]) + p.global_position.distance_to(other.global_position) * delta
+			var query := PhysicsRayQueryParameters2D.create(other.global_position, p.global_position, 1, [other.get_rid(), p.get_rid()])
+			if p.get_world_2d().direct_space_state.intersect_ray(query).is_empty():
+				stats["marked_los"] = float(stats["marked_los"]) + delta
+		if p.is_guard_broken():
+			stats["broken"] = float(stats["broken"]) + delta
+			if p.ai_brain.block_pressed:
+				stats["broken_blocks"] = int(stats["broken_blocks"]) + 1
+			if p.ai_brain.dash_pressed or p.ai_brain.jump_pressed or p.ai_brain.slide_pressed:
+				stats["broken_dodges"] = int(stats["broken_dodges"]) + 1
+		stats["hp_last"] = p.health_component.health
+		_haz[slot] = stats
+
+
+func BotHazardsRef():
+	return load("res://scenes/player/bot/bot_hazards.gd")
+
+
+func get_root_tree() -> SceneTree:
+	return self
+
+
+func _report_hazard_play() -> void:
+	for slot in [1, 2]:
+		var st: Dictionary = _haz.get(slot, {})
+		if st.is_empty():
+			continue
+		var marked: float = maxf(float(st["marked"]), 0.001)
+		print("HAZ P%d fire_in=%.1fs fire_near=%.1fs burn_hp=%d marked=%.1fs avg_dist=%.0f los_share=%.2f broken=%.1fs blocks=%d dodges=%d" % [slot, float(st["fire_in"]), float(st["fire_near"]), int(st["burn_hp"]), float(st["marked"]), float(st["marked_dist"]) / marked, float(st["marked_los"]) / marked, float(st["broken"]), int(st["broken_blocks"]), int(st["broken_dodges"])])
+
+
+var _fire_trial: Dictionary = {}
+var _fire_total: float = 0.0
+var _fire_count: int = 0
+
+
+func _watch_fire_escape() -> void:
+	if _fire_trial.is_empty() or _stress_game() == null:
+		return
+	var p2 = _stress_game().get_player_by_slot(2)
+	var hazards: Array[Dictionary] = BotHazardsRef().collect(self, 2)
+	var inside: bool = BotHazardsRef().danger_at(hazards, p2.global_position) > 0.0
+	if not inside or _time - float(_fire_trial["start"]) > 3.4:
+		var stood: float = _time - float(_fire_trial["start"])
+		print("FIRE stood=%.2fs out=%s state=%s" % [stood, not inside, p2._state_machine.current_state.name])
+		_fire_total += stood
+		_fire_count += 1
+		_fire_trial = {}

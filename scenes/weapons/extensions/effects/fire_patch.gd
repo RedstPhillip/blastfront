@@ -7,7 +7,8 @@ extends Node2D
 ## sets them burning (the "burn" status) the moment they step out or the fire dies under them, and stepping
 ## back in puts that burn out, so the two never burn at once. Each fighter burns at most once per `tick`, so
 ## dancing on the edge burns no faster than standing in it. A new patch next to one of the same owner
-## refreshes it instead of stacking, so a shotgun volley makes one fire, not seven.
+## refreshes it instead of stacking, so a shotgun volley makes one fire, not seven. Bots see it as a hazard
+## (BotHazards) and keep out of it.
 
 const MAX_PER_OWNER: int = 4
 const FADE_IN: float = 0.15
@@ -73,6 +74,7 @@ static func ignite(world: Node, impact: Vector2, source_slot: int, data: Diction
 
 func _ready() -> void:
 	add_to_group(&"fire_patches")
+	add_to_group(BotHazards.GROUP)
 	z_index = 4
 	_seed = randf() * 100.0
 
@@ -123,7 +125,25 @@ func _physics_process(delta: float) -> void:
 
 
 func _covers(body: Vector2) -> bool:
-	return absf(body.x - global_position.x) < width * 0.5 + 10.0 and body.y > global_position.y - 60.0 and body.y < global_position.y + 10.0
+	return get_bot_hazard_area().has_point(body)
+
+
+# --- Bot hazard (see BotHazards) ---------------------------------------------------------------------------
+
+func get_bot_hazard_area() -> Rect2:
+	return Rect2(global_position.x - width * 0.5 - 10.0, global_position.y - 60.0, width + 20.0, 70.0)
+
+
+func get_bot_hazard_danger() -> float:
+	return float(damage) / 3.0
+
+
+func get_bot_hazard_owner() -> int:
+	return owner_slot
+
+
+func get_bot_hazard_time_left() -> float:
+	return maxf(duration - _age, 0.0)
 
 
 func _judges_hits() -> bool:

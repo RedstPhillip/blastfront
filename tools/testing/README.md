@@ -113,6 +113,11 @@ Pillow (`ImageChops.difference`) when a change should be pixel-identical.
   keeps moving inside a small box for 6 s (many turns or jumps) and prints `LOOP` lines with its goal, path and
   states, a short `LTRACE` of the first loop with the target far away, and `MOVES` counts of air jumps and slams;
   a "far" loop, with the target over 400 px away, is the real kind; near ones are mostly close-range footwork),
+  `bot_hazards` (two bots with parts that make hazards and conditions, `BF_P1_PARTS` / `BF_P2_PARTS` as
+  `id:mark,...`, default fire rounds + sniper MK III against shocking rounds MK II: seconds stood in enemy fire
+  and near it, burn damage, seconds marked with the average distance and the share in the marker's line of
+  fire, seconds with a broken guard with blocks and dodges; prints `HAZ` lines), `bot_fire_escape` (a hard bot
+  gets fire lit under its feet every 4 s; prints how long it stood in it, `FIRE` / `FIRES`),
   `bot_watch` (two hard bots, state log every 1.5 s, `BF_WORLD`), `bot_spawn_look` (screenshots of
   the left spawn, where a navigation bug once kept a bot hopping)
 - **Economy / loadout interaction:** `sell_test`, `sell_equipped`, `botshop`, `shoptour`, `lo_interact`, `loadout_inter`

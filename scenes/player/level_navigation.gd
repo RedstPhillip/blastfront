@@ -122,15 +122,18 @@ func nearest_point(world_feet: Vector2, max_distance: float = 140.0) -> int:
 
 ## A path for a bot that can climb walls up to `climb_reach` px (see wall_climb_reach); climbs higher than
 ## that are never part of it.
-## avoid: edge keys (see edge_key) the asking bot failed recently; they cost AVOID_PENALTY times more, so
-## the path goes round them when there is another way and still uses them when there is none.
-func find_path(from_id: int, to_id: int, climb_reach: float = 0.0, avoid: Dictionary = {}) -> PackedInt64Array:
+## avoid: edge keys (see edge_key) the asking bot failed recently; avoid_points: point ids it would rather not
+## set foot on (hazards). Both cost AVOID_PENALTY times more, so the path goes round them when there is
+## another way and still uses them when there is none.
+func find_path(from_id: int, to_id: int, climb_reach: float = 0.0, avoid: Dictionary = {}, avoid_points: Dictionary = {}) -> PackedInt64Array:
 	if from_id < 0 or to_id < 0:
 		return PackedInt64Array()
 	_astar.climb_reach = climb_reach
 	_astar.avoid = avoid
+	_astar.avoid_points = avoid_points
 	var path: PackedInt64Array = _astar.get_id_path(from_id, to_id)
 	_astar.avoid = {}
+	_astar.avoid_points = {}
 	for index in range(path.size() - 1):
 		if float(_astar.climb_heights.get(_edge_key(int(path[index]), int(path[index + 1])), 0.0)) > climb_reach:
 			return PackedInt64Array()
@@ -423,15 +426,16 @@ class NavAStar:
 	## Height of every climb edge, and how high the bot asking for a path can climb.
 	var climb_heights: Dictionary = {}
 	var climb_reach: float = 0.0
-	## Edges the asking bot failed lately (see LevelNavigation.find_path).
+	## Edges the asking bot failed lately and points it keeps off (see LevelNavigation.find_path).
 	var avoid: Dictionary = {}
+	var avoid_points: Dictionary = {}
 
 	func _compute_cost(from_id: int, to_id: int) -> float:
 		var key: int = from_id * 100000 + to_id
 		if float(climb_heights.get(key, 0.0)) > climb_reach:
 			return 1.0e9
 		var weight: float = float(edge_weights.get(key, 1.0))
-		if avoid.has(key):
+		if avoid.has(key) or avoid_points.has(to_id):
 			weight *= AVOID_PENALTY
 		return get_point_position(from_id).distance_to(get_point_position(to_id)) * weight
 

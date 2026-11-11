@@ -886,6 +886,7 @@ func _play_payload_feedback(impact_position: Vector2) -> void:
 	var grenade: Variant = extension_effects.get("grenade", extension_effects.get(&"grenade"))
 	if grenade is Dictionary:
 		var fx: GrenadeFx = GrenadeFx.new()
+		fx.owner_slot = owner_slot
 		fx.fuse = float((grenade as Dictionary).get("delay", 0.5))
 		fx.radius = float((grenade as Dictionary).get("radius", 80.0))
 		var world: Node = get_tree().get_first_node_in_group(GameSettings.GAME_WORLD_GROUP)

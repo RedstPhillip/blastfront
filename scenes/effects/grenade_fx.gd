@@ -2,7 +2,8 @@ class_name GrenadeFx
 extends Node2D
 
 ## Visual for a primed grenade: blinking charge with a shrinking danger ring that accelerates its beeps,
-## then a full explosion. Purely cosmetic; damage is resolved by gameplay code.
+## then a full explosion. Purely cosmetic; damage is resolved by gameplay code. Until it goes off bots see it
+## as a hazard (BotHazards) and get out of its blast.
 
 const GLOW_TEXTURE: Texture2D = preload("res://assets/fx/glow.png")
 const RING_TEXTURE: Texture2D = preload("res://assets/fx/ring.png")
@@ -10,6 +11,8 @@ const RING_TEXTURE: Texture2D = preload("res://assets/fx/ring.png")
 var fuse: float = 0.5
 var radius: float = 80.0
 var tint: Color = Color(1.0, 0.45, 0.12, 1.0)
+## Whose grenade it is (its blast never hurts them).
+var owner_slot: int = 0
 
 var _elapsed: float = 0.0
 var _next_beep: float = 0.0
@@ -19,6 +22,7 @@ var _ring: Sprite2D = null
 
 func _ready() -> void:
 	z_index = 8
+	add_to_group(BotHazards.GROUP)
 	_ring = Sprite2D.new()
 	_ring.texture = RING_TEXTURE
 	_ring.material = FxLib.additive_material()
@@ -53,3 +57,25 @@ func _beep() -> void:
 	var remaining: float = maxf(fuse - _elapsed, 0.0)
 	_next_beep = _elapsed + clampf(remaining * 0.35, 0.07, 0.3)
 	AudioDirector.play_at(&"grenade_arm", global_position, 0.0, 1.0 + (1.0 - remaining / maxf(fuse, 0.01)) * 0.4)
+
+
+# --- Bot hazard (see BotHazards) ---------------------------------------------------------------------------
+
+func get_bot_hazard_area() -> Rect2:
+	return Rect2(global_position - Vector2(radius, radius), Vector2(radius, radius) * 2.0)
+
+
+func bot_hazard_covers(body: Vector2) -> bool:
+	return body.distance_to(global_position) < radius
+
+
+func get_bot_hazard_danger() -> float:
+	return 2.0 if _elapsed < fuse else 0.0
+
+
+func get_bot_hazard_owner() -> int:
+	return owner_slot
+
+
+func get_bot_hazard_time_left() -> float:
+	return maxf(fuse - _elapsed, 0.0)
